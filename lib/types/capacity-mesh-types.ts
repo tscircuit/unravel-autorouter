@@ -1,20 +1,20 @@
-export type CapacityMeshNodeId = string;
+export type CapacityMeshNodeId = string
 
 export interface CapacityMesh {
-	nodes: CapacityMeshNode[];
-	edges: CapacityMeshEdge[];
+  nodes: CapacityMeshNode[]
+  edges: CapacityMeshEdge[]
 }
 
 export interface CapacityMeshNode {
-	capacityMeshNodeId: string;
-	center: { x: number; y: number };
-	width: number;
-	height: number;
-	layer: string;
-	totalCapacity: number;
+  capacityMeshNodeId: string
+  center: { x: number; y: number }
+  width: number
+  height: number
+  layer: string
+  totalCapacity: number
 }
 
 export interface CapacityMeshEdge {
-	capacityMeshEdgeId: string;
-	nodeIds: [CapacityMeshNodeId, CapacityMeshNodeId];
+  capacityMeshEdgeId: string
+  nodeIds: [CapacityMeshNodeId, CapacityMeshNodeId]
 }

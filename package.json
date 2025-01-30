@@ -11,5 +11,8 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "use-mouse-matrix-transform": "^1.3.0"
   }
 }
