@@ -6,6 +6,7 @@
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "latest",
     "@vitejs/plugin-react": "^4.3.4",
+    "bun-match-svg": "^0.0.9",
     "react-cosmos": "^6.2.3",
     "vite": "^6.0.11"
   },
