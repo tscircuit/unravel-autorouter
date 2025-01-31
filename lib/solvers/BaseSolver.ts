@@ -1,3 +1,5 @@
+import type { GraphicsObject } from "graphics-debug"
+
 export class BaseSolver {
   MAX_ITERATIONS = 1000
   solved = false
@@ -13,6 +15,15 @@ export class BaseSolver {
       if (iters > this.MAX_ITERATIONS) {
         throw new Error("Solver did not converge")
       }
+    }
+  }
+
+  visualize(): GraphicsObject {
+    return {
+      lines: [],
+      points: [],
+      rects: [],
+      circles: [],
     }
   }
 }

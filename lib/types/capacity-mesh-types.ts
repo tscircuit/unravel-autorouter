@@ -12,6 +12,14 @@ export interface CapacityMeshNode {
   height: number
   layer: string
   totalCapacity: number
+
+  _depth?: number
+
+  _completelyInsideObstacle?: boolean
+  _containsObstacle?: boolean
+  _containsTarget?: boolean
+
+  _parent?: CapacityMeshNode
 }
 
 export interface CapacityMeshEdge {
