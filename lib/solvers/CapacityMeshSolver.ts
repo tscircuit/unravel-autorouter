@@ -47,20 +47,63 @@ export class CapacityMeshSolver extends BaseSolver {
     return (this.MAX_DEPTH - depth) ** 2
   }
 
+  /**
+   * Checks if the given mesh node overlaps with any obstacle.
+   * We treat both obstacles and nodes as axis‐aligned rectangles.
+   */
   doesNodeContainObstacle(node: CapacityMeshNode): boolean {
     const obstacles = this.srj.obstacles
+    // Compute node bounds
+    const nodeLeft = node.center.x - node.width / 2
+    const nodeRight = node.center.x + node.width / 2
+    const nodeTop = node.center.y - node.height / 2
+    const nodeBottom = node.center.y + node.height / 2
+
     for (const obstacle of obstacles) {
-      const { center, width, height } = obstacle
-      // TODO
+      const obsLeft = obstacle.center.x - obstacle.width / 2
+      const obsRight = obstacle.center.x + obstacle.width / 2
+      const obsTop = obstacle.center.y - obstacle.height / 2
+      const obsBottom = obstacle.center.y + obstacle.height / 2
+
+      // Check for intersection.
+      if (
+        nodeRight >= obsLeft &&
+        nodeLeft <= obsRight &&
+        nodeBottom >= obsTop &&
+        nodeTop <= obsBottom
+      ) {
+        return true
+      }
     }
     return false
   }
 
+  /**
+   * Checks if the entire node is contained within any obstacle.
+   */
   isNodeCompletelyInsideObstacle(node: CapacityMeshNode): boolean {
     const obstacles = this.srj.obstacles
+    // Compute node bounds
+    const nodeLeft = node.center.x - node.width / 2
+    const nodeRight = node.center.x + node.width / 2
+    const nodeTop = node.center.y - node.height / 2
+    const nodeBottom = node.center.y + node.height / 2
+
     for (const obstacle of obstacles) {
-      const { center, width, height } = obstacle
-      // TODO
+      const obsLeft = obstacle.center.x - obstacle.width / 2
+      const obsRight = obstacle.center.x + obstacle.width / 2
+      const obsTop = obstacle.center.y - obstacle.height / 2
+      const obsBottom = obstacle.center.y + obstacle.height / 2
+
+      // Check if the node's bounds are completely inside the obstacle's bounds.
+      if (
+        nodeLeft >= obsLeft &&
+        nodeRight <= obsRight &&
+        nodeTop >= obsTop &&
+        nodeBottom <= obsBottom
+      ) {
+        return true
+      }
     }
     return false
   }
@@ -141,13 +184,70 @@ export class CapacityMeshSolver extends BaseSolver {
     this.finishedNodes.push(...finishedNewNodes)
   }
 
+  /**
+   * Creates a GraphicsObject to visualize the mesh, its nodes, and obstacles.
+   *
+   * - Mesh nodes are rendered as rectangles.
+   *   - Nodes that have an obstacle intersection are outlined in red.
+   *   - Other nodes are outlined in green.
+   * - Lines are drawn from a node to its parent.
+   * - Obstacles are drawn as semi-transparent red rectangles.
+   */
   visualize(): GraphicsObject {
-    // TODO
-    return {
+    const graphics: GraphicsObject = {
       lines: [],
       points: [],
       rects: [],
       circles: [],
+      coordinateSystem: "cartesian",
+      title: "Capacity Mesh Visualization",
     }
+
+    // Draw mesh nodes (both finished and unfinished)
+    const allNodes = [...this.finishedNodes, ...this.unfinishedNodes]
+    for (const node of allNodes) {
+      // Choose stroke color: red if the node overlaps an obstacle, green otherwise.
+      const strokeColor = node._containsObstacle ? "red" : "green"
+      graphics.rects!.push({
+        center: node.center,
+        width: node.width,
+        height: node.height,
+        fill: "none",
+        stroke: strokeColor,
+        label: node.capacityMeshNodeId,
+      })
+
+      // Optionally add a point at the node center.
+      graphics.points!.push({
+        x: node.center.x,
+        y: node.center.y,
+        label: node.capacityMeshNodeId,
+        color: strokeColor,
+      })
+
+      // Draw a line from the node to its parent (if it exists)
+      if (node._parent) {
+        graphics.lines!.push({
+          points: [node._parent.center, node.center],
+          strokeWidth: 1,
+          strokeColor: "gray",
+          label: "parent connection",
+        })
+      }
+    }
+
+    // Draw obstacles
+    for (const obstacle of this.srj.obstacles) {
+      graphics.rects!.push({
+        center: obstacle.center,
+        width: obstacle.width,
+        height: obstacle.height,
+        fill: "rgba(255,0,0,0.3)",
+        stroke: "red",
+        label: "obstacle",
+      })
+    }
+
+    return graphics
   }
 }

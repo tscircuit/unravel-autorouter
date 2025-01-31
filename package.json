@@ -7,16 +7,18 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@react-hook/resize-observer": "^2.0.2",
     "@types/bun": "latest",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "bun-match-svg": "^0.0.9",
-    "react": "^19.0.0",
+    "react": "18",
     "react-cosmos": "^6.2.3",
     "react-cosmos-plugin-vite": "^6.2.0",
-    "react-dom": "^19.0.0",
-    "vite": "^6.0.11"
+    "react-dom": "18",
+    "vite": "^6.0.11",
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
