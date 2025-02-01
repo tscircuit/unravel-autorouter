@@ -2,6 +2,7 @@ import { InteractiveGraphics } from "graphics-debug/react"
 import { CapacityMeshNodeSolver } from "../lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver"
 import { CapacityMeshEdgeSolver } from "../lib/solvers/CapacityMeshSolver/CapacityMeshEdgeSolver"
 import type { SimpleRouteJson } from "../lib/types"
+import { CapacityMeshSolver } from "../lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
 
 const simpleSrj: SimpleRouteJson = {
   bounds: {
@@ -60,19 +61,7 @@ const simpleSrj: SimpleRouteJson = {
 }
 
 export default () => {
-  // Solve for mesh nodes using the CapacityMeshNodeSolver
-  const nodeSolver = new CapacityMeshNodeSolver(simpleSrj)
-  while (!nodeSolver.solved) {
-    nodeSolver.step()
-  }
-
-  // Combine finished and unfinished nodes for edge solving
-  const allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
-
-  // Solve for mesh edges
-  const edgeSolver = new CapacityMeshEdgeSolver(allNodes)
-  edgeSolver.solve()
-
-  // Render the visualization using InteractiveGraphics
-  return <InteractiveGraphics graphics={edgeSolver.visualize()} />
+  const solver = new CapacityMeshSolver(simpleSrj)
+  solver.solve()
+  return <InteractiveGraphics graphics={solver.visualize()} />
 }

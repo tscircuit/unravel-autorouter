@@ -1,11 +1,11 @@
 import type { GraphicsObject } from "graphics-debug"
-import { BaseSolver } from "./BaseSolver"
+import { BaseSolver } from "../BaseSolver"
 import type {
   CapacityMeshEdge,
   CapacityMeshNode,
   SimpleRouteJson,
-} from "../types"
-import { COLORS } from "./colors"
+} from "../../types"
+import { COLORS } from "../colors"
 
 export class CapacityMeshNodeSolver extends BaseSolver {
   unfinishedNodes: CapacityMeshNode[]
@@ -43,7 +43,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   }
 
   getCapacityFromDepth(depth: number): number {
-    return (this.MAX_DEPTH - depth) ** 2
+    return (this.MAX_DEPTH - depth + 1) ** 2
   }
 
   doesNodeContainTarget(node: CapacityMeshNode) {

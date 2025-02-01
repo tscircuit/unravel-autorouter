@@ -1,12 +1,20 @@
 import type { GraphicsObject } from "graphics-debug"
-import type { CapacityMeshNode } from "../types/capacity-mesh-types"
-import { BaseSolver } from "./BaseSolver"
+import type {
+  CapacityMeshEdge,
+  CapacityMeshNode,
+} from "../../types/capacity-mesh-types"
+import { BaseSolver } from "../BaseSolver"
 
 export class CapacityMeshEdgeSolver extends BaseSolver {
-  public edges: { from: CapacityMeshNode; to: CapacityMeshNode }[] = []
+  public edges: Array<CapacityMeshEdge>
 
   constructor(public nodes: CapacityMeshNode[]) {
     super()
+    this.edges = []
+  }
+
+  getNextCapacityMeshEdgeId() {
+    return `ce${this.edges.length}`
   }
 
   step() {
@@ -14,7 +22,13 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
         if (this.areNodesBordering(this.nodes[i], this.nodes[j])) {
-          this.edges.push({ from: this.nodes[i], to: this.nodes[j] })
+          this.edges.push({
+            capacityMeshEdgeId: this.getNextCapacityMeshEdgeId(),
+            nodeIds: [
+              this.nodes[i].capacityMeshNodeId,
+              this.nodes[j].capacityMeshNodeId,
+            ],
+          })
         }
       }
     }
@@ -65,9 +79,17 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
       circles: [],
     }
     for (const edge of this.edges) {
-      graphics.lines!.push({
-        points: [edge.from.center, edge.to.center],
-      })
+      const node1 = this.nodes.find(
+        (node) => node.capacityMeshNodeId === edge.nodeIds[0],
+      )
+      const node2 = this.nodes.find(
+        (node) => node.capacityMeshNodeId === edge.nodeIds[1],
+      )
+      if (node1?.center && node2?.center) {
+        graphics.lines!.push({
+          points: [node1.center, node2.center],
+        })
+      }
     }
     return graphics
   }

@@ -18,6 +18,7 @@ export interface GraphicsObject {
     height: number
     fill?: string
     stroke?: string
+    label?: string
     layer?: string
     step?: number
   }>
