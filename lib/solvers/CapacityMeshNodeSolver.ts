@@ -7,10 +7,9 @@ import type {
 } from "../types"
 import { COLORS } from "./colors"
 
-export class CapacityMeshSolver extends BaseSolver {
+export class CapacityMeshNodeSolver extends BaseSolver {
   unfinishedNodes: CapacityMeshNode[]
   finishedNodes: CapacityMeshNode[]
-  edges: CapacityMeshEdge[]
 
   MAX_DEPTH = 4
 
@@ -36,7 +35,6 @@ export class CapacityMeshSolver extends BaseSolver {
       },
     ]
     this.finishedNodes = []
-    this.edges = []
   }
 
   _nextNodeCounter = 0

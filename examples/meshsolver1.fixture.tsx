@@ -1,8 +1,8 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import { CapacityMeshSolver } from "../lib/solvers/CapacityMeshSolver"
+import { CapacityMeshNodeSolver } from "../lib/solvers/CapacityMeshNodeSolver"
 
 export default () => {
-  const meshSolver = new CapacityMeshSolver({
+  const meshSolver = new CapacityMeshNodeSolver({
     bounds: {
       minX: 0,
       maxX: 100,
