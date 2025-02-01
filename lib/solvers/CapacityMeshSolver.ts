@@ -5,6 +5,7 @@ import type {
   CapacityMeshNode,
   SimpleRouteJson,
 } from "../types"
+import { COLORS } from "./colors"
 
 export class CapacityMeshSolver extends BaseSolver {
   unfinishedNodes: CapacityMeshNode[]
@@ -45,6 +46,22 @@ export class CapacityMeshSolver extends BaseSolver {
 
   getCapacityFromDepth(depth: number): number {
     return (this.MAX_DEPTH - depth) ** 2
+  }
+
+  doesNodeContainTarget(node: CapacityMeshNode) {
+    const targets = this.srj.connections.flatMap((c) => c.pointsToConnect)
+    for (const target of targets) {
+      if (target.layer !== node.layer) continue
+      if (
+        target.x >= node.center.x - node.width / 2 &&
+        target.x <= node.center.x + node.width / 2 &&
+        target.y >= node.center.y - node.height / 2 &&
+        target.y <= node.center.y + node.height / 2
+      ) {
+        return true
+      }
+    }
+    return false
   }
 
   /**
@@ -144,6 +161,7 @@ export class CapacityMeshSolver extends BaseSolver {
         _depth: (parent._depth ?? 0) + 1,
         _parent: parent,
       }
+      childNode._containsTarget = this.doesNodeContainTarget(childNode)
       childNode._containsObstacle = this.doesNodeContainObstacle(childNode)
       if (childNode._containsObstacle) {
         childNode._completelyInsideObstacle =
@@ -157,7 +175,11 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   shouldNodeBeSubdivided(node: CapacityMeshNode) {
-    return node._depth !== this.MAX_DEPTH
+    return (
+      node._depth !== this.MAX_DEPTH &&
+      (node._containsObstacle || node._containsTarget) &&
+      !node._completelyInsideObstacle
+    )
   }
 
   step() {
@@ -173,9 +195,10 @@ export class CapacityMeshSolver extends BaseSolver {
     const unfinishedNewNodes: CapacityMeshNode[] = []
 
     for (const newNode of newNodes) {
-      if (this.shouldNodeBeSubdivided(newNode)) {
+      const shouldBeSubdivided = this.shouldNodeBeSubdivided(newNode)
+      if (shouldBeSubdivided) {
         unfinishedNewNodes.push(newNode)
-      } else {
+      } else if (!shouldBeSubdivided && !newNode._containsObstacle) {
         finishedNewNodes.push(newNode)
       }
     }
@@ -185,13 +208,14 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   /**
-   * Creates a GraphicsObject to visualize the mesh, its nodes, and obstacles.
+   * Creates a GraphicsObject to visualize the mesh, its nodes, obstacles, and connection points.
    *
    * - Mesh nodes are rendered as rectangles.
    *   - Nodes that have an obstacle intersection are outlined in red.
    *   - Other nodes are outlined in green.
    * - Lines are drawn from a node to its parent.
    * - Obstacles are drawn as semi-transparent red rectangles.
+   * - Points for each connection’s pointsToConnect are drawn in a unique color.
    */
   visualize(): GraphicsObject {
     const graphics: GraphicsObject = {
@@ -206,34 +230,13 @@ export class CapacityMeshSolver extends BaseSolver {
     // Draw mesh nodes (both finished and unfinished)
     const allNodes = [...this.finishedNodes, ...this.unfinishedNodes]
     for (const node of allNodes) {
-      // Choose stroke color: red if the node overlaps an obstacle, green otherwise.
-      const strokeColor = node._containsObstacle ? "red" : "green"
       graphics.rects!.push({
         center: node.center,
-        width: node.width,
-        height: node.height,
-        fill: "none",
-        stroke: strokeColor,
+        width: node.width - 2,
+        height: node.height - 2,
+        fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
         label: node.capacityMeshNodeId,
       })
-
-      // Optionally add a point at the node center.
-      graphics.points!.push({
-        x: node.center.x,
-        y: node.center.y,
-        label: node.capacityMeshNodeId,
-        color: strokeColor,
-      })
-
-      // Draw a line from the node to its parent (if it exists)
-      if (node._parent) {
-        graphics.lines!.push({
-          points: [node._parent.center, node.center],
-          strokeWidth: 1,
-          strokeColor: "gray",
-          label: "parent connection",
-        })
-      }
     }
 
     // Draw obstacles
@@ -247,6 +250,19 @@ export class CapacityMeshSolver extends BaseSolver {
         label: "obstacle",
       })
     }
+
+    // Draw connection points (each connection gets a unique color).
+    this.srj.connections.forEach((connection, index) => {
+      const color = COLORS[index % COLORS.length]
+      for (const pt of connection.pointsToConnect) {
+        graphics.points!.push({
+          x: pt.x,
+          y: pt.y,
+          label: `conn-${index}`,
+          color,
+        })
+      }
+    })
 
     return graphics
   }
