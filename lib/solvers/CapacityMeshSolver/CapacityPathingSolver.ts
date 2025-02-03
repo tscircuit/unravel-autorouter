@@ -3,10 +3,12 @@ import type {
   CapacityMeshEdge,
   CapacityMeshNode,
   CapacityMeshNodeId,
+  CapacityPath,
   SimpleRouteConnection,
   SimpleRouteJson,
 } from "../../types"
 import type { GraphicsObject } from "../../types/graphics-debug-types"
+import { getNodeEdgeMap } from "./getNodeEdgeMap"
 
 type Candidate = {
   prevCandidate: Candidate | null
@@ -59,15 +61,7 @@ export class CapacityPathingSolver extends BaseSolver {
     this.nodeMap = new Map(
       this.nodes.map((node) => [node.capacityMeshNodeId, node]),
     )
-    this.nodeEdgeMap = new Map()
-    for (const edge of this.edges) {
-      for (const nodeId of edge.nodeIds) {
-        this.nodeEdgeMap.set(nodeId, [
-          ...(this.nodeEdgeMap.get(nodeId) ?? []),
-          edge,
-        ])
-      }
-    }
+    this.nodeEdgeMap = getNodeEdgeMap(this.edges)
   }
 
   getConnectionsWithNodes() {
@@ -156,6 +150,21 @@ export class CapacityPathingSolver extends BaseSolver {
         edge.nodeIds.filter((n) => n !== node.capacityMeshNodeId),
       )
       .map((n) => this.nodeMap.get(n)!)
+  }
+
+  getCapacityPaths() {
+    const capacityPaths: CapacityPath[] = []
+    for (const connection of this.connectionsWithNodes) {
+      const path = connection.path
+      if (path) {
+        capacityPaths.push({
+          capacityPathId: connection.connection.name,
+          connectionName: connection.connection.name,
+          nodeIds: path.map((node) => node.capacityMeshNodeId),
+        })
+      }
+    }
+    return capacityPaths
   }
 
   step() {

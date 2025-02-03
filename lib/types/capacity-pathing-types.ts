@@ -4,9 +4,6 @@ export type CapacityPathId = string
 
 export interface CapacityPath {
   capacityPathId: CapacityPathId
+  connectionName: string
   nodeIds: CapacityMeshNodeId[]
-}
-
-export interface UsedCapacityMap {
-  [capacityMeshNodeId: CapacityMeshNodeId]: number
 }
