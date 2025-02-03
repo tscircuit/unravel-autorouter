@@ -110,24 +110,34 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
     this.nodePortSegments.forEach((segments, nodeId) => {
       segments.forEach((segment) => {
         const isVertical = segment.start.x === segment.end.x
-        const THICKNESS = 0.75
-        graphics.rects!.push({
-          center: {
-            x: (segment.start.x + segment.end.x) / 2,
-            y: (segment.start.y + segment.end.y) / 2,
-          },
-          width: isVertical
-            ? THICKNESS
-            : Math.abs(segment.end.x - segment.start.x),
-          height: isVertical
-            ? Math.abs(segment.end.y - segment.start.y)
-            : THICKNESS,
-          fill: safeTransparentize(
-            this.colorMap[segment.connectionNames[0]],
-            0.6,
-          ),
-          label: `${nodeId}: ${segment.connectionNames.join(", ")}`,
-        })
+        const THICKNESS = 0.75 / segment.connectionNames.length
+        for (let i = 0; i < segment.connectionNames.length; i++) {
+          const offset = {
+            x: isVertical
+              ? ((i / segment.connectionNames.length - 0.5) / 2) * THICKNESS
+              : 0,
+            y: isVertical
+              ? 0
+              : ((i / segment.connectionNames.length - 0.5) / 2) * THICKNESS,
+          }
+          graphics.rects!.push({
+            center: {
+              x: (segment.start.x + segment.end.x) / 2 + offset.x,
+              y: (segment.start.y + segment.end.y) / 2 + offset.y,
+            },
+            width: isVertical
+              ? THICKNESS
+              : Math.abs(segment.end.x - segment.start.x),
+            height: isVertical
+              ? Math.abs(segment.end.y - segment.start.y)
+              : THICKNESS,
+            fill: safeTransparentize(
+              this.colorMap[segment.connectionNames[0]],
+              0.6,
+            ),
+            label: `${nodeId}: ${segment.connectionNames.join(", ")}`,
+          })
+        }
       })
     })
     return graphics
