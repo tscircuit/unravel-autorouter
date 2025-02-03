@@ -95,9 +95,9 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
       }
     }
 
-    // TODO Combine segments
-
-    this.nodePortSegments.set(nodeId, nodePortSegments)
+    // Combine overlapping or adjacent segments on the same edge.
+    const combinedSegments = combineSegments(nodePortSegments)
+    this.nodePortSegments.set(nodeId, combinedSegments)
   }
 
   visualize(): GraphicsObject {
@@ -108,22 +108,26 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
       circles: [],
     }
     this.nodePortSegments.forEach((segments, nodeId) => {
+      const node = this.nodeMap.get(nodeId)!
       segments.forEach((segment) => {
         const isVertical = segment.start.x === segment.end.x
-        const THICKNESS = 0.75 / segment.connectionNames.length
+        const THICKNESS = 0.5 / segment.connectionNames.length
         for (let i = 0; i < segment.connectionNames.length; i++) {
+          const offsetAmount =
+            (i / (segment.connectionNames.length - 1 + 0.000001) - 0.5) *
+            THICKNESS
           const offset = {
-            x: isVertical
-              ? ((i / segment.connectionNames.length - 0.5) / 2) * THICKNESS
-              : 0,
-            y: isVertical
-              ? 0
-              : ((i / segment.connectionNames.length - 0.5) / 2) * THICKNESS,
+            x: isVertical ? offsetAmount : 0,
+            y: isVertical ? 0 : offsetAmount,
+          }
+          const trueSegmentCenter = {
+            x: (segment.start.x + segment.end.x) / 2 + offset.x,
+            y: (segment.start.y + segment.end.y) / 2 + offset.y,
           }
           graphics.rects!.push({
             center: {
-              x: (segment.start.x + segment.end.x) / 2 + offset.x,
-              y: (segment.start.y + segment.end.y) / 2 + offset.y,
+              x: (trueSegmentCenter.x * 6 + node.center.x) / 7,
+              y: (trueSegmentCenter.y * 6 + node.center.y) / 7,
             },
             width: isVertical
               ? THICKNESS
@@ -132,7 +136,7 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
               ? Math.abs(segment.end.y - segment.start.y)
               : THICKNESS,
             fill: safeTransparentize(
-              this.colorMap[segment.connectionNames[0]],
+              this.colorMap[segment.connectionNames[i]],
               0.6,
             ),
             label: `${nodeId}: ${segment.connectionNames.join(", ")}`,
@@ -190,4 +194,31 @@ function findOverlappingSegment(
       end: { x: xOverlap.end, y },
     }
   }
+}
+
+/**
+ * Given a list of segments on a node, merge segments that are overlapping
+ */
+function combineSegments(segments: NodePortSegment[]): NodePortSegment[] {
+  const mergedSegments: NodePortSegment[] = []
+  const remainingSegments = [...segments]
+  while (remainingSegments.length > 0) {
+    const segmentUnderTest = remainingSegments.pop()!
+    const overlappingMergedSegment = mergedSegments.find((segment) => {
+      return (
+        segment.start.x === segmentUnderTest.start.x &&
+        segment.start.y === segmentUnderTest.start.y &&
+        segment.end.x === segmentUnderTest.end.x &&
+        segment.end.y === segmentUnderTest.end.y
+      )
+    })
+    if (overlappingMergedSegment) {
+      overlappingMergedSegment.connectionNames.push(
+        ...segmentUnderTest.connectionNames,
+      )
+    } else {
+      mergedSegments.push(segmentUnderTest)
+    }
+  }
+  return mergedSegments
 }
