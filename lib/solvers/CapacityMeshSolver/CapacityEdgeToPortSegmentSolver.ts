@@ -58,27 +58,26 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
 
     const pathsGoingThroughNode: Array<{
       path: CapacityPath
-      indexOfPoint: number
+      indexOfNodeInPath: number
     }> = []
     for (const path of this.capacityPaths) {
-      const indexOfPoint = path.nodeIds.indexOf(nodeId)
-      if (indexOfPoint !== -1) {
-        pathsGoingThroughNode.push({ path, indexOfPoint })
+      const indexOfNodeInPath = path.nodeIds.indexOf(nodeId)
+      if (indexOfNodeInPath !== -1) {
+        pathsGoingThroughNode.push({ path, indexOfNodeInPath })
       }
     }
 
     const node = this.nodeMap.get(nodeId)!
     const nodePortSegments: NodePortSegment[] = []
 
-    for (const { path, indexOfPoint } of pathsGoingThroughNode) {
-      const entryNodeId = path.nodeIds[indexOfPoint - 1]
-      const exitNodeId = path.nodeIds[indexOfPoint + 1]
+    for (const { path, indexOfNodeInPath } of pathsGoingThroughNode) {
+      const entryNodeId = path.nodeIds[indexOfNodeInPath - 1]
+      const exitNodeId = path.nodeIds[indexOfNodeInPath + 1]
 
       for (const adjNodeId of [entryNodeId, exitNodeId]) {
-        const segment = findOverlappingSegment(
-          node,
-          this.nodeMap.get(adjNodeId)!,
-        )
+        const adjNode = this.nodeMap.get(adjNodeId)!
+        if (!adjNode) continue
+        const segment = findOverlappingSegment(node, adjNode)
 
         const portSegment: NodePortSegment = {
           capacityMeshNodeId: nodeId,
@@ -96,7 +95,34 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
     this.nodePortSegments.set(nodeId, nodePortSegments)
   }
 
-  visualize(): GraphicsObject {}
+  visualize(): GraphicsObject {
+    const graphics: GraphicsObject = {
+      lines: [],
+      points: [],
+      rects: [],
+      circles: [],
+    }
+    this.nodePortSegments.forEach((segments, nodeId) => {
+      segments.forEach((segment) => {
+        const isVertical = segment.start.x === segment.end.x
+        const THICKNESS = 0.75
+        graphics.rects!.push({
+          center: {
+            x: (segment.start.x + segment.end.x) / 2,
+            y: (segment.start.y + segment.end.y) / 2,
+          },
+          width: isVertical
+            ? THICKNESS
+            : Math.abs(segment.end.x - segment.start.x),
+          height: isVertical
+            ? Math.abs(segment.end.y - segment.start.y)
+            : THICKNESS,
+          label: `${nodeId}: ${segment.connectionNames.join(", ")}`,
+        })
+      })
+    })
+    return graphics
+  }
 }
 
 function findOverlappingSegment(
@@ -126,20 +152,23 @@ function findOverlappingSegment(
     ),
   }
 
-  // If nodes are adjacent horizontally
-  if (yOverlap.end - yOverlap.start > xOverlap.end - xOverlap.start) {
-    const y = (yOverlap.start + yOverlap.end) / 2
-    return {
-      start: { x: xOverlap.start, y },
-      end: { x: xOverlap.end, y },
-    }
-  }
-  // If nodes are adjacent vertically
-  else {
+  const xRange = xOverlap.end - xOverlap.start
+  const yRange = yOverlap.end - yOverlap.start
+
+  // If the x-range is smaller then the nodes touch vertically (common vertical edge).
+  if (xRange < yRange) {
+    // They are horizontally adjacent: shared vertical edge.
     const x = (xOverlap.start + xOverlap.end) / 2
     return {
       start: { x, y: yOverlap.start },
       end: { x, y: yOverlap.end },
+    }
+  } else {
+    // Otherwise, they are vertically adjacent: shared horizontal edge.
+    const y = (yOverlap.start + yOverlap.end) / 2
+    return {
+      start: { x: xOverlap.start, y },
+      end: { x: xOverlap.end, y },
     }
   }
 }
