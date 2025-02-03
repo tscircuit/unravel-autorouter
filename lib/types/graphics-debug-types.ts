@@ -11,6 +11,7 @@ export interface GraphicsObject {
     points: { x: number; y: number; stroke?: number }[]
     layer?: string
     step?: number
+    stroke?: string
   }[]
   rects?: Array<{
     center: { x: number; y: number }

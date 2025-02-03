@@ -57,6 +57,21 @@ const simpleSrj: SimpleRouteJson = {
         },
       ],
     },
+    {
+      name: "trace3",
+      pointsToConnect: [
+        {
+          x: 4,
+          y: 40,
+          layer: "top",
+        },
+        {
+          x: 97,
+          y: 34,
+          layer: "top",
+        },
+      ],
+    },
   ],
 }
 

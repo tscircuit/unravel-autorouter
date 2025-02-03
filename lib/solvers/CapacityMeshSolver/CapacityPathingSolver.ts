@@ -34,22 +34,26 @@ export class CapacityPathingSolver extends BaseSolver {
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
+  colorMap: Record<string, string>
 
   constructor({
     simpleRouteJson,
     nodes,
     edges,
     getCapacity,
+    colorMap,
   }: {
     simpleRouteJson: SimpleRouteJson
     nodes: CapacityMeshNode[]
     edges: CapacityMeshEdge[]
     getCapacity?: (node: CapacityMeshNode) => number
+    colorMap?: Record<string, string>
   }) {
     super()
     this.simpleRouteJson = simpleRouteJson
     this.nodes = nodes
     this.edges = edges
+    this.colorMap = colorMap ?? {}
     this.getCapacity = getCapacity ?? createDepthBasedCapacityGetter(nodes)
     this.connectionsWithNodes = this.getConnectionsWithNodes()
     this.remainingNodeCapacityMap = new Map(
@@ -249,6 +253,7 @@ export class CapacityPathingSolver extends BaseSolver {
             }))
           graphics.lines!.push({
             points: pathPoints,
+            stroke: this.colorMap[conn.connection.name],
           })
         }
       }

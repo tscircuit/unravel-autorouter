@@ -8,6 +8,7 @@ import type {
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 import { BaseSolver } from "../BaseSolver"
 import { getNodeEdgeMap } from "./getNodeEdgeMap"
+import { safeTransparentize } from "../colors"
 
 /**
  * Each Node is a square. The capacity paths indicate the nodes the trace will
@@ -25,15 +26,18 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
   unprocessedNodeIds: CapacityMeshNodeId[]
 
   nodePortSegments: Map<CapacityMeshNodeId, NodePortSegment[]>
+  colorMap: Record<string, string>
 
   constructor({
     nodes,
     edges,
     capacityPaths,
+    colorMap,
   }: {
     nodes: CapacityMeshNode[]
     edges: CapacityMeshEdge[]
     capacityPaths: CapacityPath[]
+    colorMap?: Record<string, string>
   }) {
     super()
     this.nodes = nodes
@@ -41,6 +45,7 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
     this.nodeMap = new Map(nodes.map((node) => [node.capacityMeshNodeId, node]))
     this.nodeEdgeMap = getNodeEdgeMap(edges)
     this.capacityPaths = capacityPaths
+    this.colorMap = colorMap ?? {}
 
     // We will be evaluating capacity paths
     this.unprocessedNodeIds = [
@@ -117,6 +122,10 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
           height: isVertical
             ? Math.abs(segment.end.y - segment.start.y)
             : THICKNESS,
+          fill: safeTransparentize(
+            this.colorMap[segment.connectionNames[0]],
+            0.6,
+          ),
           label: `${nodeId}: ${segment.connectionNames.join(", ")}`,
         })
       })

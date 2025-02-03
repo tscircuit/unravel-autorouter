@@ -5,16 +5,19 @@ import { CapacityMeshEdgeSolver } from "./CapacityMeshEdgeSolver"
 import { CapacityMeshNodeSolver } from "./CapacityMeshNodeSolver"
 import { CapacityPathingSolver } from "./CapacityPathingSolver"
 import { CapacityEdgeToPortSegmentSolver } from "./CapacityEdgeToPortSegmentSolver"
+import { getColorMap } from "../colors"
 
 export class CapacityMeshSolver extends BaseSolver {
   nodeSolver: CapacityMeshNodeSolver
   edgeSolver?: CapacityMeshEdgeSolver
   pathingSolver?: CapacityPathingSolver
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
+  colorMap: Record<string, string>
 
   constructor(public srj: SimpleRouteJson) {
     super()
     this.nodeSolver = new CapacityMeshNodeSolver(srj)
+    this.colorMap = getColorMap(srj)
   }
 
   step() {
@@ -34,6 +37,7 @@ export class CapacityMeshSolver extends BaseSolver {
         simpleRouteJson: this.srj,
         nodes: this.nodeSolver.finishedNodes,
         edges: this.edgeSolver.edges,
+        colorMap: this.colorMap,
       })
       this.pathingSolver.solve()
     }
@@ -42,6 +46,7 @@ export class CapacityMeshSolver extends BaseSolver {
         nodes: this.nodeSolver.finishedNodes,
         edges: this.edgeSolver.edges,
         capacityPaths: this.pathingSolver!.getCapacityPaths(),
+        colorMap: this.colorMap,
       })
       this.edgeToPortSegmentSolver.solve()
     }
