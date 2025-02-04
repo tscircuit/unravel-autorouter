@@ -6,6 +6,7 @@ import { CapacityMeshNodeSolver } from "./CapacityMeshNodeSolver"
 import { CapacityPathingSolver } from "./CapacityPathingSolver"
 import { CapacityEdgeToPortSegmentSolver } from "./CapacityEdgeToPortSegmentSolver"
 import { getColorMap } from "../colors"
+import { CapacitySegmentToPointSolver } from "./CapacitySegmentToPointSolver"
 
 export class CapacityMeshSolver extends BaseSolver {
   nodeSolver: CapacityMeshNodeSolver
@@ -13,6 +14,7 @@ export class CapacityMeshSolver extends BaseSolver {
   pathingSolver?: CapacityPathingSolver
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
+  segmentToPointSolver?: CapacitySegmentToPointSolver;
 
   constructor(public srj: SimpleRouteJson) {
     super()
@@ -50,6 +52,14 @@ export class CapacityMeshSolver extends BaseSolver {
       })
       this.edgeToPortSegmentSolver.solve()
     }
+    if (!this.segmentToPointSolver) {
+      const allSegments: import("../../types/capacity-edges-to-port-segments-types").NodePortSegment[] = []
+      this.edgeToPortSegmentSolver.nodePortSegments.forEach((segs) => {
+        allSegments.push(...segs)
+      })
+      this.segmentToPointSolver = new CapacitySegmentToPointSolver({ segments: allSegments })
+      this.segmentToPointSolver.solve()
+    }
 
     this.solved = true
   }
@@ -59,6 +69,7 @@ export class CapacityMeshSolver extends BaseSolver {
     const edgeViz = this.edgeSolver?.visualize()
     const pathingViz = this.pathingSolver?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
+    const segmentToPointViz = this.segmentToPointSolver?.visualize()
     return {
       lines: [
         ...(nodeViz.lines ?? []).map((l) => ({ ...l, step: 0 })),
@@ -68,6 +79,7 @@ export class CapacityMeshSolver extends BaseSolver {
           ...l,
           step: 3,
         })),
+        ...(segmentToPointViz?.lines ?? []).map((l) => ({ ...l, step: 4 })),
       ],
       points: [
         ...(nodeViz.points ?? []).map((p) => ({ ...p, step: 0 })),
@@ -77,6 +89,7 @@ export class CapacityMeshSolver extends BaseSolver {
           ...p,
           step: 3,
         })),
+        ...(segmentToPointViz?.points ?? []).map((p) => ({ ...p, step: 4 })),
       ],
       rects: [
         ...(nodeViz.rects ?? []).map((r) => ({ ...r, step: 0 })),
@@ -86,6 +99,7 @@ export class CapacityMeshSolver extends BaseSolver {
           ...r,
           step: 3,
         })),
+        ...(segmentToPointViz?.rects ?? []).map((r) => ({ ...r, step: 4 })),
       ],
       circles: [
         ...(nodeViz.circles ?? []).map((c) => ({ ...c, step: 0 })),
@@ -95,6 +109,7 @@ export class CapacityMeshSolver extends BaseSolver {
           ...c,
           step: 3,
         })),
+        ...(segmentToPointViz?.circles ?? []).map((c) => ({ ...c, step: 4 })),
       ],
     }
   }
