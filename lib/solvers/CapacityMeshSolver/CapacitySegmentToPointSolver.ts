@@ -1,6 +1,7 @@
 import { BaseSolver } from "../BaseSolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 import type { GraphicsObject } from "graphics-debug"
+import type { NodeWithPortPoints } from "../../types/high-density-types"
 
 /**
  * CapacitySegmentToPointSolver:
@@ -60,7 +61,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
           x: (seg.start.x + seg.end.x) / 2,
           y: (seg.start.y + seg.end.y) / 2,
         }
-        seg.assignedPoints = [
+        ;(seg as any).assignedPoints = [
           { connectionName: seg.connectionNames[0], point: center },
         ]
         // Move seg from unsolvedSegments to solvedSegments.
@@ -91,7 +92,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
       const dx = candidate.end.x - candidate.start.x
       const dy = candidate.end.y - candidate.start.y
       const n = sortedConnections.length
-      const points = []
+      const points: { x: number; y: number }[] = []
       // Evenly space positions using fractions of the segment distance.
       for (let i = 1; i <= n; i++) {
         const fraction = i / (n + 1)
@@ -100,10 +101,12 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
           y: candidate.start.y + dy * fraction,
         })
       }
-      candidate.assignedPoints = sortedConnections.map((conn, idx) => ({
-        connectionName: conn,
-        point: points[idx],
-      }))
+      ;(candidate as any).assignedPoints = sortedConnections.map(
+        (conn, idx) => ({
+          connectionName: conn,
+          point: points[idx],
+        }),
+      )
       // Move candidate from unsolvedSegments to solvedSegments.
       this.unsolvedSegments.splice(this.unsolvedSegments.indexOf(candidate), 1)
       this.solvedSegments.push(candidate as any)
@@ -136,17 +139,26 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
   /**
    * Return the assigned points for each segment.
    */
-  getResults(): Array<{
-    segment: NodePortSegment
-    assignedPoints: {
-      connectionName: string
-      point: { x: number; y: number }
-    }[]
-  }> {
-    return this.solvedSegments.map((seg) => ({
-      segment: seg,
-      assignedPoints: seg.assignedPoints,
-    }))
+  getNodesWithPortPoints(): NodeWithPortPoints[] {
+    if (!this.solved) {
+      throw new Error(
+        "CapacitySegmentToPointSolver not solved, can't give port points yet",
+      )
+    }
+    const map = new Map<string, NodeWithPortPoints>()
+    for (const seg of this.solvedSegments) {
+      const nodeId = seg.capacityMeshNodeId
+      if (!map.has(nodeId)) {
+        map.set(nodeId, { capacityMeshNodeId: nodeId, portPoints: [] })
+      }
+      map.get(nodeId)!.portPoints.push(
+        ...seg.assignedPoints.map((ap) => ({
+          ...ap.point,
+          connectionName: ap.connectionName,
+        })),
+      )
+    }
+    return Array.from(map.values())
   }
 
   /**
