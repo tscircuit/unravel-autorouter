@@ -24,15 +24,20 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
       point: { x: number; y: number }
     }[]
   })[]
+  colorMap: Record<string, string>
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
   // { connectionName: string, point: {x: number, y: number } }
   // This is a temporary extension used by the solver.
-  constructor({ segments }: { segments: NodePortSegment[] }) {
+  constructor({
+    segments,
+    colorMap,
+  }: { segments: NodePortSegment[]; colorMap?: Record<string, string> }) {
     super()
     this.unsolvedSegments = segments
     this.solvedSegments = []
+    this.colorMap = colorMap ?? {}
   }
 
   /**
@@ -154,6 +159,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
           x: ap.point.x,
           y: ap.point.y,
           label: `${seg.capacityMeshNodeId}-${ap.connectionName}`,
+          color: this.colorMap[ap.connectionName],
           step: 4,
         })),
       ),

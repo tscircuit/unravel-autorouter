@@ -7,6 +7,7 @@ import { CapacityPathingSolver } from "./CapacityPathingSolver"
 import { CapacityEdgeToPortSegmentSolver } from "./CapacityEdgeToPortSegmentSolver"
 import { getColorMap } from "../colors"
 import { CapacitySegmentToPointSolver } from "./CapacitySegmentToPointSolver"
+import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 
 export class CapacityMeshSolver extends BaseSolver {
   nodeSolver: CapacityMeshNodeSolver
@@ -14,7 +15,7 @@ export class CapacityMeshSolver extends BaseSolver {
   pathingSolver?: CapacityPathingSolver
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
-  segmentToPointSolver?: CapacitySegmentToPointSolver;
+  segmentToPointSolver?: CapacitySegmentToPointSolver
 
   constructor(public srj: SimpleRouteJson) {
     super()
@@ -53,11 +54,14 @@ export class CapacityMeshSolver extends BaseSolver {
       this.edgeToPortSegmentSolver.solve()
     }
     if (!this.segmentToPointSolver) {
-      const allSegments: import("../../types/capacity-edges-to-port-segments-types").NodePortSegment[] = []
+      const allSegments: NodePortSegment[] = []
       this.edgeToPortSegmentSolver.nodePortSegments.forEach((segs) => {
         allSegments.push(...segs)
       })
-      this.segmentToPointSolver = new CapacitySegmentToPointSolver({ segments: allSegments })
+      this.segmentToPointSolver = new CapacitySegmentToPointSolver({
+        segments: allSegments,
+        colorMap: this.colorMap,
+      })
       this.segmentToPointSolver.solve()
     }
 
