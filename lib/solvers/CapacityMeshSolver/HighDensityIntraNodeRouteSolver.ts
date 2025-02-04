@@ -40,6 +40,10 @@ export class HighDensityIntraNodeRouteSolver extends BaseSolver {
    *
    * We can find a place to place a via by looking at the intersection point
    * and explore both sides of the intersection with a grid solver.
+   *
+   * When we find a suitable place for the via (where there is enough room for
+   * a via of size defaultViaDiameter), we place the via and attempt to solve
+   * between the two vias we placed.
    */
   step() {}
 
