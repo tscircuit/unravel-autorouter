@@ -5,6 +5,7 @@ import type {
 } from "../../types/high-density-types"
 import { BaseSolver } from "../BaseSolver"
 import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
+import { safeTransparentize } from "../colors"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -15,6 +16,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   }[]
 
   solvedRoutes: HighDensityIntraNodeRoute[]
+  failedSolvers: SingleHighDensityRouteSolver[]
 
   constructor({
     nodeWithPortPoints,
@@ -27,6 +29,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     this.nodeWithPortPoints = nodeWithPortPoints
     this.colorMap = colorMap ?? {}
     this.solvedRoutes = []
+    this.failedSolvers = []
     const unsolvedConnectionsMap: Map<string, { x: number; y: number }[]> =
       new Map()
     for (const { connectionName, x, y } of nodeWithPortPoints.portPoints) {
@@ -65,6 +68,8 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     solver.solve()
     if (solver.solvedPath) {
       this.solvedRoutes.push(solver.solvedPath)
+    } else {
+      this.failedSolvers.push(solver)
     }
   }
 
@@ -89,17 +94,30 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     // Visualize solvedRoutes
     for (const route of this.solvedRoutes) {
       if (route.route.length > 0) {
-        graphics.lines!.push({
-          points: route.route.map((p) => ({ x: p.x, y: p.y })),
-          strokeColor: "green",
-          layer: "route",
-          strokeWidth: 0.15,
-        })
+        const routeColor = this.colorMap[route.connectionName] ?? "blue"
+
+        // Draw route segments between points
+        for (let i = 0; i < route.route.length - 1; i++) {
+          const p1 = route.route[i]
+          const p2 = route.route[i + 1]
+
+          graphics.lines!.push({
+            points: [p1, p2],
+            strokeColor:
+              p1.z === 0
+                ? safeTransparentize(routeColor, 0.2)
+                : safeTransparentize(routeColor, 0.8),
+            layer: `route-layer-${p1.z}`,
+            strokeWidth: route.traceThickness,
+          })
+        }
+
+        // Draw vias
         for (const via of route.vias) {
           graphics.circles!.push({
             center: { x: via.x, y: via.y },
-            radius: route.viaDiameter,
-            fill: "red",
+            radius: route.viaDiameter / 2,
+            fill: safeTransparentize(routeColor, 0.5),
             layer: "via",
           })
         }

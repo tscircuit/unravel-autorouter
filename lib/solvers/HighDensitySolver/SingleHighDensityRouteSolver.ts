@@ -32,7 +32,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   traceThickness: number
   obstacleMargin: number
   layerCount: number
-  gridSize = 0.05
+  minCellSize = 0.05
+  cellStep = 0.05
   GREEDY_MULTIPLER = 1.2
 
   exploredNodes: Set<string>
@@ -84,17 +85,17 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       },
     ]
     this.straightLineDistance = distance(this.A, this.B)
-    this.viaPenaltyDistance = this.gridSize + this.straightLineDistance / 2
+    this.viaPenaltyDistance = this.cellStep + this.straightLineDistance / 2
     this.MAX_ITERATIONS = 2000
 
     const numRoutes = this.obstacleRoutes.length
-    const bestRowOrColumnCount = Math.ceil(3 * (numRoutes + 1))
-    let numXCells = this.boundsSize.width / this.gridSize
-    let numYCells = this.boundsSize.height / this.gridSize
+    const bestRowOrColumnCount = Math.ceil(5 * (numRoutes + 1))
+    let numXCells = this.boundsSize.width / this.cellStep
+    let numYCells = this.boundsSize.height / this.cellStep
     while (numXCells * numYCells > bestRowOrColumnCount ** 2) {
-      this.gridSize *= 2
-      numXCells = this.boundsSize.width / this.gridSize
-      numYCells = this.boundsSize.height / this.gridSize
+      this.cellStep *= 2
+      numXCells = this.boundsSize.width / this.cellStep
+      numYCells = this.boundsSize.height / this.cellStep
     }
   }
 
@@ -167,8 +168,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         const neighbor = {
           ...node,
           parent: node,
-          x: clamp(node.x + x * this.gridSize, minX, maxX),
-          y: clamp(node.y + y * this.gridSize, minY, maxY),
+          x: clamp(node.x + x * this.cellStep, minX, maxX),
+          y: clamp(node.y + y * this.cellStep, minY, maxY),
         }
 
         if (
@@ -203,7 +204,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       !this.exploredNodes.has(
         `${viaNeighbor.x},${viaNeighbor.y},${viaNeighbor.z}`,
       ) &&
-      this.isNodeTooCloseToObstacle(
+      !this.isNodeTooCloseToObstacle(
         viaNeighbor,
         this.viaDiameter + this.obstacleMargin,
       )
@@ -263,7 +264,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
     this.exploredNodes.add(`${currentNode.x},${currentNode.y},${currentNode.z}`)
 
-    if (distance(currentNode, this.B) <= this.gridSize) {
+    if (distance(currentNode, this.B) <= this.cellStep) {
       this.solved = true
       this.setSolvedPath(currentNode)
     }
@@ -317,8 +318,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       const [x, y, z] = nodeKey.split(",").map(Number)
       graphics.circles!.push({
         center: { x, y },
-        fill: "rgba(128,128,128,0.1)",
-        radius: this.gridSize / 2,
+        fill: z === 0 ? "rgba(255,0,0,0.1)" : "rgba(0,0,255,0.1)",
+        radius: this.cellStep / 2,
         label: `Explored (z=${z})`,
       })
     }

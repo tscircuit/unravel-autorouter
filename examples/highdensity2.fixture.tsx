@@ -26,5 +26,11 @@ export default () => {
   const graphics =
     solver.solvedRoutes.length > 0 ? solver.visualize() : { lines: [] }
 
+  if (solver.failedSolvers.length > 0) {
+    return (
+      <InteractiveGraphics graphics={solver.failedSolvers[0].visualize()} />
+    )
+  }
+
   return <InteractiveGraphics graphics={graphics} />
 }
