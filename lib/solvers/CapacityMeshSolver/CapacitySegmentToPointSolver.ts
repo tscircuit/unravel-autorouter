@@ -162,8 +162,15 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     const map = new Map<string, NodeWithPortPoints>()
     for (const seg of this.solvedSegments) {
       const nodeId = seg.capacityMeshNodeId
+      const node = this.nodeMap[nodeId]
       if (!map.has(nodeId)) {
-        map.set(nodeId, { capacityMeshNodeId: nodeId, portPoints: [] })
+        map.set(nodeId, {
+          capacityMeshNodeId: nodeId,
+          portPoints: [],
+          center: node.center,
+          width: node.width,
+          height: node.height,
+        })
       }
       map.get(nodeId)!.portPoints.push(
         ...seg.assignedPoints.map((ap) => ({
