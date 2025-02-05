@@ -1,6 +1,10 @@
 import { BaseSolver } from "../BaseSolver"
 import type { HighDensityIntraNodeRoute } from "lib/types/high-density-types"
-import { distance, pointToSegmentDistance } from "@tscircuit/math-utils"
+import {
+  distance,
+  pointToSegmentDistance,
+  doSegmentsIntersect,
+} from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 
 type Node = {
@@ -123,6 +127,20 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     return false
   }
 
+  doesPathToParentIntersectObstacle(node: Node) {
+    const parent = node.parent
+    if (!parent) return false
+    for (const route of this.obstacleRoutes) {
+      for (const pointPair of getSameLayerPointPairs(route)) {
+        if (pointPair.z !== node.z) continue
+        if (doSegmentsIntersect(node, parent, pointPair.A, pointPair.B)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   computeH(node: Node) {
     return (
       distance(node, this.B) +
@@ -164,6 +182,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         }
 
         if (this.isNodeTooCloseToObstacle(neighbor)) {
+          continue
+        }
+
+        if (this.doesPathToParentIntersectObstacle(neighbor)) {
           continue
         }
 
