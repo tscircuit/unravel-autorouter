@@ -1,3 +1,4 @@
+import type { GraphicsObject } from "graphics-debug"
 import type {
   HighDensityIntraNodeRoute,
   NodeWithPortPoints,
@@ -68,5 +69,16 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     if (solver.solvedPath) {
       this.solvedRoutes.push(solver.solvedPath)
     }
+  }
+
+  visualize(): GraphicsObject {
+    const graphics: GraphicsObject = {
+      lines: [],
+      points: [],
+      rects: [],
+      circles: [],
+    }
+
+    return graphics
   }
 }
