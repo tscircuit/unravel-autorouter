@@ -21,6 +21,8 @@ type Node = {
 
 export class SingleHighDensityRouteSolver extends BaseSolver {
   obstacleRoutes: HighDensityIntraNodeRoute[]
+  bounds: { minX: number; maxX: number; minY: number; maxY: number }
+  boundsSize: { width: number; height: number }
   A: { x: number; y: number; z: number }
   B: { x: number; y: number; z: number }
   straightLineDistance: number
@@ -43,6 +45,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   constructor(opts: {
     connectionName: string
     obstacleRoutes: HighDensityIntraNodeRoute[]
+    node: { center: { x: number; y: number }; width: number; height: number }
     A: { x: number; y: number; z: number }
     B: { x: number; y: number; z: number }
     viaDiameter?: number
@@ -51,6 +54,16 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     layerCount?: number
   }) {
     super()
+    this.bounds = {
+      minX: opts.node.center.x - opts.node.width / 2,
+      maxX: opts.node.center.x + opts.node.width / 2,
+      minY: opts.node.center.y - opts.node.height / 2,
+      maxY: opts.node.center.y + opts.node.height / 2,
+    }
+    this.boundsSize = {
+      width: this.bounds.maxX - this.bounds.minX,
+      height: this.bounds.maxY - this.bounds.minY,
+    }
     this.connectionName = opts.connectionName
     this.obstacleRoutes = opts.obstacleRoutes
     this.A = opts.A
@@ -74,33 +87,14 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.viaPenaltyDistance = this.gridSize + this.straightLineDistance / 2
     this.MAX_ITERATIONS = 2000
 
-    // TODO should be provided by the caller and be the node size
-    const bounds = {
-      minX: Math.min(this.A.x, this.B.x),
-      maxX: Math.max(this.A.x, this.B.x),
-      minY: Math.min(this.A.y, this.B.y),
-      maxY: Math.max(this.A.y, this.B.y),
-      width: 0,
-      height: 0,
-    }
-    for (const route of this.obstacleRoutes) {
-      for (const point of route.route) {
-        bounds.minX = Math.min(bounds.minX, point.x)
-        bounds.maxX = Math.max(bounds.maxX, point.x)
-        bounds.minY = Math.min(bounds.minY, point.y)
-        bounds.maxY = Math.max(bounds.maxY, point.y)
-      }
-    }
-    bounds.width = bounds.maxX - bounds.minX
-    bounds.height = bounds.maxY - bounds.minY
     const numRoutes = this.obstacleRoutes.length
     const bestRowOrColumnCount = Math.ceil(3 * (numRoutes + 1))
-    let numXCells = bounds.width / this.gridSize
-    let numYCells = bounds.height / this.gridSize
+    let numXCells = this.boundsSize.width / this.gridSize
+    let numYCells = this.boundsSize.height / this.gridSize
     while (numXCells * numYCells > bestRowOrColumnCount ** 2) {
       this.gridSize *= 2
-      numXCells = bounds.width / this.gridSize
-      numYCells = bounds.height / this.gridSize
+      numXCells = this.boundsSize.width / this.gridSize
+      numYCells = this.boundsSize.height / this.gridSize
     }
   }
 
@@ -164,6 +158,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   getNeighbors(node: Node) {
     const neighbors: Node[] = []
 
+    const { maxX, minX, maxY, minY } = this.bounds
+
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
         if (x === 0 && y === 0) continue
@@ -171,8 +167,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         const neighbor = {
           ...node,
           parent: node,
-          x: node.x + x * this.gridSize,
-          y: node.y + y * this.gridSize,
+          x: clamp(node.x + x * this.gridSize, minX, maxX),
+          y: clamp(node.y + y * this.gridSize, minY, maxY),
         }
 
         if (
@@ -366,4 +362,8 @@ function getSameLayerPointPairs(route: HighDensityIntraNodeRoute) {
   }
 
   return pointPairs
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max))
 }

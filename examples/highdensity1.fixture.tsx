@@ -30,6 +30,7 @@ export default () => {
   const solver = new SingleHighDensityRouteSolver({
     connectionName: "test_route",
     obstacleRoutes: exampleRoutes,
+    node: { center: { x: 50, y: 50 }, width: 100, height: 100 },
     A: { x: 0, y: 0, z: 0 },
     B: { x: 100, y: 100, z: 0 },
     viaDiameter: 0.6,

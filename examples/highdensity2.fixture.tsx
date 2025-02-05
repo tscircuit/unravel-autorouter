@@ -4,6 +4,9 @@ import { SingleIntraNodeRouteSolver } from "../lib/solvers/HighDensitySolver/Sin
 
 const nodeWithPortPoints = {
   capacityMeshNodeId: "node1",
+  center: { x: 5, y: 5 },
+  width: 10,
+  height: 10,
   portPoints: [
     { connectionName: "A", x: 2, y: 0 },
     { connectionName: "A", x: 8, y: 10 },

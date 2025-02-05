@@ -52,6 +52,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     const { connectionName, points } = unsolvedConnection
     const solver = new SingleHighDensityRouteSolver({
       connectionName,
+      node: this.nodeWithPortPoints,
       A: { x: points[0].x, y: points[0].y, z: 0 },
       B: {
         x: points[points.length - 1].x,

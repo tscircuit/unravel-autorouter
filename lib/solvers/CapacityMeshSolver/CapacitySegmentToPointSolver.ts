@@ -2,6 +2,7 @@ import { BaseSolver } from "../BaseSolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 import type { GraphicsObject } from "graphics-debug"
 import type { NodeWithPortPoints } from "../../types/high-density-types"
+import type { CapacityMeshNode } from "lib/types"
 
 /**
  * CapacitySegmentToPointSolver:
@@ -25,6 +26,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
       point: { x: number; y: number }
     }[]
   })[]
+  nodeMap: Record<string, CapacityMeshNode>
   colorMap: Record<string, string>
 
   // We use an extra property on segments to remember assigned points.
@@ -34,11 +36,23 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
   constructor({
     segments,
     colorMap,
-  }: { segments: NodePortSegment[]; colorMap?: Record<string, string> }) {
+    nodes,
+  }: {
+    segments: NodePortSegment[]
+    colorMap?: Record<string, string>
+    /**
+     * This isn't used by the algorithm, but allows associating metadata
+     * for the result datatype (the center, width, height of the node)
+     */
+    nodes: CapacityMeshNode[]
+  }) {
     super()
     this.unsolvedSegments = segments
     this.solvedSegments = []
     this.colorMap = colorMap ?? {}
+    this.nodeMap = Object.fromEntries(
+      nodes.map((node) => [node.capacityMeshNodeId, node]),
+    )
   }
 
   /**

@@ -1,5 +1,8 @@
 export type NodeWithPortPoints = {
   capacityMeshNodeId: string
+  center: { x: number; y: number }
+  width: number
+  height: number
   portPoints: {
     connectionName: string
     x: number

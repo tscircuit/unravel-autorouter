@@ -63,6 +63,7 @@ export class CapacityMeshSolver extends BaseSolver {
       this.segmentToPointSolver = new CapacitySegmentToPointSolver({
         segments: allSegments,
         colorMap: this.colorMap,
+        nodes: this.nodeSolver.finishedNodes,
       })
       this.segmentToPointSolver.solve()
     }
