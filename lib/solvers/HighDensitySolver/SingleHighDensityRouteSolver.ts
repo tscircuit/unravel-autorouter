@@ -27,6 +27,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   obstacleMargin: number
   layerCount: number
   gridSize = 0.05
+  GREEDY_MULTIPLER = 1.2
 
   exploredNodes: Set<string>
 
@@ -67,7 +68,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     ]
     this.straightLineDistance = distance(this.A, this.B)
     this.viaPenaltyDistance = this.gridSize + this.straightLineDistance / 2
-    this.MAX_ITERATIONS = 1000
+    this.MAX_ITERATIONS = 100000
 
     // TODO should be provided by the caller and be the node size
     const bounds = {
@@ -96,11 +97,21 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     )
     let numXCells = bounds.width / this.gridSize
     let numYCells = bounds.height / this.gridSize
+    console.log({
+      numRoutes,
+      bestRowOrColumnCount,
+      numXCells,
+      numYCells,
+      gridSize: this.gridSize,
+    })
     while (numXCells * numYCells > bestRowOrColumnCount ** 2) {
       this.gridSize *= 2
       numXCells = bounds.width / this.gridSize
       numYCells = bounds.height / this.gridSize
     }
+    console.log({
+      finalGridSize: this.gridSize,
+    })
   }
 
   isNodeTooCloseToObstacle(node: Node, margin?: number) {
@@ -142,6 +153,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     )
   }
 
+  computeF(g: number, h: number) {
+    return g + h * this.GREEDY_MULTIPLER
+  }
+
   getNeighbors(node: Node) {
     const neighbors: Node[] = []
 
@@ -152,8 +167,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         const neighbor = {
           ...node,
           parent: node,
-          x: node.x + x * this.obstacleMargin,
-          y: node.y + y * this.obstacleMargin,
+          x: node.x + x * this.gridSize,
+          y: node.y + y * this.gridSize,
         }
 
         if (
@@ -168,7 +183,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
         neighbor.g = this.computeG(neighbor)
         neighbor.h = this.computeH(neighbor)
-        neighbor.f = neighbor.g + neighbor.h
+        neighbor.f = this.computeF(neighbor.g, neighbor.h)
 
         neighbors.push(neighbor)
       }
@@ -191,7 +206,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     ) {
       viaNeighbor.g = this.computeG(viaNeighbor)
       viaNeighbor.h = this.computeH(viaNeighbor)
-      viaNeighbor.f = viaNeighbor.g + viaNeighbor.h
+      viaNeighbor.f = this.computeF(viaNeighbor.g, viaNeighbor.h)
 
       neighbors.push(viaNeighbor)
     }
@@ -225,7 +240,17 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
   step() {
     this.candidates.sort((a, b) => b.f - a.f)
-    const currentNode = this.candidates.pop()
+    let currentNode = this.candidates.pop()
+
+    while (
+      currentNode &&
+      this.exploredNodes.has(
+        `${currentNode.x},${currentNode.y},${currentNode.z}`,
+      )
+    ) {
+      currentNode = this.candidates.pop()
+    }
+
     if (!currentNode) {
       console.log("no candidates remaining")
       return
@@ -235,6 +260,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     if (distance(currentNode, this.B) <= this.gridSize) {
       this.solved = true
       this.setSolvedPath(currentNode)
+      console.log("solved", this.iterations, this.solvedPath)
     }
 
     const neighbors = this.getNeighbors(currentNode)
@@ -263,6 +289,21 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       })
     }
 
+    for (const nodeKey of this.exploredNodes) {
+      const [x, y, z] = nodeKey.split(",").map(Number)
+      graphics.circles!.push({
+        center: { x, y },
+        fill: "rgba(128, 128, 128, 0.1)",
+        radius: this.gridSize / 2,
+      })
+    }
+
+    if (this.solvedPath) {
+      graphics.lines!.push({
+        points: this.solvedPath.route,
+        strokeColor: "green",
+      })
+    }
     return graphics
   }
 }

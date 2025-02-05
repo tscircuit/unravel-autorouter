@@ -3,16 +3,16 @@ import type { GraphicsObject } from "graphics-debug"
 export class BaseSolver {
   MAX_ITERATIONS = 1000
   solved = false
+  iterations = 0
 
   step() {}
 
   solve() {
-    let iters = 0
     while (!this.solved) {
-      iters++
+      this.iterations++
       this.step()
 
-      if (iters > this.MAX_ITERATIONS) {
+      if (this.iterations > this.MAX_ITERATIONS) {
         throw new Error(`${this.constructor.name} did not converge`)
       }
     }
