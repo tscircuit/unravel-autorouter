@@ -68,7 +68,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     ]
     this.straightLineDistance = distance(this.A, this.B)
     this.viaPenaltyDistance = this.gridSize + this.straightLineDistance / 2
-    this.MAX_ITERATIONS = 100000
+    this.MAX_ITERATIONS = 2000
 
     // TODO should be provided by the caller and be the node size
     const bounds = {
@@ -89,12 +89,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
     bounds.width = bounds.maxX - bounds.minX
     bounds.height = bounds.maxY - bounds.minY
-    // You don't need a large grid if there aren't a lot of wires, in general
-    // we can bound the number of cells to (viaDiameter / gridSize * numRoutes) ** 2
     const numRoutes = this.obstacleRoutes.length
-    const bestRowOrColumnCount = Math.ceil(
-      (this.viaDiameter / this.gridSize) * numRoutes,
-    )
+    const bestRowOrColumnCount = Math.ceil(3 * (numRoutes + 1))
     let numXCells = bounds.width / this.gridSize
     let numYCells = bounds.height / this.gridSize
     while (numXCells * numYCells > bestRowOrColumnCount ** 2) {
@@ -223,7 +219,9 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       connectionName: this.connectionName,
       traceThickness: this.traceThickness,
       viaDiameter: this.viaDiameter,
-      route: path.map((node) => ({ x: node.x, y: node.y, z: node.z })),
+      route: path
+        .map((node) => ({ x: node.x, y: node.y, z: node.z }))
+        .concat([this.B]),
       vias,
     }
   }
@@ -266,33 +264,64 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       circles: [],
     }
 
-    graphics.lines!.push({
-      points: [this.A, this.B],
-      strokeColor: "red",
+    // Display the input port points (from nodeWithPortPoints via A and B)
+    graphics.points!.push({
+      x: this.A.x,
+      y: this.A.y,
+      label: "Input A",
+      color: "orange",
+    })
+    graphics.points!.push({
+      x: this.B.x,
+      y: this.B.y,
+      label: "Input B",
+      color: "orange",
     })
 
+    // Draw a line representing the direct connection between the input port points
+    graphics.lines!.push({
+      points: [this.A, this.B],
+      strokeColor: "rgba(255, 0, 0, 0.5)",
+      label: "Direct Input Connection",
+    })
+
+    // Show any obstacle routes as background references
     for (const route of this.obstacleRoutes) {
       graphics.lines!.push({
         points: route.route,
         strokeColor: "blue",
+        label: "Obstacle Route",
       })
     }
 
+    // Optionally, visualize explored nodes for debugging purposes
     for (const nodeKey of this.exploredNodes) {
       const [x, y, z] = nodeKey.split(",").map(Number)
       graphics.circles!.push({
         center: { x, y },
-        fill: "rgba(128, 128, 128, 0.1)",
+        fill: "rgba(128,128,128,0.1)",
         radius: this.gridSize / 2,
+        label: `Explored (z=${z})`,
       })
     }
 
+    // If a solved route exists, display it along with via markers
     if (this.solvedPath) {
       graphics.lines!.push({
         points: this.solvedPath.route,
         strokeColor: "green",
+        label: "Solved Route",
       })
+      for (const via of this.solvedPath.vias) {
+        graphics.circles!.push({
+          center: via,
+          radius: this.viaDiameter / 2,
+          fill: "green",
+          label: "Via",
+        })
+      }
     }
+
     return graphics
   }
 }

@@ -14,10 +14,6 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     points: { x: number; y: number }[]
   }[]
 
-  defaultGridSize = 0.05
-  defaultViaDiameter = 0.6
-  defaultTraceThickness = 0.15
-
   solvedRoutes: HighDensityIntraNodeRoute[]
 
   constructor({
@@ -77,6 +73,36 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       points: [],
       rects: [],
       circles: [],
+    }
+
+    // Visualize input nodeWithPortPoints
+    for (const pt of this.nodeWithPortPoints.portPoints) {
+      graphics.points!.push({
+        x: pt.x,
+        y: pt.y,
+        label: pt.connectionName,
+        color: this.colorMap[pt.connectionName] ?? "blue",
+      })
+    }
+
+    // Visualize solvedRoutes
+    for (const route of this.solvedRoutes) {
+      if (route.route.length > 0) {
+        graphics.lines!.push({
+          points: route.route.map((p) => ({ x: p.x, y: p.y })),
+          strokeColor: "green",
+          layer: "route",
+          strokeWidth: 0.15,
+        })
+        for (const via of route.vias) {
+          graphics.circles!.push({
+            center: { x: via.x, y: via.y },
+            radius: route.viaDiameter,
+            fill: "red",
+            layer: "via",
+          })
+        }
+      }
     }
 
     return graphics
