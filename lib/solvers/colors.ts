@@ -24,7 +24,6 @@ export const getColorMap = (srj: SimpleRouteJson) => {
 
 export const safeTransparentize = (color: string, amount: number) => {
   try {
-    console.log(color, amount, transparentize(amount, color))
     return transparentize(amount, color)
   } catch (e) {
     console.error(e)

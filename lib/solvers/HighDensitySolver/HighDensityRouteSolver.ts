@@ -80,10 +80,8 @@ export class HighDensityRouteSolver extends BaseSolver {
         })
       }
       for (const via of route.vias) {
-        graphics.points!.push({
-          // center: via,
-          x: via.x,
-          y: via.y,
+        graphics.circles!.push({
+          center: via,
           radius: route.viaDiameter / 2,
           fill: this.colorMap[route.connectionName],
           label: `${route.connectionName} via`,

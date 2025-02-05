@@ -97,21 +97,11 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     )
     let numXCells = bounds.width / this.gridSize
     let numYCells = bounds.height / this.gridSize
-    console.log({
-      numRoutes,
-      bestRowOrColumnCount,
-      numXCells,
-      numYCells,
-      gridSize: this.gridSize,
-    })
     while (numXCells * numYCells > bestRowOrColumnCount ** 2) {
       this.gridSize *= 2
       numXCells = bounds.width / this.gridSize
       numYCells = bounds.height / this.gridSize
     }
-    console.log({
-      finalGridSize: this.gridSize,
-    })
   }
 
   isNodeTooCloseToObstacle(node: Node, margin?: number) {
@@ -252,7 +242,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
 
     if (!currentNode) {
-      console.log("no candidates remaining")
+      // No more candidates, we've failed :(
       return
     }
     this.exploredNodes.add(`${currentNode.x},${currentNode.y},${currentNode.z}`)
@@ -260,7 +250,6 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     if (distance(currentNode, this.B) <= this.gridSize) {
       this.solved = true
       this.setSolvedPath(currentNode)
-      console.log("solved", this.iterations, this.solvedPath)
     }
 
     const neighbors = this.getNeighbors(currentNode)
