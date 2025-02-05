@@ -13,7 +13,7 @@ export class BaseSolver {
       this.step()
 
       if (iters > this.MAX_ITERATIONS) {
-        throw new Error("Solver did not converge")
+        throw new Error(`${this.constructor.name} did not converge`)
       }
     }
   }

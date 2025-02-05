@@ -35,6 +35,7 @@
         "noUselessElse": "off",
         "noNonNullAssertion": "off",
         "useNumberNamespace": "off",
+        "noParameterAssign": "off",
         "useFilenamingConvention": {
           "level": "error",
           "options": {

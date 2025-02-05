@@ -7,7 +7,7 @@ import { CapacityPathingSolver } from "./CapacityPathingSolver"
 import { CapacityEdgeToPortSegmentSolver } from "./CapacityEdgeToPortSegmentSolver"
 import { getColorMap } from "../colors"
 import { CapacitySegmentToPointSolver } from "./CapacitySegmentToPointSolver"
-import { HighDensityIntraNodeRouteSolver } from "./HighDensityIntraNodeRouteSolver"
+import { HighDensityRouteSolver } from "../HighDensitySolver/HighDensityRouteSolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 
 export class CapacityMeshSolver extends BaseSolver {
@@ -17,7 +17,7 @@ export class CapacityMeshSolver extends BaseSolver {
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
   segmentToPointSolver?: CapacitySegmentToPointSolver
-  highDensityIntraNodeRouteSolver?: HighDensityIntraNodeRouteSolver
+  highDensityRouteSolver?: HighDensityRouteSolver
 
   constructor(public srj: SimpleRouteJson) {
     super()
@@ -67,10 +67,14 @@ export class CapacityMeshSolver extends BaseSolver {
       this.segmentToPointSolver.solve()
     }
 
-    if (!this.highDensityIntraNodeRouteSolver) {
-      const nodesWithPortPoints = this.segmentToPointSolver.getNodesWithPortPoints()
-      this.highDensityIntraNodeRouteSolver = new HighDensityIntraNodeRouteSolver(nodesWithPortPoints)
-      this.highDensityIntraNodeRouteSolver.solve()
+    if (!this.highDensityRouteSolver) {
+      const nodesWithPortPoints =
+        this.segmentToPointSolver.getNodesWithPortPoints()
+      this.highDensityRouteSolver = new HighDensityRouteSolver({
+        nodePortPoints: nodesWithPortPoints,
+        colorMap: this.colorMap,
+      })
+      this.highDensityRouteSolver.solve()
     }
 
     this.solved = true
@@ -89,7 +93,10 @@ export class CapacityMeshSolver extends BaseSolver {
         ...(pathingViz?.lines ?? []).map((l) => ({ ...l, step: 2 })),
         ...(edgeToPortSegmentViz?.lines ?? []).map((l) => ({ ...l, step: 3 })),
         ...(segmentToPointViz?.lines ?? []).map((l) => ({ ...l, step: 4 })),
-        ...(this.highDensityIntraNodeRouteSolver?.visualize().lines ?? []).map((l) => ({ ...l, step: 5 })),
+        ...(this.highDensityRouteSolver?.visualize().lines ?? []).map((l) => ({
+          ...l,
+          step: 5,
+        })),
       ],
       points: [
         ...(nodeViz.points ?? []).map((p) => ({ ...p, step: 0 })),
@@ -97,7 +104,10 @@ export class CapacityMeshSolver extends BaseSolver {
         ...(pathingViz?.points ?? []).map((p) => ({ ...p, step: 2 })),
         ...(edgeToPortSegmentViz?.points ?? []).map((p) => ({ ...p, step: 3 })),
         ...(segmentToPointViz?.points ?? []).map((p) => ({ ...p, step: 4 })),
-        ...(this.highDensityIntraNodeRouteSolver?.visualize().points ?? []).map((p) => ({ ...p, step: 5 })),
+        ...(this.highDensityRouteSolver?.visualize().points ?? []).map((p) => ({
+          ...p,
+          step: 5,
+        })),
       ],
       rects: [
         ...(nodeViz.rects ?? []).map((r) => ({ ...r, step: 0 })),
@@ -105,15 +115,23 @@ export class CapacityMeshSolver extends BaseSolver {
         ...(pathingViz?.rects ?? []).map((r) => ({ ...r, step: 2 })),
         ...(edgeToPortSegmentViz?.rects ?? []).map((r) => ({ ...r, step: 3 })),
         ...(segmentToPointViz?.rects ?? []).map((r) => ({ ...r, step: 4 })),
-        ...(this.highDensityIntraNodeRouteSolver?.visualize().rects ?? []).map((r) => ({ ...r, step: 5 })),
+        ...(this.highDensityRouteSolver?.visualize().rects ?? []).map((r) => ({
+          ...r,
+          step: 5,
+        })),
       ],
       circles: [
         ...(nodeViz.circles ?? []).map((c) => ({ ...c, step: 0 })),
         ...(edgeViz?.circles ?? []).map((c) => ({ ...c, step: 1 })),
         ...(pathingViz?.circles ?? []).map((c) => ({ ...c, step: 2 })),
-        ...(edgeToPortSegmentViz?.circles ?? []).map((c) => ({ ...c, step: 3 })),
+        ...(edgeToPortSegmentViz?.circles ?? []).map((c) => ({
+          ...c,
+          step: 3,
+        })),
         ...(segmentToPointViz?.circles ?? []).map((c) => ({ ...c, step: 4 })),
-        ...(this.highDensityIntraNodeRouteSolver?.visualize().circles ?? []).map((c) => ({ ...c, step: 5 })),
+        ...(this.highDensityRouteSolver?.visualize().circles ?? []).map(
+          (c) => ({ ...c, step: 5 }),
+        ),
       ],
     }
   }
