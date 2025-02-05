@@ -1,4 +1,5 @@
 import type { GraphicsObject } from "graphics-debug"
+import { combineVisualizations } from "../../utils/combineVisualizations"
 import type { SimpleRouteJson } from "../../types"
 import { BaseSolver } from "../BaseSolver"
 import { CapacityMeshEdgeSolver } from "./CapacityMeshEdgeSolver"
@@ -83,57 +84,49 @@ export class CapacityMeshSolver extends BaseSolver {
 
   visualize(): GraphicsObject {
     const nodeViz = this.nodeSolver.visualize()
-    const edgeViz = this.edgeSolver?.visualize()
-    const pathingViz = this.pathingSolver?.visualize()
-    const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
-    const segmentToPointViz = this.segmentToPointSolver?.visualize()
-    return {
-      lines: [
-        ...(nodeViz.lines ?? []).map((l) => ({ ...l, step: 0 })),
-        ...(edgeViz?.lines ?? []).map((l) => ({ ...l, step: 1 })),
-        ...(pathingViz?.lines ?? []).map((l) => ({ ...l, step: 2 })),
-        ...(edgeToPortSegmentViz?.lines ?? []).map((l) => ({ ...l, step: 3 })),
-        ...(segmentToPointViz?.lines ?? []).map((l) => ({ ...l, step: 4 })),
-        ...(this.highDensityRouteSolver?.visualize().lines ?? []).map((l) => ({
-          ...l,
-          step: 5,
-        })),
-      ],
-      points: [
-        ...(nodeViz.points ?? []).map((p) => ({ ...p, step: 0 })),
-        ...(edgeViz?.points ?? []).map((p) => ({ ...p, step: 1 })),
-        ...(pathingViz?.points ?? []).map((p) => ({ ...p, step: 2 })),
-        ...(edgeToPortSegmentViz?.points ?? []).map((p) => ({ ...p, step: 3 })),
-        ...(segmentToPointViz?.points ?? []).map((p) => ({ ...p, step: 4 })),
-        ...(this.highDensityRouteSolver?.visualize().points ?? []).map((p) => ({
-          ...p,
-          step: 5,
-        })),
-      ],
-      rects: [
-        ...(nodeViz.rects ?? []).map((r) => ({ ...r, step: 0 })),
-        ...(edgeViz?.rects ?? []).map((r) => ({ ...r, step: 1 })),
-        ...(pathingViz?.rects ?? []).map((r) => ({ ...r, step: 2 })),
-        ...(edgeToPortSegmentViz?.rects ?? []).map((r) => ({ ...r, step: 3 })),
-        ...(segmentToPointViz?.rects ?? []).map((r) => ({ ...r, step: 4 })),
-        ...(this.highDensityRouteSolver?.visualize().rects ?? []).map((r) => ({
-          ...r,
-          step: 5,
-        })),
-      ],
-      circles: [
-        ...(nodeViz.circles ?? []).map((c) => ({ ...c, step: 0 })),
-        ...(edgeViz?.circles ?? []).map((c) => ({ ...c, step: 1 })),
-        ...(pathingViz?.circles ?? []).map((c) => ({ ...c, step: 2 })),
-        ...(edgeToPortSegmentViz?.circles ?? []).map((c) => ({
-          ...c,
-          step: 3,
-        })),
-        ...(segmentToPointViz?.circles ?? []).map((c) => ({ ...c, step: 4 })),
-        ...(this.highDensityRouteSolver?.visualize().circles ?? []).map(
-          (c) => ({ ...c, step: 5 }),
-        ),
-      ],
+    const edgeViz = this.edgeSolver?.visualize() || {
+      lines: [],
+      points: [],
+      circles: [],
+      rects: [],
     }
+    const pathingViz = this.pathingSolver?.visualize() || {
+      lines: [],
+      points: [],
+      circles: [],
+      rects: [],
+    }
+    const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize() || {
+      lines: [],
+      points: [],
+      circles: [],
+      rects: [],
+    }
+    const segmentToPointViz = this.segmentToPointSolver?.visualize() || {
+      lines: [],
+      points: [],
+      circles: [],
+      rects: [],
+    }
+    const highDensityViz = this.highDensityRouteSolver?.visualize() || {
+      lines: [],
+      points: [],
+      circles: [],
+      rects: [],
+    }
+    return combineVisualizations(
+      {
+        points: [...nodeViz.points!],
+        rects: [
+          ...nodeViz.rects?.filter((r) => r.label?.includes("obstacle"))!,
+        ],
+      },
+      nodeViz,
+      edgeViz,
+      pathingViz,
+      edgeToPortSegmentViz,
+      segmentToPointViz,
+      highDensityViz,
+    )
   }
 }
