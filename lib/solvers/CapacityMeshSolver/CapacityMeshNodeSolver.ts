@@ -7,14 +7,22 @@ import type {
 } from "../../types"
 import { COLORS } from "../colors"
 
+interface CapacityMeshNodeSolverOptions {
+  capacityDepth?: number
+}
+
 export class CapacityMeshNodeSolver extends BaseSolver {
   unfinishedNodes: CapacityMeshNode[]
   finishedNodes: CapacityMeshNode[]
 
   MAX_DEPTH = 4
 
-  constructor(public srj: SimpleRouteJson) {
+  constructor(
+    public srj: SimpleRouteJson,
+    public opts: CapacityMeshNodeSolverOptions = {},
+  ) {
     super()
+    this.MAX_DEPTH = opts?.capacityDepth ?? this.MAX_DEPTH
     const boundsCenter = {
       x: (srj.bounds.minX + srj.bounds.maxX) / 2,
       y: (srj.bounds.minY + srj.bounds.maxY) / 2,

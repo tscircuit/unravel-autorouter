@@ -11,6 +11,10 @@ import { CapacitySegmentToPointSolver } from "./CapacitySegmentToPointSolver"
 import { HighDensityRouteSolver } from "../HighDensitySolver/HighDensityRouteSolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 
+interface CapacityMeshSolverOptions {
+  capacityDepth?: number
+}
+
 export class CapacityMeshSolver extends BaseSolver {
   nodeSolver: CapacityMeshNodeSolver
   edgeSolver?: CapacityMeshEdgeSolver
@@ -20,9 +24,12 @@ export class CapacityMeshSolver extends BaseSolver {
   segmentToPointSolver?: CapacitySegmentToPointSolver
   highDensityRouteSolver?: HighDensityRouteSolver
 
-  constructor(public srj: SimpleRouteJson) {
+  constructor(
+    public srj: SimpleRouteJson,
+    public opts: CapacityMeshSolverOptions = {},
+  ) {
     super()
-    this.nodeSolver = new CapacityMeshNodeSolver(srj)
+    this.nodeSolver = new CapacityMeshNodeSolver(srj, this.opts)
     this.colorMap = getColorMap(srj)
   }
 
