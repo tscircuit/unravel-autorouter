@@ -67,8 +67,8 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
       lines: [],
       points: [],
       rects: this.nodes.map((node) => ({
-        width: node.width - 2,
-        height: node.height - 2,
+        width: Math.max(node.width - 2, node.width * 0.8),
+        height: Math.max(node.height - 2, node.height * 0.8),
         center: node.center,
         fill: node._containsObstacle
           ? "rgba(255,0,0,0.1)"

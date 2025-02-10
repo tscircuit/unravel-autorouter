@@ -262,8 +262,8 @@ export class CapacityPathingSolver extends BaseSolver {
     for (const node of this.nodes) {
       graphics.rects!.push({
         center: node.center,
-        width: node.width - 2,
-        height: node.height - 2,
+        width: Math.max(node.width - 2, node.width * 0.8),
+        height: Math.max(node.height - 2, node.height * 0.8),
         fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
         label: `${this.remainingNodeCapacityMap.get(node.capacityMeshNodeId)}/${node.totalCapacity}`,
       })
