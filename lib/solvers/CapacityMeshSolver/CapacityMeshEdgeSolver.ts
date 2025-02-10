@@ -4,6 +4,7 @@ import type {
   CapacityMeshNode,
 } from "../../types/capacity-mesh-types"
 import { BaseSolver } from "../BaseSolver"
+import { distance } from "@tscircuit/math-utils"
 
 export class CapacityMeshEdgeSolver extends BaseSolver {
   public edges: Array<CapacityMeshEdge>
@@ -32,6 +33,39 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
         }
       }
     }
+
+    // If a target node is not connected to any other node, then it is "inside
+    // an obstacle" (this is the case almost 100% of the time when we place
+    // targets inside of PCB pads)
+    // To fix this we connect it to the nearest nodes without obstacles
+    const targetNodes = this.nodes.filter((node) => node._containsTarget)
+    for (const targetNode of targetNodes) {
+      const hasEdge = this.edges.some((edge) =>
+        edge.nodeIds.includes(targetNode.capacityMeshNodeId),
+      )
+      if (hasEdge) continue
+
+      let nearestNode: CapacityMeshNode | null = null
+      let nearestDistance = Infinity
+      for (const node of this.nodes) {
+        if (node._containsObstacle) continue
+        const dist = distance(targetNode.center, node.center)
+        if (dist < nearestDistance) {
+          nearestDistance = dist
+          nearestNode = node
+        }
+      }
+      if (nearestNode) {
+        this.edges.push({
+          capacityMeshEdgeId: this.getNextCapacityMeshEdgeId(),
+          nodeIds: [
+            targetNode.capacityMeshNodeId,
+            nearestNode.capacityMeshNodeId,
+          ],
+        })
+      }
+    }
+
     this.solved = true
   }
 

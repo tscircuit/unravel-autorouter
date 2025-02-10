@@ -173,7 +173,8 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         childNode._completelyInsideObstacle =
           this.isNodeCompletelyInsideObstacle(childNode)
       }
-      if (childNode._completelyInsideObstacle) continue
+      if (childNode._completelyInsideObstacle && !childNode._containsTarget)
+        continue
       childNodes.push(childNode)
     }
 
