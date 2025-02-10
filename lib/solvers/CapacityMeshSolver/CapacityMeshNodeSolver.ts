@@ -181,7 +181,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   }
 
   shouldNodeBeSubdivided(node: CapacityMeshNode) {
-    if (node._depth === this.MAX_DEPTH) return false
+    if (node._depth! >= this.MAX_DEPTH) return false
     if (node._containsTarget) return true
     if (node._containsObstacle && !node._completelyInsideObstacle) return true
     return false
@@ -204,6 +204,9 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       if (shouldBeSubdivided) {
         unfinishedNewNodes.push(newNode)
       } else if (!shouldBeSubdivided && !newNode._containsObstacle) {
+        finishedNewNodes.push(newNode)
+      } else if (!shouldBeSubdivided && newNode._containsTarget) {
+        // TODO this logic doesn't seem to work yet
         finishedNewNodes.push(newNode)
       }
     }
