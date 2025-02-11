@@ -53,6 +53,7 @@ export class CapacityMeshSolver extends BaseSolver {
         colorMap: this.colorMap,
       })
       this.pathingSolver.solve()
+      return
     }
     if (!this.edgeToPortSegmentSolver) {
       this.edgeToPortSegmentSolver = new CapacityEdgeToPortSegmentSolver({
@@ -62,6 +63,7 @@ export class CapacityMeshSolver extends BaseSolver {
         colorMap: this.colorMap,
       })
       this.edgeToPortSegmentSolver.solve()
+      return
     }
     if (!this.segmentToPointSolver) {
       const allSegments: NodePortSegment[] = []
@@ -74,6 +76,7 @@ export class CapacityMeshSolver extends BaseSolver {
         nodes: this.nodeSolver.finishedNodes,
       })
       this.segmentToPointSolver.solve()
+      return
     }
 
     if (!this.highDensityRouteSolver) {
@@ -84,6 +87,7 @@ export class CapacityMeshSolver extends BaseSolver {
         colorMap: this.colorMap,
       })
       this.highDensityRouteSolver.solve()
+      return
     }
 
     this.solved = true

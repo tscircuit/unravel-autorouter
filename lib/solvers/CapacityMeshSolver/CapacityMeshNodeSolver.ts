@@ -31,12 +31,13 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       width: srj.bounds.maxX - srj.bounds.minX,
       height: srj.bounds.maxY - srj.bounds.minY,
     }
+    const maxWidthHeight = Math.max(boundsSize.width, boundsSize.height)
     this.unfinishedNodes = [
       {
         capacityMeshNodeId: this.getNextNodeId(),
         center: boundsCenter,
-        width: boundsSize.width,
-        height: boundsSize.height,
+        width: maxWidthHeight,
+        height: maxWidthHeight,
         layer: "top",
         totalCapacity: this.getCapacityFromDepth(0),
         _depth: 0,
@@ -207,7 +208,6 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       } else if (!shouldBeSubdivided && !newNode._containsObstacle) {
         finishedNewNodes.push(newNode)
       } else if (!shouldBeSubdivided && newNode._containsTarget) {
-        // TODO this logic doesn't seem to work yet
         finishedNewNodes.push(newNode)
       }
     }
