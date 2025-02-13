@@ -58,7 +58,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   doesNodeContainTarget(node: CapacityMeshNode) {
     const targets = this.srj.connections.flatMap((c) => c.pointsToConnect)
     for (const target of targets) {
-      if (target.layer !== node.layer) continue
+      // if (target.layer !== node.layer) continue
       if (
         target.x >= node.center.x - node.width / 2 &&
         target.x <= node.center.x + node.width / 2 &&

@@ -8,9 +8,9 @@ import type {
   SimpleRouteJson,
 } from "../../types"
 import type { GraphicsObject } from "../../types/graphics-debug-types"
-import { getNodeEdgeMap } from "./getNodeEdgeMap"
+import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 
-type Candidate = {
+export type Candidate = {
   prevCandidate: Candidate | null
   node: CapacityMeshNode
   f: number
@@ -42,14 +42,17 @@ export class CapacityPathingSolver extends BaseSolver {
     edges,
     getCapacity,
     colorMap,
+    MAX_ITERATIONS = 10000,
   }: {
     simpleRouteJson: SimpleRouteJson
     nodes: CapacityMeshNode[]
     edges: CapacityMeshEdge[]
     getCapacity?: (node: CapacityMeshNode) => number
     colorMap?: Record<string, string>
+    MAX_ITERATIONS?: number
   }) {
     super()
+    this.MAX_ITERATIONS = MAX_ITERATIONS
     this.simpleRouteJson = simpleRouteJson
     this.nodes = nodes
     this.edges = edges
@@ -187,9 +190,14 @@ export class CapacityPathingSolver extends BaseSolver {
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()
     if (!currentCandidate) {
-      throw new Error(
+      // TODO Track failed paths, make sure solver doesn't think it solved
+      console.error(
         `Ran out of candidates on connection ${nextConnection.connection.name}`,
       )
+      this.currentConnectionIndex++
+      this.candidates = null
+      this.visitedNodes = null
+      return
     }
     if (currentCandidate.node.capacityMeshNodeId === end.capacityMeshNodeId) {
       nextConnection.path = this.getBacktrackedPath(currentCandidate)
@@ -260,7 +268,7 @@ export class CapacityPathingSolver extends BaseSolver {
     }
 
     for (const node of this.nodes) {
-      graphics.rects!.push({
+      const numberOfTimesVisitedInFailedAttempts = graphics.rects!.push({
         center: node.center,
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
