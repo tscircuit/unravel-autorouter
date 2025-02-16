@@ -174,6 +174,12 @@ export class CapacityPathingSolver extends BaseSolver {
     return capacityPaths
   }
 
+  doesNodeHaveCapacityForTrace(node: CapacityMeshNode) {
+    const remainingCapacity =
+      this.remainingNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+    return remainingCapacity > 0
+  }
+
   step() {
     const nextConnection =
       this.connectionsWithNodes[this.currentConnectionIndex]
@@ -219,9 +225,7 @@ export class CapacityPathingSolver extends BaseSolver {
       if (this.visitedNodes?.has(neighborNode.capacityMeshNodeId)) {
         continue
       }
-      const neighborNodeCapacity =
-        this.remainingNodeCapacityMap.get(neighborNode.capacityMeshNodeId) ?? 0
-      if (neighborNodeCapacity <= 0) {
+      if (!this.doesNodeHaveCapacityForTrace(neighborNode)) {
         continue
       }
       const g = this.computeG(currentCandidate, neighborNode, end)
@@ -252,13 +256,11 @@ export class CapacityPathingSolver extends BaseSolver {
       for (let i = 0; i < this.connectionsWithNodes.length; i++) {
         const conn = this.connectionsWithNodes[i]
         if (conn.path && conn.path.length > 0) {
-          const pathPoints = conn.path
-            .map((node) => node.center)
-            .map(({ x, y }) => ({
-              // slight offset to allow viewing overlapping paths
-              x: x + i * 0.1,
-              y: y + i * 0.1,
-            }))
+          const pathPoints = conn.path.map(({ center: { x, y }, width }) => ({
+            // slight offset to allow viewing overlapping paths
+            x: x + (i * 0.1 * width) / 10,
+            y: y + (i * 0.1 * width) / 10,
+          }))
           graphics.lines!.push({
             points: pathPoints,
             stroke: this.colorMap[conn.connection.name],
@@ -268,7 +270,7 @@ export class CapacityPathingSolver extends BaseSolver {
     }
 
     for (const node of this.nodes) {
-      const numberOfTimesVisitedInFailedAttempts = graphics.rects!.push({
+      graphics.rects!.push({
         center: node.center,
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
