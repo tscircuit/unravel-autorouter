@@ -11,6 +11,7 @@
     "@types/bun": "latest",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "@vercel/node": "^5.1.7",
     "@vitejs/plugin-react": "^4.3.4",
     "bun-match-svg": "^0.0.9",
     "react": "18",

@@ -11,7 +11,8 @@ import { CapacitySegmentToPointSolver } from "./CapacitySegmentToPointSolver"
 import { HighDensityRouteSolver } from "../HighDensitySolver/HighDensityRouteSolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 import { CapacityPathingSolver2_AvoidLowCapacity } from "../CapacityPathingSolver/CapacityPathingSolver2_AvoidLowCapacity"
-import {CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity} from "../CapacityPathingSolver/CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity"
+import { CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity } from "../CapacityPathingSolver/CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity"
+import { CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost } from "../CapacityPathingSolver/CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -48,13 +49,16 @@ export class CapacityMeshSolver extends BaseSolver {
       return
     }
     if (!this.pathingSolver) {
-      this.pathingSolver = new CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity({
-        simpleRouteJson: this.srj,
-        nodes: this.nodeSolver.finishedNodes,
-        edges: this.edgeSolver.edges,
-        colorMap: this.colorMap,
-        MAX_ITERATIONS: 100_000,
-      })
+      this.pathingSolver =
+        new CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost(
+          {
+            simpleRouteJson: this.srj,
+            nodes: this.nodeSolver.finishedNodes,
+            edges: this.edgeSolver.edges,
+            colorMap: this.colorMap,
+            MAX_ITERATIONS: 100_000,
+          },
+        )
       this.pathingSolver.solve()
       return
     }

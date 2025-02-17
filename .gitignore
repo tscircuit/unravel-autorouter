@@ -176,3 +176,4 @@ dist
 
 .vscode
 .aider*
+.vercel
