@@ -18,13 +18,11 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   solvedRoutes: HighDensityIntraNodeRoute[]
   failedSolvers: SingleHighDensityRouteSolver[]
 
-  constructor({
-    nodeWithPortPoints,
-    colorMap,
-  }: {
+  constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
     colorMap?: Record<string, string>
   }) {
+    const { nodeWithPortPoints, colorMap } = params
     super()
     this.nodeWithPortPoints = nodeWithPortPoints
     this.colorMap = colorMap ?? {}
