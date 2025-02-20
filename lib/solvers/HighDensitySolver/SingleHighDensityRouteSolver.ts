@@ -23,6 +23,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   obstacleRoutes: HighDensityIntraNodeRoute[]
   bounds: { minX: number; maxX: number; minY: number; maxY: number }
   boundsSize: { width: number; height: number }
+  boundsCenter: { x: number; y: number }
   A: { x: number; y: number; z: number }
   B: { x: number; y: number; z: number }
   straightLineDistance: number
@@ -64,6 +65,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.boundsSize = {
       width: this.bounds.maxX - this.bounds.minX,
       height: this.bounds.maxY - this.bounds.minY,
+    }
+    this.boundsCenter = {
+      x: (this.bounds.minX + this.bounds.maxX) / 2,
+      y: (this.bounds.minY + this.bounds.maxY) / 2,
     }
     this.connectionName = opts.connectionName
     this.obstacleRoutes = opts.obstacleRoutes
