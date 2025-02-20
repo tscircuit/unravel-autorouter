@@ -94,7 +94,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       },
     ]
     this.straightLineDistance = distance(this.A, this.B)
-    this.viaPenaltyDistance = this.cellStep + this.straightLineDistance / 2
+    this.viaPenaltyDistance = this.cellStep // + this.straightLineDistance / 10
     this.MAX_ITERATIONS = 2000
 
     const numRoutes = this.obstacleRoutes.length
@@ -122,7 +122,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         }
       }
       for (const via of route.vias) {
-        if (distance(node, via) < this.viaDiameter + margin) {
+        if (distance(node, via) < this.viaDiameter / 2 + margin) {
           return true
         }
       }
