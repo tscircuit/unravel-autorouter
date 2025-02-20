@@ -40,6 +40,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   minCellSize = 0.05
   cellStep = 0.05
   GREEDY_MULTIPLER = 1.1
+  numRoutes: number
 
   VIA_PENALTY_FACTOR = 0.3
 
@@ -112,8 +113,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.debug_exploredNodesOrdered = []
     this.debug_nodesTooCloseToObstacle = new Set()
     this.debug_nodePathToParentIntersectsObstacle = new Set()
-    const numRoutes = this.obstacleRoutes.length + this.futureConnections.length
-    const bestRowOrColumnCount = Math.ceil(5 * (numRoutes + 1))
+    this.numRoutes = this.obstacleRoutes.length + this.futureConnections.length
+    const bestRowOrColumnCount = Math.ceil(5 * (this.numRoutes + 1))
     let numXCells = this.boundsSize.width / this.cellStep
     let numYCells = this.boundsSize.height / this.cellStep
     while (numXCells * numYCells > bestRowOrColumnCount ** 2) {

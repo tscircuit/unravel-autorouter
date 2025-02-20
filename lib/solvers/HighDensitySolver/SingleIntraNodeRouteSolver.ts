@@ -52,7 +52,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   step() {
     const unsolvedConnection = this.unsolvedConnections.pop()
     if (!unsolvedConnection) {
-      this.solved = true
+      this.solved = this.failedSolvers.length === 0
       return
     }
     const { connectionName, points } = unsolvedConnection
@@ -96,7 +96,12 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     }
 
     // Visualize solvedRoutes
-    for (const route of this.solvedRoutes) {
+    for (
+      let routeIndex = 0;
+      routeIndex < this.solvedRoutes.length;
+      routeIndex++
+    ) {
+      const route = this.solvedRoutes[routeIndex]
       if (route.route.length > 0) {
         const routeColor = this.colorMap[route.connectionName] ?? "blue"
 
@@ -112,6 +117,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
                 ? safeTransparentize(routeColor, 0.2)
                 : safeTransparentize(routeColor, 0.8),
             layer: `route-layer-${p1.z}`,
+            step: routeIndex,
             strokeWidth: route.traceThickness,
           })
         }
@@ -123,6 +129,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
             radius: route.viaDiameter / 2,
             fill: safeTransparentize(routeColor, 0.5),
             layer: "via",
+            step: routeIndex,
           })
         }
       }

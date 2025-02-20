@@ -16,6 +16,8 @@ export class HighDensityRouteSolver extends BaseSolver {
   readonly defaultViaDiameter = 0.6
   readonly defaultTraceThickness = 0.15
 
+  failedSolvers: SingleIntraNodeRouteSolver[]
+
   constructor({
     nodePortPoints,
     colorMap,
@@ -27,6 +29,7 @@ export class HighDensityRouteSolver extends BaseSolver {
     this.unsolvedNodePortPoints = nodePortPoints
     this.colorMap = colorMap ?? {}
     this.routes = []
+    this.failedSolvers = []
   }
 
   /**
@@ -39,21 +42,17 @@ export class HighDensityRouteSolver extends BaseSolver {
       return
     }
     const node = this.unsolvedNodePortPoints.pop()!
-    // Group port points by connectionName
-    const connectionGroups: Record<string, { x: number; y: number }[]> = {}
-    for (const pt of node.portPoints) {
-      if (!connectionGroups[pt.connectionName]) {
-        connectionGroups[pt.connectionName] = []
-      }
-      connectionGroups[pt.connectionName].push({ x: pt.x, y: pt.y })
-    }
 
     const solver = new SingleIntraNodeRouteSolver({
       nodeWithPortPoints: node,
       colorMap: this.colorMap,
     })
     solver.solve()
-    this.routes.push(...solver.solvedRoutes)
+    if (solver.solved) {
+      this.routes.push(...solver.solvedRoutes)
+    } else {
+      this.failedSolvers.push(solver)
+    }
   }
 
   visualize(): GraphicsObject {
@@ -76,7 +75,9 @@ export class HighDensityRouteSolver extends BaseSolver {
             { x: end.x, y: end.y },
           ],
           label: route.connectionName,
-          strokeColor: start.z === 0 ? color : safeTransparentize(color, 0.5),
+          strokeColor: start.z === 0 ? color : safeTransparentize(color, 0.75),
+          strokeWidth: route.traceThickness,
+          strokeDash: start.z !== 0 ? "10, 5" : undefined,
         })
       }
       for (const via of route.vias) {
@@ -86,6 +87,29 @@ export class HighDensityRouteSolver extends BaseSolver {
           fill: this.colorMap[route.connectionName],
           label: `${route.connectionName} via`,
         })
+      }
+    }
+    for (const solver of this.failedSolvers) {
+      const node = solver.nodeWithPortPoints
+      // Group port points by connectionName
+      const connectionGroups: Record<string, { x: number; y: number }[]> = {}
+      for (const pt of node.portPoints) {
+        if (!connectionGroups[pt.connectionName]) {
+          connectionGroups[pt.connectionName] = []
+        }
+        connectionGroups[pt.connectionName].push({ x: pt.x, y: pt.y })
+      }
+
+      for (const [connectionName, points] of Object.entries(connectionGroups)) {
+        for (let i = 0; i < points.length - 1; i++) {
+          const start = points[i]
+          const end = points[i + 1]
+          graphics.lines!.push({
+            points: [start, end],
+            strokeColor: "red",
+            strokeDash: "10, 5",
+          })
+        }
       }
     }
     return graphics
