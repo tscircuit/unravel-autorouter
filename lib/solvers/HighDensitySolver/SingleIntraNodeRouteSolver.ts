@@ -6,6 +6,7 @@ import type {
 import { BaseSolver } from "../BaseSolver"
 import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
 import { safeTransparentize } from "../colors"
+import { SingleHighDensityRouteSolver2_AvoidEnds } from "./SingleHighDensityRouteSolver2_AvoidEnds"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -51,7 +52,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       return
     }
     const { connectionName, points } = unsolvedConnection
-    const solver = new SingleHighDensityRouteSolver({
+    const solver = new SingleHighDensityRouteSolver2_AvoidEnds({
       connectionName,
       node: this.nodeWithPortPoints,
       A: { x: points[0].x, y: points[0].y, z: 0 },

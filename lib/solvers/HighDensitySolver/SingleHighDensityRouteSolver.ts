@@ -7,7 +7,7 @@ import {
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 
-type Node = {
+export type Node = {
   x: number
   y: number
   z: number
