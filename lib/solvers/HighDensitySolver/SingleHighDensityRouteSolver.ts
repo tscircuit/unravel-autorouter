@@ -32,7 +32,6 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   A: { x: number; y: number; z: number }
   B: { x: number; y: number; z: number }
   straightLineDistance: number
-  viaPenaltyDistance: number
 
   viaDiameter: number
   traceThickness: number
@@ -40,7 +39,9 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   layerCount: number
   minCellSize = 0.05
   cellStep = 0.05
-  GREEDY_MULTIPLER = 1.2
+  GREEDY_MULTIPLER = 1.1
+
+  VIA_PENALTY_FACTOR = 0.3
 
   exploredNodes: Set<string>
 
@@ -52,7 +53,11 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   futureConnections: FutureConnection[]
 
   /** For debugging/animating the exploration */
-  exploredNodesOrdered: string[]
+  debug_exploredNodesOrdered: string[]
+  debug_nodesTooCloseToObstacle: Set<string>
+  debug_nodePathToParentIntersectsObstacle: Set<string>
+
+  debugEnabled = true
 
   constructor(opts: {
     connectionName: string
@@ -90,7 +95,6 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.obstacleMargin = opts.obstacleMargin ?? 0.1
     this.layerCount = opts.layerCount ?? 2
     this.exploredNodes = new Set()
-    this.exploredNodesOrdered = []
     this.candidates = [
       {
         ...opts.A,
@@ -102,10 +106,12 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       },
     ]
     this.straightLineDistance = distance(this.A, this.B)
-    this.viaPenaltyDistance = this.cellStep // + this.straightLineDistance / 10
     this.futureConnections = opts.futureConnections ?? []
-    this.MAX_ITERATIONS = 20000
+    this.MAX_ITERATIONS = 5000
 
+    this.debug_exploredNodesOrdered = []
+    this.debug_nodesTooCloseToObstacle = new Set()
+    this.debug_nodePathToParentIntersectsObstacle = new Set()
     const numRoutes = this.obstacleRoutes.length + this.futureConnections.length
     const bestRowOrColumnCount = Math.ceil(5 * (numRoutes + 1))
     let numXCells = this.boundsSize.width / this.cellStep
@@ -115,6 +121,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       numXCells = this.boundsSize.width / this.cellStep
       numYCells = this.boundsSize.height / this.cellStep
     }
+  }
+
+  get viaPenaltyDistance() {
+    return this.cellStep + this.straightLineDistance * this.VIA_PENALTY_FACTOR
   }
 
   isNodeTooCloseToObstacle(node: Node, margin?: number) {
@@ -204,15 +214,21 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
           y: clamp(node.y + y * this.cellStep, minY, maxY),
         }
 
-        if (this.exploredNodes.has(this.getNodeKey(neighbor))) {
+        const neighborKey = this.getNodeKey(neighbor)
+
+        if (this.exploredNodes.has(neighborKey)) {
           continue
         }
 
         if (this.isNodeTooCloseToObstacle(neighbor)) {
+          this.debug_nodesTooCloseToObstacle.add(neighborKey)
+          this.exploredNodes.add(neighborKey)
           continue
         }
 
         if (this.doesPathToParentIntersectObstacle(neighbor)) {
+          this.debug_nodePathToParentIntersectsObstacle.add(neighborKey)
+          this.exploredNodes.add(neighborKey)
           continue
         }
 
@@ -290,7 +306,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       return
     }
     this.exploredNodes.add(this.getNodeKey(currentNode))
-    this.exploredNodesOrdered.push(this.getNodeKey(currentNode))
+    this.debug_exploredNodesOrdered.push(this.getNodeKey(currentNode))
 
     if (
       distance(currentNode, this.B) <= this.cellStep &&
@@ -356,14 +372,20 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
 
     // Optionally, visualize explored nodes for debugging purposes
-    for (const nodeKey of this.exploredNodes) {
+    for (let i = 0; i < this.debug_exploredNodesOrdered.length; i++) {
+      const nodeKey = this.debug_exploredNodesOrdered[i]
       const [x, y, z] = nodeKey.split(",").map(Number)
+      if (this.debug_nodesTooCloseToObstacle.has(nodeKey)) continue
+      if (this.debug_nodePathToParentIntersectsObstacle.has(nodeKey)) continue
       graphics.rects!.push({
         center: {
           x: x + (z * this.cellStep) / 20,
           y: y + (z * this.cellStep) / 20,
         },
-        fill: z === 0 ? "rgba(255,0,255,0.1)" : "rgba(0,0,255,0.1)",
+        fill:
+          z === 0
+            ? `rgba(255,0,255,${0.3 - (i / this.debug_exploredNodesOrdered.length) * 0.2})`
+            : `rgba(0,0,255,${0.3 - (i / this.debug_exploredNodesOrdered.length) * 0.2})`,
         width: this.cellStep * 0.9,
         height: this.cellStep * 0.9,
         label: `Explored (z=${z})`,

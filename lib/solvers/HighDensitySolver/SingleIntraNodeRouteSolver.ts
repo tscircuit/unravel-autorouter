@@ -8,6 +8,9 @@ import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
 import { safeTransparentize } from "../colors"
 import { SingleHighDensityRouteSolver2_CenterAttraction } from "./SingleHighDensityRouteSolver2_CenterAttraction"
 import { SingleHighDensityRouteSolver3_RepelEndpoints } from "./SingleHighDensityRouteSolver3_RepellingEndpoints"
+import { SingleHighDensityRouteSolver4_RepelEdgeViaFuture } from "./SingleHighDensityRouteSolver4_RepelEdgeViaFuture"
+import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty"
+import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -53,7 +56,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       return
     }
     const { connectionName, points } = unsolvedConnection
-    const solver = new SingleHighDensityRouteSolver3_RepelEndpoints({
+    const solver = new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
       connectionName,
       node: this.nodeWithPortPoints,
       A: { x: points[0].x, y: points[0].y, z: 0 },
