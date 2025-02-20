@@ -122,6 +122,16 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     return false
   }
 
+  isNodeTooCloseToEdge(node: Node) {
+    const viaRadius = this.viaDiameter / 2
+    return (
+      node.x - viaRadius < this.bounds.minX + viaRadius ||
+      node.x + viaRadius > this.bounds.maxX - viaRadius ||
+      node.y - viaRadius < this.bounds.minY + viaRadius ||
+      node.y + viaRadius > this.bounds.maxY - viaRadius
+    )
+  }
+
   doesPathToParentIntersectObstacle(node: Node) {
     const parent = node.parent
     if (!parent) return false
@@ -207,7 +217,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       !this.isNodeTooCloseToObstacle(
         viaNeighbor,
         this.viaDiameter + this.obstacleMargin,
-      )
+      ) &&
+      !this.isNodeTooCloseToEdge(viaNeighbor)
     ) {
       viaNeighbor.g = this.computeG(viaNeighbor)
       viaNeighbor.h = this.computeH(viaNeighbor)
@@ -306,11 +317,16 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
     // Show any obstacle routes as background references
     for (const route of this.obstacleRoutes) {
-      graphics.lines!.push({
-        points: route.route,
-        strokeColor: "blue",
-        label: "Obstacle Route",
-      })
+      for (let i = 0; i < route.route.length - 1; i++) {
+        const z = route.route[i].z
+        graphics.lines!.push({
+          points: [route.route[i], route.route[i + 1]],
+          strokeColor:
+            z === 0 ? "rgba(255, 0, 0, 0.75)" : "rgba(255, 128, 0, 0.25)",
+          strokeWidth: route.traceThickness,
+          label: "Obstacle Route",
+        })
+      }
     }
 
     // Optionally, visualize explored nodes for debugging purposes
@@ -324,6 +340,20 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       })
     }
 
+    // Visualize vias from obstacle routes
+    for (const route of this.obstacleRoutes) {
+      for (const via of route.vias) {
+        graphics.circles!.push({
+          center: {
+            x: via.x,
+            y: via.y,
+          },
+          radius: this.viaDiameter / 2,
+          fill: "rgba(255, 0, 0, 0.5)",
+          label: "Via",
+        })
+      }
+    }
     // If a solved route exists, display it along with via markers
     if (this.solvedPath) {
       graphics.lines!.push({
