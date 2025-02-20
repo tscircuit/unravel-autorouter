@@ -7,6 +7,11 @@ import {
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 
+export type FutureConnection = {
+  connectionName: string
+  points: { x: number; y: number }[]
+}
+
 export type Node = {
   x: number
   y: number
@@ -44,6 +49,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   connectionName: string
   solvedPath: HighDensityIntraNodeRoute | null = null
 
+  futureConnections: FutureConnection[]
+
   /** For debugging/animating the exploration */
   exploredNodesOrdered: string[]
 
@@ -57,6 +64,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     traceThickness?: number
     obstacleMargin?: number
     layerCount?: number
+    futureConnections?: FutureConnection[]
   }) {
     super()
     this.bounds = {
@@ -95,9 +103,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     ]
     this.straightLineDistance = distance(this.A, this.B)
     this.viaPenaltyDistance = this.cellStep // + this.straightLineDistance / 10
-    this.MAX_ITERATIONS = 2000
+    this.futureConnections = opts.futureConnections ?? []
+    this.MAX_ITERATIONS = 20000
 
-    const numRoutes = this.obstacleRoutes.length
+    const numRoutes = this.obstacleRoutes.length + this.futureConnections.length
     const bestRowOrColumnCount = Math.ceil(5 * (numRoutes + 1))
     let numXCells = this.boundsSize.width / this.cellStep
     let numYCells = this.boundsSize.height / this.cellStep
@@ -176,7 +185,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   }
 
   getNodeKey(node: Node) {
-    return `${Math.floor(node.x / this.cellStep) * this.cellStep},${Math.floor(node.y / this.cellStep) * this.cellStep},${node.z}`
+    return `${Math.round(node.x / this.cellStep) * this.cellStep},${Math.round(node.y / this.cellStep) * this.cellStep},${node.z}`
   }
 
   getNeighbors(node: Node) {
@@ -349,10 +358,14 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     // Optionally, visualize explored nodes for debugging purposes
     for (const nodeKey of this.exploredNodes) {
       const [x, y, z] = nodeKey.split(",").map(Number)
-      graphics.circles!.push({
-        center: { x, y },
-        fill: z === 0 ? "rgba(255,0,0,0.1)" : "rgba(0,0,255,0.1)",
-        radius: this.cellStep / 2,
+      graphics.rects!.push({
+        center: {
+          x: x + (z * this.cellStep) / 20,
+          y: y + (z * this.cellStep) / 20,
+        },
+        fill: z === 0 ? "rgba(255,0,255,0.1)" : "rgba(0,0,255,0.1)",
+        width: this.cellStep * 0.9,
+        height: this.cellStep * 0.9,
         label: `Explored (z=${z})`,
       })
     }
