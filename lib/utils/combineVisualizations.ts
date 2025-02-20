@@ -12,16 +12,16 @@ export const combineVisualizations = (
 
   visualizations.forEach((viz, i) => {
     if (viz.lines) {
-      combined.lines.push(...viz.lines.map(l => ({ ...l, step: i })))
+      combined.lines.push(...viz.lines.map((l) => ({ ...l, step: i })))
     }
     if (viz.points) {
-      combined.points.push(...viz.points.map(p => ({ ...p, step: i })))
+      combined.points.push(...viz.points.map((p) => ({ ...p, step: i })))
     }
     if (viz.circles) {
-      combined.circles.push(...viz.circles.map(c => ({ ...c, step: i })))
+      combined.circles.push(...viz.circles.map((c) => ({ ...c, step: i })))
     }
     if (viz.rects) {
-      combined.rects.push(...viz.rects.map(r => ({ ...r, step: i })))
+      combined.rects.push(...viz.rects.map((r) => ({ ...r, step: i })))
     }
   })
 

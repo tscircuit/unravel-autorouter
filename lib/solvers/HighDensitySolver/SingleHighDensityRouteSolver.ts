@@ -44,6 +44,9 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   connectionName: string
   solvedPath: HighDensityIntraNodeRoute | null = null
 
+  /** For debugging/animating the exploration */
+  exploredNodesOrdered: string[]
+
   constructor(opts: {
     connectionName: string
     obstacleRoutes: HighDensityIntraNodeRoute[]
@@ -79,6 +82,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.obstacleMargin = opts.obstacleMargin ?? 0.1
     this.layerCount = opts.layerCount ?? 2
     this.exploredNodes = new Set()
+    this.exploredNodesOrdered = []
     this.candidates = [
       {
         ...opts.A,
@@ -171,6 +175,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     return g + h * this.GREEDY_MULTIPLER
   }
 
+  getNodeKey(node: Node) {
+    return `${Math.floor(node.x / this.cellStep) * this.cellStep},${Math.floor(node.y / this.cellStep) * this.cellStep},${node.z}`
+  }
+
   getNeighbors(node: Node) {
     const neighbors: Node[] = []
 
@@ -187,9 +195,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
           y: clamp(node.y + y * this.cellStep, minY, maxY),
         }
 
-        if (
-          this.exploredNodes.has(`${neighbor.x},${neighbor.y},${neighbor.z}`)
-        ) {
+        if (this.exploredNodes.has(this.getNodeKey(neighbor))) {
           continue
         }
 
@@ -216,9 +222,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
 
     if (
-      !this.exploredNodes.has(
-        `${viaNeighbor.x},${viaNeighbor.y},${viaNeighbor.z}`,
-      ) &&
+      !this.exploredNodes.has(this.getNodeKey(viaNeighbor)) &&
       !this.isNodeTooCloseToObstacle(
         viaNeighbor,
         this.viaDiameter + this.obstacleMargin,
@@ -267,9 +271,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
     while (
       currentNode &&
-      this.exploredNodes.has(
-        `${currentNode.x},${currentNode.y},${currentNode.z}`,
-      )
+      this.exploredNodes.has(this.getNodeKey(currentNode))
     ) {
       currentNode = this.candidates.pop()
     }
@@ -278,7 +280,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       // No more candidates, we've failed :(
       return
     }
-    this.exploredNodes.add(`${currentNode.x},${currentNode.y},${currentNode.z}`)
+    this.exploredNodes.add(this.getNodeKey(currentNode))
+    this.exploredNodesOrdered.push(this.getNodeKey(currentNode))
 
     if (
       distance(currentNode, this.B) <= this.cellStep &&
@@ -324,7 +327,12 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     })
 
     // Show any obstacle routes as background references
-    for (const route of this.obstacleRoutes) {
+    for (
+      let routeIndex = 0;
+      routeIndex < this.obstacleRoutes.length;
+      routeIndex++
+    ) {
+      const route = this.obstacleRoutes[routeIndex]
       for (let i = 0; i < route.route.length - 1; i++) {
         const z = route.route[i].z
         graphics.lines!.push({
@@ -333,6 +341,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
             z === 0 ? "rgba(255, 0, 0, 0.75)" : "rgba(255, 128, 0, 0.25)",
           strokeWidth: route.traceThickness,
           label: "Obstacle Route",
+          layer: `obstacle${routeIndex.toString()}`,
         })
       }
     }

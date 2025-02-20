@@ -6,7 +6,7 @@ import type {
 import { BaseSolver } from "../BaseSolver"
 import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
 import { safeTransparentize } from "../colors"
-import { SingleHighDensityRouteSolver2_CenterAttraction } from "./SingleHighDensityRouteSolver2_AvoidEnds"
+import { SingleHighDensityRouteSolver2_CenterAttraction } from "./SingleHighDensityRouteSolver2_CenterAttraction"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
