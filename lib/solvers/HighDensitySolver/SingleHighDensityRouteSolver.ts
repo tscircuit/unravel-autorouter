@@ -280,7 +280,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
     this.exploredNodes.add(`${currentNode.x},${currentNode.y},${currentNode.z}`)
 
-    if (distance(currentNode, this.B) <= this.cellStep) {
+    if (
+      distance(currentNode, this.B) <= this.cellStep &&
+      currentNode.z === this.B.z
+    ) {
       this.solved = true
       this.setSolvedPath(currentNode)
     }
