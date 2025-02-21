@@ -62,6 +62,19 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
 
   step() {
     this.iterations++
+
+    if (this.activeSolver) {
+      this.activeSolver.step()
+      if (this.activeSolver.solved) {
+        this.solvedRoutes.push(this.activeSolver.solvedPath!)
+        this.activeSolver = null
+      } else if (this.activeSolver.failed) {
+        this.failedSolvers.push(this.activeSolver)
+        this.activeSolver = null
+      }
+      return
+    }
+
     const unsolvedConnection = this.unsolvedConnections.pop()
     this.progress =
       this.unsolvedConnections.length /
@@ -86,13 +99,6 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
         layerCount: 2,
         hyperParameters: this.hyperParameters,
       })
-    this.activeSolver.solve()
-    if (this.activeSolver.solvedPath) {
-      this.solvedRoutes.push(this.activeSolver.solvedPath)
-    } else {
-      this.failedSolvers.push(this.activeSolver)
-    }
-    this.activeSolver = null
   }
 
   visualize(): GraphicsObject {

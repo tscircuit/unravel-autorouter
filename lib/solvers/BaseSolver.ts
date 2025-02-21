@@ -11,8 +11,10 @@ export class BaseSolver {
   step() {}
 
   solve() {
+    let iters = 0
     while (!this.solved && !this.failed) {
-      this.iterations++
+      iters++
+      this.iterations = iters
       try {
         this.step()
       } catch (e) {

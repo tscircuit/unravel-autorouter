@@ -292,6 +292,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
   step() {
     this.iterations++
+    if (this.iterations > this.MAX_ITERATIONS) {
+      this.failed = true
+      return
+    }
     this.candidates.sort((a, b) => b.f - a.f)
     let currentNode = this.candidates.pop()
 
