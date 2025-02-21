@@ -92,7 +92,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.B = opts.B
     this.viaDiameter = opts.viaDiameter ?? 0.6
     this.traceThickness = opts.traceThickness ?? 0.15
-    this.obstacleMargin = opts.obstacleMargin ?? 0.1
+    this.obstacleMargin = opts.obstacleMargin ?? 0.2
     this.layerCount = opts.layerCount ?? 2
     this.exploredNodes = new Set()
     this.candidates = [
@@ -250,7 +250,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       !this.exploredNodes.has(this.getNodeKey(viaNeighbor)) &&
       !this.isNodeTooCloseToObstacle(
         viaNeighbor,
-        this.viaDiameter + this.obstacleMargin,
+        this.viaDiameter + this.obstacleMargin + this.traceThickness / 2,
       ) &&
       !this.isNodeTooCloseToEdge(viaNeighbor)
     ) {
@@ -309,12 +309,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     )
   }
 
-  step() {
-    this.iterations++
-    if (this.iterations > this.MAX_ITERATIONS) {
-      this.failed = true
-      return
-    }
+  _step() {
     this.candidates.sort((a, b) => b.f - a.f)
     let currentNode = this.candidates.pop()
 
@@ -326,7 +321,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
 
     if (!currentNode) {
-      // No more candidates, we've failed :(
+      this.failed = true
       return
     }
     this.exploredNodes.add(this.getNodeKey(currentNode))

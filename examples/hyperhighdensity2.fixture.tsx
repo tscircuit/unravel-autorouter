@@ -223,7 +223,12 @@ export default () => {
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
                   {solver.solver.iterations}
                 </td>
-                <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                <td
+                  style={{
+                    fontVariantNumeric: "tabular-nums",
+                    backgroundColor: solver.solver.failed ? "red" : undefined,
+                  }}
+                >
                   {solver.solver.progress?.toFixed(3)}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>

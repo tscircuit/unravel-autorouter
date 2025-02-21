@@ -70,21 +70,9 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     )
   }
 
-  step() {
-    const { unsolvedConnections, solvedRoutes } = this
-    this.iterations++
-
+  _step() {
     if (this.activeSolver) {
       this.activeSolver.step()
-      // console.log(
-      //   this.iterations,
-      //   this.progress?.toFixed(2),
-      //   this.totalConnections,
-      //   this.activeSolver.progress?.toFixed(2),
-      //   solvedRoutes.length,
-      //   unsolvedConnections.length,
-      //   this.failed,
-      // )
       this.progress = this.computeProgress()
       if (this.activeSolver.solved) {
         this.solvedRoutes.push(this.activeSolver.solvedPath!)
@@ -92,6 +80,8 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       } else if (this.activeSolver.failed) {
         this.failedSolvers.push(this.activeSolver)
         this.activeSolver = null
+        this.error = this.failedSolvers.map((s) => s.error).join("\n")
+        this.failed = true
       }
       return
     }

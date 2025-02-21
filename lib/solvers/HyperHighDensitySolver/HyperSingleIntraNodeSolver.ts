@@ -10,8 +10,8 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
     super()
     this.constructorParams = opts
     this.MAX_ITERATIONS = 100_000
-    this.GREEDY_MULTIPLIER = 10
-    this.MIN_SUBSTEPS = 10
+    this.GREEDY_MULTIPLIER = 1.5
+    this.MIN_SUBSTEPS = 100
   }
 
   getHyperParameterDefs() {
@@ -52,7 +52,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
 
   computeG(solver: SingleIntraNodeRouteSolver) {
     return (
-      solver.iterations / solver.MAX_ITERATIONS // + solver.hyperParameters.SHUFFLE_SEED! * 0.05
+      solver.iterations / 10_000 // + solver.hyperParameters.SHUFFLE_SEED! * 0.05
     )
   }
 

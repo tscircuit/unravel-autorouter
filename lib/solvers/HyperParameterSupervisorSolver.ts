@@ -118,18 +118,8 @@ export class HyperParameterSupervisorSolver<
     return bestSolver
   }
 
-  step() {
+  _step() {
     if (!this.supervisedSolvers) this.initializeSolvers()
-    this.iterations++
-    // console.table(
-    //   this.supervisedSolvers?.map((s) => ({
-    //     f: s.f,
-    //     g: s.g,
-    //     h: s.h,
-    //     iterations: s.solver.iterations,
-    //     progress: s.solver.progress,
-    //   })),
-    // )
 
     const supervisedSolver = this.getSupervisedSolverWithBestFitness()
 
