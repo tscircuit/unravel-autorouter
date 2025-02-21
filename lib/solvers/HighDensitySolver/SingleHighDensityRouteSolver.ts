@@ -63,7 +63,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   constructor(opts: {
     connectionName: string
     obstacleRoutes: HighDensityIntraNodeRoute[]
-    node: { center: { x: number; y: number }; width: number; height: number }
+    bounds: { minX: number; maxX: number; minY: number; maxY: number }
     A: { x: number; y: number; z: number }
     B: { x: number; y: number; z: number }
     viaDiameter?: number
@@ -73,12 +73,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     futureConnections?: FutureConnection[]
   }) {
     super()
-    this.bounds = {
-      minX: opts.node.center.x - opts.node.width / 2,
-      maxX: opts.node.center.x + opts.node.width / 2,
-      minY: opts.node.center.y - opts.node.height / 2,
-      maxY: opts.node.center.y + opts.node.height / 2,
-    }
+    this.bounds = opts.bounds
     this.boundsSize = {
       width: this.bounds.maxX - this.bounds.minX,
       height: this.bounds.maxY - this.bounds.minY,

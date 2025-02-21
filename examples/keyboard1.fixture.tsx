@@ -11,5 +11,25 @@ export default () => {
     },
   )
   solver.solve()
-  return <InteractiveGraphics graphics={solver.visualize()} />
+  const failedHdSolvers = solver.highDensityRouteSolver?.failedSolvers
+  return (
+    <>
+      <InteractiveGraphics graphics={solver.visualize()} />
+      {failedHdSolvers?.map((s) => (
+        <button
+          className="border m-2 p-2"
+          key={s.nodeWithPortPoints.capacityMeshNodeId}
+          onClick={() => {
+            const json = JSON.stringify({
+              nodeWithPortPoints: s.nodeWithPortPoints,
+            })
+            navigator.clipboard.writeText(json)
+            alert("Copied to clipboard")
+          }}
+        >
+          {s.nodeWithPortPoints.capacityMeshNodeId}
+        </button>
+      ))}
+    </>
+  )
 }

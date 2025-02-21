@@ -58,7 +58,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     const { connectionName, points } = unsolvedConnection
     const solver = new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
       connectionName,
-      node: this.nodeWithPortPoints,
+      bounds: getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints),
       A: { x: points[0].x, y: points[0].y, z: 0 },
       B: {
         x: points[points.length - 1].x,
@@ -84,6 +84,18 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       rects: [],
       circles: [],
     }
+
+    // Draw node bounds
+    // graphics.rects!.push({
+    //   center: {
+    //     x: this.nodeWithPortPoints.center.x,
+    //     y: this.nodeWithPortPoints.center.y,
+    //   },
+    //   width: this.nodeWithPortPoints.width,
+    //   height: this.nodeWithPortPoints.height,
+    //   stroke: "gray",
+    //   fill: "transparent",
+    // })
 
     // Visualize input nodeWithPortPoints
     for (const pt of this.nodeWithPortPoints.portPoints) {
@@ -137,4 +149,35 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
 
     return graphics
   }
+}
+
+function getBoundsFromNodeWithPortPoints(
+  nodeWithPortPoints: NodeWithPortPoints,
+): { minX: number; maxX: number; minY: number; maxY: number } {
+  const bounds = {
+    minX: nodeWithPortPoints.center.x - nodeWithPortPoints.width / 2,
+    maxX: nodeWithPortPoints.center.x + nodeWithPortPoints.width / 2,
+    minY: nodeWithPortPoints.center.y - nodeWithPortPoints.height / 2,
+    maxY: nodeWithPortPoints.center.y + nodeWithPortPoints.height / 2,
+  }
+
+  // Sometimes port points may be outside the node- this happens when there's
+  // a "leap" to the final target or at the end or beginning of a trace when
+  // we're wrapping up
+  for (const pt of nodeWithPortPoints.portPoints) {
+    if (pt.x < bounds.minX) {
+      bounds.minX = pt.x
+    }
+    if (pt.x > bounds.maxX) {
+      bounds.maxX = pt.x
+    }
+    if (pt.y < bounds.minY) {
+      bounds.minY = pt.y
+    }
+    if (pt.y > bounds.maxY) {
+      bounds.maxY = pt.y
+    }
+  }
+
+  return bounds
 }
