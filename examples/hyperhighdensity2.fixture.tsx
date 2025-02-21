@@ -179,6 +179,7 @@ export default () => {
             className={`border border-gray-300 py-1 px-2 m-1 ${i === tab ? "bg-gray-200" : ""}`}
           >
             {i}
+            {solver.solver.solved ? "*" : ""}
           </button>
         ))}
       </div>
@@ -186,6 +187,24 @@ export default () => {
         <InteractiveGraphics
           graphics={solver.supervisedSolvers?.[tab]?.solver.visualize() ?? {}}
         />
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th>n</th>
+              <th>iterations</th>
+            </tr>
+          </thead>
+          <tbody>
+            {solver.supervisedSolvers?.map((solver, i) => (
+              <tr key={i}>
+                <td>{i}</td>
+                <td>{solver.solver.iterations}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

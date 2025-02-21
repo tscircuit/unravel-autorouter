@@ -24,7 +24,7 @@ export type HyperParameterDef = {
 export class HyperParameterSupervisorSolver<
   T extends BaseSolver,
 > extends BaseSolver {
-  GREEDY_MULTIPLIER = 1
+  GREEDY_MULTIPLIER = 100
   MIN_SUBSTEPS = 1
 
   supervisedSolvers?: Array<SupervisedSolver<T>>
@@ -120,6 +120,15 @@ export class HyperParameterSupervisorSolver<
 
   step() {
     if (!this.supervisedSolvers) this.initializeSolvers()
+    // console.table(
+    //   this.supervisedSolvers?.map((s) => ({
+    //     f: s.f,
+    //     g: s.g,
+    //     h: s.h,
+    //     iterations: s.solver.iterations,
+    //     progress: s.solver.progress,
+    //   })),
+    // )
 
     const supervisedSolver = this.getSupervisedSolverWithBestFitness()
 
