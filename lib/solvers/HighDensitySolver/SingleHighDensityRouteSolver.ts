@@ -6,6 +6,7 @@ import {
   doSegmentsIntersect,
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
+import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 
 export type FutureConnection = {
   connectionName: string
@@ -52,6 +53,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   solvedPath: HighDensityIntraNodeRoute | null = null
 
   futureConnections: FutureConnection[]
+  hyperParameters: Partial<HighDensityHyperParameters>
 
   /** For debugging/animating the exploration */
   debug_exploredNodesOrdered: string[]
@@ -71,9 +73,11 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     obstacleMargin?: number
     layerCount?: number
     futureConnections?: FutureConnection[]
+    hyperParameters?: Partial<HighDensityHyperParameters>
   }) {
     super()
     this.bounds = opts.bounds
+    this.hyperParameters = opts.hyperParameters ?? {}
     this.boundsSize = {
       width: this.bounds.maxX - this.bounds.minX,
       height: this.bounds.maxY - this.bounds.minY,

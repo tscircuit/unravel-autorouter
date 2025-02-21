@@ -4,6 +4,7 @@ export class BaseSolver {
   MAX_ITERATIONS = 1000
   solved = false
   iterations = 0
+  progress = 0
   error: string | null = null
 
   step() {}

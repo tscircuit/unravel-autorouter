@@ -11,6 +11,8 @@ import { SingleHighDensityRouteSolver3_RepelEndpoints } from "./SingleHighDensit
 import { SingleHighDensityRouteSolver4_RepelEdgeViaFuture } from "./SingleHighDensityRouteSolver4_RepelEdgeViaFuture"
 import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty"
 import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
+import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
+import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -22,16 +24,19 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
 
   solvedRoutes: HighDensityIntraNodeRoute[]
   failedSolvers: SingleHighDensityRouteSolver[]
+  hyperParameters: Partial<HighDensityHyperParameters>
 
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
     colorMap?: Record<string, string>
+    hyperParameters?: Partial<HighDensityHyperParameters>
   }) {
     const { nodeWithPortPoints, colorMap } = params
     super()
     this.nodeWithPortPoints = nodeWithPortPoints
     this.colorMap = colorMap ?? {}
     this.solvedRoutes = []
+    this.hyperParameters = params.hyperParameters ?? {}
     this.failedSolvers = []
     const unsolvedConnectionsMap: Map<string, { x: number; y: number }[]> =
       new Map()
@@ -46,6 +51,10 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
         connectionName,
         points,
       })),
+    )
+    this.unsolvedConnections = cloneAndShuffleArray(
+      this.unsolvedConnections,
+      this.hyperParameters.SHUFFLE_SEED ?? 0,
     )
   }
 
@@ -68,6 +77,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       obstacleRoutes: this.solvedRoutes,
       futureConnections: this.unsolvedConnections,
       layerCount: 2,
+      hyperParameters: this.hyperParameters,
     })
     solver.solve()
     if (solver.solvedPath) {
