@@ -290,6 +290,25 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
   }
 
+  computeProgress(currentNode: Node, goalDist: number, isOnLayer: boolean) {
+    if (!isOnLayer) goalDist += this.viaPenaltyDistance
+    const goalDistPercent = 1 - goalDist / this.straightLineDistance
+
+    // This is a perfectly acceptable progress metric
+    // return Math.max(this.progress || 0, goalDistPercent)
+
+    // Linearize because it typically gets harder towards the end
+    return Math.max(
+      this.progress || 0,
+      // 0.112 = ~90% -> 50%
+      //         ~25% -> 2%
+      //         ~99% -> 94%
+      //         ~95% -> 72%
+      (2 / Math.PI) *
+        Math.atan((0.112 * goalDistPercent) / (1 - goalDistPercent)),
+    )
+  }
+
   step() {
     this.iterations++
     if (this.iterations > this.MAX_ITERATIONS) {
@@ -313,10 +332,15 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.exploredNodes.add(this.getNodeKey(currentNode))
     this.debug_exploredNodesOrdered.push(this.getNodeKey(currentNode))
 
-    if (
-      distance(currentNode, this.B) <= this.cellStep &&
-      currentNode.z === this.B.z
-    ) {
+    const goalDist = distance(currentNode, this.B)
+
+    this.progress = this.computeProgress(
+      currentNode,
+      goalDist,
+      currentNode.z === this.B.z,
+    )
+
+    if (goalDist <= this.cellStep && currentNode.z === this.B.z) {
       this.solved = true
       this.setSolvedPath(currentNode)
     }

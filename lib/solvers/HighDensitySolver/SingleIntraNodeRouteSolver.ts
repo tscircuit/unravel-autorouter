@@ -22,6 +22,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     points: { x: number; y: number }[]
   }[]
 
+  totalConnections: number
   solvedRoutes: HighDensityIntraNodeRoute[]
   failedSolvers: SingleHighDensityRouteSolver[]
   hyperParameters: Partial<HighDensityHyperParameters>
@@ -58,13 +59,33 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       this.unsolvedConnections,
       this.hyperParameters.SHUFFLE_SEED ?? 0,
     )
+    this.totalConnections = this.unsolvedConnections.length
+    this.MAX_ITERATIONS = 1_000 * this.totalConnections ** 1.5
+  }
+
+  computeProgress() {
+    return (
+      (this.solvedRoutes.length + (this.activeSolver?.progress || 0)) /
+      this.totalConnections
+    )
   }
 
   step() {
+    const { unsolvedConnections, solvedRoutes } = this
     this.iterations++
 
     if (this.activeSolver) {
       this.activeSolver.step()
+      // console.log(
+      //   this.iterations,
+      //   this.progress?.toFixed(2),
+      //   this.totalConnections,
+      //   this.activeSolver.progress?.toFixed(2),
+      //   solvedRoutes.length,
+      //   unsolvedConnections.length,
+      //   this.failed,
+      // )
+      this.progress = this.computeProgress()
       if (this.activeSolver.solved) {
         this.solvedRoutes.push(this.activeSolver.solvedPath!)
         this.activeSolver = null
@@ -76,9 +97,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     }
 
     const unsolvedConnection = this.unsolvedConnections.pop()
-    this.progress =
-      this.unsolvedConnections.length /
-      (this.unsolvedConnections.length + this.solvedRoutes.length)
+    this.progress = this.computeProgress()
     if (!unsolvedConnection) {
       this.solved = this.failedSolvers.length === 0
       return

@@ -120,6 +120,7 @@ export class HyperParameterSupervisorSolver<
 
   step() {
     if (!this.supervisedSolvers) this.initializeSolvers()
+    this.iterations++
     // console.table(
     //   this.supervisedSolvers?.map((s) => ({
     //     f: s.f,

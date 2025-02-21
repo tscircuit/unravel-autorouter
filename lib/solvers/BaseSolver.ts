@@ -8,28 +8,29 @@ export class BaseSolver {
   progress = 0
   error: string | null = null
 
-  step() {}
+  /** DO NOT OVERRIDE! Override _step() instead */
+  step() {
+    this.iterations++
+    try {
+      this._step()
+    } catch (e) {
+      this.error = `${this.constructor.name} error: ${e}`
+      console.error(this.error)
+      this.failed = true
+      throw e
+    }
+    if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
+      this.error = `${this.constructor.name} did not converge`
+      console.error(this.error)
+      this.failed = true
+    }
+  }
+
+  _step() {}
 
   solve() {
-    let iters = 0
     while (!this.solved && !this.failed) {
-      iters++
-      this.iterations = iters
-      try {
-        this.step()
-      } catch (e) {
-        this.error = `${this.constructor.name} error: ${e}`
-        console.error(this.error)
-        this.failed = true
-        break
-      }
-
-      if (this.iterations > this.MAX_ITERATIONS) {
-        this.error = `${this.constructor.name} did not converge`
-        console.error(this.error)
-        this.failed = true
-        break
-      }
+      this.step()
     }
   }
 

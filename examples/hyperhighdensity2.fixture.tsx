@@ -3,7 +3,7 @@ import { SingleIntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/Single
 import { HyperSingleIntraNodeSolver } from "lib/solvers/HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 const { nodeWithPortPoints } = {
   nodeWithPortPoints: {
@@ -163,11 +163,22 @@ export default () => {
       colorMap: generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
     })
 
-    solver.solve()
-
     return solver
   }, [])
   const [tab, setTab] = useState(0)
+  const [iters, setIters] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (solver.solved || solver.failed) {
+        clearInterval(interval)
+        return
+      }
+      solver.step()
+      setIters(solver.iterations)
+    }, 10)
+    return () => clearInterval(interval)
+  }, [solver, setIters])
 
   return (
     <div>
@@ -184,23 +195,52 @@ export default () => {
         ))}
       </div>
       <div>
-        <InteractiveGraphics
-          graphics={solver.supervisedSolvers?.[tab]?.solver.visualize() ?? {}}
-        />
+        {solver.solved && (
+          <InteractiveGraphics
+            graphics={solver.supervisedSolvers?.[tab]?.solver.visualize() ?? {}}
+          />
+        )}
       </div>
       <div>
         <table>
           <thead>
             <tr>
-              <th>n</th>
-              <th>iterations</th>
+              <th>variant</th>
+              <th style={{ fontVariantNumeric: "tabular-nums" }}>
+                iterations ({iters})
+              </th>
+              <th>progress</th>
+              <th>subsolver progress</th>
+              <th>unsolved routes</th>
+              <th>solved routes</th>
+              <th>hyper params</th>
             </tr>
           </thead>
           <tbody>
             {solver.supervisedSolvers?.map((solver, i) => (
               <tr key={i}>
-                <td>{i}</td>
-                <td>{solver.solver.iterations}</td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>{i}</td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {solver.solver.iterations}
+                </td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {solver.solver.progress?.toFixed(3)}
+                </td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {solver.solver?.activeSolver?.progress?.toFixed(3)}
+                </td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {solver.solver.unsolvedConnections.length}
+                </td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {solver.solver.solvedRoutes.length}
+                </td>
+                <td>
+                  <details>
+                    <summary>hyper params</summary>
+                    <pre>{JSON.stringify(solver.hyperParameters, null, 2)}</pre>
+                  </details>
+                </td>
               </tr>
             ))}
           </tbody>
