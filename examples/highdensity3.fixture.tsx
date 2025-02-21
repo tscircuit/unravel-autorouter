@@ -1,5 +1,6 @@
 import { InteractiveGraphics } from "graphics-debug/react"
 import { SingleIntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/SingleIntraNodeRouteSolver"
+import { combineVisualizations } from "lib/utils/combineVisualizations"
 
 const nodeWithPortPoints = {
   capacityMeshNodeId: "cn1255",
@@ -226,7 +227,12 @@ export default () => {
 
   if (solver.failedSolvers.length > 0) {
     return (
-      <InteractiveGraphics graphics={solver.failedSolvers[0].visualize()} />
+      <InteractiveGraphics
+        graphics={combineVisualizations(
+          solver.failedSolvers[0].visualize(),
+          solver.visualize(),
+        )}
+      />
     )
   }
 

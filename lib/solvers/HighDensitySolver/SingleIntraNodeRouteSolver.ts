@@ -6,6 +6,11 @@ import type {
 import { BaseSolver } from "../BaseSolver"
 import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
 import { safeTransparentize } from "../colors"
+import { SingleHighDensityRouteSolver2_CenterAttraction } from "./SingleHighDensityRouteSolver2_CenterAttraction"
+import { SingleHighDensityRouteSolver3_RepelEndpoints } from "./SingleHighDensityRouteSolver3_RepellingEndpoints"
+import { SingleHighDensityRouteSolver4_RepelEdgeViaFuture } from "./SingleHighDensityRouteSolver4_RepelEdgeViaFuture"
+import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty"
+import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -47,11 +52,11 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   step() {
     const unsolvedConnection = this.unsolvedConnections.pop()
     if (!unsolvedConnection) {
-      this.solved = true
+      this.solved = this.failedSolvers.length === 0
       return
     }
     const { connectionName, points } = unsolvedConnection
-    const solver = new SingleHighDensityRouteSolver({
+    const solver = new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
       connectionName,
       node: this.nodeWithPortPoints,
       A: { x: points[0].x, y: points[0].y, z: 0 },
@@ -61,6 +66,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
         z: 0,
       },
       obstacleRoutes: this.solvedRoutes,
+      futureConnections: this.unsolvedConnections,
       layerCount: 2,
     })
     solver.solve()
@@ -90,7 +96,12 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     }
 
     // Visualize solvedRoutes
-    for (const route of this.solvedRoutes) {
+    for (
+      let routeIndex = 0;
+      routeIndex < this.solvedRoutes.length;
+      routeIndex++
+    ) {
+      const route = this.solvedRoutes[routeIndex]
       if (route.route.length > 0) {
         const routeColor = this.colorMap[route.connectionName] ?? "blue"
 
@@ -106,6 +117,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
                 ? safeTransparentize(routeColor, 0.2)
                 : safeTransparentize(routeColor, 0.8),
             layer: `route-layer-${p1.z}`,
+            step: routeIndex,
             strokeWidth: route.traceThickness,
           })
         }
@@ -117,6 +129,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
             radius: route.viaDiameter / 2,
             fill: safeTransparentize(routeColor, 0.5),
             layer: "via",
+            step: routeIndex,
           })
         }
       }

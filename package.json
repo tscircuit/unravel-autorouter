@@ -19,6 +19,7 @@
     "react-cosmos-plugin-vite": "^6.2.0",
     "react-dom": "18",
     "vite": "^6.0.11",
+    "graphics-debug": "^0.0.17",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "peerDependencies": {
@@ -26,7 +27,6 @@
   },
   "dependencies": {
     "@tscircuit/math-utils": "^0.0.10",
-    "graphics-debug": "^0.0.15",
     "use-mouse-matrix-transform": "^1.3.0"
   }
 }
