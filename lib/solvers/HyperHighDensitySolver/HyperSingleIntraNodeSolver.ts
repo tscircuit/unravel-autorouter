@@ -5,7 +5,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
   getHyperParameterDefs() {
     return [
       {
-        name: "hyperParameters",
+        name: "majorCombinations",
         possibleValues: [
           {
             FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR: 2,
@@ -18,6 +18,20 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
             FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 0.5,
             FUTURE_CONNECTION_PROXIMITY_VD: 5,
             MISALIGNED_DIST_PENALTY_FACTOR: 2,
+          },
+        ],
+      },
+      {
+        name: "orderings",
+        possibleValues: [
+          {
+            SHUFFLE_SEED: 0,
+          },
+          {
+            SHUFFLE_SEED: 1,
+          },
+          {
+            SHUFFLE_SEED: 2,
           },
         ],
       },

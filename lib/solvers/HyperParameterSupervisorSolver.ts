@@ -1,5 +1,13 @@
 import { BaseSolver } from "./BaseSolver"
 
+type SupervisedSolver<T extends BaseSolver> = {
+  hyperParameters: any
+  solver: T
+  h: number
+  g: number
+  f: number
+}
+
 export type HyperParameterDef = {
   name: string
   possibleValues: Array<any>
@@ -17,20 +25,11 @@ export class HyperParameterSupervisorSolver<
 > extends BaseSolver {
   GREEDY_MULTIPLIER = 1
 
-  solvers?: Array<{
-    hyperParameters: any
-
-    solver: T
-    iterations: number
-
-    h: number
-    g: number
-    f: number
-  }>
+  supervisedSolvers?: Array<SupervisedSolver<T>>
 
   constructor() {
     super()
-    this.solvers = []
+    this.supervisedSolvers = []
   }
 
   getHyperParameterDefs(): Array<HyperParameterDef> {
@@ -61,7 +60,7 @@ export class HyperParameterSupervisorSolver<
       subCombinations.forEach((subCombo) => {
         combinations.push({
           ...subCombo,
-          [currentDef.name]: value,
+          ...value,
         })
       })
     })
@@ -74,13 +73,12 @@ export class HyperParameterSupervisorSolver<
     const hyperParameterCombinations =
       this.getHyperParameterCombinations(hyperParameterDefs)
 
-    this.solvers = []
+    this.supervisedSolvers = []
     for (const hyperParameters of hyperParameterCombinations) {
       const solver = this.generateSolver(hyperParameters)
-      this.solvers.push({
+      this.supervisedSolvers.push({
         hyperParameters,
         solver,
-        iterations: 0,
         h: 0,
         g: 0,
         f: 0,
@@ -97,14 +95,27 @@ export class HyperParameterSupervisorSolver<
   }
 
   computeH(solver: T) {
-    return (1 - solver.progress) * solver.MAX_ITERATIONS
+    return (1 - (solver.progress ?? 0)) * solver.MAX_ITERATIONS
   }
 
   computeF(g: number, h: number) {
     return g + h * this.GREEDY_MULTIPLIER
   }
 
+  getSupervisedSolverWithBestFitness(): SupervisedSolver<T> {
+    let bestFitness = -Infinity
+    let bestSolver = this.supervisedSolvers![0]
+    for (const solver of this.supervisedSolvers!) {
+      const fitness = solver.f
+      if (fitness > bestFitness) {
+        bestFitness = fitness
+        bestSolver = solver
+      }
+    }
+    return bestSolver
+  }
+
   step() {
-    //
+    const solver = this.getSolverWithBestFitness()
   }
 }

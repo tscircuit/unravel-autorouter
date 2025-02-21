@@ -2,7 +2,7 @@ import { HyperSingleIntraNodeSolver } from "../lib/solvers/HyperHighDensitySolve
 
 export default () => {
   const solver = new HyperSingleIntraNodeSolver()
-  // return (
-  //   <pre>{JSON.stringify(solver.getHyperParameterCombinations(), null, 2)}</pre>
-  // )
+  return (
+    <pre>{JSON.stringify(solver.getHyperParameterCombinations(), null, 2)}</pre>
+  )
 }
