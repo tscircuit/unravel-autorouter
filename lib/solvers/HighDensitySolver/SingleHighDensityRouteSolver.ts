@@ -291,6 +291,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   }
 
   step() {
+    this.iterations++
     this.candidates.sort((a, b) => b.f - a.f)
     let currentNode = this.candidates.pop()
 

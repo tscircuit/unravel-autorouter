@@ -2,6 +2,15 @@ import { SingleIntraNodeRouteSolver } from "../HighDensitySolver/SingleIntraNode
 import { HyperParameterSupervisorSolver } from "../HyperParameterSupervisorSolver"
 
 export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<SingleIntraNodeRouteSolver> {
+  constructorParams: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0]
+
+  constructor(
+    opts: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0],
+  ) {
+    super()
+    this.constructorParams = opts
+  }
+
   getHyperParameterDefs() {
     return [
       {
@@ -40,7 +49,8 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
 
   generateSolver(hyperParameters: any): SingleIntraNodeRouteSolver {
     return new SingleIntraNodeRouteSolver({
-      ...hyperParameters,
+      ...this.constructorParams,
+      hyperParameters,
     })
   }
 }

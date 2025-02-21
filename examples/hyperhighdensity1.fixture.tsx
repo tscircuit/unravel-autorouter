@@ -3,6 +3,14 @@ import { HyperSingleIntraNodeSolver } from "../lib/solvers/HyperHighDensitySolve
 export default () => {
   const solver = new HyperSingleIntraNodeSolver()
   return (
-    <pre>{JSON.stringify(solver.getHyperParameterCombinations(), null, 2)}</pre>
+    <div>
+      <p>
+        These are all the hyperparameter combinations that would be run if we
+        ran the supervisor solver.
+      </p>
+      <pre>
+        {JSON.stringify(solver.getHyperParameterCombinations(), null, 2)}
+      </pre>
+    </div>
   )
 }

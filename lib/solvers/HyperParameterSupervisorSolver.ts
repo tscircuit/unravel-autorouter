@@ -1,3 +1,4 @@
+import { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "./BaseSolver"
 
 type SupervisedSolver<T extends BaseSolver> = {
@@ -24,13 +25,9 @@ export class HyperParameterSupervisorSolver<
   T extends BaseSolver,
 > extends BaseSolver {
   GREEDY_MULTIPLIER = 1
+  MIN_SUBSTEPS = 1
 
   supervisedSolvers?: Array<SupervisedSolver<T>>
-
-  constructor() {
-    super()
-    this.supervisedSolvers = []
-  }
 
   getHyperParameterDefs(): Array<HyperParameterDef> {
     throw new Error("Not implemented")
@@ -91,31 +88,72 @@ export class HyperParameterSupervisorSolver<
   }
 
   computeG(solver: T) {
-    return solver.iterations
+    return solver.iterations / solver.MAX_ITERATIONS
   }
 
   computeH(solver: T) {
-    return (1 - (solver.progress ?? 0)) * solver.MAX_ITERATIONS
+    return 1 - (solver.progress || 0)
   }
 
   computeF(g: number, h: number) {
     return g + h * this.GREEDY_MULTIPLIER
   }
 
-  getSupervisedSolverWithBestFitness(): SupervisedSolver<T> {
-    let bestFitness = -Infinity
-    let bestSolver = this.supervisedSolvers![0]
-    for (const solver of this.supervisedSolvers!) {
-      const fitness = solver.f
-      if (fitness > bestFitness) {
+  getSupervisedSolverWithBestFitness(): SupervisedSolver<T> | null {
+    let bestFitness = Infinity
+    let bestSolver: SupervisedSolver<T> | null = null
+    for (const supervisedSolver of this.supervisedSolvers!) {
+      if (supervisedSolver.solver.solved) {
+        return supervisedSolver
+      }
+      if (supervisedSolver.solver.failed) {
+        continue
+      }
+      const fitness = supervisedSolver.f
+      if (fitness < bestFitness) {
         bestFitness = fitness
-        bestSolver = solver
+        bestSolver = supervisedSolver
       }
     }
     return bestSolver
   }
 
   step() {
-    const solver = this.getSolverWithBestFitness()
+    if (!this.supervisedSolvers) this.initializeSolvers()
+
+    const supervisedSolver = this.getSupervisedSolverWithBestFitness()
+
+    if (!supervisedSolver) {
+      this.failed = true
+      this.error = "All solvers failed"
+      return
+    }
+
+    for (let i = 0; i < this.MIN_SUBSTEPS; i++) {
+      supervisedSolver.solver.step()
+    }
+
+    supervisedSolver.g = this.computeG(supervisedSolver.solver)
+    supervisedSolver.h = this.computeH(supervisedSolver.solver)
+    supervisedSolver.f = this.computeF(supervisedSolver.g, supervisedSolver.h)
+
+    if (supervisedSolver.solver.solved) {
+      this.solved = true
+    }
+  }
+
+  visualize(): GraphicsObject {
+    const bestSupervisedSolver = this.getSupervisedSolverWithBestFitness()
+    let graphics: GraphicsObject = {
+      lines: [],
+      circles: [],
+      points: [],
+      rects: [],
+    }
+
+    if (bestSupervisedSolver) {
+      graphics = bestSupervisedSolver.solver.visualize()
+    }
+    return graphics
   }
 }

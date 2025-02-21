@@ -26,6 +26,8 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   failedSolvers: SingleHighDensityRouteSolver[]
   hyperParameters: Partial<HighDensityHyperParameters>
 
+  activeSolver: SingleHighDensityRouteSolver | null = null
+
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
     colorMap?: Record<string, string>
@@ -59,32 +61,38 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   }
 
   step() {
+    this.iterations++
     const unsolvedConnection = this.unsolvedConnections.pop()
+    this.progress =
+      this.unsolvedConnections.length /
+      (this.unsolvedConnections.length + this.solvedRoutes.length)
     if (!unsolvedConnection) {
       this.solved = this.failedSolvers.length === 0
       return
     }
     const { connectionName, points } = unsolvedConnection
-    const solver = new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
-      connectionName,
-      bounds: getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints),
-      A: { x: points[0].x, y: points[0].y, z: 0 },
-      B: {
-        x: points[points.length - 1].x,
-        y: points[points.length - 1].y,
-        z: 0,
-      },
-      obstacleRoutes: this.solvedRoutes,
-      futureConnections: this.unsolvedConnections,
-      layerCount: 2,
-      hyperParameters: this.hyperParameters,
-    })
-    solver.solve()
-    if (solver.solvedPath) {
-      this.solvedRoutes.push(solver.solvedPath)
+    this.activeSolver =
+      new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
+        connectionName,
+        bounds: getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints),
+        A: { x: points[0].x, y: points[0].y, z: 0 },
+        B: {
+          x: points[points.length - 1].x,
+          y: points[points.length - 1].y,
+          z: 0,
+        },
+        obstacleRoutes: this.solvedRoutes,
+        futureConnections: this.unsolvedConnections,
+        layerCount: 2,
+        hyperParameters: this.hyperParameters,
+      })
+    this.activeSolver.solve()
+    if (this.activeSolver.solvedPath) {
+      this.solvedRoutes.push(this.activeSolver.solvedPath)
     } else {
-      this.failedSolvers.push(solver)
+      this.failedSolvers.push(this.activeSolver)
     }
+    this.activeSolver = null
   }
 
   visualize(): GraphicsObject {
