@@ -27,8 +27,16 @@ export default () => {
   }
 
   const animateUntilSolved = () => {
+    let stepsOfSameSolver = 0
+    let lastSolver = solver.activeSolver
     const interval = setInterval(() => {
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 10 + stepsOfSameSolver / 100; i++) {
+        if (solver.activeSolver === lastSolver) {
+          stepsOfSameSolver++
+        } else {
+          stepsOfSameSolver = 0
+          lastSolver = solver.activeSolver
+        }
         solver.step()
       }
       forceUpdate({})
