@@ -60,11 +60,12 @@ export default () => {
     colorMap: generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
     hyperParameters: {
       // FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR: 20,
-      // FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 20,
+      FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 0,
       // FUTURE_CONNECTION_PROXIMITY_VD: 50,
+      VIA_PENALTY_FACTOR_2: 0,
       FLIP_TRACE_ALIGNMENT_DIRECTION: false,
-      // MISALIGNED_DIST_PENALTY_FACTOR: 3,
-      CELL_SIZE_FACTOR: 1,
+      MISALIGNED_DIST_PENALTY_FACTOR: 0,
+      CELL_SIZE_FACTOR: 0.25,
       SHUFFLE_SEED: shuffleSeed,
     },
   })

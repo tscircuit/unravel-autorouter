@@ -168,10 +168,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   isNodeTooCloseToEdge(node: Node) {
     const viaRadius = this.viaDiameter / 2
     return (
-      node.x - viaRadius < this.bounds.minX + viaRadius ||
-      node.x + viaRadius > this.bounds.maxX - viaRadius ||
-      node.y - viaRadius < this.bounds.minY + viaRadius ||
-      node.y + viaRadius > this.bounds.maxY - viaRadius
+      node.x < this.bounds.minX + viaRadius ||
+      node.x > this.bounds.maxX - viaRadius ||
+      node.y < this.bounds.minY + viaRadius ||
+      node.y > this.bounds.maxY - viaRadius
     )
   }
 
