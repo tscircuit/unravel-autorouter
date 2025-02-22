@@ -30,7 +30,7 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
       this.getTotalCapacity(node) -
       this.usedNodeCapacityMap.get(node.capacityMeshNodeId)!
 
-    const dist = this.activeCandidateStraightLineDistance! / 2
+    const dist = this.activeCandidateStraightLineDistance! / 4
 
     if (nodeCapacity <= 0) {
       const penalty = 2 ** -nodeCapacity * dist
