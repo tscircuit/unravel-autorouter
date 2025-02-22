@@ -10,6 +10,7 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
   FUTURE_CONNECTION_PROXIMITY_VD = 10
   MISALIGNED_DIST_PENALTY_FACTOR = 5
   VIA_PENALTY_FACTOR_2 = 1
+  FLIP_TRACE_ALIGNMENT_DIRECTION = false
 
   constructor(
     opts: ConstructorParameters<typeof SingleHighDensityRouteSolver>[0],
@@ -90,7 +91,13 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
     const dy = Math.abs(node.y - node.parent!.y)
     const dist = Math.sqrt(dx ** 2 + dy ** 2)
 
-    const misalignedDist = node.z === 0 ? dy : dx
+    const misalignedDist = !this.FLIP_TRACE_ALIGNMENT_DIRECTION
+      ? node.z === 0
+        ? dy
+        : dx
+      : node.z === 0
+        ? dx
+        : dy
 
     // Base cost from original function
     const baseCost =

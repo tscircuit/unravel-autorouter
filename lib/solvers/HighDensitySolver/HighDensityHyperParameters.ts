@@ -6,4 +6,5 @@ export interface HighDensityHyperParameters {
   VIA_PENALTY_FACTOR_2: number
   SHUFFLE_SEED: number
   CELL_SIZE_FACTOR: number
+  FLIP_TRACE_ALIGNMENT_DIRECTION: boolean
 }

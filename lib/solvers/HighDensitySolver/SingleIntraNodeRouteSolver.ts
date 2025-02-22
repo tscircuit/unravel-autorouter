@@ -55,10 +55,26 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
         points,
       })),
     )
-    this.unsolvedConnections = cloneAndShuffleArray(
-      this.unsolvedConnections,
-      this.hyperParameters.SHUFFLE_SEED ?? 0,
-    )
+
+    if (this.hyperParameters.SHUFFLE_SEED) {
+      this.unsolvedConnections = cloneAndShuffleArray(
+        this.unsolvedConnections,
+        this.hyperParameters.SHUFFLE_SEED ?? 0,
+      )
+
+      // Shuffle the starting and ending points of each connection (some
+      // algorithms are biased towards the start or end of a trace)
+      this.unsolvedConnections = this.unsolvedConnections.map(
+        ({ points, ...rest }, i) => ({
+          ...rest,
+          points: cloneAndShuffleArray(
+            points,
+            i * 7117 + (this.hyperParameters.SHUFFLE_SEED ?? 0),
+          ),
+        }),
+      )
+    }
+
     this.totalConnections = this.unsolvedConnections.length
     this.MAX_ITERATIONS = 1_000 * this.totalConnections ** 1.5
   }
