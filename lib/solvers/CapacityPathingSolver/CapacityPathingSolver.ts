@@ -134,11 +134,7 @@ export class CapacityPathingSolver extends BaseSolver {
     endGoal: CapacityMeshNode,
   ) {
     return (
-      prevCandidate.g +
-      Math.sqrt(
-        (node.center.x - prevCandidate.node.center.x) ** 2 +
-          (node.center.y - prevCandidate.node.center.y) ** 2,
-      )
+      prevCandidate.g + this.getDistanceBetweenNodes(prevCandidate.node, node)
     )
   }
 
@@ -147,10 +143,7 @@ export class CapacityPathingSolver extends BaseSolver {
     node: CapacityMeshNode,
     endGoal: CapacityMeshNode,
   ) {
-    return Math.sqrt(
-      (node.center.x - endGoal.center.x) ** 2 +
-        (node.center.y - endGoal.center.y) ** 2,
-    )
+    return this.getDistanceBetweenNodes(node, endGoal)
   }
 
   getBacktrackedPath(candidate: Candidate) {
@@ -194,6 +187,24 @@ export class CapacityPathingSolver extends BaseSolver {
     return usedCapacity < totalCapacity
   }
 
+  getDistanceBetweenNodes(A: CapacityMeshNode, B: CapacityMeshNode) {
+    return Math.sqrt(
+      (A.center.x - B.center.x) ** 2 + (A.center.y - B.center.y) ** 2,
+    )
+  }
+
+  reduceCapacityAlongPath(nextConnection: {
+    path: CapacityMeshNode[]
+    connection: SimpleRouteConnection
+  }) {
+    for (const node of nextConnection.path) {
+      this.usedNodeCapacityMap.set(
+        node.capacityMeshNodeId,
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId)! + 1,
+      )
+    }
+  }
+
   _step() {
     const nextConnection =
       this.connectionsWithNodes[this.currentConnectionIndex]
@@ -226,12 +237,8 @@ export class CapacityPathingSolver extends BaseSolver {
     if (currentCandidate.node.capacityMeshNodeId === end.capacityMeshNodeId) {
       nextConnection.path = this.getBacktrackedPath(currentCandidate)
 
-      for (const node of nextConnection.path) {
-        this.usedNodeCapacityMap.set(
-          node.capacityMeshNodeId,
-          this.usedNodeCapacityMap.get(node.capacityMeshNodeId)! + 1,
-        )
-      }
+      this.reduceCapacityAlongPath(nextConnection)
+
       this.currentConnectionIndex++
       this.candidates = null
       this.visitedNodes = null

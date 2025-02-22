@@ -66,43 +66,6 @@ export const HighDensityDebugger = ({
   const graphics =
     solver.solvedRoutes.length > 0 ? solver.visualize() : { lines: [] }
 
-  if (solver.failedSolvers.length > 0) {
-    return (
-      <div>
-        <div className="border p-2 m-2 text-center font-bold">
-          {solver.solvedRoutes.length} / {solver.totalConnections}
-        </div>
-        <div className="border p-2 m-2 text-center">
-          Max Solved: {maxSolvedRoutes} (Seed: {bestSeed})
-        </div>
-        <button
-          className="border p-2 m-2"
-          onClick={() => setShuffleSeed(shuffleSeed + 1)}
-        >
-          Next Seed
-        </button>
-        <button
-          className="border p-2 m-2"
-          onClick={() => setShuffleSeed(Math.floor(Math.random() * 1000))}
-        >
-          Shuffle (Current Seed: {shuffleSeed})
-        </button>
-        <button
-          className="border p-2 m-2"
-          onClick={() => setIsAnimating(!isAnimating)}
-        >
-          {isAnimating ? "Stop" : "Start"} Animation
-        </button>
-        <InteractiveGraphics
-          graphics={combineVisualizations(
-            solver.failedSolvers[0].visualize(),
-            solver.visualize(),
-          )}
-        />
-      </div>
-    )
-  }
-
   return (
     <div>
       <div className="border p-2 m-2 text-center">
@@ -112,6 +75,12 @@ export const HighDensityDebugger = ({
         className="border p-2 m-2"
         onClick={() => setShuffleSeed(shuffleSeed + 1)}
       >
+        Next Seed
+      </button>
+      <button
+        className="border p-2 m-2"
+        onClick={() => setShuffleSeed(Math.floor(Math.random() * 1000))}
+      >
         Shuffle (Current Seed: {shuffleSeed})
       </button>
       <button
@@ -120,7 +89,38 @@ export const HighDensityDebugger = ({
       >
         {isAnimating ? "Stop" : "Start"} Animation
       </button>
-      <InteractiveGraphics graphics={graphics} />
+      <span className="border p-2 m-2 text-center font-bold">
+        {solver.solvedRoutes.length} / {solver.totalConnections}
+      </span>
+      <InteractiveGraphics
+        graphics={
+          solver.failedSolvers.length > 0
+            ? combineVisualizations(
+                solver.failedSolvers[0].visualize(),
+                solver.visualize(),
+              )
+            : solver.visualize()
+        }
+      />
+      <table className="border-collapse border m-2">
+        <thead>
+          <tr>
+            <th className="border p-2">Hyperparameter</th>
+            <th className="border p-2">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries({
+            ...hyperParameters,
+            SHUFFLE_SEED: shuffleSeed,
+          }).map(([key, value]) => (
+            <tr key={key}>
+              <td className="border p-2">{key}</td>
+              <td className="border p-2">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
