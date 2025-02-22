@@ -21,7 +21,9 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
   step() {
     this.edges = []
     for (let i = 0; i < this.nodes.length; i++) {
+      if (this.nodes[i]._containsObstacle) continue
       for (let j = i + 1; j < this.nodes.length; j++) {
+        if (this.nodes[j]._containsObstacle) continue
         if (this.areNodesBordering(this.nodes[i], this.nodes[j])) {
           this.edges.push({
             capacityMeshEdgeId: this.getNextCapacityMeshEdgeId(),
@@ -49,6 +51,7 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
       let nearestDistance = Infinity
       for (const node of this.nodes) {
         if (node._containsObstacle) continue
+        if (node._containsTarget) continue
         const dist = distance(targetNode.center, node.center)
         if (dist < nearestDistance) {
           nearestDistance = dist
@@ -83,15 +86,17 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     const n2Top = node2.center.y - node2.height / 2
     const n2Bottom = node2.center.y + node2.height / 2
 
-    const minOverlap = 0.1
+    const epsilon = 0.001
 
     const shareVerticalBorder =
-      (Math.abs(n1Right - n2Left) < 1 || Math.abs(n1Left - n2Right) < 1) &&
-      Math.min(n1Bottom, n2Bottom) - Math.max(n1Top, n2Top) >= minOverlap
+      (Math.abs(n1Right - n2Left) < epsilon ||
+        Math.abs(n1Left - n2Right) < epsilon) &&
+      Math.min(n1Bottom, n2Bottom) - Math.max(n1Top, n2Top) >= epsilon
 
     const shareHorizontalBorder =
-      (Math.abs(n1Bottom - n2Top) < 1 || Math.abs(n1Top - n2Bottom) < 1) &&
-      Math.min(n1Right, n2Right) - Math.max(n1Left, n2Left) >= minOverlap
+      (Math.abs(n1Bottom - n2Top) < epsilon ||
+        Math.abs(n1Top - n2Bottom) < epsilon) &&
+      Math.min(n1Right, n2Right) - Math.max(n1Left, n2Left) >= epsilon
 
     return shareVerticalBorder || shareHorizontalBorder
   }

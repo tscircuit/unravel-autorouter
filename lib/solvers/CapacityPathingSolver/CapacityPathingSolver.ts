@@ -281,7 +281,7 @@ export class CapacityPathingSolver extends BaseSolver {
           }))
           graphics.lines!.push({
             points: pathPoints,
-            stroke: this.colorMap[conn.connection.name],
+            strokeColor: this.colorMap[conn.connection.name],
           })
         }
       }
