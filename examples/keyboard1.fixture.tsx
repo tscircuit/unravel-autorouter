@@ -3,12 +3,13 @@ import gkSample95 from "./assets/growing-grid-keyboard-sample-sample95-unrouted_
 import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
 import type { SimpleRouteJson } from "lib/types"
 import { useState } from "react"
+import { combineVisualizations } from "lib/utils/combineVisualizations"
 
 export default () => {
   const [solver] = useState(
     () =>
       new CapacityMeshSolver(gkSample95 as unknown as SimpleRouteJson, {
-        capacityDepth: 6,
+        capacityDepth: 7,
       }),
   )
   const [, forceUpdate] = useState({})
@@ -55,7 +56,14 @@ export default () => {
       <button className="border m-2 p-2" onClick={animateUntilSolved}>
         Animate until solved
       </button>
-      <InteractiveGraphics graphics={solver.visualize()} />
+      <InteractiveGraphics
+        graphics={
+          solver.solved || solver.failed
+            ? solver.visualize()
+            : // Fixes dumb animation bug
+              combineVisualizations({}, solver.visualize())
+        }
+      />
       {failedHdSolvers?.map((s) => (
         <button
           className="border m-2 p-2"

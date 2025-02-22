@@ -13,6 +13,7 @@ import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./S
 import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
 import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
+import { SingleHighDensityRouteSolver7_CostPoint } from "./SingleHighDensityRouteSolver7_CostPoint"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints

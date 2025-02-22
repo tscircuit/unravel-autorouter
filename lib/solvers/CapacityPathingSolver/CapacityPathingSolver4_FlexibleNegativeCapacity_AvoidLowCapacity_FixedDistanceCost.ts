@@ -1,7 +1,11 @@
 import type { CapacityMeshNode } from "lib/types"
 import { CapacityPathingSolver, type Candidate } from "./CapacityPathingSolver"
 
-export class CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost extends CapacityPathingSolver {
+export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPathingSolver {
+  get maxCapacityFactor() {
+    return this.hyperParameters.MAX_CAPACITY_FACTOR ?? 1
+  }
+
   /**
    * In the FlexibleNegativeCapacity mode, we allow negative capacity
    */
@@ -13,24 +17,30 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_Fi
     const VIA_DIAMETER = 0.6
     const TRACE_WIDTH = 0.15
 
-    const viaLengthAcross = Math.floor(node.width / VIA_DIAMETER / 2)
+    const viaLengthAcross = Math.round(node.width / VIA_DIAMETER / 2)
 
-    console.log(node)
-
-    return viaLengthAcross
+    return viaLengthAcross * this.maxCapacityFactor
   }
 
-  // computeG(
-  //   prevCandidate: Candidate,
-  //   node: CapacityMeshNode,
-  //   endGoal: CapacityMeshNode,
-  // ) {
-  //   const nodeCapacity = this.getCapacity(node)
+  /**
+   * Penalty you pay for using this node
+   */
+  getNodeCapacityPenalty(node: CapacityMeshNode): number {
+    const nodeCapacity =
+      this.getTotalCapacity(node) -
+      this.usedNodeCapacityMap.get(node.capacityMeshNodeId)!
 
-  //   const distMultiplier = 1 / 2 ** nodeCapacity
+    const dist = this.activeCandidateStraightLineDistance! / 2
 
-  //   return prevCandidate.g + prevCandidate.h * distMultiplier
-  // }
+    if (nodeCapacity <= 0) {
+      const penalty = 2 ** -nodeCapacity * dist
+      return penalty
+    }
+
+    // Penalize for using nodes with low capacity by 25% of the straight line
+    // distance
+    return (1 / nodeCapacity) * dist * 0.5
+  }
 
   computeG(
     prevCandidate: Candidate,
@@ -42,7 +52,8 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_Fi
       Math.sqrt(
         (node.center.x - prevCandidate.node.center.x) ** 2 +
           (node.center.y - prevCandidate.node.center.y) ** 2,
-      )
+      ) +
+      this.getNodeCapacityPenalty(node)
     )
   }
 
@@ -51,9 +62,11 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_Fi
     node: CapacityMeshNode,
     endGoal: CapacityMeshNode,
   ) {
-    return Math.sqrt(
-      (node.center.x - endGoal.center.x) ** 2 +
-        (node.center.y - endGoal.center.y) ** 2,
+    return (
+      Math.sqrt(
+        (node.center.x - endGoal.center.x) ** 2 +
+          (node.center.y - endGoal.center.y) ** 2,
+      ) + this.getNodeCapacityPenalty(node)
     )
   }
 }

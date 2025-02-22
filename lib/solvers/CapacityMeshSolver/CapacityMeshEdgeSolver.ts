@@ -83,7 +83,7 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     const n2Top = node2.center.y - node2.height / 2
     const n2Bottom = node2.center.y + node2.height / 2
 
-    const minOverlap = 1
+    const minOverlap = 0.1
 
     const shareVerticalBorder =
       (Math.abs(n1Right - n2Left) < 1 || Math.abs(n1Left - n2Right) < 1) &&

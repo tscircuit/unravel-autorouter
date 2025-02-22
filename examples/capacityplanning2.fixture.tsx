@@ -5,7 +5,7 @@ import { CapacityMeshEdgeSolver } from "lib/solvers/CapacityMeshSolver/CapacityM
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { CapacityPathingSolver } from "../lib/solvers/CapacityPathingSolver/CapacityPathingSolver"
 import { getColorMap } from "../lib/solvers/colors"
-import { CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost } from "lib/solvers/CapacityPathingSolver/CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost"
+import { CapacityPathingSolver4_FlexibleNegativeCapacity } from "lib/solvers/CapacityPathingSolver/CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost"
 
 const simpleSrj = {
   bounds: {
@@ -103,9 +103,7 @@ const simpleSrj = {
 export default () => {
   // Solve for mesh nodes using the CapacityMeshNodeSolver
   const nodeSolver = new CapacityMeshNodeSolver(simpleSrj)
-  while (!nodeSolver.solved) {
-    nodeSolver.step()
-  }
+  nodeSolver.solve()
 
   // Combine finished and unfinished nodes for edge solving
   const allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
@@ -118,15 +116,15 @@ export default () => {
   const colorMap = getColorMap(simpleSrj)
 
   // Create and solve capacity pathing
-  const pathingSolver =
-    new CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost(
-      {
-        simpleRouteJson: simpleSrj,
-        nodes: allNodes,
-        edges: edgeSolver.edges,
-        colorMap,
-      },
-    )
+  const pathingSolver = new CapacityPathingSolver4_FlexibleNegativeCapacity({
+    simpleRouteJson: simpleSrj,
+    nodes: allNodes,
+    edges: edgeSolver.edges,
+    colorMap,
+    hyperParameters: {
+      MAX_CAPACITY_FACTOR: 1 / 10,
+    },
+  })
 
   pathingSolver.solve()
 

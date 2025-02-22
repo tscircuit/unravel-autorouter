@@ -7,8 +7,11 @@ import type {
   SimpleRouteConnection,
   SimpleRouteJson,
 } from "../../types"
-import type { GraphicsObject } from "../../types/graphics-debug-types"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
+import { distance } from "@tscircuit/math-utils"
+import { CapacityHyperParameters } from "../CapacityHyperParameters"
+import { GraphicsObject } from "graphics-debug"
+import { safeTransparentize } from "../colors"
 
 export type Candidate = {
   prevCandidate: Candidate | null
@@ -30,25 +33,31 @@ export class CapacityPathingSolver extends BaseSolver {
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
-  GREEDY_MULTIPLIER = 1.2
+  GREEDY_MULTIPLIER = 10
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
   colorMap: Record<string, string>
   maxDepthOfNodes: number
 
+  activeCandidateStraightLineDistance?: number
+
+  hyperParameters: Partial<CapacityHyperParameters>
+
   constructor({
     simpleRouteJson,
     nodes,
     edges,
     colorMap,
-    MAX_ITERATIONS = 10000,
+    MAX_ITERATIONS = 200_000,
+    hyperParameters = {},
   }: {
     simpleRouteJson: SimpleRouteJson
     nodes: CapacityMeshNode[]
     edges: CapacityMeshEdge[]
     colorMap?: Record<string, string>
     MAX_ITERATIONS?: number
+    hyperParameters?: Partial<CapacityHyperParameters>
   }) {
     super()
     this.MAX_ITERATIONS = MAX_ITERATIONS
@@ -57,6 +66,7 @@ export class CapacityPathingSolver extends BaseSolver {
     this.edges = edges
     this.colorMap = colorMap ?? {}
     this.connectionsWithNodes = this.getConnectionsWithNodes()
+    this.hyperParameters = hyperParameters
     this.usedNodeCapacityMap = new Map(
       this.nodes.map((node) => [node.capacityMeshNodeId, 0]),
     )
@@ -184,7 +194,7 @@ export class CapacityPathingSolver extends BaseSolver {
     return usedCapacity < totalCapacity
   }
 
-  step() {
+  _step() {
     const nextConnection =
       this.connectionsWithNodes[this.currentConnectionIndex]
     if (!nextConnection) {
@@ -195,6 +205,10 @@ export class CapacityPathingSolver extends BaseSolver {
     if (!this.candidates) {
       this.candidates = [{ prevCandidate: null, node: start, f: 0, g: 0, h: 0 }]
       this.visitedNodes = new Set([start.capacityMeshNodeId])
+      this.activeCandidateStraightLineDistance = distance(
+        start.center,
+        end.center,
+      )
     }
 
     this.candidates.sort((a, b) => a.f - b.f)
@@ -279,7 +293,7 @@ export class CapacityPathingSolver extends BaseSolver {
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
         fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
-        label: `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${node.totalCapacity}`,
+        label: `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node)}`,
       })
     }
 
@@ -295,6 +309,28 @@ export class CapacityPathingSolver extends BaseSolver {
           }
         }
       }
+    }
+
+    // Visualize backtracked path of highest ranked candidate
+    if (this.candidates) {
+      // Get top 10 candidates
+      const topCandidates = this.candidates.slice(0, 50)
+      const connectionName =
+        this.connectionsWithNodes[this.currentConnectionIndex].connection.name
+
+      // Add paths for each candidate with decreasing opacity
+      topCandidates.forEach((candidate, index) => {
+        const opacity = 0.05 * (1 - index / 50) // Opacity decreases from 0.5 to 0.05
+        const backtrackedPath = this.getBacktrackedPath(candidate)
+        graphics.lines!.push({
+          points: backtrackedPath.map(({ center: { x, y } }) => ({ x, y })),
+          strokeColor: safeTransparentize(
+            this.colorMap[connectionName] ?? "red",
+            1 - opacity,
+          ),
+          strokeWidth: 0.5,
+        })
+      })
     }
 
     return graphics
