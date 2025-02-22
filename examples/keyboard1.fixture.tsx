@@ -27,7 +27,9 @@ export default () => {
 
   const animateUntilSolved = () => {
     const interval = setInterval(() => {
-      solver.step()
+      for (let i = 0; i < 20; i++) {
+        solver.step()
+      }
       forceUpdate({})
       if (solver.solved || solver.failed) {
         clearInterval(interval)

@@ -102,7 +102,7 @@ export class HyperParameterSupervisorSolver<
   getSupervisedSolverWithBestFitness(): SupervisedSolver<T> | null {
     let bestFitness = Infinity
     let bestSolver: SupervisedSolver<T> | null = null
-    for (const supervisedSolver of this.supervisedSolvers!) {
+    for (const supervisedSolver of this.supervisedSolvers ?? []) {
       if (supervisedSolver.solver.solved) {
         return supervisedSolver
       }
