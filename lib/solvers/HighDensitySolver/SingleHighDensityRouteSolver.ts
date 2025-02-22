@@ -135,7 +135,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     return this.cellStep + this.straightLineDistance * this.VIA_PENALTY_FACTOR
   }
 
-  isNodeTooCloseToObstacle(node: Node, margin?: number) {
+  isNodeTooCloseToObstacle(node: Node, margin?: number, isVia?: boolean) {
     margin ??= this.obstacleMargin
     for (const route of this.obstacleRoutes) {
       const connectedToObstacle = this.connMap?.areIdsConnected?.(
@@ -147,7 +147,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         const pointPairs = getSameLayerPointPairs(route)
         for (const pointPair of pointPairs) {
           if (
-            pointPair.z === node.z &&
+            (isVia || pointPair.z === node.z) &&
             pointToSegmentDistance(node, pointPair.A, pointPair.B) <
               this.traceThickness + margin
           ) {
@@ -273,6 +273,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       !this.isNodeTooCloseToObstacle(
         viaNeighbor,
         this.viaDiameter / 2 + this.obstacleMargin,
+        true,
       ) &&
       !this.isNodeTooCloseToEdge(viaNeighbor)
     ) {
