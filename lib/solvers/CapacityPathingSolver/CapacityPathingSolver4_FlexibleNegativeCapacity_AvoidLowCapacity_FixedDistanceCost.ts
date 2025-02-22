@@ -2,6 +2,8 @@ import type { CapacityMeshNode } from "lib/types"
 import { CapacityPathingSolver, type Candidate } from "./CapacityPathingSolver"
 
 export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPathingSolver {
+  NEGATIVE_CAPACITY_PENALTY_FACTOR = 1
+
   get maxCapacityFactor() {
     return this.hyperParameters.MAX_CAPACITY_FACTOR ?? 1
   }
@@ -30,7 +32,9 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
       this.getTotalCapacity(node) -
       this.usedNodeCapacityMap.get(node.capacityMeshNodeId)!
 
-    const dist = this.activeCandidateStraightLineDistance! / 4
+    const dist =
+      this.activeCandidateStraightLineDistance! *
+      (this.NEGATIVE_CAPACITY_PENALTY_FACTOR / 4)
 
     if (nodeCapacity <= 0) {
       const penalty = 2 ** -nodeCapacity * dist
