@@ -44,6 +44,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   numRoutes: number
 
   VIA_PENALTY_FACTOR = 0.3
+  CELL_SIZE_FACTOR: number
 
   exploredNodes: Set<string>
 
@@ -78,6 +79,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     super()
     this.bounds = opts.bounds
     this.hyperParameters = opts.hyperParameters ?? {}
+    this.CELL_SIZE_FACTOR = this.hyperParameters.CELL_SIZE_FACTOR ?? 1
     this.boundsSize = {
       width: this.bounds.maxX - this.bounds.minX,
       height: this.bounds.maxY - this.bounds.minY,
@@ -121,6 +123,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       numXCells = this.boundsSize.width / this.cellStep
       numYCells = this.boundsSize.height / this.cellStep
     }
+    this.cellStep *= this.CELL_SIZE_FACTOR
   }
 
   get viaPenaltyDistance() {

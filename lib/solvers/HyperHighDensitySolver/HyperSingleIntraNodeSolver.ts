@@ -20,7 +20,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
     this.nodeWithPortPoints = opts.nodeWithPortPoints
     this.constructorParams = opts
     this.MAX_ITERATIONS = 100_000
-    this.GREEDY_MULTIPLIER = 1.5
+    this.GREEDY_MULTIPLIER = 5
     this.MIN_SUBSTEPS = 100
   }
 
@@ -76,6 +76,17 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
           },
           {
             SHUFFLE_SEED: 7,
+          },
+        ],
+      },
+      {
+        name: "cellSizeFactor",
+        possibleValues: [
+          {
+            CELL_SIZE_FACTOR: 0.5,
+          },
+          {
+            CELL_SIZE_FACTOR: 1,
           },
         ],
       },

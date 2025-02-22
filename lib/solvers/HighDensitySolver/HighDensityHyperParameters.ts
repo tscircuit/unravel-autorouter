@@ -5,4 +5,5 @@ export interface HighDensityHyperParameters {
   MISALIGNED_DIST_PENALTY_FACTOR: number
   VIA_PENALTY_FACTOR_2: number
   SHUFFLE_SEED: number
+  CELL_SIZE_FACTOR: number
 }
