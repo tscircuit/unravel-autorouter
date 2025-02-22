@@ -7,6 +7,7 @@ import {
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export type FutureConnection = {
   connectionName: string
@@ -56,6 +57,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   futureConnections: FutureConnection[]
   hyperParameters: Partial<HighDensityHyperParameters>
 
+  connMap?: ConnectivityMap
+
   /** For debugging/animating the exploration */
   debug_exploredNodesOrdered: string[]
   debug_nodesTooCloseToObstacle: Set<string>
@@ -75,9 +78,11 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     layerCount?: number
     futureConnections?: FutureConnection[]
     hyperParameters?: Partial<HighDensityHyperParameters>
+    connMap?: ConnectivityMap
   }) {
     super()
     this.bounds = opts.bounds
+    this.connMap = opts.connMap
     this.hyperParameters = opts.hyperParameters ?? {}
     this.CELL_SIZE_FACTOR = this.hyperParameters.CELL_SIZE_FACTOR ?? 1
     this.boundsSize = {
@@ -133,14 +138,21 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   isNodeTooCloseToObstacle(node: Node, margin?: number) {
     margin ??= this.obstacleMargin
     for (const route of this.obstacleRoutes) {
-      const pointPairs = getSameLayerPointPairs(route)
-      for (const pointPair of pointPairs) {
-        if (
-          pointPair.z === node.z &&
-          pointToSegmentDistance(node, pointPair.A, pointPair.B) <
-            this.traceThickness + margin
-        ) {
-          return true
+      const connectedToObstacle = this.connMap?.areIdsConnected?.(
+        this.connectionName,
+        route.connectionName,
+      )
+
+      if (!connectedToObstacle) {
+        const pointPairs = getSameLayerPointPairs(route)
+        for (const pointPair of pointPairs) {
+          if (
+            pointPair.z === node.z &&
+            pointToSegmentDistance(node, pointPair.A, pointPair.B) <
+              this.traceThickness + margin
+          ) {
+            return true
+          }
         }
       }
       for (const via of route.vias) {
@@ -167,6 +179,13 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     const parent = node.parent
     if (!parent) return false
     for (const route of this.obstacleRoutes) {
+      if (
+        this.connMap?.areIdsConnected?.(
+          this.connectionName,
+          route.connectionName,
+        )
+      )
+        continue
       for (const pointPair of getSameLayerPointPairs(route)) {
         if (pointPair.z !== node.z) continue
         if (doSegmentsIntersect(node, parent, pointPair.A, pointPair.B)) {

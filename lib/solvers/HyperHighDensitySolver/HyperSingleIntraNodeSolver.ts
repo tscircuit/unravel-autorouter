@@ -7,6 +7,7 @@ import {
   HyperParameterSupervisorSolver,
   SupervisedSolver,
 } from "../HyperParameterSupervisorSolver"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<SingleIntraNodeRouteSolver> {
   constructorParams: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0]
