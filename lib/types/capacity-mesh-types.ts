@@ -11,7 +11,6 @@ export interface CapacityMeshNode {
   width: number
   height: number
   layer: string
-  totalCapacity: number
 
   _depth?: number
 

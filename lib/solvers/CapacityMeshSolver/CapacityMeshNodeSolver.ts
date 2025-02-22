@@ -39,7 +39,6 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         width: maxWidthHeight,
         height: maxWidthHeight,
         layer: "top",
-        totalCapacity: this.getCapacityFromDepth(0),
         _depth: 0,
       },
     ]
@@ -164,7 +163,6 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         width: childNodeSize.width,
         height: childNodeSize.height,
         layer: parent.layer,
-        totalCapacity: this.getCapacityFromDepth((parent._depth ?? 0) + 1),
         _depth: (parent._depth ?? 0) + 1,
         _parent: parent,
       }
@@ -189,7 +187,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     return false
   }
 
-  step() {
+  _step() {
     const nextNode = this.unfinishedNodes.pop()
     if (!nextNode) {
       this.solved = true

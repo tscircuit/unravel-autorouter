@@ -13,6 +13,8 @@ import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./S
 import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
 import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
+import { SingleHighDensityRouteSolver7_CostPoint } from "./SingleHighDensityRouteSolver7_CostPoint"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -28,11 +30,13 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   hyperParameters: Partial<HighDensityHyperParameters>
 
   activeSolver: SingleHighDensityRouteSolver | null = null
+  connMap?: ConnectivityMap
 
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
     colorMap?: Record<string, string>
     hyperParameters?: Partial<HighDensityHyperParameters>
+    connMap?: ConnectivityMap
   }) {
     const { nodeWithPortPoints, colorMap } = params
     super()
@@ -41,6 +45,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     this.solvedRoutes = []
     this.hyperParameters = params.hyperParameters ?? {}
     this.failedSolvers = []
+    this.connMap = params.connMap
     const unsolvedConnectionsMap: Map<string, { x: number; y: number }[]> =
       new Map()
     for (const { connectionName, x, y } of nodeWithPortPoints.portPoints) {
@@ -55,10 +60,26 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
         points,
       })),
     )
-    this.unsolvedConnections = cloneAndShuffleArray(
-      this.unsolvedConnections,
-      this.hyperParameters.SHUFFLE_SEED ?? 0,
-    )
+
+    if (this.hyperParameters.SHUFFLE_SEED) {
+      this.unsolvedConnections = cloneAndShuffleArray(
+        this.unsolvedConnections,
+        this.hyperParameters.SHUFFLE_SEED ?? 0,
+      )
+
+      // Shuffle the starting and ending points of each connection (some
+      // algorithms are biased towards the start or end of a trace)
+      this.unsolvedConnections = this.unsolvedConnections.map(
+        ({ points, ...rest }, i) => ({
+          ...rest,
+          points: cloneAndShuffleArray(
+            points,
+            i * 7117 + (this.hyperParameters.SHUFFLE_SEED ?? 0),
+          ),
+        }),
+      )
+    }
+
     this.totalConnections = this.unsolvedConnections.length
     this.MAX_ITERATIONS = 1_000 * this.totalConnections ** 1.5
   }
@@ -107,6 +128,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
         futureConnections: this.unsolvedConnections,
         layerCount: 2,
         hyperParameters: this.hyperParameters,
+        connMap: this.connMap,
       })
   }
 

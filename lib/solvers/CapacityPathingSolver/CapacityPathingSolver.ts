@@ -7,8 +7,11 @@ import type {
   SimpleRouteConnection,
   SimpleRouteJson,
 } from "../../types"
-import type { GraphicsObject } from "../../types/graphics-debug-types"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
+import { distance } from "@tscircuit/math-utils"
+import { CapacityHyperParameters } from "../CapacityHyperParameters"
+import { GraphicsObject } from "graphics-debug"
+import { safeTransparentize } from "../colors"
 
 export type Candidate = {
   prevCandidate: Candidate | null
@@ -25,31 +28,36 @@ export class CapacityPathingSolver extends BaseSolver {
     path?: CapacityMeshNode[]
   }>
 
-  remainingNodeCapacityMap: Map<CapacityMeshNodeId, number>
+  usedNodeCapacityMap: Map<CapacityMeshNodeId, number>
 
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
-  getCapacity: (node: CapacityMeshNode) => number
+  GREEDY_MULTIPLIER = 10
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
   colorMap: Record<string, string>
+  maxDepthOfNodes: number
+
+  activeCandidateStraightLineDistance?: number
+
+  hyperParameters: Partial<CapacityHyperParameters>
 
   constructor({
     simpleRouteJson,
     nodes,
     edges,
-    getCapacity,
     colorMap,
-    MAX_ITERATIONS = 10000,
+    MAX_ITERATIONS = 200_000,
+    hyperParameters = {},
   }: {
     simpleRouteJson: SimpleRouteJson
     nodes: CapacityMeshNode[]
     edges: CapacityMeshEdge[]
-    getCapacity?: (node: CapacityMeshNode) => number
     colorMap?: Record<string, string>
     MAX_ITERATIONS?: number
+    hyperParameters?: Partial<CapacityHyperParameters>
   }) {
     super()
     this.MAX_ITERATIONS = MAX_ITERATIONS
@@ -57,18 +65,23 @@ export class CapacityPathingSolver extends BaseSolver {
     this.nodes = nodes
     this.edges = edges
     this.colorMap = colorMap ?? {}
-    this.getCapacity = getCapacity ?? createDepthBasedCapacityGetter(nodes)
     this.connectionsWithNodes = this.getConnectionsWithNodes()
-    this.remainingNodeCapacityMap = new Map(
-      this.nodes.map((node) => [
-        node.capacityMeshNodeId,
-        this.getCapacity(node),
-      ]),
+    this.hyperParameters = hyperParameters
+    this.usedNodeCapacityMap = new Map(
+      this.nodes.map((node) => [node.capacityMeshNodeId, 0]),
     )
     this.nodeMap = new Map(
       this.nodes.map((node) => [node.capacityMeshNodeId, node]),
     )
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
+    this.maxDepthOfNodes = Math.max(
+      ...this.nodes.map((node) => node._depth ?? 0),
+    )
+  }
+
+  getTotalCapacity(node: CapacityMeshNode): number {
+    const depth = node._depth ?? 0
+    return (this.maxDepthOfNodes - depth + 1) ** 2
   }
 
   getConnectionsWithNodes() {
@@ -175,12 +188,13 @@ export class CapacityPathingSolver extends BaseSolver {
   }
 
   doesNodeHaveCapacityForTrace(node: CapacityMeshNode) {
-    const remainingCapacity =
-      this.remainingNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
-    return remainingCapacity > 0
+    const usedCapacity =
+      this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+    const totalCapacity = this.getTotalCapacity(node)
+    return usedCapacity < totalCapacity
   }
 
-  step() {
+  _step() {
     const nextConnection =
       this.connectionsWithNodes[this.currentConnectionIndex]
     if (!nextConnection) {
@@ -191,6 +205,10 @@ export class CapacityPathingSolver extends BaseSolver {
     if (!this.candidates) {
       this.candidates = [{ prevCandidate: null, node: start, f: 0, g: 0, h: 0 }]
       this.visitedNodes = new Set([start.capacityMeshNodeId])
+      this.activeCandidateStraightLineDistance = distance(
+        start.center,
+        end.center,
+      )
     }
 
     this.candidates.sort((a, b) => a.f - b.f)
@@ -209,9 +227,9 @@ export class CapacityPathingSolver extends BaseSolver {
       nextConnection.path = this.getBacktrackedPath(currentCandidate)
 
       for (const node of nextConnection.path) {
-        this.remainingNodeCapacityMap.set(
+        this.usedNodeCapacityMap.set(
           node.capacityMeshNodeId,
-          this.remainingNodeCapacityMap.get(node.capacityMeshNodeId)! - 1,
+          this.usedNodeCapacityMap.get(node.capacityMeshNodeId)! + 1,
         )
       }
       this.currentConnectionIndex++
@@ -230,7 +248,7 @@ export class CapacityPathingSolver extends BaseSolver {
       }
       const g = this.computeG(currentCandidate, neighborNode, end)
       const h = this.computeH(currentCandidate, neighborNode, end)
-      const f = g + h
+      const f = g + h * this.GREEDY_MULTIPLIER
       const newCandidate = {
         prevCandidate: currentCandidate,
         node: neighborNode,
@@ -263,7 +281,7 @@ export class CapacityPathingSolver extends BaseSolver {
           }))
           graphics.lines!.push({
             points: pathPoints,
-            stroke: this.colorMap[conn.connection.name],
+            strokeColor: this.colorMap[conn.connection.name],
           })
         }
       }
@@ -275,7 +293,7 @@ export class CapacityPathingSolver extends BaseSolver {
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
         fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
-        label: `${this.remainingNodeCapacityMap.get(node.capacityMeshNodeId)}/${node.totalCapacity}`,
+        label: `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node)}`,
       })
     }
 
@@ -293,14 +311,28 @@ export class CapacityPathingSolver extends BaseSolver {
       }
     }
 
-    return graphics
-  }
-}
+    // Visualize backtracked path of highest ranked candidate
+    if (this.candidates) {
+      // Get top 10 candidates
+      const topCandidates = this.candidates.slice(0, 50)
+      const connectionName =
+        this.connectionsWithNodes[this.currentConnectionIndex].connection.name
 
-function createDepthBasedCapacityGetter(nodes: CapacityMeshNode[]) {
-  const maxDepth = Math.max(...nodes.map((node) => node._depth ?? 0))
-  return (node: CapacityMeshNode) => {
-    const depth = node._depth ?? 0
-    return (maxDepth - depth + 1) ** 2
+      // Add paths for each candidate with decreasing opacity
+      topCandidates.forEach((candidate, index) => {
+        const opacity = 0.05 * (1 - index / 50) // Opacity decreases from 0.5 to 0.05
+        const backtrackedPath = this.getBacktrackedPath(candidate)
+        graphics.lines!.push({
+          points: backtrackedPath.map(({ center: { x, y } }) => ({ x, y })),
+          strokeColor: safeTransparentize(
+            this.colorMap[connectionName] ?? "red",
+            1 - opacity,
+          ),
+          strokeWidth: 0.5,
+        })
+      })
+    }
+
+    return graphics
   }
 }

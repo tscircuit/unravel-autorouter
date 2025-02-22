@@ -7,6 +7,7 @@ import {
   HyperParameterSupervisorSolver,
   SupervisedSolver,
 } from "../HyperParameterSupervisorSolver"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<SingleIntraNodeRouteSolver> {
   constructorParams: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0]
@@ -90,6 +91,17 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
           },
         ],
       },
+      // {
+      //   name: "flipTraceAlignmentDirection",
+      //   possibleValues: [
+      //     {
+      //       FLIP_TRACE_ALIGNMENT_DIRECTION: false,
+      //     },
+      //     {
+      //       FLIP_TRACE_ALIGNMENT_DIRECTION: true,
+      //     },
+      //   ],
+      // },
     ]
   }
 

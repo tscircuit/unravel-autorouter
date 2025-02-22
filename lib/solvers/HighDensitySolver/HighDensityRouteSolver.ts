@@ -8,6 +8,7 @@ import { safeTransparentize } from "../colors"
 import { SingleIntraNodeRouteSolver } from "./SingleIntraNodeRouteSolver"
 import { HyperSingleIntraNodeSolver } from "../HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export class HighDensityRouteSolver extends BaseSolver {
   unsolvedNodePortPoints: NodeWithPortPoints[]
@@ -23,17 +24,21 @@ export class HighDensityRouteSolver extends BaseSolver {
     | SingleIntraNodeRouteSolver
     | HyperSingleIntraNodeSolver
     | null = null
+  connMap?: ConnectivityMap
 
   constructor({
     nodePortPoints,
     colorMap,
+    connMap,
   }: {
     nodePortPoints: NodeWithPortPoints[]
     colorMap?: Record<string, string>
+    connMap?: ConnectivityMap
   }) {
     super()
     this.unsolvedNodePortPoints = nodePortPoints
     this.colorMap = colorMap ?? {}
+    this.connMap = connMap
     this.routes = []
     this.failedSolvers = []
     this.MAX_ITERATIONS = 100_000
@@ -64,6 +69,7 @@ export class HighDensityRouteSolver extends BaseSolver {
     this.activeSubSolver = new HyperSingleIntraNodeSolver({
       nodeWithPortPoints: node,
       colorMap: this.colorMap,
+      connMap: this.connMap,
     })
   }
 

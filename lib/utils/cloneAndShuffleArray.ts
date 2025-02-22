@@ -9,9 +9,10 @@ export function cloneAndShuffleArray<T>(arr: T[], seed: number): T[] {
   if (seed === 0) return arr
   const random = seededRandom(seed)
   const shuffled = arr.slice() // Copy the array
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  for (let i = 0; i < shuffled.length; i++) {
+    const i1 = Math.floor(random() * shuffled.length)
+    const i2 = Math.floor(random() * (i + 1))
+    ;[shuffled[i1], shuffled[i2]] = [shuffled[i2], shuffled[i1]]
   }
   return shuffled
 }

@@ -4,12 +4,18 @@ import {
   type Node,
 } from "./SingleHighDensityRouteSolver"
 
-export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends SingleHighDensityRouteSolver {
+export class SingleHighDensityRouteSolver7_CostPoint extends SingleHighDensityRouteSolver {
   FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR = 2
   FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR = 1
   FUTURE_CONNECTION_PROXIMITY_VD = 10
   MISALIGNED_DIST_PENALTY_FACTOR = 5
   VIA_PENALTY_FACTOR_2 = 1
+
+  COST_POINT_STRENGTH = 10000
+  COST_POINT_PX = 0
+  COST_POINT_PY = 1
+  COST_POINT_PRADIUS = 0.5
+
   FLIP_TRACE_ALIGNMENT_DIRECTION = false
 
   constructor(
@@ -72,6 +78,22 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
     return futureConnectionPenalty
   }
 
+  get costPoint() {
+    return {
+      x: this.COST_POINT_PX * this.boundsSize.width + this.bounds.minX,
+      y: this.COST_POINT_PY * this.boundsSize.height + this.bounds.minY,
+    }
+  }
+
+  getCostPointPenalty(node: Node) {
+    const costPointDist = distance(node, this.costPoint)
+    const costPointPercent =
+      costPointDist / (this.COST_POINT_PRADIUS * this.boundsSize.width)
+    return (
+      this.COST_POINT_STRENGTH * (1 / costPointPercent) * this.boundsSize.width
+    )
+  }
+
   computeH(node: Node) {
     const goalDist = distance(node, this.B) ** 1.6
     const goalDistRatio = goalDist / this.straightLineDistance
@@ -82,7 +104,8 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
 
     return (
       baseCost +
-      this.getFutureConnectionPenalty(node, node.z !== node.parent?.z)
+      this.getFutureConnectionPenalty(node, node.z !== node.parent?.z) +
+      this.getCostPointPenalty(node)
     )
   }
 
@@ -108,7 +131,20 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
 
     return (
       baseCost +
-      this.getFutureConnectionPenalty(node, node.z !== node.parent?.z)
+      this.getFutureConnectionPenalty(node, node.z !== node.parent?.z) +
+      this.getCostPointPenalty(node)
     )
+  }
+
+  visualize() {
+    const go = super.visualize()
+
+    go.circles?.push({
+      center: this.costPoint,
+      radius: this.COST_POINT_PRADIUS * this.boundsSize.width,
+      fill: "rgba(255,0,0,0.25)",
+    })
+
+    return go
   }
 }
