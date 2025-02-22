@@ -189,7 +189,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     return false
   }
 
-  step() {
+  _step() {
     const nextNode = this.unfinishedNodes.pop()
     if (!nextNode) {
       this.solved = true

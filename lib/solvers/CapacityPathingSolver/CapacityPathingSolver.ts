@@ -25,29 +25,28 @@ export class CapacityPathingSolver extends BaseSolver {
     path?: CapacityMeshNode[]
   }>
 
-  remainingNodeCapacityMap: Map<CapacityMeshNodeId, number>
+  usedNodeCapacityMap: Map<CapacityMeshNodeId, number>
 
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
-  getCapacity: (node: CapacityMeshNode) => number
+  GREEDY_MULTIPLIER = 1.2
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
   colorMap: Record<string, string>
+  maxDepthOfNodes: number
 
   constructor({
     simpleRouteJson,
     nodes,
     edges,
-    getCapacity,
     colorMap,
     MAX_ITERATIONS = 10000,
   }: {
     simpleRouteJson: SimpleRouteJson
     nodes: CapacityMeshNode[]
     edges: CapacityMeshEdge[]
-    getCapacity?: (node: CapacityMeshNode) => number
     colorMap?: Record<string, string>
     MAX_ITERATIONS?: number
   }) {
@@ -57,18 +56,22 @@ export class CapacityPathingSolver extends BaseSolver {
     this.nodes = nodes
     this.edges = edges
     this.colorMap = colorMap ?? {}
-    this.getCapacity = getCapacity ?? createDepthBasedCapacityGetter(nodes)
     this.connectionsWithNodes = this.getConnectionsWithNodes()
-    this.remainingNodeCapacityMap = new Map(
-      this.nodes.map((node) => [
-        node.capacityMeshNodeId,
-        this.getCapacity(node),
-      ]),
+    this.usedNodeCapacityMap = new Map(
+      this.nodes.map((node) => [node.capacityMeshNodeId, 0]),
     )
     this.nodeMap = new Map(
       this.nodes.map((node) => [node.capacityMeshNodeId, node]),
     )
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
+    this.maxDepthOfNodes = Math.max(
+      ...this.nodes.map((node) => node._depth ?? 0),
+    )
+  }
+
+  getTotalCapacity(node: CapacityMeshNode): number {
+    const depth = node._depth ?? 0
+    return (this.maxDepthOfNodes - depth + 1) ** 2
   }
 
   getConnectionsWithNodes() {
@@ -175,9 +178,10 @@ export class CapacityPathingSolver extends BaseSolver {
   }
 
   doesNodeHaveCapacityForTrace(node: CapacityMeshNode) {
-    const remainingCapacity =
-      this.remainingNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
-    return remainingCapacity > 0
+    const usedCapacity =
+      this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+    const totalCapacity = this.getTotalCapacity(node)
+    return usedCapacity < totalCapacity
   }
 
   step() {
@@ -209,9 +213,9 @@ export class CapacityPathingSolver extends BaseSolver {
       nextConnection.path = this.getBacktrackedPath(currentCandidate)
 
       for (const node of nextConnection.path) {
-        this.remainingNodeCapacityMap.set(
+        this.usedNodeCapacityMap.set(
           node.capacityMeshNodeId,
-          this.remainingNodeCapacityMap.get(node.capacityMeshNodeId)! - 1,
+          this.usedNodeCapacityMap.get(node.capacityMeshNodeId)! + 1,
         )
       }
       this.currentConnectionIndex++
@@ -230,7 +234,7 @@ export class CapacityPathingSolver extends BaseSolver {
       }
       const g = this.computeG(currentCandidate, neighborNode, end)
       const h = this.computeH(currentCandidate, neighborNode, end)
-      const f = g + h
+      const f = g + h * this.GREEDY_MULTIPLIER
       const newCandidate = {
         prevCandidate: currentCandidate,
         node: neighborNode,
@@ -275,7 +279,7 @@ export class CapacityPathingSolver extends BaseSolver {
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
         fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
-        label: `${this.remainingNodeCapacityMap.get(node.capacityMeshNodeId)}/${node.totalCapacity}`,
+        label: `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${node.totalCapacity}`,
       })
     }
 
@@ -294,13 +298,5 @@ export class CapacityPathingSolver extends BaseSolver {
     }
 
     return graphics
-  }
-}
-
-function createDepthBasedCapacityGetter(nodes: CapacityMeshNode[]) {
-  const maxDepth = Math.max(...nodes.map((node) => node._depth ?? 0))
-  return (node: CapacityMeshNode) => {
-    const depth = node._depth ?? 0
-    return (maxDepth - depth + 1) ** 2
   }
 }

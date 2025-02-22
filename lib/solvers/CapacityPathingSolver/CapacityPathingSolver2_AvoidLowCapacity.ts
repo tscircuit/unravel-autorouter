@@ -13,7 +13,7 @@ export class CapacityPathingSolver2_AvoidLowCapacity extends CapacityPathingSolv
         (node.center.x - prevCandidate.node.center.x) ** 2 +
           (node.center.y - prevCandidate.node.center.y) ** 2,
       ) /
-        this.getCapacity(node)
+        this.getTotalCapacity(node)
     )
   }
 }
