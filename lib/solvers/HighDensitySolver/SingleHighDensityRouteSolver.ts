@@ -6,6 +6,7 @@ import {
   doSegmentsIntersect,
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
+import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 
 export type FutureConnection = {
   connectionName: string
@@ -43,6 +44,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   numRoutes: number
 
   VIA_PENALTY_FACTOR = 0.3
+  CELL_SIZE_FACTOR: number
 
   exploredNodes: Set<string>
 
@@ -52,6 +54,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   solvedPath: HighDensityIntraNodeRoute | null = null
 
   futureConnections: FutureConnection[]
+  hyperParameters: Partial<HighDensityHyperParameters>
 
   /** For debugging/animating the exploration */
   debug_exploredNodesOrdered: string[]
@@ -63,7 +66,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   constructor(opts: {
     connectionName: string
     obstacleRoutes: HighDensityIntraNodeRoute[]
-    node: { center: { x: number; y: number }; width: number; height: number }
+    bounds: { minX: number; maxX: number; minY: number; maxY: number }
     A: { x: number; y: number; z: number }
     B: { x: number; y: number; z: number }
     viaDiameter?: number
@@ -71,14 +74,12 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     obstacleMargin?: number
     layerCount?: number
     futureConnections?: FutureConnection[]
+    hyperParameters?: Partial<HighDensityHyperParameters>
   }) {
     super()
-    this.bounds = {
-      minX: opts.node.center.x - opts.node.width / 2,
-      maxX: opts.node.center.x + opts.node.width / 2,
-      minY: opts.node.center.y - opts.node.height / 2,
-      maxY: opts.node.center.y + opts.node.height / 2,
-    }
+    this.bounds = opts.bounds
+    this.hyperParameters = opts.hyperParameters ?? {}
+    this.CELL_SIZE_FACTOR = this.hyperParameters.CELL_SIZE_FACTOR ?? 1
     this.boundsSize = {
       width: this.bounds.maxX - this.bounds.minX,
       height: this.bounds.maxY - this.bounds.minY,
@@ -93,7 +94,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.B = opts.B
     this.viaDiameter = opts.viaDiameter ?? 0.6
     this.traceThickness = opts.traceThickness ?? 0.15
-    this.obstacleMargin = opts.obstacleMargin ?? 0.1
+    this.obstacleMargin = opts.obstacleMargin ?? 0.2
     this.layerCount = opts.layerCount ?? 2
     this.exploredNodes = new Set()
     this.candidates = [
@@ -122,6 +123,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       numXCells = this.boundsSize.width / this.cellStep
       numYCells = this.boundsSize.height / this.cellStep
     }
+    this.cellStep *= this.CELL_SIZE_FACTOR
   }
 
   get viaPenaltyDistance() {
@@ -251,7 +253,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       !this.exploredNodes.has(this.getNodeKey(viaNeighbor)) &&
       !this.isNodeTooCloseToObstacle(
         viaNeighbor,
-        this.viaDiameter + this.obstacleMargin,
+        this.viaDiameter + this.obstacleMargin + this.traceThickness / 2,
       ) &&
       !this.isNodeTooCloseToEdge(viaNeighbor)
     ) {
@@ -291,7 +293,26 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
   }
 
-  step() {
+  computeProgress(currentNode: Node, goalDist: number, isOnLayer: boolean) {
+    if (!isOnLayer) goalDist += this.viaPenaltyDistance
+    const goalDistPercent = 1 - goalDist / this.straightLineDistance
+
+    // This is a perfectly acceptable progress metric
+    // return Math.max(this.progress || 0, goalDistPercent)
+
+    // Linearize because it typically gets harder towards the end
+    return Math.max(
+      this.progress || 0,
+      // 0.112 = ~90% -> 50%
+      //         ~25% -> 2%
+      //         ~99% -> 94%
+      //         ~95% -> 72%
+      (2 / Math.PI) *
+        Math.atan((0.112 * goalDistPercent) / (1 - goalDistPercent)),
+    )
+  }
+
+  _step() {
     this.candidates.sort((a, b) => b.f - a.f)
     let currentNode = this.candidates.pop()
 
@@ -303,16 +324,21 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     }
 
     if (!currentNode) {
-      // No more candidates, we've failed :(
+      this.failed = true
       return
     }
     this.exploredNodes.add(this.getNodeKey(currentNode))
     this.debug_exploredNodesOrdered.push(this.getNodeKey(currentNode))
 
-    if (
-      distance(currentNode, this.B) <= this.cellStep &&
-      currentNode.z === this.B.z
-    ) {
+    const goalDist = distance(currentNode, this.B)
+
+    this.progress = this.computeProgress(
+      currentNode,
+      goalDist,
+      currentNode.z === this.B.z,
+    )
+
+    if (goalDist <= this.cellStep && currentNode.z === this.B.z) {
       this.solved = true
       this.setSolvedPath(currentNode)
     }

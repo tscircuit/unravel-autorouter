@@ -9,15 +9,21 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
   FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR = 1
   FUTURE_CONNECTION_PROXIMITY_VD = 10
   MISALIGNED_DIST_PENALTY_FACTOR = 5
-  VIA_PENALTY_FACTOR = 0.3
+  VIA_PENALTY_FACTOR_2 = 1
 
   constructor(
     opts: ConstructorParameters<typeof SingleHighDensityRouteSolver>[0],
   ) {
     super(opts)
+    for (const key in opts.hyperParameters) {
+      // @ts-ignore
+      this[key] = opts.hyperParameters[key]
+    }
+
     // Ratio of available space determines via penalty
     const viasThatCanFitHorz = this.boundsSize.width / this.viaDiameter
-    this.VIA_PENALTY_FACTOR = 0.3 * (viasThatCanFitHorz / this.numRoutes)
+    this.VIA_PENALTY_FACTOR =
+      0.3 * (viasThatCanFitHorz / this.numRoutes) * this.VIA_PENALTY_FACTOR_2
   }
 
   getClosestFutureConnectionPoint(node: Node) {

@@ -6,6 +6,8 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
 import { safeTransparentize } from "../colors"
 import { SingleIntraNodeRouteSolver } from "./SingleIntraNodeRouteSolver"
+import { HyperSingleIntraNodeSolver } from "../HyperHighDensitySolver/HyperSingleIntraNodeSolver"
+import { combineVisualizations } from "lib/utils/combineVisualizations"
 
 export class HighDensityRouteSolver extends BaseSolver {
   unsolvedNodePortPoints: NodeWithPortPoints[]
@@ -16,7 +18,11 @@ export class HighDensityRouteSolver extends BaseSolver {
   readonly defaultViaDiameter = 0.6
   readonly defaultTraceThickness = 0.15
 
-  failedSolvers: SingleIntraNodeRouteSolver[]
+  failedSolvers: (SingleIntraNodeRouteSolver | HyperSingleIntraNodeSolver)[]
+  activeSubSolver:
+    | SingleIntraNodeRouteSolver
+    | HyperSingleIntraNodeSolver
+    | null = null
 
   constructor({
     nodePortPoints,
@@ -30,33 +36,39 @@ export class HighDensityRouteSolver extends BaseSolver {
     this.colorMap = colorMap ?? {}
     this.routes = []
     this.failedSolvers = []
+    this.MAX_ITERATIONS = 100_000
   }
 
   /**
    * Each iteration, pop an unsolved node and attempt to find the routes inside
    * of it.
    */
-  step() {
+  _step() {
+    if (this.activeSubSolver) {
+      this.activeSubSolver.step()
+      if (this.activeSubSolver.solved) {
+        this.routes.push(...this.activeSubSolver.solvedRoutes)
+        this.activeSubSolver = null
+      } else if (this.activeSubSolver.failed) {
+        this.failedSolvers.push(this.activeSubSolver)
+        this.activeSubSolver = null
+      }
+      return
+    }
     if (this.unsolvedNodePortPoints.length === 0) {
       this.solved = true
       return
     }
     const node = this.unsolvedNodePortPoints.pop()!
 
-    const solver = new SingleIntraNodeRouteSolver({
+    this.activeSubSolver = new HyperSingleIntraNodeSolver({
       nodeWithPortPoints: node,
       colorMap: this.colorMap,
     })
-    solver.solve()
-    if (solver.solved) {
-      this.routes.push(...solver.solvedRoutes)
-    } else {
-      this.failedSolvers.push(solver)
-    }
   }
 
   visualize(): GraphicsObject {
-    const graphics: GraphicsObject = {
+    let graphics: GraphicsObject = {
       lines: [],
       points: [],
       rects: [],
@@ -111,6 +123,12 @@ export class HighDensityRouteSolver extends BaseSolver {
           })
         }
       }
+    }
+    if (this.activeSubSolver) {
+      graphics = combineVisualizations(
+        graphics,
+        this.activeSubSolver.visualize(),
+      )
     }
     return graphics
   }

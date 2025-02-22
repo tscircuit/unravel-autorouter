@@ -3,27 +3,34 @@ import type { GraphicsObject } from "graphics-debug"
 export class BaseSolver {
   MAX_ITERATIONS = 1000
   solved = false
+  failed = false
   iterations = 0
+  progress = 0
   error: string | null = null
 
-  step() {}
+  /** DO NOT OVERRIDE! Override _step() instead */
+  step() {
+    this.iterations++
+    try {
+      this._step()
+    } catch (e) {
+      this.error = `${this.constructor.name} error: ${e}`
+      console.error(this.error)
+      this.failed = true
+      throw e
+    }
+    if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
+      this.error = `${this.constructor.name} did not converge`
+      console.error(this.error)
+      this.failed = true
+    }
+  }
+
+  _step() {}
 
   solve() {
-    while (!this.solved) {
-      this.iterations++
-      try {
-        this.step()
-      } catch (e) {
-        this.error = `${this.constructor.name} error: ${e}`
-        console.error(this.error)
-        break
-      }
-
-      if (this.iterations > this.MAX_ITERATIONS) {
-        this.error = `${this.constructor.name} did not converge`
-        console.error(this.error)
-        break
-      }
+    while (!this.solved && !this.failed) {
+      this.step()
     }
   }
 

@@ -11,6 +11,8 @@ import { SingleHighDensityRouteSolver3_RepelEndpoints } from "./SingleHighDensit
 import { SingleHighDensityRouteSolver4_RepelEdgeViaFuture } from "./SingleHighDensityRouteSolver4_RepelEdgeViaFuture"
 import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty"
 import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
+import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
+import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -20,18 +22,24 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     points: { x: number; y: number }[]
   }[]
 
+  totalConnections: number
   solvedRoutes: HighDensityIntraNodeRoute[]
   failedSolvers: SingleHighDensityRouteSolver[]
+  hyperParameters: Partial<HighDensityHyperParameters>
+
+  activeSolver: SingleHighDensityRouteSolver | null = null
 
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
     colorMap?: Record<string, string>
+    hyperParameters?: Partial<HighDensityHyperParameters>
   }) {
     const { nodeWithPortPoints, colorMap } = params
     super()
     this.nodeWithPortPoints = nodeWithPortPoints
     this.colorMap = colorMap ?? {}
     this.solvedRoutes = []
+    this.hyperParameters = params.hyperParameters ?? {}
     this.failedSolvers = []
     const unsolvedConnectionsMap: Map<string, { x: number; y: number }[]> =
       new Map()
@@ -47,34 +55,59 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
         points,
       })),
     )
+    this.unsolvedConnections = cloneAndShuffleArray(
+      this.unsolvedConnections,
+      this.hyperParameters.SHUFFLE_SEED ?? 0,
+    )
+    this.totalConnections = this.unsolvedConnections.length
+    this.MAX_ITERATIONS = 1_000 * this.totalConnections ** 1.5
   }
 
-  step() {
+  computeProgress() {
+    return (
+      (this.solvedRoutes.length + (this.activeSolver?.progress || 0)) /
+      this.totalConnections
+    )
+  }
+
+  _step() {
+    if (this.activeSolver) {
+      this.activeSolver.step()
+      this.progress = this.computeProgress()
+      if (this.activeSolver.solved) {
+        this.solvedRoutes.push(this.activeSolver.solvedPath!)
+        this.activeSolver = null
+      } else if (this.activeSolver.failed) {
+        this.failedSolvers.push(this.activeSolver)
+        this.activeSolver = null
+        this.error = this.failedSolvers.map((s) => s.error).join("\n")
+        this.failed = true
+      }
+      return
+    }
+
     const unsolvedConnection = this.unsolvedConnections.pop()
+    this.progress = this.computeProgress()
     if (!unsolvedConnection) {
       this.solved = this.failedSolvers.length === 0
       return
     }
     const { connectionName, points } = unsolvedConnection
-    const solver = new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
-      connectionName,
-      node: this.nodeWithPortPoints,
-      A: { x: points[0].x, y: points[0].y, z: 0 },
-      B: {
-        x: points[points.length - 1].x,
-        y: points[points.length - 1].y,
-        z: 0,
-      },
-      obstacleRoutes: this.solvedRoutes,
-      futureConnections: this.unsolvedConnections,
-      layerCount: 2,
-    })
-    solver.solve()
-    if (solver.solvedPath) {
-      this.solvedRoutes.push(solver.solvedPath)
-    } else {
-      this.failedSolvers.push(solver)
-    }
+    this.activeSolver =
+      new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
+        connectionName,
+        bounds: getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints),
+        A: { x: points[0].x, y: points[0].y, z: 0 },
+        B: {
+          x: points[points.length - 1].x,
+          y: points[points.length - 1].y,
+          z: 0,
+        },
+        obstacleRoutes: this.solvedRoutes,
+        futureConnections: this.unsolvedConnections,
+        layerCount: 2,
+        hyperParameters: this.hyperParameters,
+      })
   }
 
   visualize(): GraphicsObject {
@@ -84,6 +117,18 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       rects: [],
       circles: [],
     }
+
+    // Draw node bounds
+    // graphics.rects!.push({
+    //   center: {
+    //     x: this.nodeWithPortPoints.center.x,
+    //     y: this.nodeWithPortPoints.center.y,
+    //   },
+    //   width: this.nodeWithPortPoints.width,
+    //   height: this.nodeWithPortPoints.height,
+    //   stroke: "gray",
+    //   fill: "transparent",
+    // })
 
     // Visualize input nodeWithPortPoints
     for (const pt of this.nodeWithPortPoints.portPoints) {
@@ -137,4 +182,35 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
 
     return graphics
   }
+}
+
+function getBoundsFromNodeWithPortPoints(
+  nodeWithPortPoints: NodeWithPortPoints,
+): { minX: number; maxX: number; minY: number; maxY: number } {
+  const bounds = {
+    minX: nodeWithPortPoints.center.x - nodeWithPortPoints.width / 2,
+    maxX: nodeWithPortPoints.center.x + nodeWithPortPoints.width / 2,
+    minY: nodeWithPortPoints.center.y - nodeWithPortPoints.height / 2,
+    maxY: nodeWithPortPoints.center.y + nodeWithPortPoints.height / 2,
+  }
+
+  // Sometimes port points may be outside the node- this happens when there's
+  // a "leap" to the final target or at the end or beginning of a trace when
+  // we're wrapping up
+  for (const pt of nodeWithPortPoints.portPoints) {
+    if (pt.x < bounds.minX) {
+      bounds.minX = pt.x
+    }
+    if (pt.x > bounds.maxX) {
+      bounds.maxX = pt.x
+    }
+    if (pt.y < bounds.minY) {
+      bounds.minY = pt.y
+    }
+    if (pt.y > bounds.maxY) {
+      bounds.maxY = pt.y
+    }
+  }
+
+  return bounds
 }
