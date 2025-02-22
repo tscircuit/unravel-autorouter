@@ -4,19 +4,22 @@ import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { useState, useRef, useEffect } from "react"
 import type { NodeWithPortPoints } from "../types/high-density-types"
+import { HighDensityHyperParameters } from "lib/solvers/HighDensitySolver/HighDensityHyperParameters"
 
 interface HighDensityDebuggerProps {
   nodeWithPortPoints: NodeWithPortPoints
+  hyperParameters?: Partial<HighDensityHyperParameters>
 }
 
 export const HighDensityDebugger = ({
   nodeWithPortPoints,
+  hyperParameters = {},
 }: HighDensityDebuggerProps) => {
-  const [shuffleSeed, setShuffleSeed] = useState(10)
+  const [shuffleSeed, setShuffleSeed] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [maxSolvedRoutes, setMaxSolvedRoutes] = useState(0)
-  const [bestSeed, setBestSeed] = useState(10)
-  const animationRef = useRef<number>()
+  const [bestSeed, setBestSeed] = useState(0)
+  const animationRef = useRef<number>(0)
 
   useEffect(() => {
     if (isAnimating) {
@@ -39,11 +42,7 @@ export const HighDensityDebugger = ({
     nodeWithPortPoints,
     colorMap: generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
     hyperParameters: {
-      FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 0,
-      VIA_PENALTY_FACTOR_2: 0,
-      FLIP_TRACE_ALIGNMENT_DIRECTION: false,
-      MISALIGNED_DIST_PENALTY_FACTOR: 0,
-      CELL_SIZE_FACTOR: 0.25,
+      ...hyperParameters,
       SHUFFLE_SEED: shuffleSeed,
     },
   })
@@ -78,6 +77,12 @@ export const HighDensityDebugger = ({
         </div>
         <button
           className="border p-2 m-2"
+          onClick={() => setShuffleSeed(shuffleSeed + 1)}
+        >
+          Next Seed
+        </button>
+        <button
+          className="border p-2 m-2"
           onClick={() => setShuffleSeed(Math.floor(Math.random() * 1000))}
         >
           Shuffle (Current Seed: {shuffleSeed})
@@ -105,7 +110,7 @@ export const HighDensityDebugger = ({
       </div>
       <button
         className="border p-2 m-2"
-        onClick={() => setShuffleSeed(Math.floor(Math.random() * 1000))}
+        onClick={() => setShuffleSeed(shuffleSeed + 1)}
       >
         Shuffle (Current Seed: {shuffleSeed})
       </button>
