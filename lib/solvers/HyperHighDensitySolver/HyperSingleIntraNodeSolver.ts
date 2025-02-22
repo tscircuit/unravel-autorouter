@@ -91,6 +91,17 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
           },
         ],
       },
+      // {
+      //   name: "flipTraceAlignmentDirection",
+      //   possibleValues: [
+      //     {
+      //       FLIP_TRACE_ALIGNMENT_DIRECTION: false,
+      //     },
+      //     {
+      //       FLIP_TRACE_ALIGNMENT_DIRECTION: true,
+      //     },
+      //   ],
+      // },
     ]
   }
 
