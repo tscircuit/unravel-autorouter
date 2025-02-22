@@ -179,13 +179,11 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     const parent = node.parent
     if (!parent) return false
     for (const route of this.obstacleRoutes) {
-      if (
-        this.connMap?.areIdsConnected?.(
-          this.connectionName,
-          route.connectionName,
-        )
+      const obstacleIsConnectedToNewPath = this.connMap?.areIdsConnected?.(
+        this.connectionName,
+        route.connectionName,
       )
-        continue
+      if (obstacleIsConnectedToNewPath) continue
       for (const pointPair of getSameLayerPointPairs(route)) {
         if (pointPair.z !== node.z) continue
         if (doSegmentsIntersect(node, parent, pointPair.A, pointPair.B)) {

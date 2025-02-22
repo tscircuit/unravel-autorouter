@@ -15,6 +15,8 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   unfinishedNodes: CapacityMeshNode[]
   finishedNodes: CapacityMeshNode[]
 
+  // targetObstacleMap: Record<string, { obstacle: Obstacle, node: CapacityMeshNode }>
+
   MAX_DEPTH = 4
 
   constructor(
@@ -59,6 +61,16 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     const targets = this.srj.connections.flatMap((c) => c.pointsToConnect)
     for (const target of targets) {
       // if (target.layer !== node.layer) continue
+      const targetObstacle = this.srj.obstacles.find((o) =>
+        isPointInRect(target, o),
+      )
+
+      if (targetObstacle) {
+        if (doRectsOverlap(node, targetObstacle)) {
+          return true
+        }
+      }
+
       if (
         target.x >= node.center.x - node.width / 2 &&
         target.x <= node.center.x + node.width / 2 &&
@@ -294,4 +306,38 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
     return graphics
   }
+}
+
+function isPointInRect(
+  point: { x: number; y: number },
+  rect: { center: { x: number; y: number }; width: number; height: number },
+) {
+  return (
+    point.x >= rect.center.x - rect.width / 2 &&
+    point.x <= rect.center.x + rect.width / 2 &&
+    point.y >= rect.center.y - rect.height / 2 &&
+    point.y <= rect.center.y + rect.height / 2
+  )
+}
+
+function doRectsOverlap(
+  rect1: { center: { x: number; y: number }; width: number; height: number },
+  rect2: { center: { x: number; y: number }; width: number; height: number },
+) {
+  const rect1Left = rect1.center.x - rect1.width / 2
+  const rect1Right = rect1.center.x + rect1.width / 2
+  const rect1Top = rect1.center.y - rect1.height / 2
+  const rect1Bottom = rect1.center.y + rect1.height / 2
+
+  const rect2Left = rect2.center.x - rect2.width / 2
+  const rect2Right = rect2.center.x + rect2.width / 2
+  const rect2Top = rect2.center.y - rect2.height / 2
+  const rect2Bottom = rect2.center.y + rect2.height / 2
+
+  return (
+    rect1Left <= rect2Right &&
+    rect1Right >= rect2Left &&
+    rect1Top <= rect2Bottom &&
+    rect1Bottom >= rect2Top
+  )
 }
