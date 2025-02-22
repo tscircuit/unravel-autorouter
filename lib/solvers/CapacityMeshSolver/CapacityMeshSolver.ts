@@ -86,7 +86,6 @@ export class CapacityMeshSolver extends BaseSolver {
         nodes: this.nodeSolver.finishedNodes,
         edges: this.edgeSolver.edges,
         colorMap: this.colorMap,
-        MAX_ITERATIONS: 100_000,
       })
       this.activeSolver = this.pathingSolver
       return
@@ -163,19 +162,18 @@ export class CapacityMeshSolver extends BaseSolver {
       circles: [],
       rects: [],
     }
+    const problemViz = {
+      points: [...nodeViz.points!],
+      rects: [...nodeViz.rects?.filter((r) => r.label?.includes("obstacle"))!],
+    }
     return combineVisualizations(
-      {
-        points: [...nodeViz.points!],
-        rects: [
-          ...nodeViz.rects?.filter((r) => r.label?.includes("obstacle"))!,
-        ],
-      },
+      problemViz,
       nodeViz,
       edgeViz,
       pathingViz,
       edgeToPortSegmentViz,
       segmentToPointViz,
-      highDensityViz,
+      combineVisualizations(problemViz, highDensityViz),
     )
   }
 }

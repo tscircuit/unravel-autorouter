@@ -47,6 +47,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     nodes: CapacityMeshNode[]
   }) {
     super()
+    this.MAX_ITERATIONS = 100_000
     this.unsolvedSegments = segments
     this.solvedSegments = []
     this.colorMap = colorMap ?? {}

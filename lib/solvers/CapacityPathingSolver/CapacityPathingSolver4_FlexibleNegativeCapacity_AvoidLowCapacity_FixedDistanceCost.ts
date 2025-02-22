@@ -20,7 +20,7 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
     const VIA_DIAMETER = 0.6
     const TRACE_WIDTH = 0.15
 
-    const viaLengthAcross = Math.round(node.width / VIA_DIAMETER / 2)
+    const viaLengthAcross = node.width / VIA_DIAMETER / 2
 
     return viaLengthAcross * this.maxCapacityFactor
   }

@@ -23,6 +23,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   ) {
     super()
     this.MAX_DEPTH = opts?.capacityDepth ?? this.MAX_DEPTH
+    this.MAX_ITERATIONS = 100_000
     const boundsCenter = {
       x: (srj.bounds.minX + srj.bounds.maxX) / 2,
       y: (srj.bounds.minY + srj.bounds.maxY) / 2,
@@ -98,6 +99,16 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         return true
       }
     }
+
+    // If node is outside the bounds, we consider it to contain an obstacle
+    if (
+      nodeLeft < this.srj.bounds.minX ||
+      nodeRight > this.srj.bounds.maxX ||
+      nodeTop < this.srj.bounds.minY ||
+      nodeBottom > this.srj.bounds.maxY
+    ) {
+      return true
+    }
     return false
   }
 
@@ -128,6 +139,16 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         return true
       }
     }
+
+    if (
+      nodeRight < this.srj.bounds.minX ||
+      nodeLeft > this.srj.bounds.maxX ||
+      nodeBottom < this.srj.bounds.minY ||
+      nodeTop > this.srj.bounds.maxY
+    ) {
+      return true
+    }
+
     return false
   }
 

@@ -49,7 +49,7 @@ export class CapacityPathingSolver extends BaseSolver {
     nodes,
     edges,
     colorMap,
-    MAX_ITERATIONS = 200_000,
+    MAX_ITERATIONS = 1e6,
     hyperParameters = {},
   }: {
     simpleRouteJson: SimpleRouteJson
