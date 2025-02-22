@@ -272,7 +272,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       !this.exploredNodes.has(this.getNodeKey(viaNeighbor)) &&
       !this.isNodeTooCloseToObstacle(
         viaNeighbor,
-        this.viaDiameter + this.obstacleMargin + this.traceThickness / 2,
+        this.viaDiameter / 2 + this.obstacleMargin,
       ) &&
       !this.isNodeTooCloseToEdge(viaNeighbor)
     ) {

@@ -38,8 +38,8 @@ export class CapacityMeshSolver extends BaseSolver {
     super()
     this.MAX_ITERATIONS = 1e6
     this.nodeSolver = new CapacityMeshNodeSolver(srj, this.opts)
-    this.colorMap = getColorMap(srj)
     this.connMap = this.createConnMap()
+    this.colorMap = getColorMap(srj, this.connMap)
   }
 
   createConnMap() {

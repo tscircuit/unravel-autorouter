@@ -1,3 +1,4 @@
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import type { SimpleRouteJson } from "../types"
 import { transparentize } from "polished"
 
@@ -12,12 +13,23 @@ export const COLORS = [
   "deeppink",
 ]
 
-export const getColorMap = (srj: SimpleRouteJson) => {
+export const getColorMap = (
+  srj: SimpleRouteJson,
+  connMap?: ConnectivityMap,
+) => {
   const colorMap: Record<string, string> = {}
   for (let i = 0; i < srj.connections.length; i++) {
     const connection = srj.connections[i]
+    const netName = connMap?.getNetConnectedToId(connection.name)
+
+    if (netName && !colorMap[netName]) {
+      colorMap[netName] =
+        `hsl(${(i * 300) / srj.connections.length}, 100%, 50%)`
+    }
+
     colorMap[connection.name] =
-      `hsl(${(i * 360) / srj.connections.length}, 100%, 50%)`
+      (netName ? colorMap[netName] : null) ??
+      `hsl(${(i * 340) / srj.connections.length}, 100%, 50%)`
   }
   return colorMap
 }
