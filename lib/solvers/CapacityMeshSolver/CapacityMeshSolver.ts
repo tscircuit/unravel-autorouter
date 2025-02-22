@@ -27,25 +27,40 @@ export class CapacityMeshSolver extends BaseSolver {
   segmentToPointSolver?: CapacitySegmentToPointSolver
   highDensityRouteSolver?: HighDensityRouteSolver
 
+  activeSolver?: BaseSolver | null = null
+
   constructor(
     public srj: SimpleRouteJson,
     public opts: CapacityMeshSolverOptions = {},
   ) {
     super()
+    this.MAX_ITERATIONS = 1e6
     this.nodeSolver = new CapacityMeshNodeSolver(srj, this.opts)
     this.colorMap = getColorMap(srj)
   }
 
-  step() {
+  _step() {
+    if (this.activeSolver) {
+      this.activeSolver.step()
+      if (this.activeSolver.solved) {
+        this.activeSolver = null
+      } else if (this.activeSolver.failed) {
+        this.error = this.activeSolver?.error
+        this.failed = true
+        this.activeSolver = null
+      }
+      return
+    }
+    // PROGRESS TO NEXT SOLVER
     if (!this.nodeSolver.solved) {
-      this.nodeSolver.solve()
+      this.activeSolver = this.nodeSolver
       return
     }
     if (!this.edgeSolver) {
       this.edgeSolver = new CapacityMeshEdgeSolver(
         this.nodeSolver.finishedNodes,
       )
-      this.edgeSolver.solve()
+      this.activeSolver = this.edgeSolver
       return
     }
     if (!this.pathingSolver) {
@@ -59,7 +74,7 @@ export class CapacityMeshSolver extends BaseSolver {
             MAX_ITERATIONS: 100_000,
           },
         )
-      this.pathingSolver.solve()
+      this.activeSolver = this.pathingSolver
       return
     }
     if (!this.edgeToPortSegmentSolver) {
@@ -69,7 +84,7 @@ export class CapacityMeshSolver extends BaseSolver {
         capacityPaths: this.pathingSolver!.getCapacityPaths(),
         colorMap: this.colorMap,
       })
-      this.edgeToPortSegmentSolver.solve()
+      this.activeSolver = this.edgeToPortSegmentSolver
       return
     }
     if (!this.segmentToPointSolver) {
@@ -82,7 +97,7 @@ export class CapacityMeshSolver extends BaseSolver {
         colorMap: this.colorMap,
         nodes: this.nodeSolver.finishedNodes,
       })
-      this.segmentToPointSolver.solve()
+      this.activeSolver = this.segmentToPointSolver
       return
     }
 
@@ -93,7 +108,7 @@ export class CapacityMeshSolver extends BaseSolver {
         nodePortPoints: nodesWithPortPoints,
         colorMap: this.colorMap,
       })
-      this.highDensityRouteSolver.solve()
+      this.activeSolver = this.highDensityRouteSolver
       return
     }
 
@@ -101,6 +116,7 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
+    if (!this.solved && this.activeSolver) return this.activeSolver.visualize()
     const nodeViz = this.nodeSolver.visualize()
     const edgeViz = this.edgeSolver?.visualize() || {
       lines: [],
