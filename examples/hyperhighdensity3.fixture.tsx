@@ -3,7 +3,8 @@ import { SingleIntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/Single
 import { HyperSingleIntraNodeSolver } from "lib/solvers/HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
+import { useEffect, useState } from "react"
 
 const { nodeWithPortPoints } = {
   nodeWithPortPoints: {

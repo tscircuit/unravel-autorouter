@@ -6,6 +6,7 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
 import { safeTransparentize } from "../colors"
 import { SingleIntraNodeRouteSolver } from "./SingleIntraNodeRouteSolver"
+import { HyperSingleIntraNodeSolver } from "../HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 
 export class HighDensityRouteSolver extends BaseSolver {
   unsolvedNodePortPoints: NodeWithPortPoints[]
@@ -16,7 +17,7 @@ export class HighDensityRouteSolver extends BaseSolver {
   readonly defaultViaDiameter = 0.6
   readonly defaultTraceThickness = 0.15
 
-  failedSolvers: SingleIntraNodeRouteSolver[]
+  failedSolvers: (SingleIntraNodeRouteSolver | HyperSingleIntraNodeSolver)[]
 
   constructor({
     nodePortPoints,
@@ -36,14 +37,14 @@ export class HighDensityRouteSolver extends BaseSolver {
    * Each iteration, pop an unsolved node and attempt to find the routes inside
    * of it.
    */
-  step() {
+  _step() {
     if (this.unsolvedNodePortPoints.length === 0) {
       this.solved = true
       return
     }
     const node = this.unsolvedNodePortPoints.pop()!
 
-    const solver = new SingleIntraNodeRouteSolver({
+    const solver = new HyperSingleIntraNodeSolver({
       nodeWithPortPoints: node,
       colorMap: this.colorMap,
     })

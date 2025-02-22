@@ -1,13 +1,23 @@
+import {
+  HighDensityIntraNodeRoute,
+  NodeWithPortPoints,
+} from "lib/types/high-density-types"
 import { SingleIntraNodeRouteSolver } from "../HighDensitySolver/SingleIntraNodeRouteSolver"
-import { HyperParameterSupervisorSolver } from "../HyperParameterSupervisorSolver"
+import {
+  HyperParameterSupervisorSolver,
+  SupervisedSolver,
+} from "../HyperParameterSupervisorSolver"
 
 export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<SingleIntraNodeRouteSolver> {
   constructorParams: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0]
+  solvedRoutes: HighDensityIntraNodeRoute[] = []
+  nodeWithPortPoints: NodeWithPortPoints
 
   constructor(
     opts: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0],
   ) {
     super()
+    this.nodeWithPortPoints = opts.nodeWithPortPoints
     this.constructorParams = opts
     this.MAX_ITERATIONS = 100_000
     this.GREEDY_MULTIPLIER = 1.5
@@ -31,6 +41,13 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
             FUTURE_CONNECTION_PROXIMITY_VD: 5,
             MISALIGNED_DIST_PENALTY_FACTOR: 2,
           },
+          {
+            FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR: 10,
+            FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 1,
+            FUTURE_CONNECTION_PROXIMITY_VD: 5,
+            MISALIGNED_DIST_PENALTY_FACTOR: 10,
+            VIA_PENALTY_FACTOR_2: 1,
+          },
         ],
       },
       {
@@ -44,6 +61,21 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
           },
           {
             SHUFFLE_SEED: 2,
+          },
+          {
+            SHUFFLE_SEED: 3,
+          },
+          {
+            SHUFFLE_SEED: 4,
+          },
+          {
+            SHUFFLE_SEED: 5,
+          },
+          {
+            SHUFFLE_SEED: 6,
+          },
+          {
+            SHUFFLE_SEED: 7,
           },
         ],
       },
@@ -65,5 +97,9 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
       ...this.constructorParams,
       hyperParameters,
     })
+  }
+
+  onSolve(solver: SupervisedSolver<SingleIntraNodeRouteSolver>) {
+    this.solvedRoutes = solver.solver.solvedRoutes
   }
 }

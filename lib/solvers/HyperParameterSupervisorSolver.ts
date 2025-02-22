@@ -1,7 +1,7 @@
 import { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "./BaseSolver"
 
-type SupervisedSolver<T extends BaseSolver> = {
+export type SupervisedSolver<T extends BaseSolver> = {
   hyperParameters: any
   solver: T
   h: number
@@ -139,8 +139,11 @@ export class HyperParameterSupervisorSolver<
 
     if (supervisedSolver.solver.solved) {
       this.solved = true
+      this.onSolve?.(supervisedSolver)
     }
   }
+
+  onSolve(solver: SupervisedSolver<T>) {}
 
   visualize(): GraphicsObject {
     const bestSupervisedSolver = this.getSupervisedSolverWithBestFitness()

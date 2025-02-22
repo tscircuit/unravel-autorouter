@@ -3,81 +3,112 @@ import { SingleIntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/Single
 import { HyperSingleIntraNodeSolver } from "lib/solvers/HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
+import { useEffect, useState } from "react"
 
 const { nodeWithPortPoints } = {
   nodeWithPortPoints: {
-    capacityMeshNodeId: "cn601",
+    capacityMeshNodeId: "cn1255",
     portPoints: [
       {
-        x: -4.346912087499987,
-        y: 3.8111147825000047,
+        x: -16.66127472499999,
+        y: -13.967746275390624,
         connectionName: "source_trace_11",
       },
       {
-        x: -4.346912087499987,
-        y: 5.042551046250005,
-        connectionName: "source_trace_19",
+        x: -16.66127472499999,
+        y: -13.58292244296875,
+        connectionName: "source_trace_2",
       },
       {
-        x: -4.346912087499987,
-        y: 6.273987310000005,
+        x: -16.66127472499999,
+        y: -13.198098610546875,
         connectionName: "source_trace_20",
       },
       {
         x: -4.346912087499987,
-        y: 7.505423573750006,
-        connectionName: "source_trace_23",
+        y: -14.3525701078125,
+        connectionName: "source_trace_10",
+      },
+      {
+        x: -4.346912087499987,
+        y: -12.813274778125,
+        connectionName: "source_trace_13",
+      },
+      {
+        x: -4.346912087499987,
+        y: -11.273979448437501,
+        connectionName: "source_trace_14",
+      },
+      {
+        x: -4.346912087499987,
+        y: -9.73468411875,
+        connectionName: "source_trace_16",
+      },
+      {
+        x: -4.346912087499987,
+        y: -8.195388789062498,
+        connectionName: "source_trace_17",
+      },
+      {
+        x: -4.346912087499987,
+        y: -6.656093459374999,
+        connectionName: "source_trace_5",
+      },
+      {
+        x: -4.346912087499987,
+        y: -5.116798129687499,
+        connectionName: "source_trace_8",
       },
       {
         x: -15.54178721249999,
-        y: 8.736859837500006,
+        y: -15.891865437500002,
         connectionName: "source_trace_1",
       },
       {
         x: -14.422299699999991,
-        y: 8.736859837500006,
-        connectionName: "source_trace_10",
+        y: -15.891865437500002,
+        connectionName: "source_trace_14",
       },
       {
         x: -13.30281218749999,
-        y: 8.736859837500006,
-        connectionName: "source_trace_13",
+        y: -15.891865437500002,
+        connectionName: "source_trace_19",
       },
       {
         x: -12.18332467499999,
-        y: 8.736859837500006,
-        connectionName: "source_trace_16",
+        y: -15.891865437500002,
+        connectionName: "source_trace_2",
       },
       {
         x: -11.06383716249999,
-        y: 8.736859837500006,
-        connectionName: "source_trace_17",
-      },
-      {
-        x: -9.944349649999989,
-        y: 8.736859837500006,
+        y: -15.891865437500002,
         connectionName: "source_trace_22",
       },
       {
+        x: -9.944349649999989,
+        y: -15.891865437500002,
+        connectionName: "source_trace_23",
+      },
+      {
         x: -8.824862137499988,
-        y: 8.736859837500006,
+        y: -15.891865437500002,
         connectionName: "source_trace_25",
       },
       {
         x: -7.705374624999989,
-        y: 8.736859837500006,
+        y: -15.891865437500002,
         connectionName: "source_trace_4",
       },
       {
         x: -6.585887112499988,
-        y: 8.736859837500006,
-        connectionName: "source_trace_7",
+        y: -15.891865437500002,
+        connectionName: "source_trace_5",
       },
       {
         x: -5.466399599999988,
-        y: 8.736859837500006,
-        connectionName: "source_trace_8",
+        y: -15.891865437500002,
+        connectionName: "source_trace_7",
       },
       {
         x: -15.840317215833325,
@@ -150,7 +181,7 @@ const { nodeWithPortPoints } = {
         connectionName: "source_trace_8",
       },
     ],
-    center: { x: -10.50409340624999, y: 2.579678518750004 },
+    center: { x: -10.50409340624999, y: -9.73468411875 },
     width: 12.314362637500004,
     height: 12.314362637500004,
   },
@@ -175,13 +206,23 @@ export default () => {
         return
       }
       solver.step()
+      if (solver.iterations % 100 === 0) {
+        const bestFitnessSolver = solver.getSupervisedSolverWithBestFitness()
+        if (bestFitnessSolver) {
+          setTab(solver.supervisedSolvers?.indexOf(bestFitnessSolver) ?? 0)
+          setFocusedSolver(bestFitnessSolver.solver)
+        }
+      }
       setIters(solver.iterations)
     }, 10)
     return () => clearInterval(interval)
   }, [solver, setIters])
 
+  const [focusedSolver, setFocusedSolver] =
+    useState<SingleIntraNodeRouteSolver | null>(null)
+
   return (
-    <div>
+    <div className="p-1">
       <div>
         {solver.supervisedSolvers?.map((solver, i) => (
           <button
@@ -195,6 +236,9 @@ export default () => {
         ))}
       </div>
       <div>
+        {!solver.solved && focusedSolver && (
+          <InteractiveGraphics graphics={focusedSolver.visualize()} />
+        )}
         {solver.solved && (
           <InteractiveGraphics
             graphics={solver.supervisedSolvers?.[tab]?.solver.visualize() ?? {}}
@@ -219,14 +263,25 @@ export default () => {
           <tbody>
             {solver.supervisedSolvers?.map((solver, i) => (
               <tr key={i}>
-                <td style={{ fontVariantNumeric: "tabular-nums" }}>{i}</td>
+                <td
+                  style={{
+                    fontVariantNumeric: "tabular-nums",
+                    backgroundColor: tab === i ? "rgba(0,0,0,0.1)" : undefined,
+                  }}
+                >
+                  {i}
+                </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
                   {solver.solver.iterations}
                 </td>
                 <td
                   style={{
                     fontVariantNumeric: "tabular-nums",
-                    backgroundColor: solver.solver.failed ? "red" : undefined,
+                    backgroundColor: solver.solver.failed
+                      ? "red"
+                      : solver.solver.solved
+                        ? "lightgreen"
+                        : undefined,
                   }}
                 >
                   {solver.solver.progress?.toFixed(3)}
