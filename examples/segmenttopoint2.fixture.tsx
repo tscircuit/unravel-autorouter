@@ -14,6 +14,7 @@ export default () => {
       colorMap: initialPointSolver.colorMap,
       nodes: inputs.nodes,
     })
+    optimizer.step()
     return { initialPointSolver, optimizer }
   }, [])
 

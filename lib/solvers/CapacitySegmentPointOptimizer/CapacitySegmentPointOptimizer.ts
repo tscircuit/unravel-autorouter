@@ -52,6 +52,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   segmentIdToNodeIds: Map<string, string[]>
   currentMutatedSegments: Map<NodePortSegmentId, SegmentWithAssignedPoints>
   allSegmentIds: string[]
+  lastAppliedOperation: Operation | null = null
 
   currentNodeCosts: Record<CapacityMeshNodeId, number>
 
@@ -135,7 +136,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     this.currentCost = cost
     this.currentNodeCosts = nodeCosts
 
-    this.randomSeed = 0
+    this.randomSeed = 1
     this.allSegmentIds = Array.from(this.currentMutatedSegments.keys())
   }
 
@@ -171,7 +172,6 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
    */
   getUsedGranularCapacity(nodeId: CapacityMeshNodeId) {
     const segmentIds = this.nodeIdToSegmentIds.get(nodeId)!
-    console.log({ nodeId, segmentIds })
     const segments = segmentIds.map(
       (segmentId) => this.currentMutatedSegments.get(segmentId)!,
     )!
@@ -193,6 +193,15 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       this.allSegmentIds[Math.floor(this.random() * this.allSegmentIds.length)]
 
     const segment = this.currentMutatedSegments.get(randomSegmentId)!
+    const nodes = this.segmentIdToNodeIds
+      .get(randomSegmentId)!
+      .map((nodeId) => this.nodeMap.get(nodeId))
+
+    // Don't operate on nodes that contain objectives (TODO in the future we
+    // can do this IF the objective is present on multiple layers)
+    if (nodes.some((n) => n?._containsTarget)) {
+      return this.getRandomOperation()
+    }
 
     let operationType = this.random() < 0.5 ? "switch" : "changeLayer"
     if (segment.assignedPoints!.length <= 1) {
@@ -270,10 +279,11 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
     this.currentCost = newCost
     this.currentNodeCosts = newNodeCosts
+    this.lastAppliedOperation = op
   }
 
   visualize(): GraphicsObject {
-    const graphics = {
+    const graphics: Required<GraphicsObject> = {
       points: [...this.currentMutatedSegments.values()].flatMap((seg, i) =>
         seg.assignedPoints!.map((ap) => ({
           x: ap.point.x,
@@ -298,6 +308,8 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         ),
       ],
       circles: [],
+      coordinateSystem: "cartesian",
+      title: "Capacity Segment Point Optimizer",
     }
 
     // Add a dashed line connecting the assignment points with the same
@@ -335,6 +347,70 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       }
     }
     graphics.lines.push(...(dashedLines as any))
+
+    // Add visualization for the last applied operation
+    if (this.lastAppliedOperation) {
+      const segment = this.currentMutatedSegments.get(
+        this.lastAppliedOperation.segmentId,
+      )!
+      const node = this.nodeMap.get(segment.capacityMeshNodeId)!
+      // Create a circle around the node
+      graphics.circles.push({
+        center: { x: node.center.x, y: node.center.y + node.height / 4 },
+        radius: node.width / 4,
+        stroke: "#0000ff",
+        fill: "rgba(0, 0, 255, 0.2)",
+        label: "LAST OPERATION",
+      })
+
+      // For both operation types, we'll highlight the affected points
+      if (this.lastAppliedOperation.op === "changeLayer") {
+        const point =
+          segment.assignedPoints![this.lastAppliedOperation.pointIndex]
+        graphics.circles.push({
+          center: { x: point.point.x, y: point.point.y },
+          radius: this.nodeMap.get(segment.capacityMeshNodeId)!.width / 8,
+          stroke: "#ff0000",
+          fill: "rgba(255, 0, 0, 0.2)",
+          label: "Layer Changed",
+        })
+      } else if (this.lastAppliedOperation.op === "switch") {
+        // For switch operations, highlight both points that were swapped
+        const point1 =
+          segment.assignedPoints![this.lastAppliedOperation.point1Index]
+        const point2 =
+          segment.assignedPoints![this.lastAppliedOperation.point2Index]
+
+        // Add circles around both swapped points
+        graphics.circles.push(
+          {
+            center: { x: point1.point.x, y: point1.point.y },
+            radius: 5,
+            stroke: "#00ff00",
+            fill: "rgba(0, 255, 0, 0.2)",
+            label: "Swapped 1",
+          },
+          {
+            center: { x: point2.point.x, y: point2.point.y },
+            radius: 5,
+            stroke: "#00ff00",
+            fill: "rgba(0, 255, 0, 0.2)",
+            label: "Swapped 2",
+          },
+        )
+
+        // Add a connecting line between the swapped points
+        graphics.lines.push({
+          points: [
+            { x: point1.point.x, y: point1.point.y },
+            { x: point2.point.x, y: point2.point.y },
+          ],
+          strokeColor: "#00ff00",
+          strokeDash: "3 3",
+          strokeWidth: 1,
+        })
+      }
+    }
 
     return graphics
   }
