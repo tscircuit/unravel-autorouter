@@ -4,6 +4,13 @@ import type { GraphicsObject } from "graphics-debug"
 import type { NodeWithPortPoints } from "../../types/high-density-types"
 import type { CapacityMeshNode } from "lib/types"
 
+interface SegmentWithAssignedPoints extends NodePortSegment {
+  assignedPoints?: {
+    connectionName: string
+    point: { x: number; y: number }
+  }[]
+}
+
 /**
  * CapacitySegmentToPointSolver:
  *
@@ -19,7 +26,7 @@ import type { CapacityMeshNode } from "lib/types"
  * ordering them alphabetically.
  */
 export class CapacitySegmentToPointSolver extends BaseSolver {
-  unsolvedSegments: NodePortSegment[]
+  unsolvedSegments: SegmentWithAssignedPoints[]
   solvedSegments: (NodePortSegment & {
     assignedPoints: {
       connectionName: string
@@ -68,7 +75,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     for (const seg of unsolved) {
       const n = seg.connectionNames.length
       // Already processed? Skip if assignedPoints exists for all connections.
-      if ("assignedPoints" in seg && seg.assignedPoints.length === n) continue
+      if ("assignedPoints" in seg && seg.assignedPoints?.length === n) continue
 
       if (n === 1) {
         // For a single connection, assign the center of the segment.
