@@ -15,6 +15,7 @@ import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
 import { SingleHighDensityRouteSolver7_CostPoint } from "./SingleHighDensityRouteSolver7_CostPoint"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWithPortPoints"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -204,35 +205,4 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
 
     return graphics
   }
-}
-
-function getBoundsFromNodeWithPortPoints(
-  nodeWithPortPoints: NodeWithPortPoints,
-): { minX: number; maxX: number; minY: number; maxY: number } {
-  const bounds = {
-    minX: nodeWithPortPoints.center.x - nodeWithPortPoints.width / 2,
-    maxX: nodeWithPortPoints.center.x + nodeWithPortPoints.width / 2,
-    minY: nodeWithPortPoints.center.y - nodeWithPortPoints.height / 2,
-    maxY: nodeWithPortPoints.center.y + nodeWithPortPoints.height / 2,
-  }
-
-  // Sometimes port points may be outside the node- this happens when there's
-  // a "leap" to the final target or at the end or beginning of a trace when
-  // we're wrapping up
-  for (const pt of nodeWithPortPoints.portPoints) {
-    if (pt.x < bounds.minX) {
-      bounds.minX = pt.x
-    }
-    if (pt.x > bounds.maxX) {
-      bounds.maxX = pt.x
-    }
-    if (pt.y < bounds.minY) {
-      bounds.minY = pt.y
-    }
-    if (pt.y > bounds.maxY) {
-      bounds.maxY = pt.y
-    }
-  }
-
-  return bounds
 }
