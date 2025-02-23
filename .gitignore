@@ -177,3 +177,5 @@ dist
 .vscode
 .aider*
 .vercel
+
+repomix-output.txt
