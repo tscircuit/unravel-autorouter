@@ -33,6 +33,10 @@ export class HyperParameterSupervisorSolver<
     throw new Error("Not implemented")
   }
 
+  getCombinationDefs(): Array<Array<string>> | null {
+    return null
+  }
+
   getHyperParameterCombinations(
     hyperParameterDefs?: Array<HyperParameterDef>,
   ): Array<Record<string, any>> {
@@ -67,19 +71,27 @@ export class HyperParameterSupervisorSolver<
 
   initializeSolvers() {
     const hyperParameterDefs = this.getHyperParameterDefs()
-    const hyperParameterCombinations =
-      this.getHyperParameterCombinations(hyperParameterDefs)
+
+    const combinationDefs = this.getCombinationDefs() ?? [
+      hyperParameterDefs.map((def) => def.name),
+    ]
 
     this.supervisedSolvers = []
-    for (const hyperParameters of hyperParameterCombinations) {
-      const solver = this.generateSolver(hyperParameters)
-      this.supervisedSolvers.push({
-        hyperParameters,
-        solver,
-        h: 0,
-        g: 0,
-        f: 0,
-      })
+    for (const combinationDef of combinationDefs) {
+      const hyperParameterCombinations = this.getHyperParameterCombinations(
+        hyperParameterDefs.filter((hpd) => combinationDef.includes(hpd.name)),
+      )
+
+      for (const hyperParameters of hyperParameterCombinations) {
+        const solver = this.generateSolver(hyperParameters)
+        this.supervisedSolvers.push({
+          hyperParameters,
+          solver,
+          h: 0,
+          g: 0,
+          f: 0,
+        })
+      }
     }
   }
 

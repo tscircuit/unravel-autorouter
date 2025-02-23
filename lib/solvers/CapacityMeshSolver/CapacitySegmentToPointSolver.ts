@@ -4,6 +4,13 @@ import type { GraphicsObject } from "graphics-debug"
 import type { NodeWithPortPoints } from "../../types/high-density-types"
 import type { CapacityMeshNode } from "lib/types"
 
+interface SegmentWithAssignedPoints extends NodePortSegment {
+  assignedPoints?: {
+    connectionName: string
+    point: { x: number; y: number }
+  }[]
+}
+
 /**
  * CapacitySegmentToPointSolver:
  *
@@ -19,7 +26,7 @@ import type { CapacityMeshNode } from "lib/types"
  * ordering them alphabetically.
  */
 export class CapacitySegmentToPointSolver extends BaseSolver {
-  unsolvedSegments: NodePortSegment[]
+  unsolvedSegments: SegmentWithAssignedPoints[]
   solvedSegments: (NodePortSegment & {
     assignedPoints: {
       connectionName: string
@@ -47,6 +54,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     nodes: CapacityMeshNode[]
   }) {
     super()
+    this.MAX_ITERATIONS = 100_000
     this.unsolvedSegments = segments
     this.solvedSegments = []
     this.colorMap = colorMap ?? {}
@@ -67,7 +75,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     for (const seg of unsolved) {
       const n = seg.connectionNames.length
       // Already processed? Skip if assignedPoints exists for all connections.
-      if ("assignedPoints" in seg && seg.assignedPoints.length === n) continue
+      if ("assignedPoints" in seg && seg.assignedPoints?.length === n) continue
 
       if (n === 1) {
         // For a single connection, assign the center of the segment.
@@ -132,23 +140,6 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
       this.solved = true
     }
   }
-
-  // /**
-  //  * Continue stepping until the solver is done.
-  //  */
-  // solve() {
-  //   // To prevent infinite loops, the solver will iterate a maximum number of times.
-  //   let iterations = 0
-  //   const maxIterations = 1000
-  //   while (!this.solved && iterations < maxIterations) {
-  //     const prevUnsolved = this.unsolvedSegments.length
-  //     this.step()
-  //     const currUnsolved = this.unsolvedSegments.length
-  //     // If no progress is made and still unsolved, break to avoid an infinite loop.
-  //     if (prevUnsolved === currUnsolved && !this.solved) break
-  //     iterations++
-  //   }
-  // }
 
   /**
    * Return the assigned points for each segment.

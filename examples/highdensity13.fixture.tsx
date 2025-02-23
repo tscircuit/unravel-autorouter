@@ -2,6 +2,9 @@ import { HighDensityDebugger } from "lib/testing/HighDensityDebugger"
 
 export default () => (
   <HighDensityDebugger
+    hyperParameters={{
+      CELL_SIZE_FACTOR: 0.25,
+    }}
     {...{
       nodeWithPortPoints: {
         capacityMeshNodeId: "cn2739",

@@ -14,6 +14,8 @@ import { CapacityPathingSolver2_AvoidLowCapacity } from "../CapacityPathingSolve
 import { CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity } from "../CapacityPathingSolver/CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity"
 import { CapacityPathingSolver4_FlexibleNegativeCapacity } from "../CapacityPathingSolver/CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
+import { CapacityNodeTargetMerger } from "./CapacityNodeTargetMerger"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -21,6 +23,7 @@ interface CapacityMeshSolverOptions {
 
 export class CapacityMeshSolver extends BaseSolver {
   nodeSolver: CapacityMeshNodeSolver
+  nodeTargetMerger?: CapacityNodeTargetMerger
   edgeSolver?: CapacityMeshEdgeSolver
   pathingSolver?: CapacityPathingSolver
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
@@ -38,22 +41,8 @@ export class CapacityMeshSolver extends BaseSolver {
     super()
     this.MAX_ITERATIONS = 1e6
     this.nodeSolver = new CapacityMeshNodeSolver(srj, this.opts)
-    this.connMap = this.createConnMap()
+    this.connMap = getConnectivityMapFromSimpleRouteJson(srj)
     this.colorMap = getColorMap(srj, this.connMap)
-  }
-
-  createConnMap() {
-    const connMap = new ConnectivityMap({})
-    for (const connection of this.srj.connections) {
-      for (const point of connection.pointsToConnect) {
-        if ("pcb_port_id" in point && point.pcb_port_id) {
-          connMap.addConnections([
-            [connection.name, point.pcb_port_id as string],
-          ])
-        }
-      }
-    }
-    return connMap
   }
 
   _step() {
@@ -73,27 +62,38 @@ export class CapacityMeshSolver extends BaseSolver {
       this.activeSolver = this.nodeSolver
       return
     }
-    if (!this.edgeSolver) {
-      this.edgeSolver = new CapacityMeshEdgeSolver(
+    if (!this.nodeTargetMerger) {
+      this.nodeTargetMerger = new CapacityNodeTargetMerger(
         this.nodeSolver.finishedNodes,
+        this.srj.obstacles,
+        this.connMap,
       )
+      this.activeSolver = this.nodeTargetMerger
+      return
+    }
+    // const nodes = this.nodeSolver.finishedNodes
+    const nodes = this.nodeTargetMerger.newNodes
+    if (!this.edgeSolver) {
+      this.edgeSolver = new CapacityMeshEdgeSolver(nodes)
       this.activeSolver = this.edgeSolver
       return
     }
     if (!this.pathingSolver) {
       this.pathingSolver = new CapacityPathingSolver4_FlexibleNegativeCapacity({
         simpleRouteJson: this.srj,
-        nodes: this.nodeSolver.finishedNodes,
+        nodes,
         edges: this.edgeSolver.edges,
         colorMap: this.colorMap,
-        MAX_ITERATIONS: 100_000,
+        hyperParameters: {
+          MAX_CAPACITY_FACTOR: 1,
+        },
       })
       this.activeSolver = this.pathingSolver
       return
     }
     if (!this.edgeToPortSegmentSolver) {
       this.edgeToPortSegmentSolver = new CapacityEdgeToPortSegmentSolver({
-        nodes: this.nodeSolver.finishedNodes,
+        nodes,
         edges: this.edgeSolver.edges,
         capacityPaths: this.pathingSolver!.getCapacityPaths(),
         colorMap: this.colorMap,
@@ -109,7 +109,7 @@ export class CapacityMeshSolver extends BaseSolver {
       this.segmentToPointSolver = new CapacitySegmentToPointSolver({
         segments: allSegments,
         colorMap: this.colorMap,
-        nodes: this.nodeSolver.finishedNodes,
+        nodes,
       })
       this.activeSolver = this.segmentToPointSolver
       return
@@ -133,49 +133,25 @@ export class CapacityMeshSolver extends BaseSolver {
   visualize(): GraphicsObject {
     if (!this.solved && this.activeSolver) return this.activeSolver.visualize()
     const nodeViz = this.nodeSolver.visualize()
-    const edgeViz = this.edgeSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
+    const edgeViz = this.edgeSolver?.visualize()
+    const pathingViz = this.pathingSolver?.visualize()
+    const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
+    const segmentToPointViz = this.segmentToPointSolver?.visualize()
+    const highDensityViz = this.highDensityRouteSolver?.visualize()
+    const problemViz = {
+      points: [...nodeViz.points!],
+      rects: [...nodeViz.rects?.filter((r) => r.label?.includes("obstacle"))!],
     }
-    const pathingViz = this.pathingSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    const segmentToPointViz = this.segmentToPointSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    const highDensityViz = this.highDensityRouteSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    return combineVisualizations(
-      {
-        points: [...nodeViz.points!],
-        rects: [
-          ...nodeViz.rects?.filter((r) => r.label?.includes("obstacle"))!,
-        ],
-      },
+    const visualizations = [
+      problemViz,
       nodeViz,
       edgeViz,
       pathingViz,
       edgeToPortSegmentViz,
       segmentToPointViz,
-      highDensityViz,
-    )
+      highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
+    ].filter(Boolean) as GraphicsObject[]
+    // return visualizations[visualizations.length - 1]
+    return combineVisualizations(...visualizations)
   }
 }

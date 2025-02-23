@@ -5,6 +5,9 @@ import { CapacityMeshEdgeSolver } from "lib/solvers/CapacityMeshSolver/CapacityM
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { CapacityPathingSolver } from "../lib/solvers/CapacityPathingSolver/CapacityPathingSolver"
 import { getColorMap } from "../lib/solvers/colors"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
+import { CapacityNodeTargetMerger } from "lib/solvers/CapacityMeshSolver/CapacityNodeTargetMerger"
 
 const simpleSrj = {
   bounds: {
@@ -107,7 +110,15 @@ export default () => {
   }
 
   // Combine finished and unfinished nodes for edge solving
-  const allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
+  let allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
+
+  const nodeTargetMerger = new CapacityNodeTargetMerger(
+    allNodes,
+    simpleSrj.obstacles,
+    getConnectivityMapFromSimpleRouteJson(simpleSrj),
+  )
+  nodeTargetMerger.solve()
+  allNodes = nodeTargetMerger.newNodes
 
   // Solve for mesh edges
   const edgeSolver = new CapacityMeshEdgeSolver(allNodes)

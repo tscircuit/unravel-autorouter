@@ -1630,7 +1630,7 @@
   "bounds": {
     "minX": -50,
     "maxX": 65,
-    "minY": -15,
-    "maxY": 15
+    "minY": -40,
+    "maxY": 40
   }
 }

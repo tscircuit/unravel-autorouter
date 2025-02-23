@@ -3,6 +3,7 @@ import { CapacityPathingSolver, type Candidate } from "./CapacityPathingSolver"
 
 export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPathingSolver {
   NEGATIVE_CAPACITY_PENALTY_FACTOR = 1
+  REDUCED_CAPACITY_PENALTY_FACTOR = 1
 
   get maxCapacityFactor() {
     return this.hyperParameters.MAX_CAPACITY_FACTOR ?? 1
@@ -19,31 +20,66 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
     const VIA_DIAMETER = 0.6
     const TRACE_WIDTH = 0.15
 
-    const viaLengthAcross = Math.round(node.width / VIA_DIAMETER / 2)
+    const obstacleMargin = 0.2
+    const viaLengthAcross = node.width / (VIA_DIAMETER / 2 + obstacleMargin)
 
-    return viaLengthAcross * this.maxCapacityFactor
+    return (viaLengthAcross / 2) ** 1.1 * this.maxCapacityFactor
   }
 
   /**
    * Penalty you pay for using this node
    */
   getNodeCapacityPenalty(node: CapacityMeshNode): number {
-    const nodeCapacity =
-      this.getTotalCapacity(node) -
-      this.usedNodeCapacityMap.get(node.capacityMeshNodeId)!
+    const totalCapacity = this.getTotalCapacity(node)
+    const usedCapacity =
+      this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+    const remainingCapacity = totalCapacity - usedCapacity
 
-    const dist =
-      this.activeCandidateStraightLineDistance! *
-      (this.NEGATIVE_CAPACITY_PENALTY_FACTOR / 4)
+    const dist = this.activeCandidateStraightLineDistance!
 
-    if (nodeCapacity <= 0) {
-      const penalty = 2 ** -nodeCapacity * dist
-      return penalty
+    if (remainingCapacity <= 0) {
+      //  | Total Cap | Remaining Cap | Remaining Cap Ratio | PenaltySLD    |
+      //  | 1         | 0             | (-( 0) + 1) / 1     | 1^2  = 1      |
+      //  | 1         | -1            | (-(-1) + 1) / 1     | 2^2  = 4      |
+      //  | 1         | -2            | (-(-2) + 1) / 1     | 3^2  = 9      |
+      //  | 2         | 0             | (-( 0) + 1) / 2     | 0.5^2 = 0.25  |
+      //  | 2         | -1            | (-(-1) + 1) / 2     | 1^2 = 1       |
+      //  | 2         | -2            | (-(-2) + 1) / 2     | 2^2 = 4       |
+      //  | 2         | -3            | (-(-3) + 1) / 2     | 3^2 = 9       |
+      //  | 3         | 0             | (-( 0) + 1) / 3     | 0.333^2= 0.111|
+      //  | 3         | -1            | (-(-1) + 1) / 3     | 0.666^2= 0.444|
+      //  | 3         | -2            | (-(-2) + 1) / 3     | 1^2 = 1       |
+      //  | 3         | -3            | (-(-3) + 1) / 3     | 2^2 = 4       |
+      const penalty =
+        ((-remainingCapacity + 1) / totalCapacity) *
+        dist *
+        (this.NEGATIVE_CAPACITY_PENALTY_FACTOR / 4)
+
+      return penalty ** 2
     }
 
-    // Penalize for using nodes with low capacity by 25% of the straight line
-    // distance
-    return (1 / nodeCapacity) * dist * 0.5
+    // This node still has capacity, but penalize as we reduce the capacity
+    return (
+      ((1 / remainingCapacity) * dist * this.REDUCED_CAPACITY_PENALTY_FACTOR) /
+      8
+    )
+  }
+
+  /**
+   * We're rewarding travel into big nodes.
+   *
+   * To minimize shortest path, you'd want to comment this out.
+   */
+  getDistanceBetweenNodes(A: CapacityMeshNode, B: CapacityMeshNode) {
+    const dx = A.center.x - B.center.x
+    const dy = A.center.y - B.center.y
+
+    const szx = Math.max(A.width, B.width)
+    const szy = Math.max(A.height, B.height)
+
+    const dist = Math.sqrt(dx ** 2 + dy ** 2) / (szx * szy)
+
+    return dist
   }
 
   computeG(
@@ -53,10 +89,7 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
   ) {
     return (
       prevCandidate.g +
-      Math.sqrt(
-        (node.center.x - prevCandidate.node.center.x) ** 2 +
-          (node.center.y - prevCandidate.node.center.y) ** 2,
-      ) +
+      this.getDistanceBetweenNodes(prevCandidate.node, node) +
       this.getNodeCapacityPenalty(node)
     )
   }
@@ -67,10 +100,8 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
     endGoal: CapacityMeshNode,
   ) {
     return (
-      Math.sqrt(
-        (node.center.x - endGoal.center.x) ** 2 +
-          (node.center.y - endGoal.center.y) ** 2,
-      ) + this.getNodeCapacityPenalty(node)
+      this.getDistanceBetweenNodes(node, endGoal) +
+      this.getNodeCapacityPenalty(node)
     )
   }
 }

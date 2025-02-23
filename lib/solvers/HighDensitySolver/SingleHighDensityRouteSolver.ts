@@ -137,6 +137,16 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
   isNodeTooCloseToObstacle(node: Node, margin?: number, isVia?: boolean) {
     margin ??= this.obstacleMargin
+
+    if (isVia && node.parent) {
+      const viasInMyRoute = this.getViasInNodePath(node.parent)
+      for (const via of viasInMyRoute) {
+        if (distance(node, via) < this.viaDiameter / 2 + margin) {
+          return true
+        }
+      }
+    }
+
     for (const route of this.obstacleRoutes) {
       const connectedToObstacle = this.connMap?.areIdsConnected?.(
         this.connectionName,
@@ -179,13 +189,11 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     const parent = node.parent
     if (!parent) return false
     for (const route of this.obstacleRoutes) {
-      if (
-        this.connMap?.areIdsConnected?.(
-          this.connectionName,
-          route.connectionName,
-        )
+      const obstacleIsConnectedToNewPath = this.connMap?.areIdsConnected?.(
+        this.connectionName,
+        route.connectionName,
       )
-        continue
+      if (obstacleIsConnectedToNewPath) continue
       for (const pointPair of getSameLayerPointPairs(route)) {
         if (pointPair.z !== node.z) continue
         if (doSegmentsIntersect(node, parent, pointPair.A, pointPair.B)) {
@@ -287,12 +295,28 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     return neighbors
   }
 
-  setSolvedPath(node: Node) {
+  getNodePath(node: Node) {
     const path: Node[] = []
     while (node) {
       path.push(node)
       node = node.parent!
     }
+    return path
+  }
+
+  getViasInNodePath(node: Node) {
+    const path = this.getNodePath(node)
+    const vias: { x: number; y: number }[] = []
+    for (let i = 0; i < path.length - 1; i++) {
+      if (path[i].z !== path[i + 1].z) {
+        vias.push({ x: path[i].x, y: path[i].y })
+      }
+    }
+    return vias
+  }
+
+  setSolvedPath(node: Node) {
+    const path = this.getNodePath(node)
     path.reverse()
 
     const vias: { x: number; y: number }[] = []

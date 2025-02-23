@@ -33,10 +33,11 @@ export class CapacityPathingSolver extends BaseSolver {
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
-  GREEDY_MULTIPLIER = 10
+  GREEDY_MULTIPLIER = 1.1
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
+  connectionNameToGoalNodeIds: Map<string, CapacityMeshNodeId[]>
   colorMap: Record<string, string>
   maxDepthOfNodes: number
 
@@ -49,7 +50,7 @@ export class CapacityPathingSolver extends BaseSolver {
     nodes,
     edges,
     colorMap,
-    MAX_ITERATIONS = 200_000,
+    MAX_ITERATIONS = 1e6,
     hyperParameters = {},
   }: {
     simpleRouteJson: SimpleRouteJson
@@ -65,7 +66,10 @@ export class CapacityPathingSolver extends BaseSolver {
     this.nodes = nodes
     this.edges = edges
     this.colorMap = colorMap ?? {}
-    this.connectionsWithNodes = this.getConnectionsWithNodes()
+    const { connectionsWithNodes, connectionNameToGoalNodeIds } =
+      this.getConnectionsWithNodes()
+    this.connectionsWithNodes = connectionsWithNodes
+    this.connectionNameToGoalNodeIds = connectionNameToGoalNodeIds
     this.hyperParameters = hyperParameters
     this.usedNodeCapacityMap = new Map(
       this.nodes.map((node) => [node.capacityMeshNodeId, 0]),
@@ -91,6 +95,7 @@ export class CapacityPathingSolver extends BaseSolver {
       pathFound: boolean
     }> = []
     const nodesWithTargets = this.nodes.filter((node) => node._containsTarget)
+    const connectionNameToGoalNodeIds = new Map<string, CapacityMeshNodeId[]>()
 
     for (const connection of this.simpleRouteJson.connections) {
       const nodesForConnection: CapacityMeshNode[] = []
@@ -114,13 +119,17 @@ export class CapacityPathingSolver extends BaseSolver {
           `Not enough nodes for connection "${connection.name}", only ${nodesForConnection.length} found`,
         )
       }
+      connectionNameToGoalNodeIds.set(
+        connection.name,
+        nodesForConnection.map((n) => n.capacityMeshNodeId),
+      )
       connectionsWithNodes.push({
         connection,
         nodes: nodesForConnection,
         pathFound: false,
       })
     }
-    return connectionsWithNodes
+    return { connectionsWithNodes, connectionNameToGoalNodeIds }
   }
 
   currentConnectionIndex = 0
@@ -134,11 +143,7 @@ export class CapacityPathingSolver extends BaseSolver {
     endGoal: CapacityMeshNode,
   ) {
     return (
-      prevCandidate.g +
-      Math.sqrt(
-        (node.center.x - prevCandidate.node.center.x) ** 2 +
-          (node.center.y - prevCandidate.node.center.y) ** 2,
-      )
+      prevCandidate.g + this.getDistanceBetweenNodes(prevCandidate.node, node)
     )
   }
 
@@ -147,10 +152,7 @@ export class CapacityPathingSolver extends BaseSolver {
     node: CapacityMeshNode,
     endGoal: CapacityMeshNode,
   ) {
-    return Math.sqrt(
-      (node.center.x - endGoal.center.x) ** 2 +
-        (node.center.y - endGoal.center.y) ** 2,
-    )
+    return this.getDistanceBetweenNodes(node, endGoal)
   }
 
   getBacktrackedPath(candidate: Candidate) {
@@ -194,6 +196,29 @@ export class CapacityPathingSolver extends BaseSolver {
     return usedCapacity < totalCapacity
   }
 
+  canTravelThroughObstacle(node: CapacityMeshNode, connectionName: string) {
+    const goalNodeIds = this.connectionNameToGoalNodeIds.get(connectionName)
+
+    return goalNodeIds?.includes(node.capacityMeshNodeId) ?? false
+  }
+
+  getDistanceBetweenNodes(A: CapacityMeshNode, B: CapacityMeshNode) {
+    return Math.sqrt(
+      (A.center.x - B.center.x) ** 2 + (A.center.y - B.center.y) ** 2,
+    )
+  }
+
+  reduceCapacityAlongPath(nextConnection: {
+    path?: CapacityMeshNode[]
+  }) {
+    for (const node of nextConnection.path ?? []) {
+      this.usedNodeCapacityMap.set(
+        node.capacityMeshNodeId,
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId)! + 1,
+      )
+    }
+  }
+
   _step() {
     const nextConnection =
       this.connectionsWithNodes[this.currentConnectionIndex]
@@ -226,12 +251,8 @@ export class CapacityPathingSolver extends BaseSolver {
     if (currentCandidate.node.capacityMeshNodeId === end.capacityMeshNodeId) {
       nextConnection.path = this.getBacktrackedPath(currentCandidate)
 
-      for (const node of nextConnection.path) {
-        this.usedNodeCapacityMap.set(
-          node.capacityMeshNodeId,
-          this.usedNodeCapacityMap.get(node.capacityMeshNodeId)! + 1,
-        )
-      }
+      this.reduceCapacityAlongPath(nextConnection)
+
       this.currentConnectionIndex++
       this.candidates = null
       this.visitedNodes = null
@@ -244,6 +265,14 @@ export class CapacityPathingSolver extends BaseSolver {
         continue
       }
       if (!this.doesNodeHaveCapacityForTrace(neighborNode)) {
+        continue
+      }
+      const connectionName =
+        this.connectionsWithNodes[this.currentConnectionIndex].connection.name
+      if (
+        neighborNode._containsObstacle &&
+        !this.canTravelThroughObstacle(neighborNode, connectionName)
+      ) {
         continue
       }
       const g = this.computeG(currentCandidate, neighborNode, end)
@@ -276,8 +305,8 @@ export class CapacityPathingSolver extends BaseSolver {
         if (conn.path && conn.path.length > 0) {
           const pathPoints = conn.path.map(({ center: { x, y }, width }) => ({
             // slight offset to allow viewing overlapping paths
-            x: x + (i * 0.1 * width) / 10,
-            y: y + (i * 0.1 * width) / 10,
+            x: x + ((i % 10) + (i % 19)) * (0.01 * width),
+            y: y + ((i % 10) + (i % 19)) * (0.01 * width),
           }))
           graphics.lines!.push({
             points: pathPoints,
@@ -293,7 +322,7 @@ export class CapacityPathingSolver extends BaseSolver {
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
         fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
-        label: `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node)}`,
+        label: `${node.capacityMeshNodeId}\n${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node).toFixed(2)}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
       })
     }
 

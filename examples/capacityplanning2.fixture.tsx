@@ -6,6 +6,8 @@ import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { CapacityPathingSolver } from "../lib/solvers/CapacityPathingSolver/CapacityPathingSolver"
 import { getColorMap } from "../lib/solvers/colors"
 import { CapacityPathingSolver4_FlexibleNegativeCapacity } from "lib/solvers/CapacityPathingSolver/CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost"
+import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
+import { CapacityNodeTargetMerger } from "lib/solvers/CapacityMeshSolver/CapacityNodeTargetMerger"
 
 const simpleSrj = {
   bounds: {
@@ -101,15 +103,25 @@ const simpleSrj = {
 } as SimpleRouteJson
 
 export default () => {
+  const connMap = getConnectivityMapFromSimpleRouteJson(simpleSrj)
   // Solve for mesh nodes using the CapacityMeshNodeSolver
   const nodeSolver = new CapacityMeshNodeSolver(simpleSrj)
   nodeSolver.solve()
 
   // Combine finished and unfinished nodes for edge solving
-  const allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
+  let allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
+
+  const nodeTargetMerger = new CapacityNodeTargetMerger(
+    allNodes,
+    simpleSrj.obstacles,
+    connMap,
+  )
+  nodeTargetMerger.solve()
+
+  allNodes = nodeTargetMerger.newNodes
 
   // Solve for mesh edges
-  const edgeSolver = new CapacityMeshEdgeSolver(allNodes)
+  const edgeSolver = new CapacityMeshEdgeSolver(nodeTargetMerger.newNodes)
   edgeSolver.solve()
 
   // Get color map for visualization
@@ -128,5 +140,14 @@ export default () => {
 
   pathingSolver.solve()
 
-  return <InteractiveGraphics graphics={pathingSolver.visualize()} />
+  return (
+    <InteractiveGraphics
+      graphics={combineVisualizations(
+        // nodeSolver.visualize(),
+        // nodeTargetMerger.visualize(),
+        // edgeSolver.visualize(),
+        pathingSolver.visualize(),
+      )}
+    />
+  )
 }

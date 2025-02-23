@@ -21,9 +21,7 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
   step() {
     this.edges = []
     for (let i = 0; i < this.nodes.length; i++) {
-      if (this.nodes[i]._containsObstacle) continue
       for (let j = i + 1; j < this.nodes.length; j++) {
-        if (this.nodes[j]._containsObstacle) continue
         if (this.areNodesBordering(this.nodes[i], this.nodes[j])) {
           this.edges.push({
             capacityMeshEdgeId: this.getNextCapacityMeshEdgeId(),

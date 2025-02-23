@@ -3,9 +3,13 @@ import { BaseSolver } from "../BaseSolver"
 import type {
   CapacityMeshEdge,
   CapacityMeshNode,
+  CapacityMeshNodeId,
+  Obstacle,
   SimpleRouteJson,
 } from "../../types"
 import { COLORS } from "../colors"
+import { isPointInRect } from "lib/utils/isPointInRect"
+import { doRectsOverlap } from "lib/utils/doRectsOverlap"
 
 interface CapacityMeshNodeSolverOptions {
   capacityDepth?: number
@@ -15,6 +19,10 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   unfinishedNodes: CapacityMeshNode[]
   finishedNodes: CapacityMeshNode[]
 
+  nodeToOverlappingObstaclesMap: Map<CapacityMeshNodeId, Obstacle[]>
+
+  // targetObstacleMap: Record<string, { obstacle: Obstacle, node: CapacityMeshNode }>
+
   MAX_DEPTH = 4
 
   constructor(
@@ -23,6 +31,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   ) {
     super()
     this.MAX_DEPTH = opts?.capacityDepth ?? this.MAX_DEPTH
+    this.MAX_ITERATIONS = 100_000
     const boundsCenter = {
       x: (srj.bounds.minX + srj.bounds.maxX) / 2,
       y: (srj.bounds.minY + srj.bounds.maxY) / 2,
@@ -43,6 +52,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       },
     ]
     this.finishedNodes = []
+    this.nodeToOverlappingObstaclesMap = new Map()
   }
 
   _nextNodeCounter = 0
@@ -54,34 +64,53 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     return (this.MAX_DEPTH - depth + 1) ** 2
   }
 
-  doesNodeContainTarget(node: CapacityMeshNode) {
-    const targets = this.srj.connections.flatMap((c) => c.pointsToConnect)
+  getTargetNameIfNodeContainsTarget(node: CapacityMeshNode): string | null {
+    const overlappingObstacles = this.getOverlappingObstacles(node)
+    const targets = this.srj.connections.flatMap((c) =>
+      c.pointsToConnect.map((p) => ({ ...p, connectionName: c.name })),
+    )
     for (const target of targets) {
       // if (target.layer !== node.layer) continue
+      const targetObstacle = overlappingObstacles.find((o) =>
+        isPointInRect(target, o),
+      )
+
+      if (targetObstacle) {
+        if (doRectsOverlap(node, targetObstacle)) {
+          return target.connectionName
+        }
+      }
+
       if (
         target.x >= node.center.x - node.width / 2 &&
         target.x <= node.center.x + node.width / 2 &&
         target.y >= node.center.y - node.height / 2 &&
         target.y <= node.center.y + node.height / 2
       ) {
-        return true
+        return target.connectionName
       }
     }
-    return false
+    return null
   }
 
-  /**
-   * Checks if the given mesh node overlaps with any obstacle.
-   * We treat both obstacles and nodes as axis‐aligned rectangles.
-   */
-  doesNodeContainObstacle(node: CapacityMeshNode): boolean {
-    const obstacles = this.srj.obstacles
+  getOverlappingObstacles(node: CapacityMeshNode): Obstacle[] {
+    const cachedObstacles = this.nodeToOverlappingObstaclesMap.get(
+      node.capacityMeshNodeId,
+    )
+    if (cachedObstacles) {
+      return cachedObstacles
+    }
+    const overlappingObstacles: Obstacle[] = []
+
     // Compute node bounds
     const nodeLeft = node.center.x - node.width / 2
     const nodeRight = node.center.x + node.width / 2
     const nodeTop = node.center.y - node.height / 2
     const nodeBottom = node.center.y + node.height / 2
 
+    const obstacles = node._parent
+      ? this.getOverlappingObstacles(node._parent)
+      : this.srj.obstacles
     for (const obstacle of obstacles) {
       const obsLeft = obstacle.center.x - obstacle.width / 2
       const obsRight = obstacle.center.x + obstacle.width / 2
@@ -95,8 +124,43 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         nodeBottom >= obsTop &&
         nodeTop <= obsBottom
       ) {
-        return true
+        overlappingObstacles.push(obstacle)
       }
+    }
+
+    this.nodeToOverlappingObstaclesMap.set(
+      node.capacityMeshNodeId,
+      overlappingObstacles,
+    )
+
+    return overlappingObstacles
+  }
+
+  /**
+   * Checks if the given mesh node overlaps with any obstacle.
+   * We treat both obstacles and nodes as axis‐aligned rectangles.
+   */
+  doesNodeOverlapObstacle(node: CapacityMeshNode): boolean {
+    const overlappingObstacles = this.getOverlappingObstacles(node)
+
+    if (overlappingObstacles.length > 0) {
+      return true
+    }
+
+    // Compute node bounds
+    const nodeLeft = node.center.x - node.width / 2
+    const nodeRight = node.center.x + node.width / 2
+    const nodeTop = node.center.y - node.height / 2
+    const nodeBottom = node.center.y + node.height / 2
+
+    // If node is outside the bounds, we consider it to contain an obstacle
+    if (
+      nodeLeft < this.srj.bounds.minX ||
+      nodeRight > this.srj.bounds.maxX ||
+      nodeTop < this.srj.bounds.minY ||
+      nodeBottom > this.srj.bounds.maxY
+    ) {
+      return true
     }
     return false
   }
@@ -105,14 +169,15 @@ export class CapacityMeshNodeSolver extends BaseSolver {
    * Checks if the entire node is contained within any obstacle.
    */
   isNodeCompletelyInsideObstacle(node: CapacityMeshNode): boolean {
-    const obstacles = this.srj.obstacles
+    const overlappingObstacles = this.getOverlappingObstacles(node)
+
     // Compute node bounds
     const nodeLeft = node.center.x - node.width / 2
     const nodeRight = node.center.x + node.width / 2
     const nodeTop = node.center.y - node.height / 2
     const nodeBottom = node.center.y + node.height / 2
 
-    for (const obstacle of obstacles) {
+    for (const obstacle of overlappingObstacles) {
       const obsLeft = obstacle.center.x - obstacle.width / 2
       const obsRight = obstacle.center.x + obstacle.width / 2
       const obsTop = obstacle.center.y - obstacle.height / 2
@@ -128,6 +193,16 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         return true
       }
     }
+
+    if (
+      nodeRight < this.srj.bounds.minX ||
+      nodeLeft > this.srj.bounds.maxX ||
+      nodeBottom < this.srj.bounds.minY ||
+      nodeTop > this.srj.bounds.maxY
+    ) {
+      return true
+    }
+
     return false
   }
 
@@ -166,9 +241,13 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         _depth: (parent._depth ?? 0) + 1,
         _parent: parent,
       }
-      childNode._containsTarget = this.doesNodeContainTarget(childNode)
-      childNode._containsObstacle = this.doesNodeContainObstacle(childNode)
+      childNode._containsObstacle = this.doesNodeOverlapObstacle(childNode)
+
       if (childNode._containsObstacle) {
+        childNode._targetConnectionName =
+          this.getTargetNameIfNodeContainsTarget(childNode) ?? undefined
+        childNode._containsTarget = Boolean(childNode._targetConnectionName)
+
         childNode._completelyInsideObstacle =
           this.isNodeCompletelyInsideObstacle(childNode)
       }
