@@ -14,6 +14,7 @@ import { CapacityPathingSolver2_AvoidLowCapacity } from "../CapacityPathingSolve
 import { CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity } from "../CapacityPathingSolver/CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity"
 import { CapacityPathingSolver4_FlexibleNegativeCapacity } from "../CapacityPathingSolver/CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -38,22 +39,8 @@ export class CapacityMeshSolver extends BaseSolver {
     super()
     this.MAX_ITERATIONS = 1e6
     this.nodeSolver = new CapacityMeshNodeSolver(srj, this.opts)
-    this.connMap = this.createConnMap()
+    this.connMap = getConnectivityMapFromSimpleRouteJson(srj)
     this.colorMap = getColorMap(srj, this.connMap)
-  }
-
-  createConnMap() {
-    const connMap = new ConnectivityMap({})
-    for (const connection of this.srj.connections) {
-      for (const point of connection.pointsToConnect) {
-        if ("pcb_port_id" in point && point.pcb_port_id) {
-          connMap.addConnections([
-            [connection.name, point.pcb_port_id as string],
-          ])
-        }
-      }
-    }
-    return connMap
   }
 
   _step() {

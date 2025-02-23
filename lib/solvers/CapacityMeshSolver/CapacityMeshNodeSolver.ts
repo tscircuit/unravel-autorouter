@@ -6,6 +6,8 @@ import type {
   SimpleRouteJson,
 } from "../../types"
 import { COLORS } from "../colors"
+import { isPointInRect } from "lib/utils/isPointInRect"
+import { doRectsOverlap } from "lib/utils/doRectsOverlap"
 
 interface CapacityMeshNodeSolverOptions {
   capacityDepth?: number
@@ -57,8 +59,10 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     return (this.MAX_DEPTH - depth + 1) ** 2
   }
 
-  doesNodeContainTarget(node: CapacityMeshNode) {
-    const targets = this.srj.connections.flatMap((c) => c.pointsToConnect)
+  getTargetNameIfNodeContainsTarget(node: CapacityMeshNode): string | null {
+    const targets = this.srj.connections.flatMap((c) =>
+      c.pointsToConnect.map((p) => ({ ...p, connectionName: c.name })),
+    )
     for (const target of targets) {
       // if (target.layer !== node.layer) continue
       const targetObstacle = this.srj.obstacles.find((o) =>
@@ -67,7 +71,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
       if (targetObstacle) {
         if (doRectsOverlap(node, targetObstacle)) {
-          return true
+          return target.connectionName
         }
       }
 
@@ -77,10 +81,10 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         target.y >= node.center.y - node.height / 2 &&
         target.y <= node.center.y + node.height / 2
       ) {
-        return true
+        return target.connectionName
       }
     }
-    return false
+    return null
   }
 
   /**
@@ -199,7 +203,10 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         _depth: (parent._depth ?? 0) + 1,
         _parent: parent,
       }
-      childNode._containsTarget = this.doesNodeContainTarget(childNode)
+      childNode._targetConnectionName =
+        this.getTargetNameIfNodeContainsTarget(childNode) ?? undefined
+      childNode._containsTarget = Boolean(childNode._targetConnectionName)
+
       childNode._containsObstacle = this.doesNodeContainObstacle(childNode)
       if (childNode._containsObstacle) {
         childNode._completelyInsideObstacle =
@@ -306,38 +313,4 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
     return graphics
   }
-}
-
-function isPointInRect(
-  point: { x: number; y: number },
-  rect: { center: { x: number; y: number }; width: number; height: number },
-) {
-  return (
-    point.x >= rect.center.x - rect.width / 2 &&
-    point.x <= rect.center.x + rect.width / 2 &&
-    point.y >= rect.center.y - rect.height / 2 &&
-    point.y <= rect.center.y + rect.height / 2
-  )
-}
-
-function doRectsOverlap(
-  rect1: { center: { x: number; y: number }; width: number; height: number },
-  rect2: { center: { x: number; y: number }; width: number; height: number },
-) {
-  const rect1Left = rect1.center.x - rect1.width / 2
-  const rect1Right = rect1.center.x + rect1.width / 2
-  const rect1Top = rect1.center.y - rect1.height / 2
-  const rect1Bottom = rect1.center.y + rect1.height / 2
-
-  const rect2Left = rect2.center.x - rect2.width / 2
-  const rect2Right = rect2.center.x + rect2.width / 2
-  const rect2Top = rect2.center.y - rect2.height / 2
-  const rect2Bottom = rect2.center.y + rect2.height / 2
-
-  return (
-    rect1Left <= rect2Right &&
-    rect1Right >= rect2Left &&
-    rect1Top <= rect2Bottom &&
-    rect1Bottom >= rect2Top
-  )
 }
