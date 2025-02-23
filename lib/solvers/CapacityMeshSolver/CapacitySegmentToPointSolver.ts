@@ -1,8 +1,8 @@
 import { BaseSolver } from "../BaseSolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
-import type { GraphicsObject } from "graphics-debug"
+import type { GraphicsObject, Line } from "graphics-debug"
 import type { NodeWithPortPoints } from "../../types/high-density-types"
-import type { CapacityMeshNode } from "lib/types"
+import type { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 
 interface SegmentWithAssignedPoints extends NodePortSegment {
   assignedPoints?: {
@@ -196,8 +196,41 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     }
 
     // Add a dashed line connecting the assignment points with the same
-    // connection name
-    // TODO
+    // connection name within the same node
+    const dashedLines: Line[] = []
+    const nodeConnections: Record<
+      CapacityMeshNodeId,
+      Record<string, { x: number; y: number }[]>
+    > = {}
+    for (const seg of this.solvedSegments) {
+      const nodeId = seg.capacityMeshNodeId
+      if (!nodeConnections[nodeId]) {
+        nodeConnections[nodeId] = {}
+      }
+      for (const ap of seg.assignedPoints) {
+        if (!nodeConnections[nodeId][ap.connectionName]) {
+          nodeConnections[nodeId][ap.connectionName] = []
+        }
+        nodeConnections[nodeId][ap.connectionName].push({
+          x: ap.point.x,
+          y: ap.point.y,
+        })
+      }
+    }
+    for (const nodeId in nodeConnections) {
+      for (const conn in nodeConnections[nodeId]) {
+        const points = nodeConnections[nodeId][conn]
+        if (points.length > 1) {
+          dashedLines.push({
+            points,
+            step: 4,
+            strokeDash: "5 5",
+            strokeColor: this.colorMap[conn] || "#000",
+          } as Line)
+        }
+      }
+    }
+    graphics.lines = graphics.lines.concat(dashedLines)
 
     return graphics
   }
