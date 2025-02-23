@@ -61,6 +61,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   currentCost: number
   randomSeed: number
+  numNodes: number
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
@@ -135,6 +136,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       this.nodeMap.set(node.capacityMeshNodeId, node)
     }
 
+    this.numNodes = this.segmentIdToNodeIds.size
     const { cost, nodeCosts } = this.computeCurrentCost()
     this.currentCost = cost
     this.currentNodeCosts = nodeCosts
@@ -214,6 +216,8 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       operationType = "changeLayer"
     }
 
+    if (operationType !== "switch") return this.getRandomOperation()
+
     if (operationType === "switch") {
       const randomPointIndex1 = Math.floor(
         this.random() * segment.assignedPoints!.length,
@@ -248,9 +252,8 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   /**
-   * We compute "overall probability of failure" as our overall cost
-   *
-   * Naively cost can be the sum of all node cost
+   * We compute "overall probability of failure" as our overall cost, then
+   * linearize it to make it easier to work with
    */
   computeCurrentCost(): {
     cost: number
@@ -266,7 +269,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       // probability of success *= (1 - probability of failure)
       probabilityOfSuccess *= 1 - nodeProbOfFailure
     }
-    return { cost: 1 - probabilityOfSuccess, nodeCosts }
+    const probabilityOfFailure = 1 - probabilityOfSuccess
+
+    // linearize the cost to make it easier to work with
+    const numEvents = this.numNodes
+
+    const linearizedProbOfFailure = probabilityOfFailure / 0.999 ** numEvents
+
+    return { cost: linearizedProbOfFailure, nodeCosts }
   }
 
   applyOperation(op: Operation) {
@@ -277,10 +287,17 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       op.oldLayer = segment.assignedPoints[op.pointIndex].point.z
       segment.assignedPoints[op.pointIndex].point.z = op.newLayer
     } else if (op.op === "switch") {
-      const temp = segment.assignedPoints[op.point1Index]
-      segment.assignedPoints[op.point1Index] =
-        segment.assignedPoints[op.point2Index]
-      segment.assignedPoints[op.point2Index] = temp
+      const point1 = segment.assignedPoints[op.point1Index].point
+      const point2 = segment.assignedPoints[op.point2Index].point
+      const tempX = point1.x
+      const tempY = point1.y
+      const tempZ = point1.z
+      point1.x = point2.x
+      point1.y = point2.y
+      point1.z = point2.z
+      point2.x = tempX
+      point2.y = tempY
+      point2.z = tempZ
     }
   }
 
@@ -293,10 +310,17 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       segment.assignedPoints[op.pointIndex].point.z = oldLayer
     } else if (op.op === "switch") {
       // Reversing a switch is simply swapping the points back
-      const temp = segment.assignedPoints[op.point1Index]
-      segment.assignedPoints[op.point1Index] =
-        segment.assignedPoints[op.point2Index]
-      segment.assignedPoints[op.point2Index] = temp
+      const point1 = segment.assignedPoints[op.point1Index].point
+      const point2 = segment.assignedPoints[op.point2Index].point
+      const tempX = point1.x
+      const tempY = point1.y
+      const tempZ = point1.z
+      point1.x = point2.x
+      point1.y = point2.y
+      point1.z = point2.z
+      point2.x = tempX
+      point2.y = tempY
+      point2.z = tempZ
     }
   }
 
@@ -408,7 +432,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         radius: node.width / 4,
         stroke: "#0000ff",
         fill: "rgba(0, 0, 255, 0.2)",
-        label: "LAST OPERATION",
+        label: `LAST OPERATION: ${this.lastAppliedOperation.op}`,
       })
 
       // For both operation types, we'll highlight the affected points
@@ -433,14 +457,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         graphics.circles.push(
           {
             center: { x: point1.point.x, y: point1.point.y },
-            radius: node.width / 8,
+            radius: node.width / 16,
             stroke: "#00ff00",
             fill: "rgba(0, 255, 0, 0.2)",
             label: "Swapped 1",
           },
           {
             center: { x: point2.point.x, y: point2.point.y },
-            radius: node.width / 8,
+            radius: node.width / 16,
             stroke: "#00ff00",
             fill: "rgba(0, 255, 0, 0.2)",
             label: "Swapped 2",
@@ -455,7 +479,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
           ],
           strokeColor: "#00ff00",
           strokeDash: "3 3",
-          strokeWidth: 1,
+          strokeWidth: node.width / 32,
         })
       }
     }
