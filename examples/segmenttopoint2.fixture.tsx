@@ -5,17 +5,20 @@ import inputs from "./assets/segmenttopoint1.json"
 import { useMemo } from "react"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 
+const initialPointSolver = new CapacitySegmentToPointSolver(
+  JSON.parse(JSON.stringify(inputs)),
+)
+initialPointSolver.solve()
+
 export default () => {
-  const { initialPointSolver, optimizer } = useMemo(() => {
-    const initialPointSolver = new CapacitySegmentToPointSolver(inputs)
-    initialPointSolver.solve()
+  const { optimizer } = useMemo(() => {
     const optimizer = new CapacitySegmentPointOptimizer({
       assignedSegments: initialPointSolver.solvedSegments,
       colorMap: initialPointSolver.colorMap,
       nodes: inputs.nodes,
     })
     optimizer.step()
-    return { initialPointSolver, optimizer }
+    return { optimizer }
   }, [])
 
   return (

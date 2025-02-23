@@ -328,7 +328,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     const dashedLines: Line[] = []
     const nodeConnections: Record<
       CapacityMeshNodeId,
-      Record<string, { x: number; y: number }[]>
+      Record<string, { x: number; y: number; z: number }[]>
     > = {}
     for (const seg of this.assignedSegments) {
       const nodeId = seg.capacityMeshNodeId
@@ -342,19 +342,27 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         nodeConnections[nodeId][ap.connectionName].push({
           x: ap.point.x,
           y: ap.point.y,
+          z: ap.point.z,
         })
       }
     }
     for (const nodeId in nodeConnections) {
       for (const conn in nodeConnections[nodeId]) {
         const points = nodeConnections[nodeId][conn]
-        if (points.length > 1) {
-          dashedLines.push({
-            points,
-            strokeDash: "5 5",
-            strokeColor: this.colorMap[conn] || "#000",
-          } as Line)
-        }
+        if (points.length <= 1) continue
+
+        const sameLayer = points[0].z === points[1].z
+        const commonLayer = points[0].z
+
+        dashedLines.push({
+          points,
+          strokeDash: sameLayer
+            ? commonLayer === 0
+              ? undefined
+              : "10 5"
+            : "5 5",
+          strokeColor: this.colorMap[conn] || "#000",
+        } as Line)
       }
     }
     graphics.lines.push(...(dashedLines as any))
