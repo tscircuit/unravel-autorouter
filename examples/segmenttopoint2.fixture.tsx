@@ -19,11 +19,17 @@ export default () => {
   }, [])
 
   return (
-    <InteractiveGraphics
-      graphics={combineVisualizations(
-        // initialPointSolver.visualize(),
-        optimizer.visualize(),
-      )}
-    />
+    <div>
+      <div className="flex gap-2">
+        <div>Iterations: {optimizer.iterations}</div>
+        <div>Probability of Failure {optimizer.currentCost.toFixed(8)}</div>
+      </div>
+      <InteractiveGraphics
+        graphics={combineVisualizations(
+          // initialPointSolver.visualize(),
+          optimizer.visualize(),
+        )}
+      />
+    </div>
   )
 }

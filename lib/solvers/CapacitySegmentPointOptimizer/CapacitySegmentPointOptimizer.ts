@@ -145,6 +145,9 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     return (this.randomSeed - 1) / 2147483646
   }
 
+  /**
+   * The cost is the "probability of failure" of the node.
+   */
   computeNodeCost(nodeId: CapacityMeshNodeId) {
     const totalCapacity = getTunedTotalCapacity1(this.nodeMap.get(nodeId)!)
     const usedCapacity = this.getUsedGranularCapacity(nodeId)
@@ -241,18 +244,26 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     } as ChangeLayerOperation
   }
 
+  /**
+   * We compute "overall probability of failure" as our overall cost
+   *
+   * Naively cost can be the sum of all node cost
+   */
   computeCurrentCost(): {
     cost: number
     nodeCosts: Record<CapacityMeshNodeId, number>
   } {
-    let cost = 0
+    // let costSum = 0
+    let probabilityOfSuccess = 1
     const nodeCosts: Record<CapacityMeshNodeId, number> = {}
     for (const nodeId of this.nodeIdToSegmentIds.keys()) {
-      const nodeCost = this.computeNodeCost(nodeId)
-      nodeCosts[nodeId] = nodeCost
-      cost += nodeCost
+      const nodeProbOfFailure = this.computeNodeCost(nodeId)
+      nodeCosts[nodeId] = nodeProbOfFailure
+      // costSum += nodeProbOfFailure
+      // probability of success *= (1 - probability of failure)
+      probabilityOfSuccess *= 1 - nodeProbOfFailure
     }
-    return { cost, nodeCosts }
+    return { cost: 1 - probabilityOfSuccess, nodeCosts }
   }
 
   applyOperation(op: Operation) {}
