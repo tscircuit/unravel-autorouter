@@ -25,6 +25,10 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
     this.MIN_SUBSTEPS = 100
   }
 
+  getCombinationDefs() {
+    return [["majorCombinations", "orderings", "cellSizeFactor"], ["noVias"]]
+  }
+
   getHyperParameterDefs() {
     return [
       {
@@ -102,6 +106,15 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
       //     },
       //   ],
       // },
+      {
+        name: "noVias",
+        possibleValues: [
+          {
+            CELL_SIZE_FACTOR: 2,
+            VIA_PENALTY_FACTOR_2: 10,
+          },
+        ],
+      },
     ]
   }
 

@@ -41,7 +41,7 @@ export class HighDensityRouteSolver extends BaseSolver {
     this.connMap = connMap
     this.routes = []
     this.failedSolvers = []
-    this.MAX_ITERATIONS = 100_000
+    this.MAX_ITERATIONS = 1e6
   }
 
   /**

@@ -4,6 +4,7 @@ import { BaseSolver } from "../BaseSolver"
 import { GraphicsObject } from "graphics-debug"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { doRectsOverlap } from "lib/utils/doRectsOverlap"
+import { isPointInRect } from "lib/utils/isPointInRect"
 
 export class CapacityNodeTargetMerger extends BaseSolver {
   unprocessedObstacles: Obstacle[]
@@ -16,6 +17,7 @@ export class CapacityNodeTargetMerger extends BaseSolver {
     public connMap: ConnectivityMap,
   ) {
     super()
+    this.MAX_ITERATIONS = 100_000
     this.unprocessedObstacles = [...obstacles]
     this.newNodes = []
     this.removedNodeIds = new Set()
@@ -37,12 +39,15 @@ export class CapacityNodeTargetMerger extends BaseSolver {
     const connectedNodes = this.nodes.filter((n) => {
       if (!n._targetConnectionName) return false
 
-      const explicitlyConnected = obstacle.connectedTo?.some((obsConnId) =>
-        this.connMap.areIdsConnected(n._targetConnectionName!, obsConnId),
-      )
-      if (explicitlyConnected) return true
+      // Disabled because we don't have a good way of separating disconnected
+      // "chunks" of obstacles at the moment. Say there are many obstacles all
+      // connected to power
+      // const explicitlyConnected = obstacle.connectedTo?.some((obsConnId) =>
+      //   this.connMap.areIdsConnected(n._targetConnectionName!, obsConnId),
+      // )
+      // if (explicitlyConnected) return true
 
-      const implicitlyConnected = doRectsOverlap(obstacle, n)
+      const implicitlyConnected = doRectsOverlap(n, obstacle)
 
       return implicitlyConnected
     })

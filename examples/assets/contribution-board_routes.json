@@ -2,8 +2,8 @@
   "bounds": {
     "minX": -160,
     "maxX": 160,
-    "minY": -15,
-    "maxY": 15
+    "minY": -30,
+    "maxY": 30
   },
   "obstacles": [
     {
