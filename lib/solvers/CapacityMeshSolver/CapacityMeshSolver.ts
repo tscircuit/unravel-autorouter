@@ -130,48 +130,25 @@ export class CapacityMeshSolver extends BaseSolver {
   visualize(): GraphicsObject {
     if (!this.solved && this.activeSolver) return this.activeSolver.visualize()
     const nodeViz = this.nodeSolver.visualize()
-    const edgeViz = this.edgeSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    const pathingViz = this.pathingSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    const segmentToPointViz = this.segmentToPointSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
-    const highDensityViz = this.highDensityRouteSolver?.visualize() || {
-      lines: [],
-      points: [],
-      circles: [],
-      rects: [],
-    }
+    const edgeViz = this.edgeSolver?.visualize()
+    const pathingViz = this.pathingSolver?.visualize()
+    const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
+    const segmentToPointViz = this.segmentToPointSolver?.visualize()
+    const highDensityViz = this.highDensityRouteSolver?.visualize()
     const problemViz = {
       points: [...nodeViz.points!],
       rects: [...nodeViz.rects?.filter((r) => r.label?.includes("obstacle"))!],
     }
-    return combineVisualizations(
+    const visualizations = [
       problemViz,
       nodeViz,
       edgeViz,
       pathingViz,
       edgeToPortSegmentViz,
       segmentToPointViz,
-      combineVisualizations(problemViz, highDensityViz),
-    )
+      highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
+    ].filter(Boolean) as GraphicsObject[]
+    return visualizations[visualizations.length - 1]
+    // return combineVisualizations(...visualizations)
   }
 }

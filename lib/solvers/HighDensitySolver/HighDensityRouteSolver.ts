@@ -9,6 +9,7 @@ import { SingleIntraNodeRouteSolver } from "./SingleIntraNodeRouteSolver"
 import { HyperSingleIntraNodeSolver } from "../HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
 
 export class HighDensityRouteSolver extends BaseSolver {
   unsolvedNodePortPoints: NodeWithPortPoints[]
@@ -81,21 +82,24 @@ export class HighDensityRouteSolver extends BaseSolver {
       circles: [],
     }
     for (const route of this.routes) {
-      // Split route into segments and check z-level
-      for (let i = 0; i < route.route.length - 1; i++) {
-        const start = route.route[i]
-        const end = route.route[i + 1]
-        const color = this.colorMap[route.connectionName]
+      // Merge segments based on z-coordinate
+      const mergedSegments = mergeRouteSegments(
+        route.route,
+        route.connectionName,
+        this.colorMap[route.connectionName],
+      )
 
+      // Add merged segments to graphics
+      for (const segment of mergedSegments) {
         graphics.lines!.push({
-          points: [
-            { x: start.x, y: start.y },
-            { x: end.x, y: end.y },
-          ],
-          label: route.connectionName,
-          strokeColor: start.z === 0 ? color : safeTransparentize(color, 0.75),
+          points: segment.points,
+          label: segment.connectionName,
+          strokeColor:
+            segment.z === 0
+              ? segment.color
+              : safeTransparentize(segment.color, 0.75),
           strokeWidth: route.traceThickness,
-          strokeDash: start.z !== 0 ? "10, 5" : undefined,
+          strokeDash: segment.z !== 0 ? "10, 5" : undefined,
         })
       }
       for (const via of route.vias) {
