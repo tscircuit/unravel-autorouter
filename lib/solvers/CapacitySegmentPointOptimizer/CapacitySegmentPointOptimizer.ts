@@ -57,7 +57,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   allSegmentIds: string[]
   lastAppliedOperation: Operation | null = null
 
-  currentNodeCosts: Record<CapacityMeshNodeId, number>
+  currentNodeCosts: Map<CapacityMeshNodeId, number>
 
   currentCost: number
   randomSeed: number
@@ -260,15 +260,15 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
    */
   computeCurrentCost(): {
     cost: number
-    nodeCosts: Record<CapacityMeshNodeId, number>
+    nodeCosts: Map<CapacityMeshNodeId, number>
     probabilityOfFailure: number
   } {
     // let costSum = 0
     let probabilityOfSuccess = 1
-    const nodeCosts: Record<CapacityMeshNodeId, number> = {}
+    const nodeCosts: Map<CapacityMeshNodeId, number> = new Map()
     for (const nodeId of this.nodeIdToSegmentIds.keys()) {
       const nodeProbOfFailure = this.computeNodeCost(nodeId)
-      nodeCosts[nodeId] = nodeProbOfFailure
+      nodeCosts.set(nodeId, nodeProbOfFailure)
       // costSum += nodeProbOfFailure
       // probability of success *= (1 - probability of failure)
       probabilityOfSuccess *= 1 - nodeProbOfFailure

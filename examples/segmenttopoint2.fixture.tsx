@@ -4,6 +4,15 @@ import { CapacitySegmentPointOptimizer } from "lib/solvers/CapacitySegmentPointO
 import inputs from "./assets/segmenttopoint1.json"
 import { useEffect, useMemo, useReducer, useState } from "react"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
 
 const initialPointSolver = new CapacitySegmentToPointSolver(
   JSON.parse(JSON.stringify(inputs)),
@@ -30,10 +39,12 @@ export default () => {
   }, [pressCount])
 
   const highestFailureNodes = useMemo(() => {
-    return Object.entries(optimizer.currentNodeCosts)
+    return [...optimizer.currentNodeCosts.entries()]
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
   }, [optimizer.currentNodeCosts])
+
+  const nodeCostsSorted = [...optimizer.currentNodeCosts.values()].sort()
 
   const highlightVisualization = useMemo(() => {
     if (selectedNodeIds.size === 0) return { rects: [] }
@@ -111,6 +122,32 @@ export default () => {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="w-full h-96 p-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={nodeCostsSorted.map((n, i) => ({
+                index: i,
+                value: n,
+              }))}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="index"
+                label={{ value: "Index", position: "bottom", offset: 0 }}
+              />
+              <YAxis label={{ value: "Value", angle: -90, position: "left" }} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#2563eb"
+                strokeWidth={2}
+                dot={{ fill: "#2563eb" }}
+                activeDot={{ r: 8 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
