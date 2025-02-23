@@ -141,23 +141,6 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     }
   }
 
-  // /**
-  //  * Continue stepping until the solver is done.
-  //  */
-  // solve() {
-  //   // To prevent infinite loops, the solver will iterate a maximum number of times.
-  //   let iterations = 0
-  //   const maxIterations = 1000
-  //   while (!this.solved && iterations < maxIterations) {
-  //     const prevUnsolved = this.unsolvedSegments.length
-  //     this.step()
-  //     const currUnsolved = this.unsolvedSegments.length
-  //     // If no progress is made and still unsolved, break to avoid an infinite loop.
-  //     if (prevUnsolved === currUnsolved && !this.solved) break
-  //     iterations++
-  //   }
-  // }
-
   /**
    * Return the assigned points for each segment.
    */

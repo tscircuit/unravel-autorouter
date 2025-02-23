@@ -33,7 +33,7 @@ export class CapacityPathingSolver extends BaseSolver {
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
-  GREEDY_MULTIPLIER = 1.5
+  GREEDY_MULTIPLIER = 1.1
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
@@ -322,7 +322,7 @@ export class CapacityPathingSolver extends BaseSolver {
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
         fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
-        label: `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node)}`,
+        label: `${node.capacityMeshNodeId}\n${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node).toFixed(2)}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
       })
     }
 

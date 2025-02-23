@@ -1,5 +1,5 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import contributionBoardRoutes from "./assets/contribution-board_routes_small.json"
+import contributionBoardRoutes from "./assets/contribution-board_routes.json"
 import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
 import type { SimpleRouteJson } from "lib/types"
 import { useState } from "react"
@@ -11,7 +11,7 @@ export default () => {
       new CapacityMeshSolver(
         contributionBoardRoutes as unknown as SimpleRouteJson,
         {
-          capacityDepth: 7,
+          capacityDepth: 9,
         },
       ),
   )

@@ -85,7 +85,7 @@ export class CapacityMeshSolver extends BaseSolver {
         edges: this.edgeSolver.edges,
         colorMap: this.colorMap,
         hyperParameters: {
-          MAX_CAPACITY_FACTOR: 1 / 2,
+          MAX_CAPACITY_FACTOR: 1,
         },
       })
       this.activeSolver = this.pathingSolver

@@ -20,9 +20,10 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
     const VIA_DIAMETER = 0.6
     const TRACE_WIDTH = 0.15
 
-    const viaLengthAcross = node.width / VIA_DIAMETER / 2
+    const obstacleMargin = 0.2
+    const viaLengthAcross = node.width / (VIA_DIAMETER / 2 + obstacleMargin)
 
-    return viaLengthAcross * this.maxCapacityFactor
+    return (viaLengthAcross / 2) ** 1.1 * this.maxCapacityFactor
   }
 
   /**
@@ -37,23 +38,24 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
     const dist = this.activeCandidateStraightLineDistance!
 
     if (remainingCapacity <= 0) {
-      //  | Total Cap | Remaining Cap | Remaining Cap Ratio | Penalty (SLD) |
-      //  | 1         | 0             | (-( 0) + 1) / 1     | 1             |
-      //  | 1         | -1            | (-(-1) + 1) / 1     | 2             |
-      //  | 1         | -2            | (-(-2) + 1) / 1     | 3             |
-      //  | 2         | 0             | (-( 0) + 1) / 2     | 0.5           |
-      //  | 2         | -1            | (-(-1) + 1) / 2     | 1             |
-      //  | 2         | -2            | (-(-2) + 1) / 2     | 2             |
-      //  | 2         | -3            | (-(-3) + 1) / 2     | 3             |
-      //  | 3         | 0             | (-( 0) + 1) / 3     | 0.333         |
-      //  | 3         | -1            | (-(-1) + 1) / 3     | 0.666         |
-      //  | 3         | -2            | (-(-2) + 1) / 3     | 1             |
-      //  | 3         | -3            | (-(-3) + 1) / 3     | 2             |
+      //  | Total Cap | Remaining Cap | Remaining Cap Ratio | PenaltySLD    |
+      //  | 1         | 0             | (-( 0) + 1) / 1     | 1^2  = 1      |
+      //  | 1         | -1            | (-(-1) + 1) / 1     | 2^2  = 4      |
+      //  | 1         | -2            | (-(-2) + 1) / 1     | 3^2  = 9      |
+      //  | 2         | 0             | (-( 0) + 1) / 2     | 0.5^2 = 0.25  |
+      //  | 2         | -1            | (-(-1) + 1) / 2     | 1^2 = 1       |
+      //  | 2         | -2            | (-(-2) + 1) / 2     | 2^2 = 4       |
+      //  | 2         | -3            | (-(-3) + 1) / 2     | 3^2 = 9       |
+      //  | 3         | 0             | (-( 0) + 1) / 3     | 0.333^2= 0.111|
+      //  | 3         | -1            | (-(-1) + 1) / 3     | 0.666^2= 0.444|
+      //  | 3         | -2            | (-(-2) + 1) / 3     | 1^2 = 1       |
+      //  | 3         | -3            | (-(-3) + 1) / 3     | 2^2 = 4       |
       const penalty =
         ((-remainingCapacity + 1) / totalCapacity) *
         dist *
         (this.NEGATIVE_CAPACITY_PENALTY_FACTOR / 4)
-      return penalty
+
+      return penalty ** 2
     }
 
     // This node still has capacity, but penalize as we reduce the capacity
