@@ -13,6 +13,9 @@ interface ChangeLayerOperation {
   segmentId: string
   pointIndex: number
   newLayer: number
+
+  /** Operation is mutated and oldLayer is added to allow reversal */
+  oldLayer?: number
 }
 
 interface SwitchOperation {
@@ -266,9 +269,36 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     return { cost: 1 - probabilityOfSuccess, nodeCosts }
   }
 
-  applyOperation(op: Operation) {}
+  applyOperation(op: Operation) {
+    const segment = this.currentMutatedSegments.get(op.segmentId)!
+    if (!segment || !segment.assignedPoints) return
+    if (op.op === "changeLayer") {
+      // Save original layer in the operation object to allow reversal
+      op.oldLayer = segment.assignedPoints[op.pointIndex].point.z
+      segment.assignedPoints[op.pointIndex].point.z = op.newLayer
+    } else if (op.op === "switch") {
+      const temp = segment.assignedPoints[op.point1Index]
+      segment.assignedPoints[op.point1Index] =
+        segment.assignedPoints[op.point2Index]
+      segment.assignedPoints[op.point2Index] = temp
+    }
+  }
 
-  reverseOperation(op: Operation) {}
+  reverseOperation(op: Operation) {
+    const segment = this.currentMutatedSegments.get(op.segmentId)
+    if (!segment || !segment.assignedPoints) return
+    if (op.op === "changeLayer") {
+      const oldLayer = op.oldLayer
+      if (oldLayer === undefined) return
+      segment.assignedPoints[op.pointIndex].point.z = oldLayer
+    } else if (op.op === "switch") {
+      // Reversing a switch is simply swapping the points back
+      const temp = segment.assignedPoints[op.point1Index]
+      segment.assignedPoints[op.point1Index] =
+        segment.assignedPoints[op.point2Index]
+      segment.assignedPoints[op.point2Index] = temp
+    }
+  }
 
   isNewCostAcceptable(oldCost: number, newCost: number) {
     // TODO simultation annealing fn based using this.iterations
@@ -277,6 +307,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   _step() {
     const op = this.getRandomOperation()
+    console.log(op)
     this.applyOperation(op)
     const { cost: newCost, nodeCosts: newNodeCosts } = this.computeCurrentCost()
 
@@ -299,7 +330,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         seg.assignedPoints!.map((ap) => ({
           x: ap.point.x,
           y: ap.point.y,
-          label: `${seg.nodePortSegmentId}`,
+          label: `${seg.nodePortSegmentId}\nlayer: ${ap.point.z}`,
           color: this.colorMap[ap.connectionName],
         })),
       ),
@@ -330,20 +361,18 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       CapacityMeshNodeId,
       Record<string, { x: number; y: number; z: number }[]>
     > = {}
-    for (const seg of this.assignedSegments) {
-      const nodeId = seg.capacityMeshNodeId
-      if (!nodeConnections[nodeId]) {
-        nodeConnections[nodeId] = {}
-      }
-      for (const ap of seg.assignedPoints!) {
-        if (!nodeConnections[nodeId][ap.connectionName]) {
-          nodeConnections[nodeId][ap.connectionName] = []
+    for (const seg of this.currentMutatedSegments.values()) {
+      const nodeIds = this.segmentIdToNodeIds.get(seg.nodePortSegmentId!)!
+      for (const nodeId of nodeIds) {
+        if (!nodeConnections[nodeId]) {
+          nodeConnections[nodeId] = {}
         }
-        nodeConnections[nodeId][ap.connectionName].push({
-          x: ap.point.x,
-          y: ap.point.y,
-          z: ap.point.z,
-        })
+        for (const ap of seg.assignedPoints!) {
+          if (!nodeConnections[nodeId][ap.connectionName]) {
+            nodeConnections[nodeId][ap.connectionName] = []
+          }
+          nodeConnections[nodeId][ap.connectionName].push(ap.point)
+        }
       }
     }
     for (const nodeId in nodeConnections) {
@@ -359,8 +388,8 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
           strokeDash: sameLayer
             ? commonLayer === 0
               ? undefined
-              : "10 5"
-            : "5 5",
+              : "5 5"
+            : "20 5",
           strokeColor: this.colorMap[conn] || "#000",
         } as Line)
       }
@@ -391,7 +420,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
           radius: this.nodeMap.get(segment.capacityMeshNodeId)!.width / 8,
           stroke: "#ff0000",
           fill: "rgba(255, 0, 0, 0.2)",
-          label: "Layer Changed",
+          label: `Layer Changed\noldLayer: ${this.lastAppliedOperation.oldLayer}\nnewLayer: ${this.lastAppliedOperation.newLayer}`,
         })
       } else if (this.lastAppliedOperation.op === "switch") {
         // For switch operations, highlight both points that were swapped
@@ -404,14 +433,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         graphics.circles.push(
           {
             center: { x: point1.point.x, y: point1.point.y },
-            radius: 5,
+            radius: node.width / 8,
             stroke: "#00ff00",
             fill: "rgba(0, 255, 0, 0.2)",
             label: "Swapped 1",
           },
           {
             center: { x: point2.point.x, y: point2.point.y },
-            radius: 5,
+            radius: node.width / 8,
             stroke: "#00ff00",
             fill: "rgba(0, 255, 0, 0.2)",
             label: "Swapped 2",
