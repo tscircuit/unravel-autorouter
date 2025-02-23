@@ -84,6 +84,9 @@ export class CapacityMeshSolver extends BaseSolver {
         nodes,
         edges: this.edgeSolver.edges,
         colorMap: this.colorMap,
+        hyperParameters: {
+          MAX_CAPACITY_FACTOR: 1 / 2,
+        },
       })
       this.activeSolver = this.pathingSolver
       return
@@ -148,7 +151,7 @@ export class CapacityMeshSolver extends BaseSolver {
       segmentToPointViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
     ].filter(Boolean) as GraphicsObject[]
-    return visualizations[visualizations.length - 1]
-    // return combineVisualizations(...visualizations)
+    // return visualizations[visualizations.length - 1]
+    return combineVisualizations(...visualizations)
   }
 }
