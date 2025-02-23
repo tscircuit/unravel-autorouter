@@ -9,12 +9,14 @@ import { getIntraNodeCrossingsFromSegments } from "lib/utils/getIntraNodeCrossin
 type NodePortSegmentId = string
 
 interface ChangeLayerOperation {
+  op: "changeLayer"
   segmentId: string
   pointIndex: number
   newLayer: number
 }
 
 interface SwitchOperation {
+  op: "switch"
   segmentId: string
   point1Index: number
   point2Index: number
@@ -48,8 +50,13 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   nodeIdToSegmentIds: Map<string, string[]>
   segmentIdToNodeIds: Map<string, string[]>
-  dedupedSegments: SegmentWithAssignedPoints[]
   currentMutatedSegments: Map<NodePortSegmentId, SegmentWithAssignedPoints>
+  allSegmentIds: string[]
+
+  currentNodeCosts: Record<CapacityMeshNodeId, number>
+
+  currentCost: number
+  randomSeed: number
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
@@ -73,7 +80,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
     this.assignedSegments = assignedSegments
 
-    this.dedupedSegments = []
+    const dedupedSegments: SegmentWithAssignedPoints[] = []
     type SegKey = `${number}-${number}-${number}-${number}`
     const dedupedSegPointMap: Map<SegKey, NodePortSegment> = new Map()
     let highestSegmentId = -1
@@ -85,7 +92,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         highestSegmentId++
         seg.nodePortSegmentId = `SEG${highestSegmentId}`
         dedupedSegPointMap.set(segKey, seg)
-        this.dedupedSegments.push(seg)
+        dedupedSegments.push(seg)
         continue
       }
 
@@ -93,8 +100,15 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     }
 
     this.currentMutatedSegments = new Map()
-    for (const seg of this.dedupedSegments) {
-      this.currentMutatedSegments.set(seg.nodePortSegmentId!, { ...seg })
+    // Deep clone of segments with assigned points so that we can mutate them
+    for (const seg of dedupedSegments) {
+      this.currentMutatedSegments.set(seg.nodePortSegmentId!, {
+        ...seg,
+        assignedPoints: seg.assignedPoints?.map((p) => ({
+          ...p,
+          point: { x: p.point.x, y: p.point.y, z: p.point.z },
+        })),
+      })
     }
 
     this.nodeIdToSegmentIds = new Map()
@@ -116,6 +130,18 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     for (const node of nodes) {
       this.nodeMap.set(node.capacityMeshNodeId, node)
     }
+
+    const { cost, nodeCosts } = this.computeCurrentCost()
+    this.currentCost = cost
+    this.currentNodeCosts = nodeCosts
+
+    this.randomSeed = 0
+    this.allSegmentIds = Array.from(this.currentMutatedSegments.keys())
+  }
+
+  random() {
+    this.randomSeed = (this.randomSeed * 16807) % 2147483647 // A simple linear congruential generator (LCG)
+    return (this.randomSeed - 1) / 2147483646
   }
 
   computeNodeCost(nodeId: CapacityMeshNodeId) {
@@ -160,16 +186,90 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     return estUsedCapacity
   }
 
-  getRandomOperation() {
-    // TODO
-    // 1. compute the cost of every node
-    // 2. choose a node with more probability to higher cost nodes
-    // 3. choose a random segment on the node
-    // 4. choose a random operation on the segment
+  getRandomOperation(): Operation {
+    // choose a node with more probability to higher cost nodes
+
+    const randomSegmentId =
+      this.allSegmentIds[Math.floor(this.random() * this.allSegmentIds.length)]
+
+    const segment = this.currentMutatedSegments.get(randomSegmentId)!
+
+    let operationType = this.random() < 0.5 ? "switch" : "changeLayer"
+    if (segment.assignedPoints!.length <= 1) {
+      operationType = "changeLayer"
+    }
+
+    if (operationType === "switch") {
+      const randomPointIndex1 = Math.floor(
+        this.random() * segment.assignedPoints!.length,
+      )
+      let randomPointIndex2 = randomPointIndex1
+      while (randomPointIndex1 === randomPointIndex2) {
+        randomPointIndex2 = Math.floor(
+          this.random() * segment.assignedPoints!.length,
+        )
+      }
+
+      return {
+        op: "switch",
+        segmentId: randomSegmentId,
+        point1Index: randomPointIndex1,
+        point2Index: randomPointIndex2,
+      } as SwitchOperation
+    }
+
+    const randomPointIndex = Math.floor(
+      this.random() * segment.assignedPoints!.length,
+    )
+
+    const point = segment.assignedPoints![randomPointIndex]
+
+    return {
+      op: "changeLayer",
+      segmentId: randomSegmentId,
+      pointIndex: randomPointIndex,
+      newLayer: point.point.y > 0 ? 0 : 1,
+    } as ChangeLayerOperation
   }
 
-  applyOperation(op: Operation) {
-    // TODO
+  computeCurrentCost(): {
+    cost: number
+    nodeCosts: Record<CapacityMeshNodeId, number>
+  } {
+    let cost = 0
+    const nodeCosts: Record<CapacityMeshNodeId, number> = {}
+    for (const nodeId of this.nodeIdToSegmentIds.keys()) {
+      const nodeCost = this.computeNodeCost(nodeId)
+      nodeCosts[nodeId] = nodeCost
+      cost += nodeCost
+    }
+    return { cost, nodeCosts }
+  }
+
+  applyOperation(op: Operation) {}
+
+  reverseOperation(op: Operation) {}
+
+  isNewCostAcceptable(oldCost: number, newCost: number) {
+    // TODO simultation annealing fn based using this.iterations
+    return true
+  }
+
+  _step() {
+    const op = this.getRandomOperation()
+    this.applyOperation(op)
+    const { cost: newCost, nodeCosts: newNodeCosts } = this.computeCurrentCost()
+
+    // TODO determine if we should keep the new state
+    const keepChange = this.isNewCostAcceptable(this.currentCost, newCost)
+
+    if (!keepChange) {
+      this.reverseOperation(op)
+      return
+    }
+
+    this.currentCost = newCost
+    this.currentNodeCosts = newNodeCosts
   }
 
   visualize(): GraphicsObject {
