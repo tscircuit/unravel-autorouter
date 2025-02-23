@@ -189,13 +189,11 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
       ),
       lines: this.solvedSegments.map((seg) => ({
         points: [seg.start, seg.end],
-          step: 4,
-        })),
-      ),
+        step: 4,
+      })),
       rects: [],
       circles: [],
     }
-
 
     // Add a dashed line connecting the assignment points with the same
     // connection name
