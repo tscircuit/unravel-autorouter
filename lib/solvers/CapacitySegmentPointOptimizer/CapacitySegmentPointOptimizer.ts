@@ -63,6 +63,8 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   randomSeed: number
   numNodes: number
 
+  probabilityOfFailure: number
+
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
   // { connectionName: string, point: {x: number, y: number } }
@@ -137,9 +139,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     }
 
     this.numNodes = this.segmentIdToNodeIds.size
-    const { cost, nodeCosts } = this.computeCurrentCost()
+    const { cost, nodeCosts, probabilityOfFailure } = this.computeCurrentCost()
     this.currentCost = cost
     this.currentNodeCosts = nodeCosts
+    this.probabilityOfFailure = probabilityOfFailure
 
     this.randomSeed = 1
     this.allSegmentIds = Array.from(this.currentMutatedSegments.keys())
@@ -258,6 +261,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   computeCurrentCost(): {
     cost: number
     nodeCosts: Record<CapacityMeshNodeId, number>
+    probabilityOfFailure: number
   } {
     // let costSum = 0
     let probabilityOfSuccess = 1
@@ -273,10 +277,9 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
     // linearize the cost to make it easier to work with
     const numEvents = this.numNodes
+    const linearizedProbOfFailure = probabilityOfFailure / 0.99 ** numEvents
 
-    const linearizedProbOfFailure = probabilityOfFailure / 0.999 ** numEvents
-
-    return { cost: linearizedProbOfFailure, nodeCosts }
+    return { cost: linearizedProbOfFailure, nodeCosts, probabilityOfFailure }
   }
 
   applyOperation(op: Operation) {
@@ -333,7 +336,11 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     const op = this.getRandomOperation()
     console.log(op)
     this.applyOperation(op)
-    const { cost: newCost, nodeCosts: newNodeCosts } = this.computeCurrentCost()
+    const {
+      cost: newCost,
+      nodeCosts: newNodeCosts,
+      probabilityOfFailure: newProbabilityOfFailure,
+    } = this.computeCurrentCost()
 
     // TODO determine if we should keep the new state
     const keepChange = this.isNewCostAcceptable(this.currentCost, newCost)
@@ -346,6 +353,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     this.currentCost = newCost
     this.currentNodeCosts = newNodeCosts
     this.lastAppliedOperation = op
+    this.probabilityOfFailure = newProbabilityOfFailure
   }
 
   visualize(): GraphicsObject {
