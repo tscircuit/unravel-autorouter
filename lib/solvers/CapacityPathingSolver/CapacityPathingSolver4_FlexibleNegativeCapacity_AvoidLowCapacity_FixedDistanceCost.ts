@@ -1,5 +1,6 @@
 import type { CapacityMeshNode } from "lib/types"
 import { CapacityPathingSolver, type Candidate } from "./CapacityPathingSolver"
+import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 
 export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPathingSolver {
   NEGATIVE_CAPACITY_PENALTY_FACTOR = 1
@@ -17,13 +18,7 @@ export class CapacityPathingSolver4_FlexibleNegativeCapacity extends CapacityPat
   }
 
   getTotalCapacity(node: CapacityMeshNode): number {
-    const VIA_DIAMETER = 0.6
-    const TRACE_WIDTH = 0.15
-
-    const obstacleMargin = 0.2
-    const viaLengthAcross = node.width / (VIA_DIAMETER / 2 + obstacleMargin)
-
-    return (viaLengthAcross / 2) ** 1.1 * this.maxCapacityFactor
+    return getTunedTotalCapacity1(node, this.maxCapacityFactor)
   }
 
   /**

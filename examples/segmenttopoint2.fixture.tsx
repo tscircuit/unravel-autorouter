@@ -20,7 +20,7 @@ export default () => {
   return (
     <InteractiveGraphics
       graphics={combineVisualizations(
-        initialPointSolver.visualize(),
+        // initialPointSolver.visualize(),
         optimizer.visualize(),
       )}
     />

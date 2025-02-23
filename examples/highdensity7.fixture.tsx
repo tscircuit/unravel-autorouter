@@ -2,6 +2,9 @@ import { InteractiveGraphics } from "graphics-debug/react"
 import { SingleIntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/SingleIntraNodeRouteSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
+import { useEffect, useMemo, useState } from "react"
+import { doSegmentsIntersect } from "@tscircuit/math-utils"
+import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 
 const { nodeWithPortPoints } = {
   nodeWithPortPoints: {
@@ -185,38 +188,76 @@ const { nodeWithPortPoints } = {
 }
 
 export default () => {
-  const solver = new SingleIntraNodeRouteSolver({
-    nodeWithPortPoints,
-    colorMap: generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
-    hyperParameters: {
-      FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR: 10,
-      FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 1,
-      FUTURE_CONNECTION_PROXIMITY_VD: 5,
-      MISALIGNED_DIST_PENALTY_FACTOR: 10,
-      VIA_PENALTY_FACTOR_2: 1,
-    },
-  })
+  const [shuffleSeed, setShuffleSeed] = useState(0)
+  const [iterations, setIterations] = useState(0)
+  const solver = useMemo(
+    () =>
+      new SingleIntraNodeRouteSolver({
+        nodeWithPortPoints,
+        colorMap: generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
+        hyperParameters: {
+          FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR: 10,
+          FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 1,
+          FUTURE_CONNECTION_PROXIMITY_VD: 5,
+          MISALIGNED_DIST_PENALTY_FACTOR: 10,
+          VIA_PENALTY_FACTOR_2: 1,
+          SHUFFLE_SEED: shuffleSeed,
+        },
+      }),
+    [shuffleSeed],
+  )
 
-  solver.solve()
+  useEffect(() => {
+    const interval = setInterval(() => {
+      for (let i = 0; i < 200; i++) {
+        if (solver.solved || solver.failed) {
+          clearInterval(interval)
+          break
+        }
+        solver.step()
+      }
+      setIterations(solver.iterations)
+    }, 50)
+    return () => clearInterval(interval)
+  }, [solver])
 
-  const graphics =
-    solver.solvedRoutes.length > 0 ? solver.visualize() : { lines: [] }
+  const numVias = solver.solvedRoutes.reduce(
+    (total, route) => total + route.vias.length,
+    0,
+  )
 
-  if (solver.failedSolvers.length > 0) {
-    return (
-      <div>
-        <div className="border p-2 m-2 text-center font-bold">
+  // Count the number of crossings
+  const numCrossings = getIntraNodeCrossings(nodeWithPortPoints)
+
+  return (
+    <div>
+      <div className="border p-2 m-2 flex font-bold justify-between">
+        <div>
           {solver.solvedRoutes.length} / {solver.totalConnections}
         </div>
-        <InteractiveGraphics
-          graphics={combineVisualizations(
-            solver.failedSolvers[0].visualize(),
-            solver.visualize(),
-          )}
-        />
+        <div>{iterations}</div>
       </div>
-    )
-  }
-
-  return <InteractiveGraphics graphics={graphics} />
+      <div className="flex items-center gap-3">
+        <button
+          className="border p-2 m-2"
+          onClick={() => {
+            setShuffleSeed(shuffleSeed + 1)
+          }}
+        >
+          Next Seed ({shuffleSeed})
+        </button>
+        <div>{numVias} vias</div>
+        <div>{numCrossings} crossings</div>
+        <div>{(numVias / numCrossings).toFixed(2)} vias per crossing</div>
+      </div>
+      <InteractiveGraphics
+        graphics={combineVisualizations(
+          ...(solver.failedSolvers?.[0]
+            ? [solver.failedSolvers[0].visualize()]
+            : []),
+          solver.visualize(),
+        )}
+      />
+    </div>
+  )
 }
