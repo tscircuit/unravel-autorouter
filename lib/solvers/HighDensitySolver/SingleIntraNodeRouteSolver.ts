@@ -22,7 +22,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   colorMap: Record<string, string>
   unsolvedConnections: {
     connectionName: string
-    points: { x: number; y: number }[]
+    points: { x: number; y: number; z: number }[]
   }[]
 
   totalConnections: number
@@ -47,12 +47,14 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     this.hyperParameters = params.hyperParameters ?? {}
     this.failedSolvers = []
     this.connMap = params.connMap
-    const unsolvedConnectionsMap: Map<string, { x: number; y: number }[]> =
-      new Map()
-    for (const { connectionName, x, y } of nodeWithPortPoints.portPoints) {
+    const unsolvedConnectionsMap: Map<
+      string,
+      { x: number; y: number; z: number }[]
+    > = new Map()
+    for (const { connectionName, x, y, z } of nodeWithPortPoints.portPoints) {
       unsolvedConnectionsMap.set(connectionName, [
         ...(unsolvedConnectionsMap.get(connectionName) ?? []),
-        { x, y },
+        { x, y, z },
       ])
     }
     this.unsolvedConnections = Array.from(
@@ -119,11 +121,11 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
         connectionName,
         bounds: getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints),
-        A: { x: points[0].x, y: points[0].y, z: 0 },
+        A: { x: points[0].x, y: points[0].y, z: points[0].z },
         B: {
           x: points[points.length - 1].x,
           y: points[points.length - 1].y,
-          z: 0,
+          z: points[points.length - 1].z,
         },
         obstacleRoutes: this.solvedRoutes,
         futureConnections: this.unsolvedConnections,
@@ -158,7 +160,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       graphics.points!.push({
         x: pt.x,
         y: pt.y,
-        label: pt.connectionName,
+        label: [pt.connectionName, `layer: ${pt.z}`].join("\n"),
         color: this.colorMap[pt.connectionName] ?? "blue",
       })
     }
