@@ -197,11 +197,45 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     return estUsedCapacity
   }
 
+  getRandomWeightedNodeId(): CapacityMeshNodeId {
+    const nodeIdsWithCosts = [...this.currentNodeCosts.entries()].filter(
+      ([segmentId, cost]) => cost > 0.00001,
+    )
+
+    if (nodeIdsWithCosts.length === 0) {
+      console.error(
+        "No nodes with cost > 0.00001 (why are you even running this solver)",
+      )
+      return this.currentNodeCosts.keys().next().value!
+    }
+
+    const totalCost = nodeIdsWithCosts.reduce(
+      (acc, [segmentId, cost]) => acc + cost,
+      0,
+    )
+    const randomValue = this.random() * totalCost
+    let cumulativeCost = 0
+    for (let i = 0; i < nodeIdsWithCosts.length; i++) {
+      const [nodeId, cost] = nodeIdsWithCosts[i]
+      cumulativeCost += cost
+      if (randomValue <= cumulativeCost) {
+        return nodeId
+      }
+    }
+    throw new Error("RANDOM SELECTION FAILURE FOR NODES (this is a bug)")
+  }
+
+  getRandomWeightedSegmentId(): string {
+    const nodeId = this.getRandomWeightedNodeId()
+    const segmentsIds = this.nodeIdToSegmentIds.get(nodeId)!
+    return segmentsIds[Math.floor(this.random() * segmentsIds.length)]
+  }
+
   getRandomOperation(): Operation {
     // choose a node with more probability to higher cost nodes
 
-    const randomSegmentId =
-      this.allSegmentIds[Math.floor(this.random() * this.allSegmentIds.length)]
+    const randomSegmentId = this.getRandomWeightedSegmentId()
+    console.log({ randomSegmentId })
 
     const segment = this.currentMutatedSegments.get(randomSegmentId)!
     const nodes = this.segmentIdToNodeIds
