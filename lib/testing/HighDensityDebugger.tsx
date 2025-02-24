@@ -7,15 +7,17 @@ import type { NodeWithPortPoints } from "../types/high-density-types"
 import { HighDensityHyperParameters } from "lib/solvers/HighDensitySolver/HighDensityHyperParameters"
 
 interface HighDensityDebuggerProps {
+  startSeed?: number
   nodeWithPortPoints: NodeWithPortPoints
   hyperParameters?: Partial<HighDensityHyperParameters>
 }
 
 export const HighDensityDebugger = ({
+  startSeed = 0,
   nodeWithPortPoints,
   hyperParameters = {},
 }: HighDensityDebuggerProps) => {
-  const [shuffleSeed, setShuffleSeed] = useState(0)
+  const [shuffleSeed, setShuffleSeed] = useState(startSeed)
   const [isAnimating, setIsAnimating] = useState(false)
   const [maxSolvedRoutes, setMaxSolvedRoutes] = useState(0)
   const [bestSeed, setBestSeed] = useState(0)

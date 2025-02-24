@@ -20,13 +20,17 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
     super()
     this.nodeWithPortPoints = opts.nodeWithPortPoints
     this.constructorParams = opts
-    this.MAX_ITERATIONS = 100_000
+    this.MAX_ITERATIONS = 250_000
     this.GREEDY_MULTIPLIER = 5
     this.MIN_SUBSTEPS = 100
   }
 
   getCombinationDefs() {
-    return [["majorCombinations", "orderings", "cellSizeFactor"], ["noVias"]]
+    return [
+      ["majorCombinations", "orderings", "cellSizeFactor"],
+      ["noVias"],
+      ["manyOrderings"],
+    ]
   }
 
   getHyperParameterDefs() {
@@ -114,6 +118,12 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
             VIA_PENALTY_FACTOR_2: 10,
           },
         ],
+      },
+      {
+        name: "manyOrderings",
+        possibleValues: Array.from({ length: 50 }, (_, i) => ({
+          SHUFFLE_SEED: 100 + i,
+        })),
       },
     ]
   }
