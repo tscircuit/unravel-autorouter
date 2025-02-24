@@ -71,6 +71,9 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   probabilityOfFailure: number
 
+  MAX_OPERATIONS_PER_MUTATION = 5
+  MAX_NODES_PER_MUTATION = 2
+
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
   // { connectionName: string, point: {x: number, y: number } }
@@ -312,12 +315,16 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   getRandomCombinedOperationNearNode(
     nodeId: CapacityMeshNodeId,
   ): CombinedOperation {
-    const adjacentNodeIds = this.getNodesNearNode(nodeId, 2)
+    const adjacentNodeIds = this.getNodesNearNode(
+      nodeId,
+      this.MAX_NODES_PER_MUTATION,
+    )
     const subOperations: Array<SwitchOperation | ChangeLayerOperation> = []
     const adjacentSegments = adjacentNodeIds
       .flatMap((nodeId) => this.nodeIdToSegmentIds.get(nodeId)!)
       .filter((s) => this.isSegmentMutable(s))
-    const numOperations = Math.floor(this.random() * 5) + 1
+    const numOperations =
+      Math.floor(this.random() * this.MAX_OPERATIONS_PER_MUTATION) + 1
     for (let i = 0; i < numOperations; i++) {
       const randomSegmentId =
         adjacentSegments[Math.floor(this.random() * adjacentSegments.length)]

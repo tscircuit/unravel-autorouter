@@ -151,12 +151,20 @@ export default () => {
         <div>
           P(failure) {(optimizer.probabilityOfFailure * 100).toFixed(8)}%
         </div>
-        <div>cost {optimizer.currentCost.toFixed(10)}</div>
         <div>
           △ P(failure){" "}
           {(
             optimizer.probabilityOfFailure - initialProbabilityOfFailure
           ).toFixed(8)}
+          %
+        </div>
+        <div>
+          △ P / M Iterations:{" "}
+          {(
+            ((optimizer.probabilityOfFailure - initialProbabilityOfFailure) /
+              optimizer.iterations) *
+            1e6
+          ).toFixed(1)}
           %
         </div>
       </div>
