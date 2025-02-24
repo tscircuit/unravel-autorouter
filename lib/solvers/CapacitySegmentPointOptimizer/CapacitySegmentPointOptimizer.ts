@@ -546,11 +546,11 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       const node = this.nodeMap.get(segment.capacityMeshNodeId)!
       // Create a circle around the node
       graphics.circles.push({
-        center: { x: node.center.x, y: node.center.y + node.height / 4 },
+        center: { x: node.center.x, y: node.center.y },
         radius: node.width / 4,
         stroke: "#0000ff",
         fill: "rgba(0, 0, 255, 0.2)",
-        label: `LAST OPERATION: ${op.op}`,
+        label: `LAST OPERATION: ${op.op}\n${node.capacityMeshNodeId}\n${this.currentNodeCosts.get(node.capacityMeshNodeId)}`,
       })
 
       // For both operation types, we'll highlight the affected points
