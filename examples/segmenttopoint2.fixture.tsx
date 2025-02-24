@@ -24,20 +24,6 @@ export default () => {
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [isAnimating, setIsAnimating] = useState(false)
 
-  useEffect(() => {
-    let intervalId: number | undefined
-    if (isAnimating) {
-      intervalId = window.setInterval(() => {
-        incPressCount()
-      }, 10)
-    }
-    return () => {
-      if (intervalId !== undefined) {
-        clearInterval(intervalId)
-      }
-    }
-  }, [isAnimating])
-
   const { optimizer } = useMemo(() => {
     const optimizer = new CapacitySegmentPointOptimizer({
       assignedSegments: initialPointSolver.solvedSegments,
@@ -48,8 +34,37 @@ export default () => {
     return { optimizer }
   }, [])
 
+  const initialProbabilityOfFailure = useMemo(
+    () => optimizer.probabilityOfFailure,
+    [],
+  )
+
+  useEffect(() => {
+    let intervalId: number | undefined
+    const startTime = Date.now()
+    if (isAnimating) {
+      intervalId = window.setInterval(() => {
+        const timeElapsed = Date.now() - startTime
+        for (let i = 0; i < Math.min(100, timeElapsed / 10); i++) {
+          if (optimizer.solved) {
+            clearInterval(intervalId)
+            break
+          }
+          optimizer.step()
+        }
+        incPressCount()
+      }, 10)
+    }
+    return () => {
+      if (intervalId !== undefined) {
+        clearInterval(intervalId)
+      }
+    }
+  }, [isAnimating])
+
   useEffect(() => {
     if (pressCount === 0) return
+    if (optimizer.solved || optimizer.failed) return
     optimizer.step()
   }, [pressCount])
 
@@ -103,12 +118,19 @@ export default () => {
           {isAnimating ? "Stop" : "Animate"}
         </button>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 tabular-nums">
         <div>Iterations: {optimizer.iterations}</div>
         <div>
           P(failure) {(optimizer.probabilityOfFailure * 100).toFixed(8)}%
         </div>
         <div>cost {optimizer.currentCost.toFixed(10)}</div>
+        <div>
+          △ P(failure){" "}
+          {(
+            optimizer.probabilityOfFailure - initialProbabilityOfFailure
+          ).toFixed(8)}
+          %
+        </div>
       </div>
       <InteractiveGraphics
         graphics={combineVisualizations(
