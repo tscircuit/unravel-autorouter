@@ -64,6 +64,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   lastCreatedOperation: Operation | null = null
 
   currentNodeCosts: Map<CapacityMeshNodeId, number>
+  lastAcceptedIteration = 0
 
   currentCost: number
   randomSeed: number
@@ -501,9 +502,13 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
     if (!keepChange) {
       this.reverseOperation(op)
+      if (this.iterations - this.lastAcceptedIteration > 20_000) {
+        this.solved = true
+      }
       return
     }
 
+    this.lastAcceptedIteration = this.iterations
     this.currentCost = newCost
     this.currentNodeCosts = newNodeCosts
     this.lastAppliedOperation = op
