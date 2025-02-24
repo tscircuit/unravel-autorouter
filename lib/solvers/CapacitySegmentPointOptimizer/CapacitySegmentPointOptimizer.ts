@@ -317,7 +317,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     const adjacentSegments = adjacentNodeIds
       .flatMap((nodeId) => this.nodeIdToSegmentIds.get(nodeId)!)
       .filter((s) => this.isSegmentMutable(s))
-    const numOperations = Math.floor(this.random() ** 2 * 50) + 1
+    const numOperations = Math.floor(this.random() * 5) + 1
     for (let i = 0; i < numOperations; i++) {
       const randomSegmentId =
         adjacentSegments[Math.floor(this.random() * adjacentSegments.length)]
