@@ -2,7 +2,7 @@ import { InteractiveGraphics } from "graphics-debug/react"
 import { CapacitySegmentToPointSolver } from "lib/solvers/CapacityMeshSolver/CapacitySegmentToPointSolver"
 import { CapacitySegmentPointOptimizer } from "lib/solvers/CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer"
 import inputs from "./assets/segmenttopoint1.json"
-import { useEffect, useMemo, useReducer, useState } from "react"
+import { useEffect, useMemo, useReducer, useState, useCallback } from "react"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import {
   LineChart,
@@ -22,6 +22,21 @@ initialPointSolver.solve()
 export default () => {
   const [pressCount, incPressCount] = useReducer((p) => p + 1, 0)
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  useEffect(() => {
+    let intervalId: number | undefined
+    if (isAnimating) {
+      intervalId = window.setInterval(() => {
+        incPressCount()
+      }, 10)
+    }
+    return () => {
+      if (intervalId !== undefined) {
+        clearInterval(intervalId)
+      }
+    }
+  }, [isAnimating])
 
   const { optimizer } = useMemo(() => {
     const optimizer = new CapacitySegmentPointOptimizer({
@@ -77,9 +92,15 @@ export default () => {
 
   return (
     <div>
-      <div>
+      <div className="flex gap-2">
         <button className="border rounded-md p-2" onClick={incPressCount}>
           Step
+        </button>
+        <button
+          className="border rounded-md p-2"
+          onClick={() => setIsAnimating(!isAnimating)}
+        >
+          {isAnimating ? "Stop" : "Animate"}
         </button>
       </div>
       <div className="flex gap-2">
