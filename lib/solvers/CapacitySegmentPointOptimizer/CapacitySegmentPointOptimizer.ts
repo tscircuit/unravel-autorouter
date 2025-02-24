@@ -230,8 +230,8 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
     const estNumVias =
       numSameLayerCrossings * 0.82 +
-      numEntryExitLayerChanges * 0.5 +
-      numTransitionPairCrossings * 0.5
+      numEntryExitLayerChanges * 0.41 +
+      numTransitionPairCrossings * 0.2
 
     const estUsedCapacity = (estNumVias / 2) ** 1.1
 
