@@ -196,18 +196,25 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       (segmentId) => this.currentMutatedSegments.get(segmentId)!,
     )!
 
-    const numPoints = segments.flatMap((s) => s.assignedPoints!)
+    const points = segments.flatMap((s) => s.assignedPoints!)
 
-    // There is no chance of failure if there is only one segment
-    // TODO ostensibly if there is a low enough capacity where a via isn't
-    // possible it should go to 1, but this isn't typical capacity design
-    if (numPoints.length <= 2) return 0
+    if (points.length <= 2) {
+      if (points.length <= 1) return 0
+      // anything that requires a via has a very small chance of failure
+      return 0
+      // return points[0].point.z !== points[1].point.z ? 0.01 : 0
+    }
 
-    const { numEntryExitLayerChanges, numSameLayerCrossings } =
-      getIntraNodeCrossingsFromSegments(segments)
+    const {
+      numEntryExitLayerChanges,
+      numSameLayerCrossings,
+      numTransitionPairCrossings,
+    } = getIntraNodeCrossingsFromSegments(segments)
 
     const estNumVias =
-      numSameLayerCrossings * 0.82 + numEntryExitLayerChanges * 0.5
+      numSameLayerCrossings * 0.82 +
+      numEntryExitLayerChanges * 0.5 +
+      numTransitionPairCrossings * 0.5
 
     const estUsedCapacity = (estNumVias / 2) ** 1.1
 
@@ -522,16 +529,22 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         points: [seg.start, seg.end],
       })),
       rects: [
-        ...[...this.nodeMap.values()].map(
-          (node) =>
-            ({
-              center: node.center,
-              label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}`,
-              color: "red",
-              width: node.width / 8,
-              height: node.height / 8,
-            }) as Rect,
-        ),
+        ...[...this.nodeMap.values()].map((node) => {
+          const segmentIds = this.nodeIdToSegmentIds.get(
+            node.capacityMeshNodeId,
+          )!
+          const segments = segmentIds.map(
+            (segmentId) => this.currentMutatedSegments.get(segmentId)!,
+          )!
+          const intraNodeCrossings = getIntraNodeCrossingsFromSegments(segments)
+          return {
+            center: node.center,
+            label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionPairCrossings}`,
+            color: "red",
+            width: node.width / 8,
+            height: node.height / 8,
+          } as Rect
+        }),
       ],
       circles: [],
       coordinateSystem: "cartesian",
