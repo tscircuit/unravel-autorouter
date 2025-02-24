@@ -22,20 +22,20 @@
       },
       {
         "x": -111.875,
-        "y": -25.375,
-        "z": 0,
+        "y": -24.5,
+        "z": 1,
         "connectionName": "connectivity_net233"
       },
       {
         "x": -111.875,
-        "y": -24.9375,
+        "y": -25.375,
         "z": 0,
         "connectionName": "connectivity_net277"
       },
       {
         "x": -111.875,
-        "y": -24.5,
-        "z": 1,
+        "y": -24.9375,
+        "z": 0,
         "connectionName": "connectivity_net288"
       },
       {

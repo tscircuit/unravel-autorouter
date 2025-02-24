@@ -76,8 +76,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   VIA_DIAMETER = 0.6
   OBSTACLE_MARGIN = 0.15
-  MAX_OPERATIONS_PER_MUTATION = 3
+  MAX_OPERATIONS_PER_MUTATION = 2
   MAX_NODE_CHAIN_PER_MUTATION = 1
+
+  NOOP_ITERATIONS_BEFORE_EARLY_STOP = 10_000
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
@@ -565,7 +567,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
     if (!keepChange) {
       this.reverseOperation(op)
-      if (this.iterations - this.lastAcceptedIteration > 20_000) {
+      if (
+        this.iterations - this.lastAcceptedIteration >
+        this.NOOP_ITERATIONS_BEFORE_EARLY_STOP
+      ) {
         this.solved = true
       }
       return
