@@ -73,13 +73,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   probabilityOfFailure: number
   nodesThatCantFitVias: Set<CapacityMeshNodeId>
+  mutableSegments: Set<NodePortSegmentId>
 
   VIA_DIAMETER = 0.6
   OBSTACLE_MARGIN = 0.15
-  MAX_OPERATIONS_PER_MUTATION = 2
+  MAX_OPERATIONS_PER_MUTATION = 3
   MAX_NODE_CHAIN_PER_MUTATION = 1
 
-  NOOP_ITERATIONS_BEFORE_EARLY_STOP = 10_000
+  NOOP_ITERATIONS_BEFORE_EARLY_STOP = 100_000
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
@@ -170,6 +171,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         this.nodesThatCantFitVias.add(nodeId)
       }
     }
+    this.mutableSegments = this.getMutableSegments()
   }
 
   random() {
@@ -269,10 +271,22 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     return segmentsIds[Math.floor(this.random() * segmentsIds.length)]
   }
 
+  getMutableSegments() {
+    const mutableSegments = new Set<NodePortSegmentId>()
+    for (const segmentId of this.currentMutatedSegments.keys()) {
+      const segment = this.currentMutatedSegments.get(segmentId)!
+      const nodes = this.segmentIdToNodeIds.get(segmentId)!
+      const isMutable = nodes.every(
+        (nodeId) => !this.nodeMap.get(nodeId)?._containsTarget,
+      )
+      if (isMutable) {
+        mutableSegments.add(segmentId)
+      }
+    }
+    return mutableSegments
+  }
   isSegmentMutable(segmentId: string) {
-    const segment = this.currentMutatedSegments.get(segmentId)!
-    const nodes = this.segmentIdToNodeIds.get(segmentId)!
-    return nodes.every((nodeId) => !this.nodeMap.get(nodeId)?._containsTarget)
+    return this.mutableSegments.has(segmentId)
   }
 
   getRandomOperationForSegment(
