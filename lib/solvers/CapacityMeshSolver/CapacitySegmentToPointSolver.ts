@@ -1,13 +1,13 @@
 import { BaseSolver } from "../BaseSolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
-import type { GraphicsObject } from "graphics-debug"
+import type { GraphicsObject, Line } from "graphics-debug"
 import type { NodeWithPortPoints } from "../../types/high-density-types"
-import type { CapacityMeshNode } from "lib/types"
+import type { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 
-interface SegmentWithAssignedPoints extends NodePortSegment {
+export interface SegmentWithAssignedPoints extends NodePortSegment {
   assignedPoints?: {
     connectionName: string
-    point: { x: number; y: number }
+    point: { x: number; y: number; z: number }
   }[]
 }
 
@@ -82,6 +82,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
         const center = {
           x: (seg.start.x + seg.end.x) / 2,
           y: (seg.start.y + seg.end.y) / 2,
+          z: 0,
         }
         ;(seg as any).assignedPoints = [
           { connectionName: seg.connectionNames[0], point: center },
@@ -90,12 +91,6 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
         this.unsolvedSegments.splice(this.unsolvedSegments.indexOf(seg), 1)
         this.solvedSegments.push(seg as any)
         updated = true
-      } else if (n === 2) {
-        // For two connections, attempt to determine a proper ordering by examining
-        // other segments within the same node. (This example does not implement a full
-        // ordering heuristic; if unclear, leave unassigned to try again later.)
-        // You might add additional heuristics here.
-        continue
       }
     }
 
@@ -114,13 +109,14 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
       const dx = candidate.end.x - candidate.start.x
       const dy = candidate.end.y - candidate.start.y
       const n = sortedConnections.length
-      const points: { x: number; y: number }[] = []
+      const points: { x: number; y: number; z: number }[] = []
       // Evenly space positions using fractions of the segment distance.
       for (let i = 1; i <= n; i++) {
         const fraction = i / (n + 1)
         points.push({
           x: candidate.start.x + dx * fraction,
           y: candidate.start.y + dy * fraction,
+          z: 0,
         })
       }
       ;(candidate as any).assignedPoints = sortedConnections.map(
@@ -177,7 +173,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
    * Return a GraphicsObject that visualizes the segments with assigned points.
    */
   visualize(): GraphicsObject {
-    return {
+    const graphics = {
       points: this.solvedSegments.flatMap((seg) =>
         seg.assignedPoints.map((ap) => ({
           x: ap.point.x,
@@ -194,5 +190,44 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
       rects: [],
       circles: [],
     }
+
+    // Add a dashed line connecting the assignment points with the same
+    // connection name within the same node
+    const dashedLines: Line[] = []
+    const nodeConnections: Record<
+      CapacityMeshNodeId,
+      Record<string, { x: number; y: number }[]>
+    > = {}
+    for (const seg of this.solvedSegments) {
+      const nodeId = seg.capacityMeshNodeId
+      if (!nodeConnections[nodeId]) {
+        nodeConnections[nodeId] = {}
+      }
+      for (const ap of seg.assignedPoints) {
+        if (!nodeConnections[nodeId][ap.connectionName]) {
+          nodeConnections[nodeId][ap.connectionName] = []
+        }
+        nodeConnections[nodeId][ap.connectionName].push({
+          x: ap.point.x,
+          y: ap.point.y,
+        })
+      }
+    }
+    for (const nodeId in nodeConnections) {
+      for (const conn in nodeConnections[nodeId]) {
+        const points = nodeConnections[nodeId][conn]
+        if (points.length > 1) {
+          dashedLines.push({
+            points,
+            step: 4,
+            strokeDash: "5 5",
+            strokeColor: this.colorMap[conn] || "#000",
+          } as Line)
+        }
+      }
+    }
+    graphics.lines.push(...(dashedLines as any))
+
+    return graphics
   }
 }

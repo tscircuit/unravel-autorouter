@@ -16,13 +16,14 @@ import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
 import { SingleHighDensityRouteSolver7_CostPoint } from "./SingleHighDensityRouteSolver7_CostPoint"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWithPortPoints"
+import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
   unsolvedConnections: {
     connectionName: string
-    points: { x: number; y: number }[]
+    points: { x: number; y: number; z: number }[]
   }[]
 
   totalConnections: number
@@ -47,12 +48,14 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     this.hyperParameters = params.hyperParameters ?? {}
     this.failedSolvers = []
     this.connMap = params.connMap
-    const unsolvedConnectionsMap: Map<string, { x: number; y: number }[]> =
-      new Map()
-    for (const { connectionName, x, y } of nodeWithPortPoints.portPoints) {
+    const unsolvedConnectionsMap: Map<
+      string,
+      { x: number; y: number; z: number }[]
+    > = new Map()
+    for (const { connectionName, x, y, z } of nodeWithPortPoints.portPoints) {
       unsolvedConnectionsMap.set(connectionName, [
         ...(unsolvedConnectionsMap.get(connectionName) ?? []),
-        { x, y },
+        { x, y, z: z ?? 0 },
       ])
     }
     this.unsolvedConnections = Array.from(
@@ -83,7 +86,37 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
 
     this.totalConnections = this.unsolvedConnections.length
     this.MAX_ITERATIONS = 1_000 * this.totalConnections ** 1.5
+
+    // const {
+    //   numEntryExitLayerChanges,
+    //   numSameLayerCrossings,
+    //   numTransitionPairCrossings,
+    //   numTransitions,
+    // } = getIntraNodeCrossings(this.nodeWithPortPoints)
+
+    // if (
+    //   numSameLayerCrossings === 0 &&
+    //   numTransitions === 0 &&
+    //   numEntryExitLayerChanges === 0
+    // ) {
+    //   this.handleSimpleNoCrossingsCase()
+    // }
   }
+
+  // handleSimpleNoCrossingsCase() {
+  //   // TODO check to make sure there are no crossings due to trace width
+  //   this.solved = true
+  //   this.solvedRoutes = this.unsolvedConnections.map(
+  //     ({ connectionName, points }) => ({
+  //       connectionName,
+  //       route: points,
+  //       traceThickness: 0.1, // TODO load from hyperParameters
+  //       viaDiameter: 0.6,
+  //       vias: [],
+  //     }),
+  //   )
+  //   this.unsolvedConnections = []
+  // }
 
   computeProgress() {
     return (
@@ -119,11 +152,11 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
         connectionName,
         bounds: getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints),
-        A: { x: points[0].x, y: points[0].y, z: 0 },
+        A: { x: points[0].x, y: points[0].y, z: points[0].z },
         B: {
           x: points[points.length - 1].x,
           y: points[points.length - 1].y,
-          z: 0,
+          z: points[points.length - 1].z,
         },
         obstacleRoutes: this.solvedRoutes,
         futureConnections: this.unsolvedConnections,
@@ -158,7 +191,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
       graphics.points!.push({
         x: pt.x,
         y: pt.y,
-        label: pt.connectionName,
+        label: [pt.connectionName, `layer: ${pt.z}`].join("\n"),
         color: this.colorMap[pt.connectionName] ?? "blue",
       })
     }

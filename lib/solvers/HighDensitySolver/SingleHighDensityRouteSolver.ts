@@ -105,7 +105,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.candidates = [
       {
         ...opts.A,
-        z: 0,
+        z: opts.A.z ?? 0,
         g: 0,
         h: 0,
         f: 0,
@@ -129,6 +129,33 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       numYCells = this.boundsSize.height / this.cellStep
     }
     this.cellStep *= this.CELL_SIZE_FACTOR
+
+    if (
+      this.futureConnections &&
+      this.futureConnections.length === 0 &&
+      this.obstacleRoutes.length === 0
+    ) {
+      this.handleSimpleCases()
+    }
+  }
+
+  handleSimpleCases() {
+    this.solved = true
+    this.solvedPath = {
+      connectionName: this.connectionName,
+      route: [
+        this.A,
+        { ...this.boundsCenter, z: this.A.z },
+        {
+          ...this.boundsCenter,
+          z: this.B.z,
+        },
+        this.B,
+      ],
+      traceThickness: this.traceThickness,
+      viaDiameter: this.viaDiameter,
+      vias: this.A.z === this.B.z ? [] : [this.boundsCenter],
+    }
   }
 
   get viaPenaltyDistance() {

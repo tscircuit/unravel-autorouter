@@ -14,12 +14,13 @@
     "@vercel/node": "^5.1.7",
     "@vitejs/plugin-react": "^4.3.4",
     "bun-match-svg": "^0.0.9",
+    "graphics-debug": "^0.0.17",
     "react": "18",
     "react-cosmos": "^6.2.3",
     "react-cosmos-plugin-vite": "^6.2.0",
     "react-dom": "18",
+    "recharts": "^2.15.1",
     "vite": "^6.0.11",
-    "graphics-debug": "^0.0.17",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "peerDependencies": {

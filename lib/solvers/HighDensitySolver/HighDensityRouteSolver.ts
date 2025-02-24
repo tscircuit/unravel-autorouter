@@ -114,12 +114,15 @@ export class HighDensityRouteSolver extends BaseSolver {
     for (const solver of this.failedSolvers) {
       const node = solver.nodeWithPortPoints
       // Group port points by connectionName
-      const connectionGroups: Record<string, { x: number; y: number }[]> = {}
+      const connectionGroups: Record<
+        string,
+        { x: number; y: number; z: number }[]
+      > = {}
       for (const pt of node.portPoints) {
         if (!connectionGroups[pt.connectionName]) {
           connectionGroups[pt.connectionName] = []
         }
-        connectionGroups[pt.connectionName].push({ x: pt.x, y: pt.y })
+        connectionGroups[pt.connectionName].push({ x: pt.x, y: pt.y, z: pt.z })
       }
 
       for (const [connectionName, points] of Object.entries(connectionGroups)) {
