@@ -5,6 +5,7 @@ import { SegmentWithAssignedPoints } from "../CapacityMeshSolver/CapacitySegment
 import { GraphicsObject, Line, Rect } from "graphics-debug"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { getIntraNodeCrossingsFromSegments } from "lib/utils/getIntraNodeCrossingsFromSegments"
+import { NodeWithPortPoints } from "lib/types/high-density-types"
 
 type NodePortSegmentId = string
 
@@ -93,6 +94,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     nodes: CapacityMeshNode[]
   }) {
     super()
+    console.log("CapacitySegmentPointOptimizer", assignedSegments.length)
     this.MAX_ITERATIONS = 500_000
 
     this.assignedSegments = assignedSegments
@@ -481,6 +483,41 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     // return this.random() < temperature
   }
 
+  /**
+   * FOR OUTPUT: Return the assigned points for each segment.
+   */
+  getNodesWithPortPoints(): NodeWithPortPoints[] {
+    if (!this.solved) {
+      throw new Error(
+        "CapacitySegmentToPointSolver not solved, can't give port points yet",
+      )
+    }
+    const map = new Map<string, NodeWithPortPoints>()
+    for (const segId of this.allSegmentIds) {
+      for (const nodeId of this.segmentIdToNodeIds.get(segId)!) {
+        const node = this.nodeMap.get(nodeId)!
+        if (!map.has(nodeId)) {
+          map.set(nodeId, {
+            capacityMeshNodeId: nodeId,
+            portPoints: [],
+            center: node.center,
+            width: node.width,
+            height: node.height,
+          })
+        }
+        map.get(nodeId)!.portPoints.push(
+          ...this.currentMutatedSegments
+            .get(segId)!
+            .assignedPoints!.map((ap) => ({
+              ...ap.point,
+              connectionName: ap.connectionName,
+            })),
+        )
+      }
+    }
+    return Array.from(map.values())
+  }
+
   _step() {
     if (this.iterations === this.MAX_ITERATIONS - 1) {
       this.solved = true
@@ -534,22 +571,27 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         points: [seg.start, seg.end],
       })),
       rects: [
-        ...[...this.nodeMap.values()].map((node) => {
-          const segmentIds = this.nodeIdToSegmentIds.get(
-            node.capacityMeshNodeId,
-          )!
-          const segments = segmentIds.map(
-            (segmentId) => this.currentMutatedSegments.get(segmentId)!,
-          )!
-          const intraNodeCrossings = getIntraNodeCrossingsFromSegments(segments)
-          return {
-            center: node.center,
-            label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionPairCrossings}`,
-            color: "red",
-            width: node.width / 8,
-            height: node.height / 8,
-          } as Rect
-        }),
+        ...[...this.nodeMap.values()]
+          .map((node) => {
+            const segmentIds = this.nodeIdToSegmentIds.get(
+              node.capacityMeshNodeId,
+            )
+            if (!segmentIds) return null
+
+            const segments = segmentIds.map(
+              (segmentId) => this.currentMutatedSegments.get(segmentId)!,
+            )!
+            const intraNodeCrossings =
+              getIntraNodeCrossingsFromSegments(segments)
+            return {
+              center: node.center,
+              label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionPairCrossings}`,
+              color: "red",
+              width: node.width / 8,
+              height: node.height / 8,
+            } as Rect
+          })
+          .filter((r) => r !== null),
       ],
       circles: [],
       coordinateSystem: "cartesian",

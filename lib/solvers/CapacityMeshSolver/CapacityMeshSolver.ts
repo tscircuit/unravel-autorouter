@@ -16,6 +16,7 @@ import { CapacityPathingSolver4_FlexibleNegativeCapacity } from "../CapacityPath
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
 import { CapacityNodeTargetMerger } from "./CapacityNodeTargetMerger"
+import { CapacitySegmentPointOptimizer } from "../CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -29,6 +30,7 @@ export class CapacityMeshSolver extends BaseSolver {
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
   segmentToPointSolver?: CapacitySegmentToPointSolver
+  segmentToPointOptimizer?: CapacitySegmentPointOptimizer
   highDensityRouteSolver?: HighDensityRouteSolver
 
   activeSolver?: BaseSolver | null = null
@@ -114,10 +116,19 @@ export class CapacityMeshSolver extends BaseSolver {
       this.activeSolver = this.segmentToPointSolver
       return
     }
+    if (!this.segmentToPointOptimizer) {
+      this.segmentToPointOptimizer = new CapacitySegmentPointOptimizer({
+        assignedSegments: this.segmentToPointSolver.solvedSegments,
+        colorMap: this.colorMap,
+        nodes,
+      })
+      this.activeSolver = this.segmentToPointOptimizer
+      return
+    }
 
     if (!this.highDensityRouteSolver) {
       const nodesWithPortPoints =
-        this.segmentToPointSolver.getNodesWithPortPoints()
+        this.segmentToPointOptimizer.getNodesWithPortPoints()
       this.highDensityRouteSolver = new HighDensityRouteSolver({
         nodePortPoints: nodesWithPortPoints,
         colorMap: this.colorMap,
@@ -137,6 +148,7 @@ export class CapacityMeshSolver extends BaseSolver {
     const pathingViz = this.pathingSolver?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
     const segmentToPointViz = this.segmentToPointSolver?.visualize()
+    const segmentOptimizationViz = this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const problemViz = {
       points: [...nodeViz.points!],
@@ -149,6 +161,7 @@ export class CapacityMeshSolver extends BaseSolver {
       pathingViz,
       edgeToPortSegmentViz,
       segmentToPointViz,
+      segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
     ].filter(Boolean) as GraphicsObject[]
     // return visualizations[visualizations.length - 1]
