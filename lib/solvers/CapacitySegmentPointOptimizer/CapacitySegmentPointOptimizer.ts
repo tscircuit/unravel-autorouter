@@ -293,13 +293,50 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     } as ChangeLayerOperation
   }
 
+  getNodesNearNode(nodeId: CapacityMeshNodeId, hops = 1): CapacityMeshNodeId[] {
+    if (hops === 0) return [nodeId]
+    const segments = this.nodeIdToSegmentIds.get(nodeId)!
+    const nodes = new Set<CapacityMeshNodeId>()
+    for (const segmentId of segments) {
+      const adjacentNodeIds = this.segmentIdToNodeIds.get(segmentId)!
+      for (const adjacentNodeId of adjacentNodeIds) {
+        const ancestors = this.getNodesNearNode(adjacentNodeId, hops - 1)
+        for (const ancestor of ancestors) {
+          nodes.add(ancestor)
+        }
+      }
+    }
+    return Array.from(nodes)
+  }
+
+  getRandomCombinedOperationNearNode(
+    nodeId: CapacityMeshNodeId,
+  ): CombinedOperation {
+    const adjacentNodeIds = this.getNodesNearNode(nodeId, 2)
+    const subOperations: Array<SwitchOperation | ChangeLayerOperation> = []
+    const adjacentSegments = adjacentNodeIds
+      .flatMap((nodeId) => this.nodeIdToSegmentIds.get(nodeId)!)
+      .filter((s) => this.isSegmentMutable(s))
+    const numOperations = Math.floor(this.random() ** 2 * 50) + 1
+    for (let i = 0; i < numOperations; i++) {
+      const randomSegmentId =
+        adjacentSegments[Math.floor(this.random() * adjacentSegments.length)]
+      subOperations.push(this.getRandomOperationForSegment(randomSegmentId))
+    }
+
+    return {
+      op: "combined",
+      subOperations,
+    } as CombinedOperation
+  }
+
   /**
    * A combined operation can perform multiple operations on a single node, this
    * allows it to reach outcomes that may not be beneficial with since
    * operations
    */
-  getRandomCombinedOperationOnSingleNode(): CombinedOperation {
-    const numSubOperations = Math.floor(this.random() * 7) + 1
+  getRandomCombinedOperationOnSingleNode(max = 7): CombinedOperation {
+    const numSubOperations = max === 1 ? 1 : Math.floor(this.random() * max) + 1
     const subOperations: Array<SwitchOperation | ChangeLayerOperation> = []
     const nodeId = this.getRandomWeightedNodeId()
     const segmentsIds = this.nodeIdToSegmentIds
@@ -433,7 +470,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     if (this.iterations === this.MAX_ITERATIONS - 1) {
       this.solved = true
     }
-    const op = this.getRandomCombinedOperationOnSingleNode()
+    // const op = this.getRandomCombinedOperationOnSingleNode()
+    const op = this.getRandomCombinedOperationNearNode(
+      this.getRandomWeightedNodeId(),
+    )
     this.lastCreatedOperation = op
     this.applyOperation(op)
     const {
@@ -520,13 +560,16 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         const sameLayer = points[0].z === points[1].z
         const commonLayer = points[0].z
 
+        const type = sameLayer
+          ? commonLayer === 0
+            ? "top"
+            : "bottom"
+          : "transition"
+
         dashedLines.push({
           points,
-          strokeDash: sameLayer
-            ? commonLayer === 0
-              ? undefined
-              : "5 5"
-            : "20 5",
+          strokeDash:
+            type === "top" ? undefined : type === "bottom" ? "10 5" : "3 3 10",
           strokeColor: this.colorMap[conn] || "#000",
         } as Line)
       }
