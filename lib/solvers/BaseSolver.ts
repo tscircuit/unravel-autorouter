@@ -10,6 +10,8 @@ export class BaseSolver {
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {
+    if (this.solved) return
+    if (this.failed) return
     this.iterations++
     try {
       this._step()

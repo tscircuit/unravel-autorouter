@@ -1,0 +1,106 @@
+{
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn1521",
+    "portPoints": [
+      {
+        "x": 0.3125,
+        "y": 5.390625,
+        "z": 0,
+        "connectionName": "source_trace_22"
+      },
+      {
+        "x": 0.3125,
+        "y": 1.796875,
+        "z": 0,
+        "connectionName": "source_trace_11"
+      },
+      {
+        "x": -6.875,
+        "y": 3.59375,
+        "z": 0,
+        "connectionName": "source_trace_11"
+      },
+      { "x": -4, "y": 7.1875, "z": 0, "connectionName": "source_trace_10" },
+      {
+        "x": -2.5625,
+        "y": 7.1875,
+        "z": 0,
+        "connectionName": "source_trace_14"
+      },
+      { "x": -1.125, "y": 7.1875, "z": 0, "connectionName": "source_trace_19" },
+      { "x": -5.4375, "y": 7.1875, "z": 0, "connectionName": "source_trace_8" },
+      {
+        "x": -0.8854166666666661,
+        "y": 0,
+        "z": 1,
+        "connectionName": "source_trace_10"
+      },
+      {
+        "x": -5.677083333333334,
+        "y": 0,
+        "z": 1,
+        "connectionName": "source_trace_14"
+      },
+      {
+        "x": -4.479166666666667,
+        "y": 0,
+        "z": 1,
+        "connectionName": "source_trace_19"
+      },
+      {
+        "x": -2.083333333333334,
+        "y": 0,
+        "z": 1,
+        "connectionName": "source_trace_22"
+      },
+      { "x": -3.28125, "y": 0, "z": 0, "connectionName": "source_trace_8" }
+    ],
+    "center": { "x": -3.28125, "y": 3.59375 },
+    "width": 7.1875,
+    "height": 7.1875
+  },
+  "colorMap": {
+    "connectivity_net0": "hsl(0, 100%, 50%)",
+    "source_trace_0": "hsl(0, 100%, 50%)",
+    "connectivity_net7": "hsl(11.11111111111111, 100%, 50%)",
+    "source_trace_1": "hsl(11.11111111111111, 100%, 50%)",
+    "connectivity_net20": "hsl(22.22222222222222, 100%, 50%)",
+    "source_trace_2": "hsl(22.22222222222222, 100%, 50%)",
+    "connectivity_net3": "hsl(33.333333333333336, 100%, 50%)",
+    "source_trace_3": "hsl(33.333333333333336, 100%, 50%)",
+    "source_trace_4": "hsl(11.11111111111111, 100%, 50%)",
+    "connectivity_net23": "hsl(55.55555555555556, 100%, 50%)",
+    "source_trace_5": "hsl(55.55555555555556, 100%, 50%)",
+    "connectivity_net6": "hsl(66.66666666666667, 100%, 50%)",
+    "source_trace_6": "hsl(66.66666666666667, 100%, 50%)",
+    "source_trace_7": "hsl(11.11111111111111, 100%, 50%)",
+    "connectivity_net26": "hsl(88.88888888888889, 100%, 50%)",
+    "source_trace_8": "hsl(88.88888888888889, 100%, 50%)",
+    "connectivity_net9": "hsl(100, 100%, 50%)",
+    "source_trace_9": "hsl(100, 100%, 50%)",
+    "connectivity_net16": "hsl(111.11111111111111, 100%, 50%)",
+    "source_trace_10": "hsl(111.11111111111111, 100%, 50%)",
+    "source_trace_11": "hsl(22.22222222222222, 100%, 50%)",
+    "connectivity_net12": "hsl(133.33333333333334, 100%, 50%)",
+    "source_trace_12": "hsl(133.33333333333334, 100%, 50%)",
+    "source_trace_13": "hsl(111.11111111111111, 100%, 50%)",
+    "source_trace_14": "hsl(55.55555555555556, 100%, 50%)",
+    "connectivity_net15": "hsl(166.66666666666666, 100%, 50%)",
+    "source_trace_15": "hsl(166.66666666666666, 100%, 50%)",
+    "source_trace_16": "hsl(111.11111111111111, 100%, 50%)",
+    "source_trace_17": "hsl(88.88888888888889, 100%, 50%)",
+    "connectivity_net18": "hsl(200, 100%, 50%)",
+    "source_trace_18": "hsl(200, 100%, 50%)",
+    "connectivity_net25": "hsl(211.11111111111111, 100%, 50%)",
+    "source_trace_19": "hsl(211.11111111111111, 100%, 50%)",
+    "source_trace_20": "hsl(22.22222222222222, 100%, 50%)",
+    "connectivity_net21": "hsl(233.33333333333334, 100%, 50%)",
+    "source_trace_21": "hsl(233.33333333333334, 100%, 50%)",
+    "source_trace_22": "hsl(211.11111111111111, 100%, 50%)",
+    "source_trace_23": "hsl(55.55555555555556, 100%, 50%)",
+    "connectivity_net24": "hsl(266.6666666666667, 100%, 50%)",
+    "source_trace_24": "hsl(266.6666666666667, 100%, 50%)",
+    "source_trace_25": "hsl(211.11111111111111, 100%, 50%)",
+    "source_trace_26": "hsl(88.88888888888889, 100%, 50%)"
+  }
+}

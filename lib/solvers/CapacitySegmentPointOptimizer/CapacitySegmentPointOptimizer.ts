@@ -77,7 +77,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   VIA_DIAMETER = 0.6
   OBSTACLE_MARGIN = 0.15
-  MAX_OPERATIONS_PER_MUTATION = 3
+  MAX_OPERATIONS_PER_MUTATION = 4
   MAX_NODE_CHAIN_PER_MUTATION = 1
 
   NOOP_ITERATIONS_BEFORE_EARLY_STOP = 100_000
@@ -183,7 +183,9 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
    * The cost is the "probability of failure" of the node.
    */
   computeNodeCost(nodeId: CapacityMeshNodeId) {
-    const totalCapacity = getTunedTotalCapacity1(this.nodeMap.get(nodeId)!)
+    const node = this.nodeMap.get(nodeId)
+    if (node?._containsTarget) return 0
+    const totalCapacity = getTunedTotalCapacity1(node!)
     const usedCapacity = this.getUsedGranularCapacity(nodeId)
 
     return usedCapacity / totalCapacity
@@ -225,13 +227,13 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     const {
       numEntryExitLayerChanges,
       numSameLayerCrossings,
-      numTransitionPairCrossings,
+      numTransitionCrossings,
     } = getIntraNodeCrossingsFromSegments(segments)
 
     const estNumVias =
       numSameLayerCrossings * 0.82 +
       numEntryExitLayerChanges * 0.41 +
-      numTransitionPairCrossings * 0.2
+      numTransitionCrossings * 0.2
 
     const estUsedCapacity = (estNumVias / 2) ** 1.1
 
@@ -563,6 +565,11 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   _step() {
     if (this.iterations === this.MAX_ITERATIONS - 1) {
       this.solved = true
+      return
+    }
+    if (this.currentCost < 0.001) {
+      this.solved = true
+      return
     }
     // const op = this.getRandomCombinedOperationOnSingleNode()
     const op = this.getRandomCombinedOperationNearNode(
@@ -626,11 +633,18 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
             const segments = segmentIds.map(
               (segmentId) => this.currentMutatedSegments.get(segmentId)!,
             )!
-            const intraNodeCrossings =
-              getIntraNodeCrossingsFromSegments(segments)
+            let label: string
+            if (node._containsTarget) {
+              label = `${node.capacityMeshNodeId}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`
+            } else {
+              const intraNodeCrossings =
+                getIntraNodeCrossingsFromSegments(segments)
+              label = `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}/${getTunedTotalCapacity1(node)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionCrossings}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`
+            }
+
             return {
               center: node.center,
-              label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}/${getTunedTotalCapacity1(node)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionPairCrossings}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+              label,
               color: "red",
               width: node.width / 8,
               height: node.height / 8,
