@@ -25,7 +25,12 @@ interface SwitchOperation {
   point2Index: number
 }
 
-type Operation = ChangeLayerOperation | SwitchOperation
+interface CombinedOperation {
+  op: "combined"
+  subOperations: Array<SwitchOperation | ChangeLayerOperation>
+}
+
+type Operation = ChangeLayerOperation | SwitchOperation | CombinedOperation
 
 /**
  * Use simulated annealing to try to improve the placement of points (via
@@ -84,7 +89,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     nodes: CapacityMeshNode[]
   }) {
     super()
-    this.MAX_ITERATIONS = 100_000
+    this.MAX_ITERATIONS = 500_000
 
     this.assignedSegments = assignedSegments
 
@@ -207,9 +212,9 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   getRandomWeightedNodeId(): CapacityMeshNodeId {
-    const nodeIdsWithCosts = [...this.currentNodeCosts.entries()].filter(
-      ([nodeId, cost]) => cost > 0.00001,
-    )
+    const nodeIdsWithCosts = [...this.currentNodeCosts.entries()]
+      .filter(([nodeId, cost]) => cost > 0.00001)
+      .filter(([nodeId]) => !this.nodeMap.get(nodeId)?._containsTarget)
 
     if (nodeIdsWithCosts.length === 0) {
       console.error(
@@ -219,7 +224,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     }
 
     const totalCost = nodeIdsWithCosts.reduce((acc, [, cost]) => acc + cost, 0)
-    const randomValue = Math.random() * totalCost
+    const randomValue = this.random() * totalCost
     let cumulativeCost = 0
     for (let i = 0; i < nodeIdsWithCosts.length; i++) {
       const [nodeId, cost] = nodeIdsWithCosts[i]
@@ -233,25 +238,22 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   getRandomWeightedSegmentId(): string {
     const nodeId = this.getRandomWeightedNodeId()
-    const segmentsIds = this.nodeIdToSegmentIds.get(nodeId)!
+    const segmentsIds = this.nodeIdToSegmentIds
+      .get(nodeId)!
+      .filter((s) => this.isSegmentMutable(s))
     return segmentsIds[Math.floor(this.random() * segmentsIds.length)]
   }
 
-  getRandomOperation(): Operation {
-    // choose a node with more probability to higher cost nodes
+  isSegmentMutable(segmentId: string) {
+    const segment = this.currentMutatedSegments.get(segmentId)!
+    const nodes = this.segmentIdToNodeIds.get(segmentId)!
+    return nodes.every((nodeId) => !this.nodeMap.get(nodeId)?._containsTarget)
+  }
 
-    const randomSegmentId = this.getRandomWeightedSegmentId()
-
+  getRandomOperationForSegment(
+    randomSegmentId: string,
+  ): SwitchOperation | ChangeLayerOperation {
     const segment = this.currentMutatedSegments.get(randomSegmentId)!
-    const nodes = this.segmentIdToNodeIds
-      .get(randomSegmentId)!
-      .map((nodeId) => this.nodeMap.get(nodeId))
-
-    // Don't operate on nodes that contain objectives (TODO in the future we
-    // can do this IF the objective is present on multiple layers)
-    if (nodes.some((n) => n?._containsTarget)) {
-      return this.getRandomOperation()
-    }
 
     let operationType = this.random() < 0.5 ? "switch" : "changeLayer"
     if (segment.assignedPoints!.length <= 1) {
@@ -292,6 +294,35 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   /**
+   * A combined operation can perform multiple operations on a single node, this
+   * allows it to reach outcomes that may not be beneficial with since
+   * operations
+   */
+  getRandomCombinedOperationOnSingleNode(): CombinedOperation {
+    const numSubOperations = Math.floor(this.random() * 7) + 1
+    const subOperations: Array<SwitchOperation | ChangeLayerOperation> = []
+    const nodeId = this.getRandomWeightedNodeId()
+    const segmentsIds = this.nodeIdToSegmentIds
+      .get(nodeId)!
+      .filter((s) => this.isSegmentMutable(s))
+    for (let i = 0; i < numSubOperations; i++) {
+      const randomSegmentId =
+        segmentsIds[Math.floor(this.random() * segmentsIds.length)]
+      subOperations.push(this.getRandomOperationForSegment(randomSegmentId))
+    }
+    return {
+      op: "combined",
+      subOperations,
+    } as CombinedOperation
+  }
+
+  getRandomOperation(): Operation {
+    const randomSegmentId = this.getRandomWeightedSegmentId()
+
+    return this.getRandomOperationForSegment(randomSegmentId)
+  }
+
+  /**
    * We compute "overall probability of failure" as our overall cost, then
    * linearize it to make it easier to work with
    */
@@ -320,6 +351,13 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   applyOperation(op: Operation) {
+    if (op.op === "combined") {
+      for (const subOp of op.subOperations) {
+        this.applyOperation(subOp)
+      }
+      return
+    }
+
     const segment = this.currentMutatedSegments.get(op.segmentId)!
     if (!segment || !segment.assignedPoints) return
     if (op.op === "changeLayer") {
@@ -342,6 +380,13 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   reverseOperation(op: Operation) {
+    if (op.op === "combined") {
+      for (const subOp of [...op.subOperations].reverse()) {
+        this.reverseOperation(subOp)
+      }
+      return
+    }
+
     const segment = this.currentMutatedSegments.get(op.segmentId)
     if (!segment || !segment.assignedPoints) return
     if (op.op === "changeLayer") {
@@ -365,34 +410,30 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   isNewCostAcceptable(oldPf: number, newPf: number) {
-    const INITIAL_TEMPERATURE = 1.0
-    const FINAL_TEMPERATURE = 0.01
-    const COOLING_RATE =
-      (FINAL_TEMPERATURE / INITIAL_TEMPERATURE) ** (1 / this.MAX_ITERATIONS)
+    // const INITIAL_TEMPERATURE = 0.01
+    // const FINAL_TEMPERATURE = 0.000001
+    // const COOLING_RATE =
+    //   (FINAL_TEMPERATURE / INITIAL_TEMPERATURE) ** (1 / this.MAX_ITERATIONS)
 
     // Calculate current temperature based on iteration
-    const temperature = INITIAL_TEMPERATURE * COOLING_RATE ** this.iterations
+    // const temperature = INITIAL_TEMPERATURE * COOLING_RATE ** this.iterations
 
     // If new cost is better, accept it
     if (newPf < oldPf) return true
-
-    const probDelta = newPf - oldPf
-
-    console.log(probDelta, newPf / oldPf)
-
     return false
 
-    // // Otherwise accept with probability based on temperature
-    // const probability = Math.exp(probDelta / temperature)
-    // console.log(oldPf, newPf, oldPf  probability)
-    // return this.random() < probability
+    // const probDelta = newPf - oldPf
+    // TODO we could use the probability delta to determine if this is a big
+    // mistake
+
+    // return this.random() < temperature
   }
 
   _step() {
     if (this.iterations === this.MAX_ITERATIONS - 1) {
       this.solved = true
     }
-    const op = this.getRandomOperation()
+    const op = this.getRandomCombinedOperationOnSingleNode()
     this.lastCreatedOperation = op
     this.applyOperation(op)
     const {
@@ -416,12 +457,17 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
+    const immutableSegments = new Set(
+      [...this.currentMutatedSegments.values()].filter(
+        (seg) => !this.isSegmentMutable(seg.nodePortSegmentId!),
+      ),
+    )
     const graphics: Required<GraphicsObject> = {
       points: [...this.currentMutatedSegments.values()].flatMap((seg, i) =>
         seg.assignedPoints!.map((ap) => ({
           x: ap.point.x,
           y: ap.point.y,
-          label: `${seg.nodePortSegmentId}\nlayer: ${ap.point.z}`,
+          label: `${seg.nodePortSegmentId}\nlayer: ${ap.point.z}\n${immutableSegments.has(seg) ? "IMMUTABLE" : ""}`,
           color: this.colorMap[ap.connectionName],
         })),
       ),
@@ -488,10 +534,15 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     graphics.lines.push(...(dashedLines as any))
 
     // Add visualization for the last applied operation
-    if (this.lastCreatedOperation) {
-      const segment = this.currentMutatedSegments.get(
-        this.lastCreatedOperation.segmentId,
-      )!
+    const operationsToShow: (SwitchOperation | ChangeLayerOperation)[] = []
+    if (this.lastCreatedOperation?.op === "combined") {
+      operationsToShow.push(...this.lastCreatedOperation.subOperations)
+    } else if (this.lastCreatedOperation) {
+      operationsToShow.push(this.lastCreatedOperation)
+    }
+
+    for (const op of operationsToShow) {
+      const segment = this.currentMutatedSegments.get(op.segmentId)!
       const node = this.nodeMap.get(segment.capacityMeshNodeId)!
       // Create a circle around the node
       graphics.circles.push({
@@ -499,26 +550,23 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         radius: node.width / 4,
         stroke: "#0000ff",
         fill: "rgba(0, 0, 255, 0.2)",
-        label: `LAST OPERATION: ${this.lastCreatedOperation.op}`,
+        label: `LAST OPERATION: ${op.op}`,
       })
 
       // For both operation types, we'll highlight the affected points
-      if (this.lastCreatedOperation.op === "changeLayer") {
-        const point =
-          segment.assignedPoints![this.lastCreatedOperation.pointIndex]
+      if (op.op === "changeLayer") {
+        const point = segment.assignedPoints![op.pointIndex]
         graphics.circles.push({
           center: { x: point.point.x, y: point.point.y },
           radius: this.nodeMap.get(segment.capacityMeshNodeId)!.width / 8,
           stroke: "#ff0000",
           fill: "rgba(255, 0, 0, 0.2)",
-          label: `Layer Changed\noldLayer: ${this.lastCreatedOperation.oldLayer}\nnewLayer: ${this.lastCreatedOperation.newLayer}`,
+          label: `Layer Changed\noldLayer: ${op.oldLayer}\nnewLayer: ${op.newLayer}`,
         })
-      } else if (this.lastCreatedOperation.op === "switch") {
+      } else if (op.op === "switch") {
         // For switch operations, highlight both points that were swapped
-        const point1 =
-          segment.assignedPoints![this.lastCreatedOperation.point1Index]
-        const point2 =
-          segment.assignedPoints![this.lastCreatedOperation.point2Index]
+        const point1 = segment.assignedPoints![op.point1Index]
+        const point2 = segment.assignedPoints![op.point2Index]
 
         // Add circles around both swapped points
         graphics.circles.push(

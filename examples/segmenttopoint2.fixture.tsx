@@ -171,7 +171,7 @@ export default () => {
             <LineChart
               data={nodeCostsSorted.map((n, i) => ({
                 index: i,
-                value: n,
+                value: Math.min(n, 1),
               }))}
             >
               <CartesianGrid strokeDasharray="3 3" />
@@ -179,7 +179,11 @@ export default () => {
                 dataKey="index"
                 label={{ value: "Index", position: "bottom", offset: 0 }}
               />
-              <YAxis label={{ value: "Value", angle: -90, position: "left" }} />
+              <YAxis
+                label={{ value: "Value", angle: -90, position: "left" }}
+                max={1}
+                domain={[0, 1]}
+              />
               <Tooltip />
               <Line
                 type="monotone"
