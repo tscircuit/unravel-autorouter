@@ -23,6 +23,9 @@ export default () => {
   const [pressCount, incPressCount] = useReducer((p) => p + 1, 0)
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [isAnimating, setIsAnimating] = useState(false)
+  const [iterationHistory, setIterationHistory] = useState<
+    { iteration: number; probability: number }[]
+  >([])
 
   const { optimizer } = useMemo(() => {
     const optimizer = new CapacitySegmentPointOptimizer({
@@ -39,6 +42,10 @@ export default () => {
     [],
   )
 
+  const initialNodeCosts = useMemo(() => {
+    return [...optimizer.currentNodeCosts.values()].sort().filter((k) => k > 0)
+  }, [])
+
   useEffect(() => {
     let intervalId: number | undefined
     const startTime = Date.now()
@@ -52,7 +59,19 @@ export default () => {
           }
           optimizer.step()
         }
-        incPressCount()
+        setIterationHistory((prev) => {
+          const newPoint = {
+            iteration: optimizer.iterations,
+            probability: optimizer.probabilityOfFailure,
+          }
+
+          if (prev.length > 1000) {
+            // Keep every 4th point to reduce to ~250 points
+            return [...prev.filter((_, i) => i % 4 === 0), newPoint]
+          }
+
+          return [...prev, newPoint]
+        })
       }, 10)
     }
     return () => {
@@ -66,6 +85,13 @@ export default () => {
     if (pressCount === 0) return
     if (optimizer.solved || optimizer.failed) return
     optimizer.step()
+    setIterationHistory((prev) => [
+      ...prev,
+      {
+        iteration: optimizer.iterations,
+        probability: optimizer.probabilityOfFailure,
+      },
+    ])
   }, [pressCount])
 
   const highestFailureNodes = useMemo(() => {
@@ -74,7 +100,9 @@ export default () => {
       .slice(0, 5)
   }, [optimizer.currentNodeCosts])
 
-  const nodeCostsSorted = [...optimizer.currentNodeCosts.values()].sort()
+  const nodeCostsSorted = [...optimizer.currentNodeCosts.values()]
+    .sort()
+    .filter((k) => k > 0)
 
   const highlightVisualization = useMemo(() => {
     if (selectedNodeIds.size === 0) return { rects: [] }
@@ -168,10 +196,47 @@ export default () => {
         </div>
         <div className="w-full h-96 p-4">
           <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={iterationHistory}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="iteration"
+                label={{ value: "Iterations", position: "bottom", offset: 0 }}
+              />
+              <YAxis
+                label={{
+                  value: "Probability of Failure",
+                  angle: -90,
+                  position: "left",
+                }}
+                domain={[
+                  Math.min(...iterationHistory.map((ih) => ih.probability)),
+                  Math.max(...iterationHistory.map((ih) => ih.probability)),
+                ]}
+                tickFormatter={(value) => value.toFixed(2)}
+              />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="probability"
+                stroke="#2563eb"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="w-full h-96 p-4">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={nodeCostsSorted.map((n, i) => ({
+              data={initialNodeCosts.map((n, i) => ({
                 index: i,
-                value: Math.min(n, 1),
+                value: Math.min(
+                  nodeCostsSorted[
+                    i - (initialNodeCosts.length - nodeCostsSorted.length)
+                  ] ?? 0,
+                  1,
+                ),
+                initialValue: initialNodeCosts[i],
               }))}
             >
               <CartesianGrid strokeDasharray="3 3" />
@@ -187,11 +252,17 @@ export default () => {
               <Tooltip />
               <Line
                 type="monotone"
+                dataKey="initialValue"
+                stroke="#dc2626"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
                 dataKey="value"
                 stroke="#2563eb"
                 strokeWidth={2}
-                dot={{ fill: "#2563eb" }}
-                activeDot={{ r: 8 }}
+                dot={false}
               />
             </LineChart>
           </ResponsiveContainer>
