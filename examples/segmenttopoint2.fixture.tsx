@@ -23,6 +23,7 @@ export default () => {
   const [pressCount, incPressCount] = useReducer((p) => p + 1, 0)
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [isAnimating, setIsAnimating] = useState(false)
+  const [fastAnimation, setFastAnimation] = useState(false)
   const [iterationHistory, setIterationHistory] = useState<
     { iteration: number; probability: number }[]
   >([])
@@ -52,7 +53,15 @@ export default () => {
     if (isAnimating) {
       intervalId = window.setInterval(() => {
         const timeElapsed = Date.now() - startTime
-        for (let i = 0; i < Math.min(100, timeElapsed / 10); i++) {
+        for (
+          let i = 0;
+          i <
+          Math.min(
+            fastAnimation ? 10000 : 100,
+            timeElapsed / (fastAnimation ? 10 : 100),
+          );
+          i++
+        ) {
           if (optimizer.solved) {
             clearInterval(intervalId)
             break
@@ -144,6 +153,15 @@ export default () => {
           onClick={() => setIsAnimating(!isAnimating)}
         >
           {isAnimating ? "Stop" : "Animate"}
+        </button>
+        <button
+          className="border rounded-md p-2"
+          onClick={() => {
+            setIsAnimating(true)
+            setFastAnimation(!fastAnimation)
+          }}
+        >
+          {isAnimating ? (fastAnimation ? "Slow" : "Fast") : "Animate Fast"}
         </button>
       </div>
       <div className="flex gap-2 tabular-nums">

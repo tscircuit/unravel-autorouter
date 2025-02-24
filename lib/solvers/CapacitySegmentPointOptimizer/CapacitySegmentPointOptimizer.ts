@@ -94,7 +94,6 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     nodes: CapacityMeshNode[]
   }) {
     super()
-    console.log("CapacitySegmentPointOptimizer", assignedSegments.length)
     this.MAX_ITERATIONS = 500_000
 
     this.assignedSegments = assignedSegments
