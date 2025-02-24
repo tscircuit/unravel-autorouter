@@ -100,6 +100,7 @@ const SegmentOptimizerDebugger = ({
           const newPoint = {
             iteration: optimizer.iterations,
             probability: optimizer.probabilityOfFailure,
+            cost: optimizer.currentCost,
           }
 
           if (prev.length > 1000) {
@@ -129,6 +130,7 @@ const SegmentOptimizerDebugger = ({
         {
           iteration: optimizer.iterations,
           probability: optimizer.probabilityOfFailure,
+          cost: optimizer.currentCost,
         },
       ])
     }
@@ -203,6 +205,8 @@ const SegmentOptimizerDebugger = ({
         <div>
           P(failure) {(optimizer.probabilityOfFailure * 100).toFixed(8)}%
         </div>
+        <div>cost: {optimizer.currentCost}</div>
+
         <div>
           △ P(failure){" "}
           {(

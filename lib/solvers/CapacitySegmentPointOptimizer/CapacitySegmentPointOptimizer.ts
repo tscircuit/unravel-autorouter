@@ -17,6 +17,7 @@ interface ChangeLayerOperation {
 
   /** Operation is mutated and oldLayer is added to allow reversal */
   oldLayer?: number
+  cost?: number
 }
 
 interface SwitchOperation {
@@ -24,11 +25,13 @@ interface SwitchOperation {
   segmentId: string
   point1Index: number
   point2Index: number
+  cost?: number
 }
 
 interface CombinedOperation {
   op: "combined"
   subOperations: Array<SwitchOperation | ChangeLayerOperation>
+  cost?: number
 }
 
 type Operation = ChangeLayerOperation | SwitchOperation | CombinedOperation
@@ -80,7 +83,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   MAX_OPERATIONS_PER_MUTATION = 4
   MAX_NODE_CHAIN_PER_MUTATION = 1
 
-  NOOP_ITERATIONS_BEFORE_EARLY_STOP = 100_000
+  NOOP_ITERATIONS_BEFORE_EARLY_STOP = 20_000
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
@@ -241,6 +244,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   getRandomWeightedNodeId(): CapacityMeshNodeId {
+    // return "cn7009"
     const nodeIdsWithCosts = [...this.currentNodeCosts.entries()]
       .filter(([nodeId, cost]) => cost > 0.00001)
       .filter(([nodeId]) => !this.nodeMap.get(nodeId)?._containsTarget)
@@ -428,24 +432,50 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     cost: number
     nodeCosts: Map<CapacityMeshNodeId, number>
     probabilityOfFailure: number
+    linearizedCost: number
   } {
-    // let costSum = 0
-    let probabilityOfSuccess = 1
+    let logProbabilityOfSuccess = 0 // Start with log(1) = 0
+    let costSum = 0
     const nodeCosts: Map<CapacityMeshNodeId, number> = new Map()
+
     for (const nodeId of this.nodeIdToSegmentIds.keys()) {
       const nodeProbOfFailure = this.computeNodeCost(nodeId)
       nodeCosts.set(nodeId, nodeProbOfFailure)
-      // costSum += nodeProbOfFailure
-      // probability of success *= (1 - probability of failure)
-      probabilityOfSuccess *= 1 - nodeProbOfFailure
+      costSum += nodeProbOfFailure
+
+      // Instead of multiplication, use addition of logarithms
+      // log(a*b) = log(a) + log(b)
+      // log(1 - p) is always negative for 0 < p < 1
+      if (nodeProbOfFailure < 1) {
+        // Protect against log(0)
+        logProbabilityOfSuccess += Math.log(1 - nodeProbOfFailure)
+      } else {
+        // If any node has 100% failure probability, the entire system fails
+        logProbabilityOfSuccess = -Infinity
+      }
     }
+
+    // Convert back from logarithm to probability
+    // e^(log(p)) = p
+    const probabilityOfSuccess = Math.exp(logProbabilityOfSuccess)
     const probabilityOfFailure = 1 - probabilityOfSuccess
 
-    // linearize the cost to make it easier to work with
-    // const numEvents = this.numNodes
-    // const linearizedProbOfFailure = probabilityOfFailure / 0.99 ** numEvents
+    // Compute a linearized cost metric
+    // This avoids the floating point issues by working with the log values directly
+    const numNodes = this.nodeIdToSegmentIds.size
 
-    return { cost: probabilityOfFailure, nodeCosts, probabilityOfFailure }
+    // Calculate linearized cost based on the log probability
+    // This is effectively -log(probability of success) / numNodes
+    // which gives an average "failure contribution" per node
+    const linearizedCost =
+      numNodes > 0 ? -logProbabilityOfSuccess / numNodes : 0
+
+    return {
+      cost: linearizedCost, // Replace cost with linearized version
+      nodeCosts,
+      probabilityOfFailure,
+      linearizedCost, // Also return as separate value if you need original cost sum
+    }
   }
 
   applyOperation(op: Operation) {
@@ -582,6 +612,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       nodeCosts: newNodeCosts,
       probabilityOfFailure: newProbabilityOfFailure,
     } = this.computeCurrentCost()
+    op.cost = newCost
 
     // TODO determine if we should keep the new state
     const keepChange = this.isNewCostAcceptable(this.currentCost, newCost)
@@ -615,7 +646,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         seg.assignedPoints!.map((ap) => ({
           x: ap.point.x,
           y: ap.point.y,
-          label: `${seg.nodePortSegmentId}\nlayer: ${ap.point.z}\n${immutableSegments.has(seg) ? "IMMUTABLE" : ""}`,
+          label: `${seg.nodePortSegmentId}\nlayer: ${ap.point.z}\n${ap.connectionName}\n${immutableSegments.has(seg) ? "(IMMUTABLE)" : ""}`,
           color: this.colorMap[ap.connectionName],
         })),
       ),
@@ -719,7 +750,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         radius: node.width / 4,
         stroke: "#0000ff",
         fill: "rgba(0, 0, 255, 0.2)",
-        label: `LAST OPERATION: ${op.op}\n${node.capacityMeshNodeId}\n${this.currentNodeCosts.get(node.capacityMeshNodeId)}`,
+        label: `LAST OPERATION: ${op.op}\nCost: ${op.cost?.toString()}\n${node.capacityMeshNodeId}\n${this.currentNodeCosts.get(node.capacityMeshNodeId)}/${getTunedTotalCapacity1(node)}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
       })
 
       // For both operation types, we'll highlight the affected points

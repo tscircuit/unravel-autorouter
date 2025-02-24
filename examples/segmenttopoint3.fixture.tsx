@@ -176,6 +176,7 @@ export default () => {
           ).toFixed(8)}
           %
         </div>
+        <div>Cost: {optimizer.currentCost}</div>
         <div>
           △ P / M Iterations:{" "}
           {(

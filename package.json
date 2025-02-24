@@ -14,7 +14,7 @@
     "@vercel/node": "^5.1.7",
     "@vitejs/plugin-react": "^4.3.4",
     "bun-match-svg": "^0.0.9",
-    "graphics-debug": "^0.0.17",
+    "graphics-debug": "^0.0.19",
     "react": "18",
     "react-cosmos": "^6.2.3",
     "react-cosmos-plugin-vite": "^6.2.0",

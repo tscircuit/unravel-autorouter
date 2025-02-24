@@ -99,15 +99,9 @@ export default () => {
         <button
           className="border m-2 p-2"
           onClick={() => {
-            const allSegments: NodePortSegment[] = []
-            solver.edgeToPortSegmentSolver!.nodePortSegments.forEach((segs) => {
-              allSegments.push(...segs)
-            })
+            const allSegments = solver.segmentToPointSolver!.solvedSegments
             const inputs = {
-              segments: allSegments.map((seg) => ({
-                ...seg,
-                assignedPoints: undefined,
-              })),
+              segments: allSegments,
               colorMap: solver.colorMap,
               nodes: solver
                 .nodeTargetMerger!.newNodes.map((n) => ({
@@ -121,7 +115,10 @@ export default () => {
                 ),
             }
             navigator.clipboard.writeText(JSON.stringify(inputs))
-            alert("Copied to clipboard")
+            const textarea = document.createElement("textarea")
+            textarea.value = JSON.stringify(inputs)
+            document.body.appendChild(textarea)
+            alert("Added to body")
           }}
         >
           Segment to Point Solver
