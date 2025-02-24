@@ -72,9 +72,12 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   numNodes: number
 
   probabilityOfFailure: number
+  nodesThatCantFitVias: Set<CapacityMeshNodeId>
 
-  MAX_OPERATIONS_PER_MUTATION = 5
-  MAX_NODES_PER_MUTATION = 2
+  VIA_DIAMETER = 0.6
+  OBSTACLE_MARGIN = 0.15
+  MAX_OPERATIONS_PER_MUTATION = 3
+  MAX_NODE_CHAIN_PER_MUTATION = 1
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
@@ -157,6 +160,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
     this.randomSeed = 1
     this.allSegmentIds = Array.from(this.currentMutatedSegments.keys())
+
+    this.nodesThatCantFitVias = new Set()
+    for (const nodeId of this.nodeIdToSegmentIds.keys()) {
+      const node = this.nodeMap.get(nodeId)!
+      if (node.width < this.VIA_DIAMETER + this.OBSTACLE_MARGIN) {
+        this.nodesThatCantFitVias.add(nodeId)
+      }
+    }
   }
 
   random() {
@@ -264,7 +275,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   getRandomOperationForSegment(
     randomSegmentId: string,
-  ): SwitchOperation | ChangeLayerOperation {
+  ): SwitchOperation | ChangeLayerOperation | null {
     const segment = this.currentMutatedSegments.get(randomSegmentId)!
 
     let operationType = this.random() < 0.5 ? "switch" : "changeLayer"
@@ -289,6 +300,12 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         point1Index: randomPointIndex1,
         point2Index: randomPointIndex2,
       } as SwitchOperation
+    }
+
+    const nodeIds = this.segmentIdToNodeIds.get(segment.nodePortSegmentId!)
+
+    if (nodeIds?.some((nodeId) => this.nodesThatCantFitVias.has(nodeId))) {
+      return null
     }
 
     const randomPointIndex = Math.floor(
@@ -326,7 +343,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   ): CombinedOperation {
     const adjacentNodeIds = this.getNodesNearNode(
       nodeId,
-      this.MAX_NODES_PER_MUTATION,
+      this.MAX_NODE_CHAIN_PER_MUTATION,
     )
     const subOperations: Array<SwitchOperation | ChangeLayerOperation> = []
     const adjacentSegments = adjacentNodeIds
@@ -337,7 +354,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     for (let i = 0; i < numOperations; i++) {
       const randomSegmentId =
         adjacentSegments[Math.floor(this.random() * adjacentSegments.length)]
-      subOperations.push(this.getRandomOperationForSegment(randomSegmentId))
+      const newOp = this.getRandomOperationForSegment(randomSegmentId)
+      if (newOp) {
+        subOperations.push(newOp)
+      }
     }
 
     return {
@@ -361,7 +381,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     for (let i = 0; i < numSubOperations; i++) {
       const randomSegmentId =
         segmentsIds[Math.floor(this.random() * segmentsIds.length)]
-      subOperations.push(this.getRandomOperationForSegment(randomSegmentId))
+      const newOp = this.getRandomOperationForSegment(randomSegmentId)
+      if (newOp) {
+        subOperations.push(newOp)
+      }
     }
     return {
       op: "combined",
@@ -372,7 +395,11 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   getRandomOperation(): Operation {
     const randomSegmentId = this.getRandomWeightedSegmentId()
 
-    return this.getRandomOperationForSegment(randomSegmentId)
+    const newOp = this.getRandomOperationForSegment(randomSegmentId)
+    if (newOp) {
+      return newOp
+    }
+    return this.getRandomOperation()
   }
 
   /**
@@ -584,7 +611,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
               getIntraNodeCrossingsFromSegments(segments)
             return {
               center: node.center,
-              label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionPairCrossings}`,
+              label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}/${getTunedTotalCapacity1(node)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionPairCrossings}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
               color: "red",
               width: node.width / 8,
               height: node.height / 8,
