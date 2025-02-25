@@ -101,9 +101,16 @@ You can provide optional configuration parameters to the solver:
 
 ```typescript
 const solver = new CapacityMeshSolver(simpleRouteJson, {
-  capacityDepth: 7, // Optional: Adjust capacity planning depth
+  // Optional: Manually set capacity planning depth (otherwise automatically calculated)
+  capacityDepth: 7,
+  
+  // Optional: Set the target minimum capacity for automatic depth calculation
+  // Lower values result in finer subdivisions (higher depth)
+  targetMinCapacity: 0.5
 })
 ```
+
+By default, the solver will automatically calculate the optimal `capacityDepth` to achieve a target minimum capacity of 0.5 based on the board dimensions. This automatic calculation ensures that the smallest subdivision cells have an appropriate capacity for routing.
 
 ### Visualization Support
 
