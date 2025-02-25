@@ -140,7 +140,9 @@ flowchart LR
     ES --> MES[Mesh Edge Solver]
     MES --> CPS[Capacity Planning Solver]
     CPS --> EPSS[Edge to Port Segment Solver]
-    EPSS --> HDR
+    EPSS --> S2P[Segment to Point Solver]
+    S2P --> SPO[Segment Point Optimizer]
+    SPO --> HDR
 ```
 
 The autorouter uses a multi-step approach that includes:
@@ -150,7 +152,9 @@ The autorouter uses a multi-step approach that includes:
 3. **Mesh Edge Solving**: Refines connection patterns
 4. **Capacity Planning**: Allocates routing resources
 5. **Edge to Port Segment Solving**: Connects segments to ports
-6. **High Density Routing**: Final detailed routing with obstacle avoidance
+6. **Segment to Point Solving**: Converts segments to exact point locations
+7. **Segment Point Optimization**: Optimizes point placements for better routing
+8. **High Density Routing**: Final detailed routing with obstacle avoidance
 
 ## Development
 
