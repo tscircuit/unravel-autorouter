@@ -1,36 +1,41 @@
 {
-  "name": "capacity-node-autorouter",
-  "module": "index.ts",
+  "name": "@tscircuit/capacity-autorouter",
+  "main": "./dist/index.js",
+  "version": "0.0.1",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "start": "cosmos"
+    "start": "cosmos",
+    "build": "tsup ./lib/index.ts --format esm --dts --sourcemap",
+    "format": "biome format --write .",
+    "format:check": "biome format ."
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@react-hook/resize-observer": "^2.0.2",
+    "@tscircuit/math-utils": "^0.0.10",
     "@types/bun": "latest",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vercel/node": "^5.1.7",
     "@vitejs/plugin-react": "^4.3.4",
     "bun-match-svg": "^0.0.9",
+    "circuit-json-to-connectivity-map": "^0.0.19",
     "graphics-debug": "^0.0.19",
     "react": "18",
     "react-cosmos": "^6.2.3",
     "react-cosmos-plugin-vite": "^6.2.0",
     "react-dom": "18",
     "recharts": "^2.15.1",
+    "tsup": "^8.3.6",
+    "use-mouse-matrix-transform": "^1.3.0",
     "vite": "^6.0.11",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.7.3"
   },
-  "dependencies": {
-    "@tscircuit/math-utils": "^0.0.10",
-    "add": "^2.0.6",
-    "circuit-json-to-connectivity-map": "^0.0.19",
-    "npm": "^11.1.0",
-    "use-mouse-matrix-transform": "^1.3.0"
-  }
+  "dependencies": {}
 }

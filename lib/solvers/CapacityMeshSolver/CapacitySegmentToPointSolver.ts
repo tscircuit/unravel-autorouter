@@ -30,7 +30,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
   solvedSegments: (NodePortSegment & {
     assignedPoints: {
       connectionName: string
-      point: { x: number; y: number }
+      point: { x: number; y: number; z: number }
     }[]
   })[]
   nodeMap: Record<string, CapacityMeshNode>

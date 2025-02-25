@@ -24,7 +24,9 @@ import { CapacityMeshNode } from "lib/types"
  * @param {Object} props.inputs The JSON inputs containing segments and nodes data
  */
 const SegmentOptimizerDebugger = ({
-  inputs,
+  segments,
+  colorMap,
+  nodes,
 }: {
   segments: SegmentWithAssignedPoints[]
   colorMap: Record<string, string>
@@ -33,7 +35,9 @@ const SegmentOptimizerDebugger = ({
   const [isAnimating, setIsAnimating] = useState(false)
   const [fastAnimation, setFastAnimation] = useState(false)
   const [iterationCount, setIterationCount] = useState(0)
-  const [iterationHistory, setIterationHistory] = useState([])
+  const [iterationHistory, setIterationHistory] = useState<
+    Array<{ iteration: number; probability: number; cost: number }>
+  >([])
   const [selectedNodeIds, setSelectedNodeIds] = useState(new Set())
 
   // Initialize the point solver and optimizer
@@ -45,9 +49,9 @@ const SegmentOptimizerDebugger = ({
   } = useMemo(() => {
     // Create and solve the initial point solver
     const pointSolver = new CapacitySegmentToPointSolver({
-      segments: inputs.segments,
-      colorMap: inputs.colorMap,
-      nodes: inputs.nodes,
+      segments,
+      colorMap,
+      nodes,
     })
     pointSolver.solve()
 
@@ -55,7 +59,7 @@ const SegmentOptimizerDebugger = ({
     const optimizer = new CapacitySegmentPointOptimizer({
       assignedSegments: pointSolver.solvedSegments,
       colorMap: pointSolver.colorMap,
-      nodes: inputs.nodes,
+      nodes,
     })
 
     const initialProbabilityOfFailure = optimizer.probabilityOfFailure
@@ -69,15 +73,15 @@ const SegmentOptimizerDebugger = ({
       initialProbabilityOfFailure,
       initialNodeCosts,
     }
-  }, [inputs])
+  }, [segments, colorMap, nodes])
 
   // Animation effect
   useEffect(() => {
-    let intervalId
+    let intervalId: ReturnType<typeof setInterval> | undefined
     const startTime = Date.now()
 
     if (isAnimating) {
-      intervalId = window.setInterval(() => {
+      intervalId = setInterval(() => {
         const timeElapsed = Date.now() - startTime
         for (
           let i = 0;
@@ -165,7 +169,7 @@ const SegmentOptimizerDebugger = ({
     }
   }, [selectedNodeIds, optimizer.nodeMap])
 
-  const toggleNodeSelection = (nodeId) => {
+  const toggleNodeSelection = (nodeId: string) => {
     setSelectedNodeIds((prev) => {
       const next = new Set(prev)
       if (next.has(nodeId)) {

@@ -8,7 +8,13 @@
     "indentStyle": "space"
   },
   "files": {
-    "ignore": ["cosmos-export", "dist", "package.json"]
+    "ignore": [
+      "cosmos-export",
+      "dist",
+      "package.json",
+      "examples/assets/segmenttopoint3.json",
+      "examples/assets/contribution-board_routes.json"
+    ]
   },
   "javascript": {
     "formatter": {
@@ -26,7 +32,8 @@
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "off"
       },
       "complexity": {
         "noForEach": "off"

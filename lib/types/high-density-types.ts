@@ -1,14 +1,16 @@
+export type PortPoint = {
+  connectionName: string
+  x: number
+  y: number
+  z: number
+}
+
 export type NodeWithPortPoints = {
   capacityMeshNodeId: string
   center: { x: number; y: number }
   width: number
   height: number
-  portPoints: {
-    connectionName: string
-    x: number
-    y: number
-    z: number
-  }[]
+  portPoints: PortPoint[]
 }
 
 /**

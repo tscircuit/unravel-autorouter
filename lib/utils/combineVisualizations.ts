@@ -3,7 +3,7 @@ import type { GraphicsObject } from "graphics-debug"
 export const combineVisualizations = (
   ...visualizations: GraphicsObject[]
 ): GraphicsObject => {
-  const combined = {
+  const combined: GraphicsObject = {
     points: [],
     lines: [],
     circles: [],
@@ -12,16 +12,28 @@ export const combineVisualizations = (
 
   visualizations.forEach((viz, i) => {
     if (viz.lines) {
-      combined.lines.push(...viz.lines.map((l) => ({ ...l, step: i })))
+      combined.lines = [
+        ...(combined.lines || []),
+        ...viz.lines.map((l) => ({ ...l, step: i })),
+      ]
     }
     if (viz.points) {
-      combined.points.push(...viz.points.map((p) => ({ ...p, step: i })))
+      combined.points = [
+        ...(combined.points || []),
+        ...viz.points.map((p) => ({ ...p, step: i })),
+      ]
     }
     if (viz.circles) {
-      combined.circles.push(...viz.circles.map((c) => ({ ...c, step: i })))
+      combined.circles = [
+        ...(combined.circles || []),
+        ...viz.circles.map((c) => ({ ...c, step: i })),
+      ]
     }
     if (viz.rects) {
-      combined.rects.push(...viz.rects.map((r) => ({ ...r, step: i })))
+      combined.rects = [
+        ...(combined.rects || []),
+        ...viz.rects.map((r) => ({ ...r, step: i })),
+      ]
     }
   })
 

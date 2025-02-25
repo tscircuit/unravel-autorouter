@@ -1,14 +1,55 @@
 import { CapacityMeshNode } from "lib/types/capacity-mesh-types"
 
+/**
+ * Calculate the capacity of a node based on its width
+ * @param nodeOrWidth The node or width to calculate capacity for
+ * @param maxCapacityFactor Optional multiplier to adjust capacity
+ * @returns The calculated capacity
+ */
 export const getTunedTotalCapacity1 = (
-  node: CapacityMeshNode,
+  nodeOrWidth: CapacityMeshNode | { width: number },
   maxCapacityFactor = 1,
 ) => {
   const VIA_DIAMETER = 0.6
   const TRACE_WIDTH = 0.15
-
   const obstacleMargin = 0.2
-  const viaLengthAcross = node.width / (VIA_DIAMETER / 2 + obstacleMargin)
+
+  const width = "width" in nodeOrWidth ? nodeOrWidth.width : nodeOrWidth
+  const viaLengthAcross = width / (VIA_DIAMETER / 2 + obstacleMargin)
 
   return (viaLengthAcross / 2) ** 1.1 * maxCapacityFactor
+}
+
+/**
+ * Calculate the optimal subdivision depth to reach a target minimum capacity
+ * @param initialWidth The initial width of the top-level node
+ * @param targetMinCapacity The minimum capacity target (default 0.5)
+ * @param maxDepth Maximum allowed depth (default 10)
+ * @returns The optimal capacity depth
+ */
+export const calculateOptimalCapacityDepth = (
+  initialWidth: number,
+  targetMinCapacity = 0.5,
+  maxDepth = 16,
+): number => {
+  let depth = 0
+  let width = initialWidth
+
+  // Calculate capacity at each subdivision level until we reach target or max depth
+  while (depth < maxDepth) {
+    const capacity = getTunedTotalCapacity1({ width })
+
+    // If capacity is below target, we've gone far enough
+    if (capacity <= targetMinCapacity) {
+      break
+    }
+
+    // Move to next subdivision level (each level divides width by 2)
+    width /= 2
+    depth++
+  }
+
+  // Return depth + 1 to account for the fact that we want to subdivide
+  // until the smallest nodes have capacity <= targetMinCapacity
+  return Math.max(1, depth)
 }

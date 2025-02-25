@@ -8,16 +8,37 @@ const { nodeWithPortPoints } = {
   nodeWithPortPoints: {
     capacityMeshNodeId: "cn2864",
     portPoints: [
-      { x: -14.0625, y: -23.359375, connectionName: "source_trace_23" },
+      { x: -14.0625, y: -23.359375, connectionName: "source_trace_23", z: 0 },
       {
         x: -16.458333333333332,
         y: -21.5625,
         connectionName: "source_trace_14",
+        z: 0,
       },
-      { x: -15.260416666666668, y: -21.5625, connectionName: "source_trace_5" },
-      { x: -17.65625, y: -22.236328125, connectionName: "source_trace_14" },
-      { x: -17.65625, y: -22.01171875, connectionName: "source_trace_23" },
-      { x: -17.65625, y: -21.787109375, connectionName: "source_trace_5" },
+      {
+        x: -15.260416666666668,
+        y: -21.5625,
+        connectionName: "source_trace_5",
+        z: 0,
+      },
+      {
+        x: -17.65625,
+        y: -22.236328125,
+        connectionName: "source_trace_14",
+        z: 0,
+      },
+      {
+        x: -17.65625,
+        y: -22.01171875,
+        connectionName: "source_trace_23",
+        z: 0,
+      },
+      {
+        x: -17.65625,
+        y: -21.787109375,
+        connectionName: "source_trace_5",
+        z: 0,
+      },
     ],
     center: { x: -15.859375, y: -23.359375 },
     width: 3.59375,
@@ -30,7 +51,7 @@ export default () => {
   const [isAnimating, setIsAnimating] = useState(false)
   const [maxSolvedRoutes, setMaxSolvedRoutes] = useState(0)
   const [bestSeed, setBestSeed] = useState(10)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (isAnimating) {
