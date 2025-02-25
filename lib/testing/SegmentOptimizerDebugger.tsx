@@ -152,7 +152,7 @@ const SegmentOptimizerDebugger = ({
     if (selectedNodeIds.size === 0) return { rects: [] }
     return {
       rects: Array.from(selectedNodeIds).map((nodeId) => {
-        const node = optimizer.nodeMap.get(nodeId)
+        const node = optimizer.nodeMap.get(nodeId as string)!
         return {
           center: node.center,
           width: node.width,

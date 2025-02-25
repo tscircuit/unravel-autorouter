@@ -5,6 +5,7 @@ import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorM
 import { useEffect, useState, useMemo } from "react"
 import type { NodeWithPortPoints } from "../types/high-density-types"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
+import { GraphicsObject } from "graphics-debug"
 
 interface HyperHighDensityDebuggerProps {
   nodeWithPortPoints: NodeWithPortPoints
@@ -23,10 +24,8 @@ export const HyperHighDensityDebugger = ({
     })
   }, [nodeWithPortPoints])
 
-  const [tab, setTab] = useState<number | undefined>(undefined)
+  const [tab, setTab] = useState<number>(0)
   const [iters, setIters] = useState(0)
-  const [focusedSolver, setFocusedSolver] =
-    useState<SingleIntraNodeRouteSolver | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -39,7 +38,6 @@ export const HyperHighDensityDebugger = ({
         const bestFitnessSolver = solver.getSupervisedSolverWithBestFitness()
         if (bestFitnessSolver) {
           setTab(solver.supervisedSolvers?.indexOf(bestFitnessSolver) ?? 0)
-          setFocusedSolver(bestFitnessSolver.solver)
         }
       }
       setIters(solver.iterations)
@@ -52,9 +50,21 @@ export const HyperHighDensityDebugger = ({
     const bestFitnessSolver = solver.getSupervisedSolverWithBestFitness()
     if (bestFitnessSolver) {
       setTab(solver.supervisedSolvers?.indexOf(bestFitnessSolver) ?? 0)
-      setFocusedSolver(bestFitnessSolver.solver)
     }
   }, [solver.solved])
+
+  let graphics: GraphicsObject | null
+  const focusedSolver = solver.supervisedSolvers?.[tab]?.solver
+  if (!focusedSolver) {
+    graphics = null
+  } else if (focusedSolver.failed) {
+    graphics = combineVisualizations(
+      focusedSolver.visualize(),
+      focusedSolver.failedSolvers[0].visualize(),
+    )
+  } else {
+    graphics = focusedSolver.visualize()
+  }
 
   return (
     <div className="p-1">
@@ -73,35 +83,7 @@ export const HyperHighDensityDebugger = ({
         ))}
       </div>
 
-      <div className="flex">
-        {focusedSolver && (
-          <InteractiveGraphics
-            graphics={
-              focusedSolver.failed && focusedSolver.failedSolvers.length > 0
-                ? combineVisualizations(
-                    focusedSolver.visualize(),
-                    focusedSolver.failedSolvers[0].visualize(),
-                  )
-                : focusedSolver.visualize()
-            }
-          />
-        )}
-        {tab !== undefined && (
-          <InteractiveGraphics
-            graphics={
-              solver.supervisedSolvers?.[tab]?.solver.failed &&
-              solver.supervisedSolvers?.[tab]?.solver.failedSolvers.length > 0
-                ? combineVisualizations(
-                    solver.supervisedSolvers[tab].solver.visualize(),
-                    solver.supervisedSolvers[
-                      tab
-                    ].solver.failedSolvers[0].visualize(),
-                  )
-                : (solver.supervisedSolvers?.[tab]?.solver.visualize() ?? {})
-            }
-          />
-        )}
-      </div>
+      {graphics && <InteractiveGraphics graphics={graphics} />}
 
       <div>
         <table>
