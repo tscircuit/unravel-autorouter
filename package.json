@@ -21,7 +21,6 @@
     "@vitejs/plugin-react": "^4.3.4",
     "bun-match-svg": "^0.0.9",
     "circuit-json-to-connectivity-map": "^0.0.19",
-    "dts-bundle-generator": "^9.5.1",
     "graphics-debug": "^0.0.19",
     "react": "18",
     "react-cosmos": "^6.2.3",
