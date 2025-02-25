@@ -4,6 +4,7 @@ import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshS
 import type { SimpleRouteJson } from "lib/types"
 import { useState } from "react"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
+import { NodePortSegment } from "lib/types/capacity-edges-to-port-segments-types"
 
 export default () => {
   const [solver] = useState(
@@ -85,12 +86,47 @@ export default () => {
       </button>
       <InteractiveGraphics
         graphics={
-          solver.solved || solver.failed
-            ? solver.visualize()
-            : // Fixes dumb animation bug
-              combineVisualizations({}, solver.visualize())
+          solver.solved
+            ? solver.highDensityRouteSolver!.visualize()
+            : solver.failed
+              ? solver.visualize()
+              : // Fixes dumb animation bug
+                combineVisualizations({}, solver.visualize())
         }
       />
+      <p className="border-t mt-2 text-gray-500">Solver Inputs</p>
+      {solver.segmentToPointSolver && (
+        <button
+          className="border m-2 p-2"
+          onClick={() => {
+            const allSegments = solver.segmentToPointSolver!.solvedSegments
+            const inputs = {
+              segments: allSegments,
+              colorMap: solver.colorMap,
+              nodes: solver
+                .nodeTargetMerger!.newNodes.map((n) => ({
+                  ...n,
+                  _parent: undefined,
+                }))
+                .filter((n) =>
+                  allSegments.some(
+                    (s) => s.capacityMeshNodeId === n.capacityMeshNodeId,
+                  ),
+                ),
+            }
+            navigator.clipboard.writeText(JSON.stringify(inputs))
+            const textarea = document.createElement("textarea")
+            textarea.value = JSON.stringify(inputs)
+            document.body.appendChild(textarea)
+            alert("Added to body")
+          }}
+        >
+          Segment to Point Solver
+        </button>
+      )}
+      <p className="border-t mt-2 text-gray-500">
+        Failed IntraNode High Density Solvers
+      </p>
       {failedHdSolvers?.map((s) => (
         <button
           className="border m-2 p-2"

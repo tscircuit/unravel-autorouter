@@ -169,6 +169,7 @@ export default () => {
         <div>
           P(failure) {(optimizer.probabilityOfFailure * 100).toFixed(8)}%
         </div>
+        <div>Cost: {optimizer.currentCost}</div>
         <div>
           △ P(failure){" "}
           {(

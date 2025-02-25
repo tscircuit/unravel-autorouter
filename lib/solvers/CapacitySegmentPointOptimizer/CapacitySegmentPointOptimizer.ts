@@ -17,6 +17,7 @@ interface ChangeLayerOperation {
 
   /** Operation is mutated and oldLayer is added to allow reversal */
   oldLayer?: number
+  cost?: number
 }
 
 interface SwitchOperation {
@@ -24,11 +25,13 @@ interface SwitchOperation {
   segmentId: string
   point1Index: number
   point2Index: number
+  cost?: number
 }
 
 interface CombinedOperation {
   op: "combined"
   subOperations: Array<SwitchOperation | ChangeLayerOperation>
+  cost?: number
 }
 
 type Operation = ChangeLayerOperation | SwitchOperation | CombinedOperation
@@ -73,13 +76,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
 
   probabilityOfFailure: number
   nodesThatCantFitVias: Set<CapacityMeshNodeId>
+  mutableSegments: Set<NodePortSegmentId>
 
   VIA_DIAMETER = 0.6
   OBSTACLE_MARGIN = 0.15
-  MAX_OPERATIONS_PER_MUTATION = 2
-  MAX_NODE_CHAIN_PER_MUTATION = 1
+  MAX_OPERATIONS_PER_MUTATION = 5
+  MAX_NODE_CHAIN_PER_MUTATION = 2
 
-  NOOP_ITERATIONS_BEFORE_EARLY_STOP = 10_000
+  NOOP_ITERATIONS_BEFORE_EARLY_STOP = 20_000
 
   // We use an extra property on segments to remember assigned points.
   // Each segment will get an added property "assignedPoints" which is an array of:
@@ -170,6 +174,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         this.nodesThatCantFitVias.add(nodeId)
       }
     }
+    this.mutableSegments = this.getMutableSegments()
   }
 
   random() {
@@ -181,14 +186,44 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
    * The cost is the "probability of failure" of the node.
    */
   computeNodeCost(nodeId: CapacityMeshNodeId) {
-    const totalCapacity = getTunedTotalCapacity1(this.nodeMap.get(nodeId)!)
-    const usedCapacity = this.getUsedGranularCapacity(nodeId)
+    const node = this.nodeMap.get(nodeId)
+    if (node?._containsTarget) return 0
+    const totalCapacity = getTunedTotalCapacity1(node!)
+    const usedViaCapacity = this.getUsedViaCapacity(nodeId)
+    const usedTraceCapacity = this.getUsedTraceCapacity(nodeId)
 
-    return usedCapacity / totalCapacity
+    const approxProb =
+      (usedViaCapacity * usedTraceCapacity) / totalCapacity ** 2
+
+    // 1 - e^(-K * approxProb)
+    // x = 0, y = 0
+    // x = 1, y = 0.9
+    // x = 2, y = 0.98
+    // etc.
+    // Just a way of bounding the probability betwene 0 and 1
+    const K = -2.3
+
+    return 1 - Math.exp(approxProb * K)
   }
 
   /**
-   * Granular capacity is a consideration of capacity that includes...
+   * Number of traces that can go through this node if they are completely
+   * straight without crossings
+   */
+  getUsedTraceCapacity(nodeId: CapacityMeshNodeId) {
+    const segmentIds = this.nodeIdToSegmentIds.get(nodeId)!
+    const segments = segmentIds.map(
+      (segmentId) => this.currentMutatedSegments.get(segmentId)!,
+    )!
+    const points = segments.flatMap((s) => s.assignedPoints!)
+    const numTracesThroughNode = points.length / 2
+    const numLayers = 2
+
+    return numTracesThroughNode / numLayers
+  }
+
+  /**
+   * Granular via capacity is a consideration of capacity that includes...
    * - The number of traces
    * - The number of trace crossings (0-2 vias per trace crossing)
    *   - Empirically, each crossing typically results in 0.82 vias
@@ -205,7 +240,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
    * - Total capacity is computed by estimating the number of vias that could
    *   be created using the formula (viaFitAcross / 2) ** 1.1
    */
-  getUsedGranularCapacity(nodeId: CapacityMeshNodeId) {
+  getUsedViaCapacity(nodeId: CapacityMeshNodeId) {
     const segmentIds = this.nodeIdToSegmentIds.get(nodeId)!
     const segments = segmentIds.map(
       (segmentId) => this.currentMutatedSegments.get(segmentId)!,
@@ -223,13 +258,13 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     const {
       numEntryExitLayerChanges,
       numSameLayerCrossings,
-      numTransitionPairCrossings,
+      numTransitionCrossings,
     } = getIntraNodeCrossingsFromSegments(segments)
 
     const estNumVias =
       numSameLayerCrossings * 0.82 +
-      numEntryExitLayerChanges * 0.5 +
-      numTransitionPairCrossings * 0.5
+      numEntryExitLayerChanges * 0.41 +
+      numTransitionCrossings * 0.2
 
     const estUsedCapacity = (estNumVias / 2) ** 1.1
 
@@ -237,6 +272,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   }
 
   getRandomWeightedNodeId(): CapacityMeshNodeId {
+    // return "cn7009"
     const nodeIdsWithCosts = [...this.currentNodeCosts.entries()]
       .filter(([nodeId, cost]) => cost > 0.00001)
       .filter(([nodeId]) => !this.nodeMap.get(nodeId)?._containsTarget)
@@ -269,10 +305,22 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     return segmentsIds[Math.floor(this.random() * segmentsIds.length)]
   }
 
+  getMutableSegments() {
+    const mutableSegments = new Set<NodePortSegmentId>()
+    for (const segmentId of this.currentMutatedSegments.keys()) {
+      const segment = this.currentMutatedSegments.get(segmentId)!
+      const nodes = this.segmentIdToNodeIds.get(segmentId)!
+      const isMutable = nodes.every(
+        (nodeId) => !this.nodeMap.get(nodeId)?._containsTarget,
+      )
+      if (isMutable) {
+        mutableSegments.add(segmentId)
+      }
+    }
+    return mutableSegments
+  }
   isSegmentMutable(segmentId: string) {
-    const segment = this.currentMutatedSegments.get(segmentId)!
-    const nodes = this.segmentIdToNodeIds.get(segmentId)!
-    return nodes.every((nodeId) => !this.nodeMap.get(nodeId)?._containsTarget)
+    return this.mutableSegments.has(segmentId)
   }
 
   getRandomOperationForSegment(
@@ -412,24 +460,50 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     cost: number
     nodeCosts: Map<CapacityMeshNodeId, number>
     probabilityOfFailure: number
+    linearizedCost: number
   } {
-    // let costSum = 0
-    let probabilityOfSuccess = 1
+    let logProbabilityOfSuccess = 0 // Start with log(1) = 0
+    let costSum = 0
     const nodeCosts: Map<CapacityMeshNodeId, number> = new Map()
+
     for (const nodeId of this.nodeIdToSegmentIds.keys()) {
       const nodeProbOfFailure = this.computeNodeCost(nodeId)
       nodeCosts.set(nodeId, nodeProbOfFailure)
-      // costSum += nodeProbOfFailure
-      // probability of success *= (1 - probability of failure)
-      probabilityOfSuccess *= 1 - nodeProbOfFailure
+      costSum += nodeProbOfFailure
+
+      // Instead of multiplication, use addition of logarithms
+      // log(a*b) = log(a) + log(b)
+      // log(1 - p) is always negative for 0 < p < 1
+      if (nodeProbOfFailure < 1) {
+        // Protect against log(0)
+        logProbabilityOfSuccess += Math.log(1 - nodeProbOfFailure)
+      } else {
+        // If any node has 100% failure probability, the entire system fails
+        logProbabilityOfSuccess = -Infinity
+      }
     }
+
+    // Convert back from logarithm to probability
+    // e^(log(p)) = p
+    const probabilityOfSuccess = Math.exp(logProbabilityOfSuccess)
     const probabilityOfFailure = 1 - probabilityOfSuccess
 
-    // linearize the cost to make it easier to work with
-    // const numEvents = this.numNodes
-    // const linearizedProbOfFailure = probabilityOfFailure / 0.99 ** numEvents
+    // Compute a linearized cost metric
+    // This avoids the floating point issues by working with the log values directly
+    const numNodes = this.nodeIdToSegmentIds.size
 
-    return { cost: probabilityOfFailure, nodeCosts, probabilityOfFailure }
+    // Calculate linearized cost based on the log probability
+    // This is effectively -log(probability of success) / numNodes
+    // which gives an average "failure contribution" per node
+    const linearizedCost =
+      numNodes > 0 ? -logProbabilityOfSuccess / numNodes : 0
+
+    return {
+      cost: linearizedCost, // Replace cost with linearized version
+      nodeCosts,
+      probabilityOfFailure,
+      linearizedCost, // Also return as separate value if you need original cost sum
+    }
   }
 
   applyOperation(op: Operation) {
@@ -549,6 +623,11 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
   _step() {
     if (this.iterations === this.MAX_ITERATIONS - 1) {
       this.solved = true
+      return
+    }
+    if (this.currentCost < 0.001) {
+      this.solved = true
+      return
     }
     // const op = this.getRandomCombinedOperationOnSingleNode()
     const op = this.getRandomCombinedOperationNearNode(
@@ -561,6 +640,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       nodeCosts: newNodeCosts,
       probabilityOfFailure: newProbabilityOfFailure,
     } = this.computeCurrentCost()
+    op.cost = newCost
 
     // TODO determine if we should keep the new state
     const keepChange = this.isNewCostAcceptable(this.currentCost, newCost)
@@ -594,7 +674,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         seg.assignedPoints!.map((ap) => ({
           x: ap.point.x,
           y: ap.point.y,
-          label: `${seg.nodePortSegmentId}\nlayer: ${ap.point.z}\n${immutableSegments.has(seg) ? "IMMUTABLE" : ""}`,
+          label: `${seg.nodePortSegmentId}\nlayer: ${ap.point.z}\n${ap.connectionName}\n${immutableSegments.has(seg) ? "(IMMUTABLE)" : ""}`,
           color: this.colorMap[ap.connectionName],
         })),
       ),
@@ -612,11 +692,18 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
             const segments = segmentIds.map(
               (segmentId) => this.currentMutatedSegments.get(segmentId)!,
             )!
-            const intraNodeCrossings =
-              getIntraNodeCrossingsFromSegments(segments)
+            let label: string
+            if (node._containsTarget) {
+              label = `${node.capacityMeshNodeId}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`
+            } else {
+              const intraNodeCrossings =
+                getIntraNodeCrossingsFromSegments(segments)
+              label = `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId).toFixed(2)}/${getTunedTotalCapacity1(node).toFixed(2)}\nTrace Capacity: ${this.getUsedTraceCapacity(node.capacityMeshNodeId).toFixed(2)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionCrossings}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`
+            }
+
             return {
               center: node.center,
-              label: `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}/${getTunedTotalCapacity1(node)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionPairCrossings}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+              label,
               color: "red",
               width: node.width / 8,
               height: node.height / 8,
@@ -691,7 +778,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         radius: node.width / 4,
         stroke: "#0000ff",
         fill: "rgba(0, 0, 255, 0.2)",
-        label: `LAST OPERATION: ${op.op}\n${node.capacityMeshNodeId}\n${this.currentNodeCosts.get(node.capacityMeshNodeId)}`,
+        label: `LAST OPERATION: ${op.op}\nCost: ${op.cost?.toString()}\n${node.capacityMeshNodeId}\n${this.currentNodeCosts.get(node.capacityMeshNodeId)}/${getTunedTotalCapacity1(node)}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
       })
 
       // For both operation types, we'll highlight the affected points

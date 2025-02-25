@@ -61,13 +61,12 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
       if (goalDist <= distToFuturePoint) return 0
       const maxDist = this.viaDiameter * this.FUTURE_CONNECTION_PROXIMITY_VD
       const distRatio = distToFuturePoint / maxDist
-      futureConnectionPenalty =
-        (isVia
-          ? this.straightLineDistance *
-            this.FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR
-          : this.straightLineDistance *
-            this.FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR) *
-        Math.exp(-distRatio * 5)
+      const maxPenalty = isVia
+        ? this.straightLineDistance *
+          this.FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR
+        : this.straightLineDistance *
+          this.FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR
+      futureConnectionPenalty = maxPenalty * Math.exp(-distRatio * 5)
     }
     return futureConnectionPenalty
   }

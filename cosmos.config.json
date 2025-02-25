@@ -1,3 +1,4 @@
 {
-  "plugins": ["react-cosmos-plugin-vite"]
+  "plugins": ["react-cosmos-plugin-vite"],
+  "lazy": true
 }

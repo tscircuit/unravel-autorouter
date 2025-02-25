@@ -2,7 +2,7 @@ import { InteractiveGraphics } from "graphics-debug/react"
 import gkSample191 from "./assets/growing-grid-keyboard-sample-sample191-unrouted_simple_route.json"
 import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
 import type { SimpleRouteJson } from "lib/types"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 
 export default () => {
@@ -14,22 +14,32 @@ export default () => {
   )
   const [, forceUpdate] = useState({})
   const failedHdSolvers = solver.highDensityRouteSolver?.failedSolvers
+  const animationInterval = useRef<number | undefined>(undefined)
+
+  const stopAnimation = () => {
+    if (animationInterval.current) {
+      clearInterval(animationInterval.current)
+      animationInterval.current = undefined
+    }
+  }
 
   const animateToNextSolver = () => {
+    stopAnimation()
     const currentSolver = solver.activeSolver
-    const interval = setInterval(() => {
+    animationInterval.current = window.setInterval(() => {
       solver.step()
       forceUpdate({})
       if (!solver.activeSolver || solver.activeSolver !== currentSolver) {
-        clearInterval(interval)
+        stopAnimation()
       }
     }, 10)
   }
 
   const animateUntilSolved = () => {
+    stopAnimation()
     let stepsOfSameSolver = 0
     let lastSolver = solver.activeSolver
-    const interval = setInterval(() => {
+    animationInterval.current = window.setInterval(() => {
       for (let i = 0; i < 10 + stepsOfSameSolver / 100; i++) {
         if (solver.activeSolver === lastSolver) {
           stepsOfSameSolver++
@@ -41,7 +51,7 @@ export default () => {
       }
       forceUpdate({})
       if (solver.solved || solver.failed) {
-        clearInterval(interval)
+        stopAnimation()
       }
     }, 10)
   }
@@ -63,6 +73,9 @@ export default () => {
       </button>
       <button className="border m-2 p-2" onClick={animateUntilSolved}>
         Animate until solved
+      </button>
+      <button className="border m-2 p-2" onClick={stopAnimation}>
+        Stop Animation
       </button>
       <InteractiveGraphics
         graphics={
