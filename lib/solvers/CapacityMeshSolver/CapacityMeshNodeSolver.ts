@@ -25,6 +25,12 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
   MAX_DEPTH = 4
 
+  targets: Array<{
+    x: number
+    y: number
+    connectionName: string
+  }>
+
   constructor(
     public srj: SimpleRouteJson,
     public opts: CapacityMeshNodeSolverOptions = {},
@@ -49,10 +55,16 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         height: maxWidthHeight,
         layer: "top",
         _depth: 0,
+        _containsTarget: true,
+        _containsObstacle: true,
+        _completelyInsideObstacle: false,
       },
     ]
     this.finishedNodes = []
     this.nodeToOverlappingObstaclesMap = new Map()
+    this.targets = this.srj.connections.flatMap((c) =>
+      c.pointsToConnect.map((p) => ({ ...p, connectionName: c.name })),
+    )
   }
 
   _nextNodeCounter = 0
@@ -66,10 +78,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
   getTargetNameIfNodeContainsTarget(node: CapacityMeshNode): string | null {
     const overlappingObstacles = this.getOverlappingObstacles(node)
-    const targets = this.srj.connections.flatMap((c) =>
-      c.pointsToConnect.map((p) => ({ ...p, connectionName: c.name })),
-    )
-    for (const target of targets) {
+    for (const target of this.targets) {
       // if (target.layer !== node.layer) continue
       const targetObstacle = overlappingObstacles.find((o) =>
         isPointInRect(target, o),
@@ -243,11 +252,11 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       }
       childNode._containsObstacle = this.doesNodeOverlapObstacle(childNode)
 
-      if (childNode._containsObstacle) {
-        childNode._targetConnectionName =
-          this.getTargetNameIfNodeContainsTarget(childNode) ?? undefined
-        childNode._containsTarget = Boolean(childNode._targetConnectionName)
+      childNode._targetConnectionName =
+        this.getTargetNameIfNodeContainsTarget(childNode) ?? undefined
+      childNode._containsTarget = Boolean(childNode._targetConnectionName)
 
+      if (childNode._containsObstacle) {
         childNode._completelyInsideObstacle =
           this.isNodeCompletelyInsideObstacle(childNode)
       }
