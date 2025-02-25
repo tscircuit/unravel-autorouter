@@ -1,6 +1,6 @@
 import type { GraphicsObject } from "graphics-debug"
 import { combineVisualizations } from "../../utils/combineVisualizations"
-import type { SimpleRouteJson } from "../../types"
+import type { SimpleRouteJson, SimplifiedPcbTraces, TraceId } from "../../types"
 import { BaseSolver } from "../BaseSolver"
 import { CapacityMeshEdgeSolver } from "./CapacityMeshEdgeSolver"
 import { CapacityMeshNodeSolver } from "./CapacityMeshNodeSolver"
@@ -166,5 +166,102 @@ export class CapacityMeshSolver extends BaseSolver {
     ].filter(Boolean) as GraphicsObject[]
     // return visualizations[visualizations.length - 1]
     return combineVisualizations(...visualizations)
+  }
+
+  /**
+   * Simplifies a route by merging consecutive points along the same line
+   */
+  private simplifyRoute(points: Array<{x: number, y: number, z: number}>) {
+    if (points.length <= 2) return points
+    
+    const result: Array<{x: number, y: number, z: number}> = [points[0]]
+    
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = points[i - 1]
+      const curr = points[i]
+      const next = points[i + 1]
+      
+      // Skip current point if it lies on the same line as previous and next
+      // and has the same z-coordinate
+      if (curr.z === prev.z && curr.z === next.z) {
+        const dx1 = curr.x - prev.x
+        const dy1 = curr.y - prev.y
+        const dx2 = next.x - curr.x
+        const dy2 = next.y - curr.y
+        
+        // Check if the vectors are parallel (same direction)
+        // For parallel vectors, cross product should be close to zero
+        // and dot product should be positive (same direction)
+        const crossProduct = dx1 * dy2 - dy1 * dx2
+        const dotProduct = dx1 * dx2 + dy1 * dy2
+        
+        if (Math.abs(crossProduct) < 0.001 && dotProduct > 0) {
+          continue
+        }
+      }
+      
+      result.push(curr)
+    }
+    
+    // Always add the last point
+    result.push(points[points.length - 1])
+    
+    return result
+  }
+
+  /**
+   * Returns the SimpleRouteJson with routes converted to SimplifiedPcbTraces
+   */
+  getOutputSimpleRouteJson(): SimpleRouteJson {
+    if (!this.solved || !this.highDensityRouteSolver) {
+      throw new Error("Cannot get output before solving is complete")
+    }
+    
+    const traces: SimplifiedPcbTraces = []
+    
+    for (const route of this.highDensityRouteSolver.routes) {
+      const simplifiedRoute = this.simplifyRoute(route.route)
+      const trace: SimplifiedPcbTraces[number] = {
+        type: "pcb_trace",
+        pcb_trace_id: route.connectionName as TraceId,
+        route: []
+      }
+      
+      let currentLayer = simplifiedRoute[0]?.z.toString() || "0"
+      
+      for (let i = 0; i < simplifiedRoute.length; i++) {
+        const point = simplifiedRoute[i]
+        const nextLayerStr = point.z.toString()
+        
+        // Add a via if layer changed
+        if (nextLayerStr !== currentLayer) {
+          trace.route.push({
+            route_type: "via",
+            x: point.x,
+            y: point.y,
+            from_layer: currentLayer,
+            to_layer: nextLayerStr
+          })
+          currentLayer = nextLayerStr
+        }
+        
+        // Add wire segment
+        trace.route.push({
+          route_type: "wire",
+          x: point.x,
+          y: point.y,
+          width: route.traceThickness || this.highDensityRouteSolver.defaultTraceThickness,
+          layer: currentLayer
+        })
+      }
+      
+      traces.push(trace)
+    }
+    
+    // Create a copy of the original SRJ with traces added
+    return {
+      ...this.srj,
+      traces
+    }
   }
 }

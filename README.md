@@ -33,6 +33,25 @@ flowchart LR
     EPSS --> HDR
 ```
 
+## Usage
+
+```typescript
+import { CapacityMeshSolver } from "capacity-node-autorouter"
+
+// Create a solver with SimpleRouteJson input
+const solver = new CapacityMeshSolver(simpleRouteJson)
+
+// Run the solver
+while (!solver.solved && !solver.failed) {
+  solver.step()
+}
+
+// Get the routing results as SimpleRouteJson with traces
+const resultWithRoutes = solver.getOutputSimpleRouteJson()
+```
+
+The `getOutputSimpleRouteJson()` method returns the SimpleRouteJson with routes converted to SimplifiedPcbTraces, simplifying consecutive line segments with the same direction into single segments.
+
 ## Development
 
 To install dependencies:
