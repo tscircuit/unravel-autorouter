@@ -189,13 +189,41 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
     const node = this.nodeMap.get(nodeId)
     if (node?._containsTarget) return 0
     const totalCapacity = getTunedTotalCapacity1(node!)
-    const usedCapacity = this.getUsedGranularCapacity(nodeId)
+    const usedViaCapacity = this.getUsedViaCapacity(nodeId)
+    const usedTraceCapacity = this.getUsedTraceCapacity(nodeId)
 
-    return usedCapacity / totalCapacity
+    const approxProb =
+      (usedViaCapacity * usedTraceCapacity) / totalCapacity ** 2
+
+    // 1 - e^(-K * approxProb)
+    // x = 0, y = 0
+    // x = 1, y = 0.9
+    // x = 2, y = 0.98
+    // etc.
+    // Just a way of bounding the probability betwene 0 and 1
+    const K = -2.3
+
+    return 1 - Math.exp(approxProb * K)
   }
 
   /**
-   * Granular capacity is a consideration of capacity that includes...
+   * Number of traces that can go through this node if they are completely
+   * straight without crossings
+   */
+  getUsedTraceCapacity(nodeId: CapacityMeshNodeId) {
+    const segmentIds = this.nodeIdToSegmentIds.get(nodeId)!
+    const segments = segmentIds.map(
+      (segmentId) => this.currentMutatedSegments.get(segmentId)!,
+    )!
+    const points = segments.flatMap((s) => s.assignedPoints!)
+    const numTracesThroughNode = points.length / 2
+    const numLayers = 2
+
+    return numTracesThroughNode / numLayers
+  }
+
+  /**
+   * Granular via capacity is a consideration of capacity that includes...
    * - The number of traces
    * - The number of trace crossings (0-2 vias per trace crossing)
    *   - Empirically, each crossing typically results in 0.82 vias
@@ -212,7 +240,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
    * - Total capacity is computed by estimating the number of vias that could
    *   be created using the formula (viaFitAcross / 2) ** 1.1
    */
-  getUsedGranularCapacity(nodeId: CapacityMeshNodeId) {
+  getUsedViaCapacity(nodeId: CapacityMeshNodeId) {
     const segmentIds = this.nodeIdToSegmentIds.get(nodeId)!
     const segments = segmentIds.map(
       (segmentId) => this.currentMutatedSegments.get(segmentId)!,
@@ -670,7 +698,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
             } else {
               const intraNodeCrossings =
                 getIntraNodeCrossingsFromSegments(segments)
-              label = `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId)}/${getTunedTotalCapacity1(node)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionCrossings}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`
+              label = `${node.capacityMeshNodeId}\n${this.computeNodeCost(node.capacityMeshNodeId).toFixed(2)}/${getTunedTotalCapacity1(node).toFixed(2)}\nTrace Capacity: ${this.getUsedTraceCapacity(node.capacityMeshNodeId).toFixed(2)}\nX'ings: ${intraNodeCrossings.numSameLayerCrossings}\nEnt/Ex LC: ${intraNodeCrossings.numEntryExitLayerChanges}\nT X'ings: ${intraNodeCrossings.numTransitionCrossings}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`
             }
 
             return {
