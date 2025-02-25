@@ -8,10 +8,10 @@ const nodeWithPortPoints = {
   width: 10,
   height: 10,
   portPoints: [
-    { connectionName: "A", x: 2, y: 0 },
-    { connectionName: "A", x: 8, y: 10 },
-    { connectionName: "B", x: 5, y: 0 },
-    { connectionName: "B", x: 0, y: 10 },
+    { connectionName: "A", x: 2, y: 0, z: 0 },
+    { connectionName: "A", x: 8, y: 10, z: 0 },
+    { connectionName: "B", x: 5, y: 0, z: 0 },
+    { connectionName: "B", x: 0, y: 10, z: 0 },
   ],
 }
 

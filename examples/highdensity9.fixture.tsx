@@ -110,7 +110,7 @@ export default () => {
   const [isAnimating, setIsAnimating] = useState(false)
   const [maxSolvedRoutes, setMaxSolvedRoutes] = useState(0)
   const [bestSeed, setBestSeed] = useState(10)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (isAnimating) {

@@ -6,10 +6,10 @@ import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorM
 const nodeWithPortPoints = {
   capacityMeshNodeId: "cn11470",
   portPoints: [
-    { x: 105.5, y: -25, connectionName: "connectivity_net3412" },
-    { x: 106, y: -25, connectionName: "connectivity_net3434" },
-    { x: 106.5, y: -25, connectionName: "connectivity_net3995" },
-    { x: 107, y: -25, connectionName: "connectivity_net4017" },
+    { x: 105.5, y: -25, connectionName: "connectivity_net3412", z: 0 },
+    { x: 106, y: -25, connectionName: "connectivity_net3434", z: 0 },
+    { x: 106.5, y: -25, connectionName: "connectivity_net3995", z: 0 },
+    { x: 107, y: -25, connectionName: "connectivity_net4017", z: 0 },
     {
       x: 110,
       y: -29.285714285714285,

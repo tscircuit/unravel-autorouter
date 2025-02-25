@@ -8,7 +8,7 @@ const { nodeWithPortPoints } = {
   nodeWithPortPoints: {
     capacityMeshNodeId: "cn1047",
     portPoints: [
-      { x: -0.5059869499999792, y: 2.65625, connectionName: "source_trace_35" },
+      { x: -0.5059869499999792, y: 2.65625, connectionName: "source_trace_35", z: 0 },
       {
         x: -0.5059869499999792,
         y: 0.078125,
@@ -36,7 +36,7 @@ export default () => {
   const [isAnimating, setIsAnimating] = useState(false)
   const [maxSolvedRoutes, setMaxSolvedRoutes] = useState(0)
   const [bestSeed, setBestSeed] = useState(10)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (isAnimating) {
