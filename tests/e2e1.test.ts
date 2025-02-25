@@ -1,7 +1,11 @@
 import { expect, test, describe } from "bun:test"
 import { CapacityMeshSolver } from "../lib"
 import keyboardRoutes from "../examples/assets/growing-grid-keyboard-sample-sample95-unrouted_simple_route.json"
-import type { SimpleRouteJson, SimplifiedPcbTraces } from "../lib/types"
+import type {
+  SimpleRouteJson,
+  SimplifiedPcbTraces,
+  Obstacle,
+} from "../lib/types"
 
 describe("Keyboard1 End-to-End Test", () => {
   test("should solve keyboard1 board and produce valid SimpleRouteJson output", async () => {
@@ -9,10 +13,6 @@ describe("Keyboard1 End-to-End Test", () => {
     const solver = new CapacityMeshSolver(
       keyboardRoutes as unknown as SimpleRouteJson,
     )
-
-    // Set a maximum iteration count to prevent infinite loops
-    const MAX_ITERATIONS = 300000
-    let iterations = 0
 
     // Run the solver until completion or failure
     solver.solve()
@@ -28,7 +28,8 @@ describe("Keyboard1 End-to-End Test", () => {
     expect(output).toBeDefined()
     expect(output.layerCount).toEqual(keyboardRoutes.layerCount)
     expect(output.minTraceWidth).toEqual(keyboardRoutes.minTraceWidth)
-    expect(output.obstacles).toEqual(keyboardRoutes.obstacles)
+    // Type assertion to handle the type inconsistency
+    expect(output.obstacles).toEqual(keyboardRoutes.obstacles as Obstacle[])
     expect(output.bounds).toEqual(keyboardRoutes.bounds)
 
     // Verify traces were generated
