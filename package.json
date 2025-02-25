@@ -8,7 +8,9 @@
   ],
   "scripts": {
     "start": "cosmos",
-    "build": "tsup ./lib/index.ts --format esm --dts --sourcemap"
+    "build": "tsup ./lib/index.ts --format esm --dts --sourcemap",
+    "format": "biome format --write .",
+    "format:check": "biome format ."
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

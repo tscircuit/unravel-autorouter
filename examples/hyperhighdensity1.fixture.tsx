@@ -9,10 +9,10 @@ export default () => {
       height: 10,
       portPoints: [
         { connectionName: "A", x: 0, y: 0, z: 0 },
-        { connectionName: "B", x: 10, y: 10, z: 0 }
-      ]
+        { connectionName: "B", x: 10, y: 10, z: 0 },
+      ],
     },
-    colorMap: { A: "red", B: "blue" }
+    colorMap: { A: "red", B: "blue" },
   })
   return (
     <div>

@@ -8,11 +8,13 @@ describe("CapacityMeshSolver", () => {
       minTraceWidth: 0.15,
       obstacles: [],
       connections: [],
-      bounds: { minX: 0, maxX: 100, minY: 0, maxY: 100 }
+      bounds: { minX: 0, maxX: 100, minY: 0, maxY: 100 },
     }
-    
+
     const solver = new CapacityMeshSolver(simpleSrj)
-    
-    expect(() => solver.getOutputSimpleRouteJson()).toThrow("Cannot get output before solving is complete")
+
+    expect(() => solver.getOutputSimpleRouteJson()).toThrow(
+      "Cannot get output before solving is complete",
+    )
   })
 })

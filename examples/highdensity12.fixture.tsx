@@ -8,7 +8,12 @@ const { nodeWithPortPoints } = {
   nodeWithPortPoints: {
     capacityMeshNodeId: "cn1047",
     portPoints: [
-      { x: -0.5059869499999792, y: 2.65625, connectionName: "source_trace_35", z: 0 },
+      {
+        x: -0.5059869499999792,
+        y: 2.65625,
+        connectionName: "source_trace_35",
+        z: 0,
+      },
       {
         x: -0.5059869499999792,
         y: 0.078125,

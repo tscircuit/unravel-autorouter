@@ -10,8 +10,18 @@ const { nodeWithPortPoints } = {
     portPoints: [
       { x: -15.859375, y: 3.59375, connectionName: "source_trace_22", z: 0 },
       { x: -14.0625, y: 5.390625, connectionName: "source_trace_1", z: 0 },
-      { x: -16.458333333333332, y: 7.1875, connectionName: "source_trace_1", z: 0 },
-      { x: -15.260416666666668, y: 7.1875, connectionName: "source_trace_22", z: 0 },
+      {
+        x: -16.458333333333332,
+        y: 7.1875,
+        connectionName: "source_trace_1",
+        z: 0,
+      },
+      {
+        x: -15.260416666666668,
+        y: 7.1875,
+        connectionName: "source_trace_22",
+        z: 0,
+      },
     ],
     center: { x: -15.859375, y: 5.390625 },
     width: 3.59375,

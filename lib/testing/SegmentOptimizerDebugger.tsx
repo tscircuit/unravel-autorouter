@@ -35,7 +35,9 @@ const SegmentOptimizerDebugger = ({
   const [isAnimating, setIsAnimating] = useState(false)
   const [fastAnimation, setFastAnimation] = useState(false)
   const [iterationCount, setIterationCount] = useState(0)
-  const [iterationHistory, setIterationHistory] = useState<Array<{ iteration: number; probability: number; cost: number }>>([]);
+  const [iterationHistory, setIterationHistory] = useState<
+    Array<{ iteration: number; probability: number; cost: number }>
+  >([])
   const [selectedNodeIds, setSelectedNodeIds] = useState(new Set())
 
   // Initialize the point solver and optimizer

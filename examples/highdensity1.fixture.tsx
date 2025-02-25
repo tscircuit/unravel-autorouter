@@ -37,7 +37,7 @@ export default () => {
     traceThickness: 0.15,
     obstacleMargin: 1,
     layerCount: 2,
-    minDistBetweenEnteringPoints: 1
+    minDistBetweenEnteringPoints: 1,
   })
 
   // Solve the route.
