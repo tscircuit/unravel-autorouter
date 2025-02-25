@@ -1,4 +1,4 @@
-# capacity-node-autorouter
+# @tscircuit/capacity-autorouter
 
 A high-density PCB autorouter library for node.js and TypeScript projects. Part of the [tscircuit project](https://github.com/tscircuit/tscircuit) &middot; [discord](https://tscircuit.com/join) &middot; [twitter](https://x.com/seveibar) &middot; [try tscircuit online](https://tscircuit.com)
 
@@ -7,7 +7,7 @@ Check out this [short youtube explanation of this autorouter](https://youtu.be/M
 ## Installation
 
 ```bash
-bun add capacity-node-autorouter
+bun add @tscircuit/capacity-autorouter
 ```
 
 ## Usage as a Library
@@ -15,7 +15,7 @@ bun add capacity-node-autorouter
 ### Basic Usage
 
 ```typescript
-import { CapacityMeshSolver } from "capacity-node-autorouter"
+import { CapacityMeshSolver } from "@tscircuit/capacity-autorouter"
 
 // Create a solver with SimpleRouteJson input
 const solver = new CapacityMeshSolver(simpleRouteJson)
@@ -103,10 +103,10 @@ You can provide optional configuration parameters to the solver:
 const solver = new CapacityMeshSolver(simpleRouteJson, {
   // Optional: Manually set capacity planning depth (otherwise automatically calculated)
   capacityDepth: 7,
-  
+
   // Optional: Set the target minimum capacity for automatic depth calculation
   // Lower values result in finer subdivisions (higher depth)
-  targetMinCapacity: 0.5
+  targetMinCapacity: 0.5,
 })
 ```
 
