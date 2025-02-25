@@ -1,10 +1,14 @@
 {
   "name": "@tscircuit/capacity-autorouter",
   "main": "./dist/index.js",
+  "version": "0.0.1",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "start": "cosmos",
-    "build": "bun build --bundle ./lib/index.ts --outfile ./dist/index.js && dts-bundle-generator -o ./dist/index.d.ts ./lib/index.ts"
+    "build": "tsup ./lib/index.ts --format esm --dts --sourcemap"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -24,6 +28,7 @@
     "react-cosmos-plugin-vite": "^6.2.0",
     "react-dom": "18",
     "recharts": "^2.15.1",
+    "tsup": "^8.3.6",
     "use-mouse-matrix-transform": "^1.3.0",
     "vite": "^6.0.11",
     "vite-tsconfig-paths": "^5.1.4"
