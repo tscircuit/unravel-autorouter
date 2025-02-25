@@ -3,7 +3,8 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "cosmos"
+    "start": "cosmos",
+    "build": "bun build --bundle ./lib/index.ts --outfile ./dist/index.js"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
