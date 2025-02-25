@@ -13,6 +13,7 @@ const { nodeWithPortPoints } = {
         x: -16.458333333333332,
         y: -21.5625,
         connectionName: "source_trace_14",
+        z: 0,
       },
       { x: -15.260416666666668, y: -21.5625, connectionName: "source_trace_5", z: 0 },
       { x: -17.65625, y: -22.236328125, connectionName: "source_trace_14", z: 0 },
