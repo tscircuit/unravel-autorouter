@@ -69,6 +69,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   constructor(opts: {
     connectionName: string
     obstacleRoutes: HighDensityIntraNodeRoute[]
+    minDistBetweenEnteringPoints: number
     bounds: { minX: number; maxX: number; minY: number; maxY: number }
     A: { x: number; y: number; z: number }
     B: { x: number; y: number; z: number }
@@ -123,11 +124,16 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     const bestRowOrColumnCount = Math.ceil(5 * (this.numRoutes + 1))
     let numXCells = this.boundsSize.width / this.cellStep
     let numYCells = this.boundsSize.height / this.cellStep
+
     while (numXCells * numYCells > bestRowOrColumnCount ** 2) {
+      if (this.cellStep * 2 > opts.minDistBetweenEnteringPoints) {
+        break
+      }
       this.cellStep *= 2
       numXCells = this.boundsSize.width / this.cellStep
       numYCells = this.boundsSize.height / this.cellStep
     }
+
     this.cellStep *= this.CELL_SIZE_FACTOR
 
     if (
@@ -441,6 +447,41 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       label: "Input B",
       color: "orange",
     })
+
+    // Draw circles at future connection points
+    // if ("FUTURE_CONNECTION_PROXIMITY_VD" in this) {
+    //   for (const futureConnection of this.futureConnections) {
+    //     for (const point of futureConnection.points) {
+    //       graphics.circles!.push({
+    //         center: point,
+    //         radius:
+    //           (this.viaDiameter *
+    //             (this.FUTURE_CONNECTION_PROXIMITY_VD as number)) /
+    //           2,
+    //         // strokeColor: "rgba(0, 255, 0, 0.3)",
+    //         stroke: "rgba(0,255,0,0.1)",
+    //         label: `Future Connection: ${futureConnection.connectionName}`,
+    //       })
+    //     }
+    //   }
+    //   // Draw circles around obstacle route points
+    //   for (const route of this.obstacleRoutes) {
+    //     for (const point of [
+    //       route.route[0],
+    //       route.route[route.route.length - 1],
+    //     ]) {
+    //       graphics.circles!.push({
+    //         center: point,
+    //         radius:
+    //           (this.viaDiameter *
+    //             (this.FUTURE_CONNECTION_PROXIMITY_VD as number)) /
+    //           2,
+    //         stroke: "rgba(255,0,0,0.1)",
+    //         label: "Obstacle Route Point",
+    //       })
+    //     }
+    //   }
+    // }
 
     // Draw a line representing the direct connection between the input port points
     graphics.lines!.push({

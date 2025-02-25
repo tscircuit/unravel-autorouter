@@ -17,6 +17,7 @@ import { SingleHighDensityRouteSolver7_CostPoint } from "./SingleHighDensityRout
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWithPortPoints"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
+import { getMinDistBetweenEnteringPoints } from "lib/utils/getMinDistBetweenEnteringPoints"
 
 export class SingleIntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -30,6 +31,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
   solvedRoutes: HighDensityIntraNodeRoute[]
   failedSolvers: SingleHighDensityRouteSolver[]
   hyperParameters: Partial<HighDensityHyperParameters>
+  minDistBetweenEnteringPoints: number
 
   activeSolver: SingleHighDensityRouteSolver | null = null
   connMap?: ConnectivityMap
@@ -86,6 +88,10 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
 
     this.totalConnections = this.unsolvedConnections.length
     this.MAX_ITERATIONS = 1_000 * this.totalConnections ** 1.5
+
+    this.minDistBetweenEnteringPoints = getMinDistBetweenEnteringPoints(
+      this.nodeWithPortPoints,
+    )
 
     // const {
     //   numEntryExitLayerChanges,
@@ -151,6 +157,7 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     this.activeSolver =
       new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
         connectionName,
+        minDistBetweenEnteringPoints: this.minDistBetweenEnteringPoints,
         bounds: getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints),
         A: { x: points[0].x, y: points[0].y, z: points[0].z },
         B: {

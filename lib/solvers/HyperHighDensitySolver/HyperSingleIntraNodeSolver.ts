@@ -27,9 +27,10 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
 
   getCombinationDefs() {
     return [
-      ["majorCombinations", "orderings", "cellSizeFactor"],
+      ["majorCombinations", "orderings6", "cellSizeFactor"],
       ["noVias"],
-      ["manyOrderings"],
+      ["orderings50"],
+      ["flipTraceAlignmentDirection", "orderings6"],
     ]
   }
 
@@ -60,7 +61,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
         ],
       },
       {
-        name: "orderings",
+        name: "orderings6",
         possibleValues: [
           {
             SHUFFLE_SEED: 0,
@@ -80,12 +81,6 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
           {
             SHUFFLE_SEED: 5,
           },
-          {
-            SHUFFLE_SEED: 6,
-          },
-          {
-            SHUFFLE_SEED: 7,
-          },
         ],
       },
       {
@@ -99,17 +94,14 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
           },
         ],
       },
-      // {
-      //   name: "flipTraceAlignmentDirection",
-      //   possibleValues: [
-      //     {
-      //       FLIP_TRACE_ALIGNMENT_DIRECTION: false,
-      //     },
-      //     {
-      //       FLIP_TRACE_ALIGNMENT_DIRECTION: true,
-      //     },
-      //   ],
-      // },
+      {
+        name: "flipTraceAlignmentDirection",
+        possibleValues: [
+          {
+            FLIP_TRACE_ALIGNMENT_DIRECTION: true,
+          },
+        ],
+      },
       {
         name: "noVias",
         possibleValues: [
@@ -120,7 +112,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
         ],
       },
       {
-        name: "manyOrderings",
+        name: "orderings50",
         possibleValues: Array.from({ length: 50 }, (_, i) => ({
           SHUFFLE_SEED: 100 + i,
         })),

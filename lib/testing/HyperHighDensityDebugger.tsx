@@ -4,6 +4,7 @@ import { HyperSingleIntraNodeSolver } from "lib/solvers/HyperHighDensitySolver/H
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { useEffect, useState, useMemo } from "react"
 import type { NodeWithPortPoints } from "../types/high-density-types"
+import { combineVisualizations } from "lib/utils/combineVisualizations"
 
 interface HyperHighDensityDebuggerProps {
   nodeWithPortPoints: NodeWithPortPoints
@@ -22,7 +23,7 @@ export const HyperHighDensityDebugger = ({
     })
   }, [nodeWithPortPoints])
 
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState<number | undefined>(undefined)
   const [iters, setIters] = useState(0)
   const [focusedSolver, setFocusedSolver] =
     useState<SingleIntraNodeRouteSolver | null>(null)
@@ -46,6 +47,15 @@ export const HyperHighDensityDebugger = ({
     return () => clearInterval(interval)
   }, [solver])
 
+  useEffect(() => {
+    if (!solver.solved) return
+    const bestFitnessSolver = solver.getSupervisedSolverWithBestFitness()
+    if (bestFitnessSolver) {
+      setTab(solver.supervisedSolvers?.indexOf(bestFitnessSolver) ?? 0)
+      setFocusedSolver(bestFitnessSolver.solver)
+    }
+  }, [solver.solved])
+
   return (
     <div className="p-1">
       <div>
@@ -63,13 +73,32 @@ export const HyperHighDensityDebugger = ({
         ))}
       </div>
 
-      <div>
-        {!solver.solved && focusedSolver && (
-          <InteractiveGraphics graphics={focusedSolver.visualize()} />
-        )}
-        {solver.solved && (
+      <div className="flex">
+        {focusedSolver && (
           <InteractiveGraphics
-            graphics={solver.supervisedSolvers?.[tab]?.solver.visualize() ?? {}}
+            graphics={
+              focusedSolver.failed && focusedSolver.failedSolvers.length > 0
+                ? combineVisualizations(
+                    focusedSolver.visualize(),
+                    focusedSolver.failedSolvers[0].visualize(),
+                  )
+                : focusedSolver.visualize()
+            }
+          />
+        )}
+        {tab !== undefined && (
+          <InteractiveGraphics
+            graphics={
+              solver.supervisedSolvers?.[tab]?.solver.failed &&
+              solver.supervisedSolvers?.[tab]?.solver.failedSolvers.length > 0
+                ? combineVisualizations(
+                    solver.supervisedSolvers[tab].solver.visualize(),
+                    solver.supervisedSolvers[
+                      tab
+                    ].solver.failedSolvers[0].visualize(),
+                  )
+                : (solver.supervisedSolvers?.[tab]?.solver.visualize() ?? {})
+            }
           />
         )}
       </div>
