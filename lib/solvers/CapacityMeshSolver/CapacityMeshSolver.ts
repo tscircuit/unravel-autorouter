@@ -88,10 +88,10 @@ export class CapacityMeshSolver extends BaseSolver {
       return
     }
     if (!this.nodeSolver) {
-      this.nodeSolver = new CapacityMeshNodeSolver(
-        this.netToPointPairsSolver.getNewSimpleRouteJson(),
-        this.opts,
-      )
+      const newSrj = this.netToPointPairsSolver.getNewSimpleRouteJson()
+      this.connMap = getConnectivityMapFromSimpleRouteJson(newSrj)
+      this.colorMap = getColorMap(newSrj, this.connMap)
+      this.nodeSolver = new CapacityMeshNodeSolver(newSrj, this.opts)
       this.activeSolver = this.nodeSolver
       return
     }

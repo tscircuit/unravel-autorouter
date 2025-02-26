@@ -43,10 +43,11 @@ export class NetToPointPairsSolver extends BaseSolver {
 
     const edges = buildMinimumSpanningTree(connection.pointsToConnect)
 
-    for (const edge of edges) {
+    for (let i = 0; i < edges.length; i++) {
+      const edge = edges[i]
       this.newConnections.push({
         pointsToConnect: [edge.from, edge.to],
-        name: connection.name,
+        name: `${connection.name}_mst${i}`,
       })
     }
   }
