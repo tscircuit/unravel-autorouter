@@ -219,6 +219,12 @@ export class CapacityPathingSolver extends BaseSolver {
     }
   }
 
+  isConnectedToEndGoal(node: CapacityMeshNode, endGoal: CapacityMeshNode) {
+    return this.nodeEdgeMap
+      .get(node.capacityMeshNodeId)!
+      .some((edge) => edge.nodeIds.includes(endGoal.capacityMeshNodeId))
+  }
+
   _step() {
     const nextConnection =
       this.connectionsWithNodes[this.currentConnectionIndex]
@@ -248,8 +254,14 @@ export class CapacityPathingSolver extends BaseSolver {
       this.visitedNodes = null
       return
     }
-    if (currentCandidate.node.capacityMeshNodeId === end.capacityMeshNodeId) {
-      nextConnection.path = this.getBacktrackedPath(currentCandidate)
+    if (this.isConnectedToEndGoal(currentCandidate.node, end)) {
+      nextConnection.path = this.getBacktrackedPath({
+        prevCandidate: currentCandidate,
+        node: end,
+        f: 0,
+        g: 0,
+        h: 0,
+      })
 
       this.reduceCapacityAlongPath(nextConnection)
 
@@ -340,16 +352,31 @@ export class CapacityPathingSolver extends BaseSolver {
       }
     }
 
+    // Draw a dashed line from the start node to the end node
+    const nextConnection =
+      this.connectionsWithNodes[this.currentConnectionIndex]
+    if (nextConnection) {
+      const [start, end] = nextConnection.connection.pointsToConnect
+      graphics.lines!.push({
+        points: [
+          { x: start.x, y: start.y },
+          { x: end.x, y: end.y },
+        ],
+        strokeColor: "red",
+        strokeDash: "10 5",
+      })
+    }
+
     // Visualize backtracked path of highest ranked candidate
     if (this.candidates) {
       // Get top 10 candidates
-      const topCandidates = this.candidates.slice(0, 50)
+      const topCandidates = this.candidates.slice(0, 5)
       const connectionName =
         this.connectionsWithNodes[this.currentConnectionIndex].connection.name
 
       // Add paths for each candidate with decreasing opacity
       topCandidates.forEach((candidate, index) => {
-        const opacity = 0.05 * (1 - index / 50) // Opacity decreases from 0.5 to 0.05
+        const opacity = 0.5 * (1 - index / 5) // Opacity decreases from 0.5 to 0.05
         const backtrackedPath = this.getBacktrackedPath(candidate)
         graphics.lines!.push({
           points: backtrackedPath.map(({ center: { x, y } }) => ({ x, y })),
@@ -357,7 +384,6 @@ export class CapacityPathingSolver extends BaseSolver {
             this.colorMap[connectionName] ?? "red",
             1 - opacity,
           ),
-          strokeWidth: 0.5,
         })
       })
     }

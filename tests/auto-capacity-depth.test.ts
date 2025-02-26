@@ -59,7 +59,7 @@ describe("Auto Capacity Depth", () => {
     const solver = new CapacityMeshSolver(simpleRouteJson)
 
     // Check that nodeSolver's MAX_DEPTH is set to a reasonable value
-    expect(solver.nodeSolver.MAX_DEPTH).toBeGreaterThan(0)
+    expect(solver.nodeSolver?.MAX_DEPTH).toBeGreaterThan(0)
 
     // Create another solver with a much smaller board
     const smallBoardJson = {
@@ -69,8 +69,8 @@ describe("Auto Capacity Depth", () => {
     const smallSolver = new CapacityMeshSolver(smallBoardJson)
 
     // Check that the smaller board has a smaller depth
-    expect(smallSolver.nodeSolver.MAX_DEPTH).toBeLessThanOrEqual(
-      solver.nodeSolver.MAX_DEPTH,
+    expect(smallSolver.nodeSolver?.MAX_DEPTH).toBeLessThanOrEqual(
+      solver.nodeSolver?.MAX_DEPTH!,
     )
   })
 })

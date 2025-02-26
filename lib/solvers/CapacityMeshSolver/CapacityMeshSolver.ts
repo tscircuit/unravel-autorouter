@@ -18,6 +18,7 @@ import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivity
 import { CapacityNodeTargetMerger } from "./CapacityNodeTargetMerger"
 import { CapacitySegmentPointOptimizer } from "../CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer"
 import { calculateOptimalCapacityDepth } from "../../utils/getTunedTotalCapacity1"
+import { NetToPointPairsSolver } from "../NetToPointPairsSolver/NetToPointPairsSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -25,7 +26,8 @@ interface CapacityMeshSolverOptions {
 }
 
 export class CapacityMeshSolver extends BaseSolver {
-  nodeSolver: CapacityMeshNodeSolver
+  netToPointPairsSolver?: NetToPointPairsSolver
+  nodeSolver?: CapacityMeshNodeSolver
   nodeTargetMerger?: CapacityNodeTargetMerger
   edgeSolver?: CapacityMeshEdgeSolver
   pathingSolver?: CapacityPathingSolver
@@ -60,7 +62,6 @@ export class CapacityMeshSolver extends BaseSolver {
       )
     }
 
-    this.nodeSolver = new CapacityMeshNodeSolver(srj, this.opts)
     this.connMap = getConnectivityMapFromSimpleRouteJson(srj)
     this.colorMap = getColorMap(srj, this.connMap)
   }
@@ -78,7 +79,19 @@ export class CapacityMeshSolver extends BaseSolver {
       return
     }
     // PROGRESS TO NEXT SOLVER
-    if (!this.nodeSolver.solved) {
+    if (!this.netToPointPairsSolver) {
+      this.netToPointPairsSolver = new NetToPointPairsSolver(
+        this.srj,
+        this.colorMap,
+      )
+      this.activeSolver = this.netToPointPairsSolver
+      return
+    }
+    if (!this.nodeSolver) {
+      this.nodeSolver = new CapacityMeshNodeSolver(
+        this.netToPointPairsSolver.getNewSimpleRouteJson(),
+        this.opts,
+      )
       this.activeSolver = this.nodeSolver
       return
     }
@@ -100,7 +113,7 @@ export class CapacityMeshSolver extends BaseSolver {
     }
     if (!this.pathingSolver) {
       this.pathingSolver = new CapacityPathingSolver4_FlexibleNegativeCapacity({
-        simpleRouteJson: this.srj,
+        simpleRouteJson: this.netToPointPairsSolver.getNewSimpleRouteJson(),
         nodes,
         edges: this.edgeSolver.edges,
         colorMap: this.colorMap,
@@ -161,7 +174,8 @@ export class CapacityMeshSolver extends BaseSolver {
 
   visualize(): GraphicsObject {
     if (!this.solved && this.activeSolver) return this.activeSolver.visualize()
-    const nodeViz = this.nodeSolver.visualize()
+    const netToPPSolver = this.netToPointPairsSolver?.visualize()
+    const nodeViz = this.nodeSolver?.visualize()
     const edgeViz = this.edgeSolver?.visualize()
     const pathingViz = this.pathingSolver?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
@@ -169,11 +183,17 @@ export class CapacityMeshSolver extends BaseSolver {
     const segmentOptimizationViz = this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const problemViz = {
-      points: [...nodeViz.points!],
-      rects: [...nodeViz.rects?.filter((r) => r.label?.includes("obstacle"))!],
+      points: [...this.srj.connections.flatMap((c) => c.pointsToConnect)],
+      rects: [
+        ...(this.srj.obstacles ?? []).map((o) => ({
+          ...o,
+          fill: "rgba(255,0,0,0.25)",
+        })),
+      ],
     }
     const visualizations = [
       problemViz,
+      netToPPSolver,
       nodeViz,
       edgeViz,
       pathingViz,
