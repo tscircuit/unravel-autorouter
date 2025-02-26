@@ -1,4 +1,4 @@
-function seededRandom(seed: number) {
+export function seededRandom(seed: number) {
   // Use a simple hash to initialize both state variables
   let s = seed
   for (let i = 0; i < 10; i++) {
