@@ -10,17 +10,19 @@ interface GenericSolverDebuggerProps {
 
 export const GenericSolverDebugger = ({
   createSolver,
-  animationSpeed = 100,
+  animationSpeed = 10,
 }: GenericSolverDebuggerProps) => {
   const [solver, setSolver] = useState<BaseSolver>(() => createSolver())
+  const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [fastAnimation, setFastAnimation] = useState(false)
-  const [iterationCount, setIterationCount] = useState(0)
+  const [speedLevel, setSpeedLevel] = useState(0)
+
+  const speedLevels = [1, 2, 5, 10, 100]
+  const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
 
   // Reset solver
   const resetSolver = () => {
     setSolver(createSolver())
-    setIterationCount(0)
   }
 
   // Animation effect
@@ -29,7 +31,7 @@ export const GenericSolverDebugger = ({
 
     if (isAnimating && !solver.solved && !solver.failed) {
       intervalId = setInterval(() => {
-        const stepsPerInterval = fastAnimation ? 100 : 1
+        const stepsPerInterval = speedLevels[speedLevel]
 
         for (let i = 0; i < stepsPerInterval; i++) {
           if (solver.solved || solver.failed) {
@@ -37,8 +39,7 @@ export const GenericSolverDebugger = ({
           }
           solver.step()
         }
-
-        setIterationCount(solver.iterations)
+        setForceUpdate((prev) => prev + 1)
       }, animationSpeed)
     }
 
@@ -47,13 +48,13 @@ export const GenericSolverDebugger = ({
         clearInterval(intervalId)
       }
     }
-  }, [isAnimating, fastAnimation, solver, animationSpeed])
+  }, [isAnimating, speedLevel, solver, animationSpeed])
 
   // Manual step function
   const handleStep = () => {
     if (!solver.solved && !solver.failed) {
       solver.step()
-      setIterationCount(solver.iterations)
+      setForceUpdate((prev) => prev + 1)
     }
   }
 
@@ -61,14 +62,22 @@ export const GenericSolverDebugger = ({
   const handleSolveCompletely = () => {
     if (!solver.solved && !solver.failed) {
       solver.solve()
-      setIterationCount(solver.iterations)
+      setForceUpdate((prev) => prev + 1)
     }
   }
 
-  // Calculate completion percentage
-  const completionPercentage = useMemo(() => {
-    return (solver.iterations / solver.MAX_ITERATIONS) * 100
-  }, [solver.iterations, solver.MAX_ITERATIONS])
+  // Increase animation speed
+  const increaseSpeed = () => {
+    setSpeedLevel((prev) => Math.min(prev + 1, speedLevels.length - 1))
+    if (!isAnimating) {
+      setIsAnimating(true)
+    }
+  }
+
+  // Decrease animation speed
+  const decreaseSpeed = () => {
+    setSpeedLevel((prev) => Math.max(prev - 1, 0))
+  }
 
   // Safely get visualization
   const visualization = useMemo(() => {
@@ -99,13 +108,21 @@ export const GenericSolverDebugger = ({
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() => {
-            setIsAnimating(true)
-            setFastAnimation(!fastAnimation)
-          }}
-          disabled={solver.solved || solver.failed}
+          onClick={decreaseSpeed}
+          disabled={speedLevel === 0 || solver.solved || solver.failed}
         >
-          {isAnimating ? (fastAnimation ? "Slow" : "Fast") : "Animate Fast"}
+          Slower
+        </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100 min-w-[80px]"
+          onClick={increaseSpeed}
+          disabled={
+            speedLevel === speedLevels.length - 1 ||
+            solver.solved ||
+            solver.failed
+          }
+        >
+          {speedLabels[speedLevel + 1] ?? "(Max)"}
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
@@ -124,18 +141,14 @@ export const GenericSolverDebugger = ({
 
       <div className="flex gap-4 mb-4 tabular-nums">
         <div className="border p-2 rounded">
-          Iterations: <span className="font-bold">{iterationCount}</span>
-        </div>
-        <div className="border p-2 rounded">
-          Completion:{" "}
-          <span className="font-bold">{completionPercentage.toFixed(2)}%</span>
+          Iterations: <span className="font-bold">{solver.iterations}</span>
         </div>
         <div className="border p-2 rounded">
           Status:{" "}
           <span
             className={`font-bold ${solver.solved ? "text-green-600" : solver.failed ? "text-red-600" : "text-blue-600"}`}
           >
-            {solver.solved ? "Solved" : solver.failed ? "Failed" : "Running"}
+            {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
           </span>
         </div>
         {solver.error && (

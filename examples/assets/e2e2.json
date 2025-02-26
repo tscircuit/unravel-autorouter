@@ -1,17 +1,17 @@
 {
   "bounds": {
-    "minX": -9.85,
-    "maxX": 9.85,
-    "minY": -10.8,
-    "maxY": 9
+    "minX": -25,
+    "maxX": 25,
+    "minY": -30,
+    "maxY": 30
   },
   "obstacles": [
     {
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8.35,
-        "y": 7.5
+        "x": -15.85,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -21,8 +21,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -6.65,
-        "y": 7.5
+        "x": -14.15,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -32,8 +32,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8,
-        "y": 5.5
+        "x": -15.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -43,8 +43,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -7,
-        "y": 5.5
+        "x": -14.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -54,8 +54,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3.35,
-        "y": 7.5
+        "x": -5.85,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -65,8 +65,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -1.65,
-        "y": 7.5
+        "x": -4.15,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -76,8 +76,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3,
-        "y": 5.5
+        "x": -5.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -87,8 +87,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -2,
-        "y": 5.5
+        "x": -4.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -98,8 +98,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 1.65,
-        "y": 7.5
+        "x": 4.15,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -109,8 +109,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3.35,
-        "y": 7.5
+        "x": 5.85,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -120,8 +120,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 2,
-        "y": 5.5
+        "x": 4.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -131,8 +131,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3,
-        "y": 5.5
+        "x": 5.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -142,8 +142,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 6.65,
-        "y": 7.5
+        "x": 14.15,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -153,8 +153,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8.35,
-        "y": 7.5
+        "x": 15.85,
+        "y": 15
       },
       "width": 1,
       "height": 1,
@@ -164,8 +164,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 7,
-        "y": 5.5
+        "x": 14.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -175,8 +175,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8,
-        "y": 5.5
+        "x": 15.5,
+        "y": 13
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -186,8 +186,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8.35,
-        "y": 2.5
+        "x": -15.85,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -197,8 +197,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -6.65,
-        "y": 2.5
+        "x": -14.15,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -208,8 +208,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8,
-        "y": 0.5
+        "x": -15.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -219,8 +219,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -7,
-        "y": 0.5
+        "x": -14.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -230,8 +230,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3.35,
-        "y": 2.5
+        "x": -5.85,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -241,8 +241,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -1.65,
-        "y": 2.5
+        "x": -4.15,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -252,8 +252,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3,
-        "y": 0.5
+        "x": -5.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -263,8 +263,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -2,
-        "y": 0.5
+        "x": -4.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -274,8 +274,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 1.65,
-        "y": 2.5
+        "x": 4.15,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -285,8 +285,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3.35,
-        "y": 2.5
+        "x": 5.85,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -296,8 +296,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 2,
-        "y": 0.5
+        "x": 4.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -307,8 +307,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3,
-        "y": 0.5
+        "x": 5.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -318,8 +318,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 6.65,
-        "y": 2.5
+        "x": 14.15,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -329,8 +329,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8.35,
-        "y": 2.5
+        "x": 15.85,
+        "y": 5
       },
       "width": 1,
       "height": 1,
@@ -340,8 +340,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 7,
-        "y": 0.5
+        "x": 14.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -351,8 +351,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8,
-        "y": 0.5
+        "x": 15.5,
+        "y": 3
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -362,8 +362,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8.35,
-        "y": -2.5
+        "x": -15.85,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -373,8 +373,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -6.65,
-        "y": -2.5
+        "x": -14.15,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -384,8 +384,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8,
-        "y": -4.5
+        "x": -15.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -395,8 +395,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -7,
-        "y": -4.5
+        "x": -14.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -406,8 +406,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3.35,
-        "y": -2.5
+        "x": -5.85,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -417,8 +417,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -1.65,
-        "y": -2.5
+        "x": -4.15,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -428,8 +428,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3,
-        "y": -4.5
+        "x": -5.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -439,8 +439,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -2,
-        "y": -4.5
+        "x": -4.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -450,8 +450,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 1.65,
-        "y": -2.5
+        "x": 4.15,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -461,8 +461,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3.35,
-        "y": -2.5
+        "x": 5.85,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -472,8 +472,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 2,
-        "y": -4.5
+        "x": 4.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -483,8 +483,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3,
-        "y": -4.5
+        "x": 5.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -494,8 +494,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 6.65,
-        "y": -2.5
+        "x": 14.15,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -505,8 +505,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8.35,
-        "y": -2.5
+        "x": 15.85,
+        "y": -5
       },
       "width": 1,
       "height": 1,
@@ -516,8 +516,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 7,
-        "y": -4.5
+        "x": 14.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -527,8 +527,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8,
-        "y": -4.5
+        "x": 15.5,
+        "y": -7
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -538,8 +538,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8.35,
-        "y": -7.5
+        "x": -15.85,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -549,8 +549,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -6.65,
-        "y": -7.5
+        "x": -14.15,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -560,8 +560,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -8,
-        "y": -9.5
+        "x": -15.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -571,8 +571,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -7,
-        "y": -9.5
+        "x": -14.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -582,8 +582,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3.35,
-        "y": -7.5
+        "x": -5.85,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -593,8 +593,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -1.65,
-        "y": -7.5
+        "x": -4.15,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -604,8 +604,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -3,
-        "y": -9.5
+        "x": -5.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -615,8 +615,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": -2,
-        "y": -9.5
+        "x": -4.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -626,8 +626,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 1.65,
-        "y": -7.5
+        "x": 4.15,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -637,8 +637,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3.35,
-        "y": -7.5
+        "x": 5.85,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -648,8 +648,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 2,
-        "y": -9.5
+        "x": 4.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -659,8 +659,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 3,
-        "y": -9.5
+        "x": 5.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -670,8 +670,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 6.65,
-        "y": -7.5
+        "x": 14.15,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -681,8 +681,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8.35,
-        "y": -7.5
+        "x": 15.85,
+        "y": -15
       },
       "width": 1,
       "height": 1,
@@ -692,8 +692,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 7,
-        "y": -9.5
+        "x": 14.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -703,8 +703,8 @@
       "type": "rect",
       "layers": ["top"],
       "center": {
-        "x": 8,
-        "y": -9.5
+        "x": 15.5,
+        "y": -17
       },
       "width": 0.6000000000000001,
       "height": 0.6000000000000001,
@@ -715,7 +715,7 @@
       "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": -1.27,
-        "y": 4
+        "y": 28
       },
       "width": 1.5,
       "height": 1.5,
@@ -726,7 +726,7 @@
       "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": 1.27,
-        "y": 4
+        "y": 28
       },
       "width": 1.5,
       "height": 1.5,
@@ -739,13 +739,13 @@
       "source_trace_id": "source_trace_3",
       "pointsToConnect": [
         {
-          "x": -6.65,
-          "y": 7.5,
+          "x": -14.15,
+          "y": 15,
           "layer": "top"
         },
         {
-          "x": -8,
-          "y": 5.5,
+          "x": -15.5,
+          "y": 13,
           "layer": "top"
         }
       ]
@@ -755,13 +755,13 @@
       "source_trace_id": "source_trace_6",
       "pointsToConnect": [
         {
-          "x": -1.65,
-          "y": 7.5,
+          "x": -4.15,
+          "y": 15,
           "layer": "top"
         },
         {
-          "x": -3,
-          "y": 5.5,
+          "x": -5.5,
+          "y": 13,
           "layer": "top"
         }
       ]
@@ -771,13 +771,13 @@
       "source_trace_id": "source_trace_9",
       "pointsToConnect": [
         {
-          "x": 3.35,
-          "y": 7.5,
+          "x": 5.85,
+          "y": 15,
           "layer": "top"
         },
         {
-          "x": 2,
-          "y": 5.5,
+          "x": 4.5,
+          "y": 13,
           "layer": "top"
         }
       ]
@@ -787,13 +787,13 @@
       "source_trace_id": "source_trace_12",
       "pointsToConnect": [
         {
-          "x": 8.35,
-          "y": 7.5,
+          "x": 15.85,
+          "y": 15,
           "layer": "top"
         },
         {
-          "x": 7,
-          "y": 5.5,
+          "x": 14.5,
+          "y": 13,
           "layer": "top"
         }
       ]
@@ -803,13 +803,13 @@
       "source_trace_id": "source_trace_15",
       "pointsToConnect": [
         {
-          "x": -6.65,
-          "y": 2.5,
+          "x": -14.15,
+          "y": 5,
           "layer": "top"
         },
         {
-          "x": -8,
-          "y": 0.5,
+          "x": -15.5,
+          "y": 3,
           "layer": "top"
         }
       ]
@@ -819,13 +819,13 @@
       "source_trace_id": "source_trace_18",
       "pointsToConnect": [
         {
-          "x": -1.65,
-          "y": 2.5,
+          "x": -4.15,
+          "y": 5,
           "layer": "top"
         },
         {
-          "x": -3,
-          "y": 0.5,
+          "x": -5.5,
+          "y": 3,
           "layer": "top"
         }
       ]
@@ -835,13 +835,13 @@
       "source_trace_id": "source_trace_21",
       "pointsToConnect": [
         {
-          "x": 3.35,
-          "y": 2.5,
+          "x": 5.85,
+          "y": 5,
           "layer": "top"
         },
         {
-          "x": 2,
-          "y": 0.5,
+          "x": 4.5,
+          "y": 3,
           "layer": "top"
         }
       ]
@@ -851,13 +851,13 @@
       "source_trace_id": "source_trace_24",
       "pointsToConnect": [
         {
-          "x": 8.35,
-          "y": 2.5,
+          "x": 15.85,
+          "y": 5,
           "layer": "top"
         },
         {
-          "x": 7,
-          "y": 0.5,
+          "x": 14.5,
+          "y": 3,
           "layer": "top"
         }
       ]
@@ -867,13 +867,13 @@
       "source_trace_id": "source_trace_27",
       "pointsToConnect": [
         {
-          "x": -6.65,
-          "y": -2.5,
+          "x": -14.15,
+          "y": -5,
           "layer": "top"
         },
         {
-          "x": -8,
-          "y": -4.5,
+          "x": -15.5,
+          "y": -7,
           "layer": "top"
         }
       ]
@@ -883,13 +883,13 @@
       "source_trace_id": "source_trace_30",
       "pointsToConnect": [
         {
-          "x": -1.65,
-          "y": -2.5,
+          "x": -4.15,
+          "y": -5,
           "layer": "top"
         },
         {
-          "x": -3,
-          "y": -4.5,
+          "x": -5.5,
+          "y": -7,
           "layer": "top"
         }
       ]
@@ -899,13 +899,13 @@
       "source_trace_id": "source_trace_33",
       "pointsToConnect": [
         {
-          "x": 3.35,
-          "y": -2.5,
+          "x": 5.85,
+          "y": -5,
           "layer": "top"
         },
         {
-          "x": 2,
-          "y": -4.5,
+          "x": 4.5,
+          "y": -7,
           "layer": "top"
         }
       ]
@@ -915,13 +915,13 @@
       "source_trace_id": "source_trace_36",
       "pointsToConnect": [
         {
-          "x": 8.35,
-          "y": -2.5,
+          "x": 15.85,
+          "y": -5,
           "layer": "top"
         },
         {
-          "x": 7,
-          "y": -4.5,
+          "x": 14.5,
+          "y": -7,
           "layer": "top"
         }
       ]
@@ -931,13 +931,13 @@
       "source_trace_id": "source_trace_39",
       "pointsToConnect": [
         {
-          "x": -6.65,
-          "y": -7.5,
+          "x": -14.15,
+          "y": -15,
           "layer": "top"
         },
         {
-          "x": -8,
-          "y": -9.5,
+          "x": -15.5,
+          "y": -17,
           "layer": "top"
         }
       ]
@@ -947,13 +947,13 @@
       "source_trace_id": "source_trace_42",
       "pointsToConnect": [
         {
-          "x": -1.65,
-          "y": -7.5,
+          "x": -4.15,
+          "y": -15,
           "layer": "top"
         },
         {
-          "x": -3,
-          "y": -9.5,
+          "x": -5.5,
+          "y": -17,
           "layer": "top"
         }
       ]
@@ -963,13 +963,13 @@
       "source_trace_id": "source_trace_45",
       "pointsToConnect": [
         {
-          "x": 3.35,
-          "y": -7.5,
+          "x": 5.85,
+          "y": -15,
           "layer": "top"
         },
         {
-          "x": 2,
-          "y": -9.5,
+          "x": 4.5,
+          "y": -17,
           "layer": "top"
         }
       ]
@@ -979,13 +979,13 @@
       "source_trace_id": "source_trace_48",
       "pointsToConnect": [
         {
-          "x": 8.35,
-          "y": -7.5,
+          "x": 15.85,
+          "y": -15,
           "layer": "top"
         },
         {
-          "x": 7,
-          "y": -9.5,
+          "x": 14.5,
+          "y": -17,
           "layer": "top"
         }
       ]
@@ -995,103 +995,103 @@
       "pointsToConnect": [
         {
           "x": -1.27,
-          "y": 4,
+          "y": 28,
           "layer": "top",
           "pcb_port_id": "pcb_port_0"
         },
         {
-          "x": -8.35,
-          "y": 7.5,
+          "x": -15.85,
+          "y": 15,
           "layer": "top",
           "pcb_port_id": "pcb_port_2"
         },
         {
-          "x": -3.35,
-          "y": 7.5,
+          "x": -5.85,
+          "y": 15,
           "layer": "top",
           "pcb_port_id": "pcb_port_6"
         },
         {
-          "x": 1.65,
-          "y": 7.5,
+          "x": 4.15,
+          "y": 15,
           "layer": "top",
           "pcb_port_id": "pcb_port_10"
         },
         {
-          "x": 6.65,
-          "y": 7.5,
+          "x": 14.15,
+          "y": 15,
           "layer": "top",
           "pcb_port_id": "pcb_port_14"
         },
         {
-          "x": -8.35,
-          "y": 2.5,
+          "x": -15.85,
+          "y": 5,
           "layer": "top",
           "pcb_port_id": "pcb_port_18"
         },
         {
-          "x": -3.35,
-          "y": 2.5,
+          "x": -5.85,
+          "y": 5,
           "layer": "top",
           "pcb_port_id": "pcb_port_22"
         },
         {
-          "x": 1.65,
-          "y": 2.5,
+          "x": 4.15,
+          "y": 5,
           "layer": "top",
           "pcb_port_id": "pcb_port_26"
         },
         {
-          "x": 6.65,
-          "y": 2.5,
+          "x": 14.15,
+          "y": 5,
           "layer": "top",
           "pcb_port_id": "pcb_port_30"
         },
         {
-          "x": -8.35,
-          "y": -2.5,
+          "x": -15.85,
+          "y": -5,
           "layer": "top",
           "pcb_port_id": "pcb_port_34"
         },
         {
-          "x": -3.35,
-          "y": -2.5,
+          "x": -5.85,
+          "y": -5,
           "layer": "top",
           "pcb_port_id": "pcb_port_38"
         },
         {
-          "x": 1.65,
-          "y": -2.5,
+          "x": 4.15,
+          "y": -5,
           "layer": "top",
           "pcb_port_id": "pcb_port_42"
         },
         {
-          "x": 6.65,
-          "y": -2.5,
+          "x": 14.15,
+          "y": -5,
           "layer": "top",
           "pcb_port_id": "pcb_port_46"
         },
         {
-          "x": -8.35,
-          "y": -7.5,
+          "x": -15.85,
+          "y": -15,
           "layer": "top",
           "pcb_port_id": "pcb_port_50"
         },
         {
-          "x": -3.35,
-          "y": -7.5,
+          "x": -5.85,
+          "y": -15,
           "layer": "top",
           "pcb_port_id": "pcb_port_54"
         },
         {
-          "x": 1.65,
-          "y": -7.5,
+          "x": 4.15,
+          "y": -15,
           "layer": "top",
           "pcb_port_id": "pcb_port_58"
         },
         {
-          "x": 6.65,
-          "y": -7.5,
+          "x": 14.15,
+          "y": -15,
           "layer": "top",
           "pcb_port_id": "pcb_port_62"
         }
@@ -1102,103 +1102,103 @@
       "pointsToConnect": [
         {
           "x": 1.27,
-          "y": 4,
+          "y": 28,
           "layer": "top",
           "pcb_port_id": "pcb_port_1"
         },
         {
-          "x": -7,
-          "y": 5.5,
+          "x": -14.5,
+          "y": 13,
           "layer": "top",
           "pcb_port_id": "pcb_port_5"
         },
         {
-          "x": -2,
-          "y": 5.5,
+          "x": -4.5,
+          "y": 13,
           "layer": "top",
           "pcb_port_id": "pcb_port_9"
         },
         {
-          "x": 3,
-          "y": 5.5,
+          "x": 5.5,
+          "y": 13,
           "layer": "top",
           "pcb_port_id": "pcb_port_13"
         },
         {
-          "x": 8,
-          "y": 5.5,
+          "x": 15.5,
+          "y": 13,
           "layer": "top",
           "pcb_port_id": "pcb_port_17"
         },
         {
-          "x": -7,
-          "y": 0.5,
+          "x": -14.5,
+          "y": 3,
           "layer": "top",
           "pcb_port_id": "pcb_port_21"
         },
         {
-          "x": -2,
-          "y": 0.5,
+          "x": -4.5,
+          "y": 3,
           "layer": "top",
           "pcb_port_id": "pcb_port_25"
         },
         {
-          "x": 3,
-          "y": 0.5,
+          "x": 5.5,
+          "y": 3,
           "layer": "top",
           "pcb_port_id": "pcb_port_29"
         },
         {
-          "x": 8,
-          "y": 0.5,
+          "x": 15.5,
+          "y": 3,
           "layer": "top",
           "pcb_port_id": "pcb_port_33"
         },
         {
-          "x": -7,
-          "y": -4.5,
+          "x": -14.5,
+          "y": -7,
           "layer": "top",
           "pcb_port_id": "pcb_port_37"
         },
         {
-          "x": -2,
-          "y": -4.5,
+          "x": -4.5,
+          "y": -7,
           "layer": "top",
           "pcb_port_id": "pcb_port_41"
         },
         {
-          "x": 3,
-          "y": -4.5,
+          "x": 5.5,
+          "y": -7,
           "layer": "top",
           "pcb_port_id": "pcb_port_45"
         },
         {
-          "x": 8,
-          "y": -4.5,
+          "x": 15.5,
+          "y": -7,
           "layer": "top",
           "pcb_port_id": "pcb_port_49"
         },
         {
-          "x": -7,
-          "y": -9.5,
+          "x": -14.5,
+          "y": -17,
           "layer": "top",
           "pcb_port_id": "pcb_port_53"
         },
         {
-          "x": -2,
-          "y": -9.5,
+          "x": -4.5,
+          "y": -17,
           "layer": "top",
           "pcb_port_id": "pcb_port_57"
         },
         {
-          "x": 3,
-          "y": -9.5,
+          "x": 5.5,
+          "y": -17,
           "layer": "top",
           "pcb_port_id": "pcb_port_61"
         },
         {
-          "x": 8,
-          "y": -9.5,
+          "x": 15.5,
+          "y": -17,
           "layer": "top",
           "pcb_port_id": "pcb_port_65"
         }

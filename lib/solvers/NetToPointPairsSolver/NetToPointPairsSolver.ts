@@ -41,17 +41,14 @@ export class NetToPointPairsSolver extends BaseSolver {
       return
     }
 
-    this.newConnections.push(connection)
+    const edges = buildMinimumSpanningTree(connection.pointsToConnect)
 
-    // const edges = buildMinimumSpanningTree(connection.pointsToConnect)
-    // console.log(edges)
-
-    // for (const edge of edges) {
-    //   this.newConnections.push({
-    //     pointsToConnect: [edge.from, edge.to],
-    //     name: connection.name,
-    //   })
-    // }
+    for (const edge of edges) {
+      this.newConnections.push({
+        pointsToConnect: [edge.from, edge.to],
+        name: connection.name,
+      })
+    }
   }
 
   getNewSimpleRouteJson(): SimpleRouteJson {
@@ -73,7 +70,6 @@ export class NetToPointPairsSolver extends BaseSolver {
 
     // Draw unprocessed connections in red
     this.unprocessedConnections.forEach((connection) => {
-      console.log(connection.pointsToConnect.length)
       // Draw points
       connection.pointsToConnect.forEach((point) => {
         graphics.points!.push({

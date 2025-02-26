@@ -219,6 +219,12 @@ export class CapacityPathingSolver extends BaseSolver {
     }
   }
 
+  isConnectedToEndGoal(node: CapacityMeshNode, endGoal: CapacityMeshNode) {
+    return this.nodeEdgeMap
+      .get(node.capacityMeshNodeId)!
+      .some((edge) => edge.nodeIds.includes(endGoal.capacityMeshNodeId))
+  }
+
   _step() {
     const nextConnection =
       this.connectionsWithNodes[this.currentConnectionIndex]
@@ -248,8 +254,14 @@ export class CapacityPathingSolver extends BaseSolver {
       this.visitedNodes = null
       return
     }
-    if (currentCandidate.node.capacityMeshNodeId === end.capacityMeshNodeId) {
-      nextConnection.path = this.getBacktrackedPath(currentCandidate)
+    if (this.isConnectedToEndGoal(currentCandidate.node, end)) {
+      nextConnection.path = this.getBacktrackedPath({
+        prevCandidate: currentCandidate,
+        node: end,
+        f: 0,
+        g: 0,
+        h: 0,
+      })
 
       this.reduceCapacityAlongPath(nextConnection)
 
