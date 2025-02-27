@@ -16,7 +16,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       vias: [],
     }
 
-    const result = convertHdRouteToSimplifiedRoute(input)
+    const result = convertHdRouteToSimplifiedRoute(input, 2)
     expect(result).toMatchInlineSnapshot(`
       [
         {
@@ -64,7 +64,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       ],
     }
 
-    const result = convertHdRouteToSimplifiedRoute(input)
+    const result = convertHdRouteToSimplifiedRoute(input, 2)
     expect(result).toMatchInlineSnapshot(`
       [
         {
@@ -143,7 +143,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       vias: [],
     }
 
-    const result = convertHdRouteToSimplifiedRoute(input)
+    const result = convertHdRouteToSimplifiedRoute(input, 2)
     expect(result).toMatchInlineSnapshot(`[]`)
   })
 
@@ -166,7 +166,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       ],
     }
 
-    const result = convertHdRouteToSimplifiedRoute(input)
+    const result = convertHdRouteToSimplifiedRoute(input, 2)
     expect(result).toMatchInlineSnapshot(`
       [
         {
