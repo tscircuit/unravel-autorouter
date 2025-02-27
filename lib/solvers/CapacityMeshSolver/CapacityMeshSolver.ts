@@ -77,6 +77,10 @@ export class CapacityMeshSolver extends BaseSolver {
   highDensityRouteSolver?: HighDensityRouteSolver
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
 
+  startTimeOfPhase: Record<string, number>
+  endTimeOfPhase: Record<string, number>
+  timeSpentOnPhase: Record<string, number>
+
   activeSolver?: BaseSolver | null = null
   connMap: ConnectivityMap
   srjWithPointPairs?: SimpleRouteJson
@@ -90,6 +94,7 @@ export class CapacityMeshSolver extends BaseSolver {
         onSolved: (cms) => {
           cms.srjWithPointPairs =
             cms.netToPointPairsSolver?.getNewSimpleRouteJson()
+          cms.colorMap = getColorMap(cms.srjWithPointPairs!, this.connMap)
         },
       },
     ),
@@ -211,6 +216,9 @@ export class CapacityMeshSolver extends BaseSolver {
 
     this.connMap = getConnectivityMapFromSimpleRouteJson(srj)
     this.colorMap = getColorMap(srj, this.connMap)
+    this.startTimeOfPhase = {}
+    this.endTimeOfPhase = {}
+    this.timeSpentOnPhase = {}
   }
 
   currentPipelineStepIndex = 0
@@ -224,6 +232,10 @@ export class CapacityMeshSolver extends BaseSolver {
     if (this.activeSolver) {
       this.activeSolver.step()
       if (this.activeSolver.solved) {
+        this.endTimeOfPhase[pipelineStepDef.solverName] = performance.now()
+        this.timeSpentOnPhase[pipelineStepDef.solverName] =
+          this.endTimeOfPhase[pipelineStepDef.solverName] -
+          this.startTimeOfPhase[pipelineStepDef.solverName]
         pipelineStepDef.onSolved?.(this)
         this.activeSolver = null
         this.currentPipelineStepIndex++
@@ -240,6 +252,8 @@ export class CapacityMeshSolver extends BaseSolver {
       ...(constructorParams as [any, any, any]),
     )
     ;(this as any)[pipelineStepDef.solverName] = this.activeSolver
+    this.timeSpentOnPhase[pipelineStepDef.solverName] = 0
+    this.startTimeOfPhase[pipelineStepDef.solverName] = performance.now()
   }
 
   getCurrentPhase(): string {
