@@ -52,11 +52,11 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       route: [
         { x: 1, y: 1, z: 0 }, // Top layer segment start
         { x: 2, y: 2, z: 0 }, // Top layer segment end, via here
-        { x: 2, y: 2, z: 1 }, // Bottom layer segment start (at via)
+        { x: 2, y: 2, z: 1 }, // inner layer segment start (at via)
         { x: 3, y: 3, z: 1 },
-        { x: 4, y: 4, z: 1 }, // Bottom layer segment end, via here
-        { x: 4, y: 4, z: 2 }, // Layer2 segment start (at via)
-        { x: 5, y: 5, z: 2 }, // Layer2 segment end
+        { x: 4, y: 4, z: 1 }, // inner layer segment end, via here
+        { x: 4, y: 4, z: 2 }, // bottom segment start (at via)
+        { x: 5, y: 5, z: 2 }, // bottom segment end
       ],
       vias: [
         { x: 2, y: 2 }, // Via connecting top to bottom
@@ -64,7 +64,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       ],
     }
 
-    const result = convertHdRouteToSimplifiedRoute(input, 2)
+    const result = convertHdRouteToSimplifiedRoute(input, 4)
     expect(result).toMatchInlineSnapshot(`
       [
         {
@@ -155,10 +155,10 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       route: [
         { x: 1, y: 1, z: 0 },
         { x: 2, y: 2, z: 0 }, // Top layer end, via should be here
-        { x: 2, y: 2, z: 1 }, // Bottom layer start
-        { x: 3, y: 3, z: 1 }, // Bottom layer end, no via here
-        { x: 3, y: 3, z: 2 }, // Layer2 start
-        { x: 4, y: 4, z: 2 }, // Layer2 end
+        { x: 2, y: 2, z: 1 }, // inner layer start
+        { x: 3, y: 3, z: 1 }, // inner layer end, no via here
+        { x: 3, y: 3, z: 2 }, // bottom start
+        { x: 4, y: 4, z: 2 }, // bottom end
       ],
       vias: [
         // Only one via at (2,2), missing the one at (3,3)
@@ -166,7 +166,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
       ],
     }
 
-    const result = convertHdRouteToSimplifiedRoute(input, 2)
+    const result = convertHdRouteToSimplifiedRoute(input, 4)
     expect(result).toMatchInlineSnapshot(`
       [
         {
