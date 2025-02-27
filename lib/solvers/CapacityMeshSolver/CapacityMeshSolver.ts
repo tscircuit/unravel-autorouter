@@ -337,18 +337,6 @@ export class CapacityMeshSolver extends BaseSolver {
         throw new Error("Multiple hdRoutes found for connection")
       }
 
-      // const [start, end] = connection.pointsToConnect
-
-      // const startZ = mapLayerNameToZ(start.layer, this.srj.layerCount)
-      // const endZ = mapLayerNameToZ(end.layer, this.srj.layerCount)
-
-      // Merge the hdRoutes into a single hdRoute
-      // const mergedHdRoute = mergeHighDensityRoutes(
-      //   hdRoutes,
-      //   { ...start, z: startZ },
-      //   { ...end, z: endZ },
-      // )
-
       const simplifiedPcbTrace: SimplifiedPcbTrace = {
         type: "pcb_trace",
         pcb_trace_id: connection.name,
@@ -360,22 +348,7 @@ export class CapacityMeshSolver extends BaseSolver {
       }
 
       traces.push(simplifiedPcbTrace)
-
-      // Convert the merged route points to a SimplifiedPcbTraces
     }
-
-    // for (const hdRoute of this.highDensityRouteSolver.routes) {
-    //   const pointPairConnName = hdRoute.connectionName
-
-    //   const trace: SimplifiedPcbTraces[number] = {
-    //     type: "pcb_trace",
-    //     pcb_trace_id: pointPairConnName,
-    //     connection_name: this.getOriginalConnectionName(pointPairConnName),
-    //     route: convertHdRouteToSimplifiedRoute(hdRoute, 2),
-    //   }
-
-    //   traces.push(trace)
-    // }
 
     return traces
   }

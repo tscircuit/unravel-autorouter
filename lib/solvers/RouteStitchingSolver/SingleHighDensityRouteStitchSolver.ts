@@ -58,7 +58,6 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
     let closestDistance = Infinity
     for (let i = 0; i < this.remainingHdRoutes.length; i++) {
       const hdRoute = this.remainingHdRoutes[i]
-      console.log(i, hdRoute.route)
       const lastPointInCandidate = hdRoute.route[hdRoute.route.length - 1]
       const firstPointInCandidate = hdRoute.route[0]
       const distToFirst = distance(lastMergedPoint, firstPointInCandidate)

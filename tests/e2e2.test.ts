@@ -99,7 +99,6 @@ describe("CapacityMeshSolver", () => {
     await solver.solve()
 
     const result = solver.getOutputSimpleRouteJson()
-    console.log(result.traces!.length)
     expect(convertSrjToGraphicsObject(result)).toMatchGraphicsSvg(
       import.meta.path,
     )
