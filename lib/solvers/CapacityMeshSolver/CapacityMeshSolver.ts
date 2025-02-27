@@ -28,6 +28,7 @@ import { convertHdRouteToSimplifiedRoute } from "lib/utils/convertHdRouteToSimpl
 import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { MultipleHighDensityRouteStitchSolver } from "../RouteStitchingSolver/MultipleHighDensityRouteStitchSolver"
+import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -290,6 +291,12 @@ export class CapacityMeshSolver extends BaseSolver {
       segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
       highDensityStitchViz,
+      this.solved
+        ? combineVisualizations(
+            problemViz,
+            convertSrjToGraphicsObject(this.getOutputSimpleRouteJson()),
+          )
+        : null,
     ].filter(Boolean) as GraphicsObject[]
     // return visualizations[visualizations.length - 1]
     return combineVisualizations(...visualizations)
@@ -322,14 +329,18 @@ export class CapacityMeshSolver extends BaseSolver {
       )
 
       // Find all the hdRoutes that correspond to this connection
-      const hdRoutes = this.highDensityRouteSolver.routes.filter(
+      const hdRoutes = this.highDensityStitchSolver!.mergedHdRoutes.filter(
         (r) => r.connectionName === connection.name,
       )
 
-      const [start, end] = connection.pointsToConnect
+      if (hdRoutes.length > 1) {
+        throw new Error("Multiple hdRoutes found for connection")
+      }
 
-      const startZ = mapLayerNameToZ(start.layer, this.srj.layerCount)
-      const endZ = mapLayerNameToZ(end.layer, this.srj.layerCount)
+      // const [start, end] = connection.pointsToConnect
+
+      // const startZ = mapLayerNameToZ(start.layer, this.srj.layerCount)
+      // const endZ = mapLayerNameToZ(end.layer, this.srj.layerCount)
 
       // Merge the hdRoutes into a single hdRoute
       // const mergedHdRoute = mergeHighDensityRoutes(
