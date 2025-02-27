@@ -40,4 +40,5 @@ test("highdensityoverlap1", () => {
   const solution1 = solver.routes[0]
 
   console.log(solution1)
+  expect(solution1.route.length).toBe(2)
 })
