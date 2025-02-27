@@ -242,6 +242,10 @@ export class CapacityMeshSolver extends BaseSolver {
     ;(this as any)[pipelineStepDef.solverName] = this.activeSolver
   }
 
+  getCurrentPhase(): string {
+    return this.pipelineDef[this.currentPipelineStepIndex].solverName
+  }
+
   visualize(): GraphicsObject {
     if (!this.solved && this.activeSolver) return this.activeSolver.visualize()
     const netToPPSolver = this.netToPointPairsSolver?.visualize()
