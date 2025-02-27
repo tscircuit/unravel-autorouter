@@ -26,12 +26,41 @@ import { calculateOptimalCapacityDepth } from "../../utils/getTunedTotalCapacity
 import { NetToPointPairsSolver } from "../NetToPointPairsSolver/NetToPointPairsSolver"
 import { convertHdRouteToSimplifiedRoute } from "lib/utils/convertHdRouteToSimplifiedRoute"
 import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
-import { mergeHighDensityRoutes } from "lib/utils/mergeHighDensityRoutes"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
   targetMinCapacity?: number
+}
+
+type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
+  solverName: string
+  solverClass: T
+  getConstructorParams: (
+    instance: CapacityMeshSolver,
+  ) => ConstructorParameters<T>
+  onSolved?: (instance: CapacityMeshSolver) => void
+}
+
+function definePipelineStep<
+  T extends new (
+    ...args: any[]
+  ) => BaseSolver,
+  const P extends ConstructorParameters<T>,
+>(
+  solverName: keyof CapacityMeshSolver,
+  solverClass: T,
+  getConstructorParams: (instance: CapacityMeshSolver) => P,
+  opts: {
+    onSolved?: (instance: CapacityMeshSolver) => void
+  } = {},
+): PipelineStep<T> {
+  return {
+    solverName,
+    solverClass,
+    getConstructorParams,
+    onSolved: opts.onSolved,
+  }
 }
 
 export class CapacityMeshSolver extends BaseSolver {
@@ -48,6 +77,96 @@ export class CapacityMeshSolver extends BaseSolver {
 
   activeSolver?: BaseSolver | null = null
   connMap: ConnectivityMap
+
+  pipelineDef = [
+    definePipelineStep(
+      "netToPointPairsSolver",
+      NetToPointPairsSolver,
+      (cms) => [cms.srj, cms.colorMap],
+    ),
+    definePipelineStep("nodeSolver", CapacityMeshNodeSolver, (cms) => [
+      cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
+      cms.opts,
+    ]),
+    definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger, (cms) => [
+      cms.nodeSolver?.finishedNodes || [],
+      cms.srj.obstacles,
+      cms.connMap,
+    ]),
+    definePipelineStep("edgeSolver", CapacityMeshEdgeSolver, (cms) => [
+      cms.nodeTargetMerger?.newNodes || [],
+    ]),
+    definePipelineStep(
+      "pathingSolver",
+      CapacityPathingSolver4_FlexibleNegativeCapacity,
+      (cms) => [
+        {
+          simpleRouteJson:
+            cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
+          nodes: cms.nodeTargetMerger?.newNodes || [],
+          edges: cms.edgeSolver?.edges || [],
+          colorMap: cms.colorMap,
+          hyperParameters: {
+            MAX_CAPACITY_FACTOR: 1,
+          },
+        },
+      ],
+    ),
+    definePipelineStep(
+      "edgeToPortSegmentSolver",
+      CapacityEdgeToPortSegmentSolver,
+      (cms) => [
+        {
+          nodes: cms.nodeTargetMerger?.newNodes || [],
+          edges: cms.edgeSolver?.edges || [],
+          capacityPaths: cms.pathingSolver?.getCapacityPaths() || [],
+          colorMap: cms.colorMap,
+        },
+      ],
+    ),
+    definePipelineStep(
+      "segmentToPointSolver",
+      CapacitySegmentToPointSolver,
+      (cms) => {
+        const allSegments: NodePortSegment[] = []
+        if (cms.edgeToPortSegmentSolver?.nodePortSegments) {
+          cms.edgeToPortSegmentSolver.nodePortSegments.forEach((segs) => {
+            allSegments.push(...segs)
+          })
+        }
+        return [
+          {
+            segments: allSegments,
+            colorMap: cms.colorMap,
+            nodes: cms.nodeTargetMerger?.newNodes || [],
+          },
+        ]
+      },
+    ),
+    definePipelineStep(
+      "segmentToPointOptimizer",
+      CapacitySegmentPointOptimizer,
+      (cms) => [
+        {
+          assignedSegments: cms.segmentToPointSolver?.solvedSegments || [],
+          colorMap: cms.colorMap,
+          nodes: cms.nodeTargetMerger?.newNodes || [],
+        },
+      ],
+    ),
+    definePipelineStep(
+      "highDensityRouteSolver",
+      HighDensityRouteSolver,
+      (cms) => [
+        {
+          nodePortPoints:
+            cms.segmentToPointOptimizer?.getNodesWithPortPoints() || [],
+          colorMap: cms.colorMap,
+          connMap: cms.connMap,
+        },
+      ],
+    ),
+  ]
 
   constructor(
     public srj: SimpleRouteJson,
@@ -75,11 +194,13 @@ export class CapacityMeshSolver extends BaseSolver {
     this.colorMap = getColorMap(srj, this.connMap)
   }
 
+  currentPipelineStepIndex = 0
   _step() {
     if (this.activeSolver) {
       this.activeSolver.step()
       if (this.activeSolver.solved) {
         this.activeSolver = null
+        this.currentPipelineStepIndex++
       } else if (this.activeSolver.failed) {
         this.error = this.activeSolver?.error
         this.failed = true
@@ -87,98 +208,18 @@ export class CapacityMeshSolver extends BaseSolver {
       }
       return
     }
-    // PROGRESS TO NEXT SOLVER
-    if (!this.netToPointPairsSolver) {
-      this.netToPointPairsSolver = new NetToPointPairsSolver(
-        this.srj,
-        this.colorMap,
-      )
-      this.activeSolver = this.netToPointPairsSolver
-      return
-    }
-    if (!this.nodeSolver) {
-      const newSrj = this.netToPointPairsSolver.getNewSimpleRouteJson()
-      this.connMap = getConnectivityMapFromSimpleRouteJson(newSrj)
-      this.colorMap = getColorMap(newSrj, this.connMap)
-      this.nodeSolver = new CapacityMeshNodeSolver(newSrj, this.opts)
-      this.activeSolver = this.nodeSolver
-      return
-    }
-    if (!this.nodeTargetMerger) {
-      this.nodeTargetMerger = new CapacityNodeTargetMerger(
-        this.nodeSolver.finishedNodes,
-        this.srj.obstacles,
-        this.connMap,
-      )
-      this.activeSolver = this.nodeTargetMerger
-      return
-    }
-    // const nodes = this.nodeSolver.finishedNodes
-    const nodes = this.nodeTargetMerger.newNodes
-    if (!this.edgeSolver) {
-      this.edgeSolver = new CapacityMeshEdgeSolver(nodes)
-      this.activeSolver = this.edgeSolver
-      return
-    }
-    if (!this.pathingSolver) {
-      this.pathingSolver = new CapacityPathingSolver4_FlexibleNegativeCapacity({
-        simpleRouteJson: this.netToPointPairsSolver.getNewSimpleRouteJson(),
-        nodes,
-        edges: this.edgeSolver.edges,
-        colorMap: this.colorMap,
-        hyperParameters: {
-          MAX_CAPACITY_FACTOR: 1,
-        },
-      })
-      this.activeSolver = this.pathingSolver
-      return
-    }
-    if (!this.edgeToPortSegmentSolver) {
-      this.edgeToPortSegmentSolver = new CapacityEdgeToPortSegmentSolver({
-        nodes,
-        edges: this.edgeSolver.edges,
-        capacityPaths: this.pathingSolver!.getCapacityPaths(),
-        colorMap: this.colorMap,
-      })
-      this.activeSolver = this.edgeToPortSegmentSolver
-      return
-    }
-    if (!this.segmentToPointSolver) {
-      const allSegments: NodePortSegment[] = []
-      this.edgeToPortSegmentSolver.nodePortSegments.forEach((segs) => {
-        allSegments.push(...segs)
-      })
-      this.segmentToPointSolver = new CapacitySegmentToPointSolver({
-        segments: allSegments,
-        colorMap: this.colorMap,
-        nodes,
-      })
-      this.activeSolver = this.segmentToPointSolver
-      return
-    }
-    if (!this.segmentToPointOptimizer) {
-      this.segmentToPointOptimizer = new CapacitySegmentPointOptimizer({
-        assignedSegments: this.segmentToPointSolver.solvedSegments,
-        colorMap: this.colorMap,
-        nodes,
-      })
-      this.activeSolver = this.segmentToPointOptimizer
+
+    const pipelineStepDef = this.pipelineDef[this.currentPipelineStepIndex]
+    if (!pipelineStepDef) {
+      this.solved = true
       return
     }
 
-    if (!this.highDensityRouteSolver) {
-      const nodesWithPortPoints =
-        this.segmentToPointOptimizer.getNodesWithPortPoints()
-      this.highDensityRouteSolver = new HighDensityRouteSolver({
-        nodePortPoints: nodesWithPortPoints,
-        colorMap: this.colorMap,
-        connMap: this.connMap,
-      })
-      this.activeSolver = this.highDensityRouteSolver
-      return
-    }
-
-    this.solved = true
+    const constructorParams = pipelineStepDef.getConstructorParams(this)
+    this.activeSolver = new pipelineStepDef.solverClass(
+      ...(constructorParams as [any, any, any]),
+    )
+    ;(this as any)[pipelineStepDef.solverName] = this.activeSolver
   }
 
   visualize(): GraphicsObject {
@@ -213,47 +254,6 @@ export class CapacityMeshSolver extends BaseSolver {
     ].filter(Boolean) as GraphicsObject[]
     // return visualizations[visualizations.length - 1]
     return combineVisualizations(...visualizations)
-  }
-
-  /**
-   * Simplifies a route by merging consecutive points along the same line
-   */
-  private simplifyRoute(points: Array<{ x: number; y: number; z: number }>) {
-    if (points.length <= 2) return points
-
-    const result: Array<{ x: number; y: number; z: number }> = [points[0]]
-
-    for (let i = 1; i < points.length - 1; i++) {
-      const prev = points[i - 1]
-      const curr = points[i]
-      const next = points[i + 1]
-
-      // Skip current point if it lies on the same line as previous and next
-      // and has the same z-coordinate
-      if (curr.z === prev.z && curr.z === next.z) {
-        const dx1 = curr.x - prev.x
-        const dy1 = curr.y - prev.y
-        const dx2 = next.x - curr.x
-        const dy2 = next.y - curr.y
-
-        // Check if the vectors are parallel (same direction)
-        // For parallel vectors, cross product should be close to zero
-        // and dot product should be positive (same direction)
-        const crossProduct = dx1 * dy2 - dy1 * dx2
-        const dotProduct = dx1 * dx2 + dy1 * dy2
-
-        if (Math.abs(crossProduct) < 0.001 && dotProduct > 0) {
-          continue
-        }
-      }
-
-      result.push(curr)
-    }
-
-    // Always add the last point
-    result.push(points[points.length - 1])
-
-    return result
   }
 
   /**
@@ -293,18 +293,18 @@ export class CapacityMeshSolver extends BaseSolver {
       const endZ = mapLayerNameToZ(end.layer, this.srj.layerCount)
 
       // Merge the hdRoutes into a single hdRoute
-      const mergedHdRoute = mergeHighDensityRoutes(
-        hdRoutes,
-        { ...start, z: startZ },
-        { ...end, z: endZ },
-      )
+      // const mergedHdRoute = mergeHighDensityRoutes(
+      //   hdRoutes,
+      //   { ...start, z: startZ },
+      //   { ...end, z: endZ },
+      // )
 
       const simplifiedPcbTrace: SimplifiedPcbTrace = {
         type: "pcb_trace",
         pcb_trace_id: connection.name,
         connection_name: this.getOriginalConnectionName(connection.name),
         route: convertHdRouteToSimplifiedRoute(
-          mergedHdRoute,
+          hdRoutes[0],
           this.srj.layerCount,
         ),
       }
@@ -327,10 +327,7 @@ export class CapacityMeshSolver extends BaseSolver {
     //   traces.push(trace)
     // }
 
-    return {
-      ...this.srj,
-      traces,
-    }
+    return traces
   }
 
   getOutputSimpleRouteJson(): SimpleRouteJson {
