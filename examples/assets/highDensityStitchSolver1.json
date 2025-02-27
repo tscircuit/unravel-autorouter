@@ -22,24 +22,6 @@
         "connectionName": "conn1",
         "route": [
           {
-            "x": 10.078125,
-            "y": 4.6875,
-            "z": 0
-          },
-          {
-            "x": 10.078125,
-            "y": 4.6875,
-            "z": 0
-          }
-        ],
-        "traceThickness": 0.15,
-        "viaDiameter": 0.6,
-        "vias": []
-      },
-      {
-        "connectionName": "conn1",
-        "route": [
-          {
             "x": 9.84375,
             "y": 3.75,
             "z": 0
@@ -209,24 +191,6 @@
           {
             "x": -9.84375,
             "y": 3.75,
-            "z": 0
-          }
-        ],
-        "traceThickness": 0.15,
-        "viaDiameter": 0.6,
-        "vias": []
-      },
-      {
-        "connectionName": "conn1",
-        "route": [
-          {
-            "x": -10.078125,
-            "y": 4.6875,
-            "z": 0
-          },
-          {
-            "x": -10.078125,
-            "y": 4.6875,
             "z": 0
           }
         ],
