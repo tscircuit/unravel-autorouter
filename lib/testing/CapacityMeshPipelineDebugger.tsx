@@ -178,6 +178,7 @@ export const CapacityMeshPipelineDebugger = ({
               <th className="border p-2 text-left">Step</th>
               <th className="border p-2 text-left">Status</th>
               <th className="border p-2 text-left">Iterations</th>
+              <th className="border p-2 text-left">Time</th>
               <th className="border p-2 text-left">Input</th>
             </tr>
           </thead>
@@ -206,6 +207,15 @@ export const CapacityMeshPipelineDebugger = ({
                     {status}
                   </td>
                   <td className="border p-2">{stepSolver?.iterations || 0}</td>
+                  <td className="border p-2 tabular-nums">
+                    {(
+                      ((solver.endTimeOfPhase[step.solverName] ??
+                        performance.now()) -
+                        (solver.startTimeOfPhase[step.solverName] ??
+                          performance.now())) /
+                      1000
+                    ).toFixed(2)}
+                  </td>
                   <td className="border p-2">
                     <button
                       className="text-blue-600 hover:underline"
