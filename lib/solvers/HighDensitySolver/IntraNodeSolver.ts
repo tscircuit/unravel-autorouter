@@ -19,7 +19,7 @@ import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWith
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { getMinDistBetweenEnteringPoints } from "lib/utils/getMinDistBetweenEnteringPoints"
 
-export class SingleIntraNodeRouteSolver extends BaseSolver {
+export class IntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
   unsolvedConnections: {
@@ -152,6 +152,15 @@ export class SingleIntraNodeRouteSolver extends BaseSolver {
     if (!unsolvedConnection) {
       this.solved = this.failedSolvers.length === 0
       return
+    }
+    if (unsolvedConnection.points.length === 1) {
+      return
+    }
+    if (unsolvedConnection.points.length === 2) {
+      const [A, B] = unsolvedConnection.points
+      if (A.x === B.x && A.y === B.y && A.z === B.z) {
+        return
+      }
     }
     const { connectionName, points } = unsolvedConnection
     this.activeSolver =

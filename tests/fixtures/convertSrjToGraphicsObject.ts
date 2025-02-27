@@ -1,10 +1,28 @@
-import { Rect, Line, Circle } from "graphics-debug"
+import { Rect, Line, Circle, Point } from "graphics-debug"
 import { SimpleRouteJson } from "../../lib/types/srj-types"
-import { safeTransparentize } from "lib/solvers/colors"
+import { getColorMap, safeTransparentize } from "lib/solvers/colors"
 
 export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
   const lines: Line[] = []
   const circles: Circle[] = []
+  const points: Point[] = []
+
+  const colorMap: Record<string, string> = getColorMap(srj)
+
+  // Add points for each connection's pointsToConnect
+  if (srj.connections) {
+    for (const connection of srj.connections) {
+      for (const point of connection.pointsToConnect) {
+        points.push({
+          x: point.x,
+          y: point.y,
+          color: colorMap[connection.name]!,
+          label: `${connection.name} (${point.layer})`,
+        })
+      }
+    }
+  }
+
   // Process each trace
   if (srj.traces) {
     for (const trace of srj.traces) {
@@ -17,7 +35,7 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
           circles.push({
             center: { x: routePoint.x, y: routePoint.y },
             radius: 0.3, // 0.6 via diameter
-            fill: "rgba(0,0,255,0.5)",
+            fill: "blue",
             stroke: "none",
           })
         } else if (
@@ -40,7 +58,8 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
               }[routePoint.layer]!,
               0.5,
             ),
-            strokeWidth: 0.15,
+            // For some reason this is too small, likely a graphics-debug bug
+            // strokeWidth: 0.15,
           })
         }
       }
@@ -59,5 +78,6 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
     ),
     circles,
     lines,
+    points,
   }
 }

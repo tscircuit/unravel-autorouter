@@ -1,6 +1,6 @@
 {
   "minTraceWidth": 0.1,
-  "layerCount": 1,
+  "layerCount": 2,
   "obstacles": [
     {
       "type": "rect",

@@ -5,13 +5,13 @@ import type {
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
 import { safeTransparentize } from "../colors"
-import { SingleIntraNodeRouteSolver } from "./SingleIntraNodeRouteSolver"
+import { IntraNodeRouteSolver } from "./IntraNodeSolver"
 import { HyperSingleIntraNodeSolver } from "../HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
 
-export class HighDensityRouteSolver extends BaseSolver {
+export class HighDensitySolver extends BaseSolver {
   unsolvedNodePortPoints: NodeWithPortPoints[]
   routes: HighDensityIntraNodeRoute[]
   colorMap: Record<string, string>
@@ -20,11 +20,9 @@ export class HighDensityRouteSolver extends BaseSolver {
   readonly defaultViaDiameter = 0.6
   readonly defaultTraceThickness = 0.15
 
-  failedSolvers: (SingleIntraNodeRouteSolver | HyperSingleIntraNodeSolver)[]
-  activeSubSolver:
-    | SingleIntraNodeRouteSolver
-    | HyperSingleIntraNodeSolver
-    | null = null
+  failedSolvers: (IntraNodeRouteSolver | HyperSingleIntraNodeSolver)[]
+  activeSubSolver: IntraNodeRouteSolver | HyperSingleIntraNodeSolver | null =
+    null
   connMap?: ConnectivityMap
 
   constructor({
