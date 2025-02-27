@@ -95,6 +95,9 @@ export class CapacityMeshSolver extends BaseSolver {
           cms.srjWithPointPairs =
             cms.netToPointPairsSolver?.getNewSimpleRouteJson()
           cms.colorMap = getColorMap(cms.srjWithPointPairs!, this.connMap)
+          cms.connMap = getConnectivityMapFromSimpleRouteJson(
+            cms.srjWithPointPairs!,
+          )
         },
       },
     ),
@@ -270,6 +273,7 @@ export class CapacityMeshSolver extends BaseSolver {
     const segmentToPointViz = this.segmentToPointSolver?.visualize()
     const segmentOptimizationViz = this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
+    const highDensityStitchViz = this.highDensityStitchSolver?.visualize()
     const problemViz = {
       points: [...this.srj.connections.flatMap((c) => c.pointsToConnect)],
       rects: [
@@ -289,6 +293,7 @@ export class CapacityMeshSolver extends BaseSolver {
       segmentToPointViz,
       segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
+      highDensityStitchViz,
     ].filter(Boolean) as GraphicsObject[]
     // return visualizations[visualizations.length - 1]
     return combineVisualizations(...visualizations)
