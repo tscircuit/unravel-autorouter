@@ -62,7 +62,88 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
     })
   }
 
-  // visualize(): GraphicsObject {
+  visualize(): GraphicsObject {
+    const graphics: GraphicsObject = {
+      points: [],
+      lines: [],
+      circles: [],
+      title: "Multiple High Density Route Stitch Solver",
+    }
 
-  // }
+    // Visualize the active solver if one exists
+    if (this.activeSolver) {
+      // Combine visualizations from the active solver
+      const activeSolverGraphics = this.activeSolver.visualize()
+
+      // Merge points
+      if (activeSolverGraphics.points?.length) {
+        graphics.points?.push(...activeSolverGraphics.points)
+      }
+
+      // Merge lines
+      if (activeSolverGraphics.lines?.length) {
+        graphics.lines?.push(...activeSolverGraphics.lines)
+      }
+
+      // Merge circles
+      if (activeSolverGraphics.circles?.length) {
+        graphics.circles?.push(...activeSolverGraphics.circles)
+      }
+
+      // Merge rects if they exist
+      if (activeSolverGraphics.rects?.length) {
+        graphics.rects = activeSolverGraphics.rects
+      }
+    }
+
+    // Visualize all remaining unsolved routes - start/end points only
+    for (const unsolvedRoute of this.unsolvedRoutes) {
+      // Add start and end points for unsolved connections
+      graphics.points?.push(
+        {
+          x: unsolvedRoute.start.x,
+          y: unsolvedRoute.start.y,
+          color: "lightgreen",
+          label: `${unsolvedRoute.connectionName} Start`,
+        },
+        {
+          x: unsolvedRoute.end.x,
+          y: unsolvedRoute.end.y,
+          color: "pink",
+          label: `${unsolvedRoute.connectionName} End`,
+        },
+      )
+
+      // Add a light dashed line between start and end to show pending connections
+      graphics.lines?.push({
+        points: [
+          { x: unsolvedRoute.start.x, y: unsolvedRoute.start.y },
+          { x: unsolvedRoute.end.x, y: unsolvedRoute.end.y },
+        ],
+        strokeColor: "gray",
+      })
+
+      // Visualize HD routes associated with unsolved routes (faded)
+      for (const hdRoute of unsolvedRoute.hdRoutes) {
+        if (hdRoute.route.length > 1) {
+          graphics.lines?.push({
+            points: hdRoute.route.map((point) => ({ x: point.x, y: point.y })),
+            strokeColor: "lightblue",
+          })
+        }
+
+        // Visualize vias
+        for (const via of hdRoute.vias) {
+          graphics.circles?.push({
+            center: { x: via.x, y: via.y },
+            radius: hdRoute.viaDiameter / 2,
+            fill: "lavender",
+            stroke: "lavender",
+          })
+        }
+      }
+    }
+
+    return graphics
+  }
 }
