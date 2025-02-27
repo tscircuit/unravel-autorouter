@@ -52,7 +52,7 @@ export const convertHdRouteToSimplifiedRoute = (
 
       // Add a via if one exists
       if (viaExists) {
-        const fromLayer = mapZToLayerName(point.z)
+        const fromLayer = mapZToLayerName(currentZ)
         const toLayer = mapZToLayerName(point.z)
 
         result.push({

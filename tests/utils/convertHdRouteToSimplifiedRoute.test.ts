@@ -82,7 +82,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
           "y": 2,
         },
         {
-          "from_layer": "inner1",
+          "from_layer": "top",
           "route_type": "via",
           "to_layer": "inner1",
           "x": 2,
@@ -110,7 +110,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
           "y": 4,
         },
         {
-          "from_layer": "inner2",
+          "from_layer": "inner1",
           "route_type": "via",
           "to_layer": "inner2",
           "x": 4,
@@ -184,7 +184,7 @@ describe("convertHdRouteToSimplifiedRoute", () => {
           "y": 2,
         },
         {
-          "from_layer": "inner1",
+          "from_layer": "top",
           "route_type": "via",
           "to_layer": "inner1",
           "x": 2,
