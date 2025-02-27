@@ -79,12 +79,19 @@ export class CapacityMeshSolver extends BaseSolver {
 
   activeSolver?: BaseSolver | null = null
   connMap: ConnectivityMap
+  srjWithPointPairs?: SimpleRouteJson
 
   pipelineDef = [
     definePipelineStep(
       "netToPointPairsSolver",
       NetToPointPairsSolver,
       (cms) => [cms.srj, cms.colorMap],
+      {
+        onSolved: (cms) => {
+          cms.srjWithPointPairs =
+            cms.netToPointPairsSolver?.getNewSimpleRouteJson()
+        },
+      },
     ),
     definePipelineStep("nodeSolver", CapacityMeshNodeSolver, (cms) => [
       cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
@@ -103,8 +110,7 @@ export class CapacityMeshSolver extends BaseSolver {
       CapacityPathingSolver4_FlexibleNegativeCapacity,
       (cms) => [
         {
-          simpleRouteJson:
-            cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
+          simpleRouteJson: cms.srjWithPointPairs!,
           nodes: cms.nodeTargetMerger?.newNodes || [],
           edges: cms.edgeSolver?.edges || [],
           colorMap: cms.colorMap,
@@ -173,7 +179,7 @@ export class CapacityMeshSolver extends BaseSolver {
       MultipleHighDensityRouteStitchSolver,
       (cms) => [
         {
-          connections: cms.srj.connections,
+          connections: cms.srjWithPointPairs!.connections,
           hdRoutes: cms.highDensityRouteSolver!.routes,
           layerCount: cms.srj.layerCount,
         },
@@ -209,9 +215,16 @@ export class CapacityMeshSolver extends BaseSolver {
 
   currentPipelineStepIndex = 0
   _step() {
+    const pipelineStepDef = this.pipelineDef[this.currentPipelineStepIndex]
+    if (!pipelineStepDef) {
+      this.solved = true
+      return
+    }
+
     if (this.activeSolver) {
       this.activeSolver.step()
       if (this.activeSolver.solved) {
+        pipelineStepDef.onSolved?.(this)
         this.activeSolver = null
         this.currentPipelineStepIndex++
       } else if (this.activeSolver.failed) {
@@ -219,12 +232,6 @@ export class CapacityMeshSolver extends BaseSolver {
         this.failed = true
         this.activeSolver = null
       }
-      return
-    }
-
-    const pipelineStepDef = this.pipelineDef[this.currentPipelineStepIndex]
-    if (!pipelineStepDef) {
-      this.solved = true
       return
     }
 
