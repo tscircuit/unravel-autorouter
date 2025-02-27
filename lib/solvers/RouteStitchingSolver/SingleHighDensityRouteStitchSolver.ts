@@ -58,15 +58,16 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
     let closestDistance = Infinity
     for (let i = 0; i < this.remainingHdRoutes.length; i++) {
       const hdRoute = this.remainingHdRoutes[i]
+      console.log(i, hdRoute.route)
       const lastPointInCandidate = hdRoute.route[hdRoute.route.length - 1]
       const firstPointInCandidate = hdRoute.route[0]
       const distToFirst = distance(lastMergedPoint, firstPointInCandidate)
+      const distToLast = distance(lastMergedPoint, lastPointInCandidate)
       if (distToFirst < closestDistance) {
         closestDistance = distToFirst
         closestRouteIndex = i
         matchedOn = "first"
       }
-      const distToLast = distance(lastMergedPoint, lastPointInCandidate)
       if (distToLast < closestDistance) {
         closestDistance = distToLast
         closestRouteIndex = i
@@ -80,7 +81,7 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
     if (matchedOn === "first") {
       this.mergedHdRoute.route.push(...hdRouteToMerge.route)
     } else {
-      this.mergedHdRoute.route.push(...hdRouteToMerge.route.reverse())
+      this.mergedHdRoute.route.push(...[...hdRouteToMerge.route].reverse())
     }
 
     this.mergedHdRoute.vias.push(...hdRouteToMerge.vias)
@@ -154,11 +155,13 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       }
 
       // Add points for each route node
-      for (const point of hdRoute.route) {
+      for (let pi = 0; pi < hdRoute.route.length; pi++) {
+        const point = hdRoute.route[pi]
         graphics.points?.push({
-          x: point.x,
-          y: point.y,
+          x: point.x + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000,
+          y: point.y + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000,
           color: colorList[i],
+          label: `Route ${i} ${point === hdRoute.route[0] ? "First" : point === hdRoute.route[hdRoute.route.length - 1] ? "Last" : ""}`,
         })
       }
 
