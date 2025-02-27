@@ -11,7 +11,7 @@ import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
 
-export class HighDensityRouteSolver extends BaseSolver {
+export class HighDensitySolver extends BaseSolver {
   unsolvedNodePortPoints: NodeWithPortPoints[]
   routes: HighDensityIntraNodeRoute[]
   colorMap: Record<string, string>

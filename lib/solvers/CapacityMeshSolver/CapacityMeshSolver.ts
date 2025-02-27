@@ -13,7 +13,7 @@ import { CapacityPathingSolver } from "../CapacityPathingSolver/CapacityPathingS
 import { CapacityEdgeToPortSegmentSolver } from "./CapacityEdgeToPortSegmentSolver"
 import { getColorMap } from "../colors"
 import { CapacitySegmentToPointSolver } from "./CapacitySegmentToPointSolver"
-import { HighDensityRouteSolver } from "../HighDensitySolver/HighDensityRouteSolver"
+import { HighDensitySolver } from "../HighDensitySolver/HighDensitySolver"
 import type { NodePortSegment } from "../../types/capacity-edges-to-port-segments-types"
 import { CapacityPathingSolver2_AvoidLowCapacity } from "../CapacityPathingSolver/CapacityPathingSolver2_AvoidLowCapacity"
 import { CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity } from "../CapacityPathingSolver/CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity"
@@ -74,7 +74,7 @@ export class CapacityMeshSolver extends BaseSolver {
   colorMap: Record<string, string>
   segmentToPointSolver?: CapacitySegmentToPointSolver
   segmentToPointOptimizer?: CapacitySegmentPointOptimizer
-  highDensityRouteSolver?: HighDensityRouteSolver
+  highDensityRouteSolver?: HighDensitySolver
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
 
   startTimeOfPhase: Record<string, number>
@@ -170,18 +170,14 @@ export class CapacityMeshSolver extends BaseSolver {
         },
       ],
     ),
-    definePipelineStep(
-      "highDensityRouteSolver",
-      HighDensityRouteSolver,
-      (cms) => [
-        {
-          nodePortPoints:
-            cms.segmentToPointOptimizer?.getNodesWithPortPoints() || [],
-          colorMap: cms.colorMap,
-          connMap: cms.connMap,
-        },
-      ],
-    ),
+    definePipelineStep("highDensityRouteSolver", HighDensitySolver, (cms) => [
+      {
+        nodePortPoints:
+          cms.segmentToPointOptimizer?.getNodesWithPortPoints() || [],
+        colorMap: cms.colorMap,
+        connMap: cms.connMap,
+      },
+    ]),
     definePipelineStep(
       "highDensityStitchSolver",
       MultipleHighDensityRouteStitchSolver,

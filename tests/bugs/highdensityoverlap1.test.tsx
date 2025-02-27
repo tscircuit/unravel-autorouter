@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test"
-import { HighDensityRouteSolver } from "lib/solvers/HighDensitySolver/HighDensityRouteSolver"
+import { HighDensitySolver } from "lib/solvers/HighDensitySolver/HighDensitySolver"
 
 const inputs = {
   nodePortPoints: [
@@ -33,7 +33,7 @@ const inputs = {
 }
 
 test("highdensityoverlap1", () => {
-  const solver = new HighDensityRouteSolver(inputs)
+  const solver = new HighDensitySolver(inputs)
 
   solver.solve()
 
