@@ -147,17 +147,22 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
   handleSimpleCases() {
     this.solved = true
+    const { A, B } = this
+    const route =
+      A.z === B.z
+        ? [A, B]
+        : [
+            A,
+            { ...this.boundsCenter, z: this.A.z },
+            {
+              ...this.boundsCenter,
+              z: B.z,
+            },
+            B,
+          ]
     this.solvedPath = {
       connectionName: this.connectionName,
-      route: [
-        this.A,
-        { ...this.boundsCenter, z: this.A.z },
-        {
-          ...this.boundsCenter,
-          z: this.B.z,
-        },
-        this.B,
-      ],
+      route,
       traceThickness: this.traceThickness,
       viaDiameter: this.viaDiameter,
       vias: this.A.z === this.B.z ? [] : [this.boundsCenter],
