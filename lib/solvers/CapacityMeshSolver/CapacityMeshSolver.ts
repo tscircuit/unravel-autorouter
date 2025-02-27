@@ -287,8 +287,10 @@ export class CapacityMeshSolver extends BaseSolver {
     for (const route of this.highDensityRouteSolver.routes) {
       const simplifiedRoute = this.simplifyRoute(route.route)
       // Extract the original connection name (without MST suffix)
-      const originalConnectionName = this.getOriginalConnectionName(route.connectionName)
-      
+      const originalConnectionName = this.getOriginalConnectionName(
+        route.connectionName,
+      )
+
       const trace: SimplifiedPcbTraces[number] = {
         type: "pcb_trace",
         pcb_trace_id: route.connectionName as TraceId,
