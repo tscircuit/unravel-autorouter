@@ -19,6 +19,7 @@ import { CapacityNodeTargetMerger } from "./CapacityNodeTargetMerger"
 import { CapacitySegmentPointOptimizer } from "../CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer"
 import { calculateOptimalCapacityDepth } from "../../utils/getTunedTotalCapacity1"
 import { NetToPointPairsSolver } from "../NetToPointPairsSolver/NetToPointPairsSolver"
+import { convertHdRouteToSimplifiedRoute } from "lib/utils/convertHdRouteToSimplifiedRoute"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -282,106 +283,21 @@ export class CapacityMeshSolver extends BaseSolver {
       throw new Error("Cannot get output before solving is complete")
     }
 
-    // Group routes by pcb_trace_id for merging
-    const traceIdToRoutes: Record<
-      string,
-      typeof this.highDensityRouteSolver.routes
-    > = {}
-
-    for (const route of this.highDensityRouteSolver.routes) {
-      const traceId = route.connectionName
-      if (!traceIdToRoutes[traceId]) {
-        traceIdToRoutes[traceId] = []
-      }
-      traceIdToRoutes[traceId].push(route)
-    }
-
     const traces: SimplifiedPcbTraces = []
 
-    // Process each group of routes with the same pcb_trace_id
-    for (const [traceId, routes] of Object.entries(traceIdToRoutes)) {
-      if (routes.length === 0) continue
-
-      // Extract the original connection name (without MST suffix)
-      const originalConnectionName = this.getOriginalConnectionName(traceId)
+    for (const hdRoute of this.highDensityRouteSolver.routes) {
+      const pointPairConnName = hdRoute.connectionName
 
       const trace: SimplifiedPcbTraces[number] = {
         type: "pcb_trace",
-        pcb_trace_id: traceId as TraceId,
-        connection_name: originalConnectionName,
-        route: [],
-      }
-
-      // Get the trace thickness from the first route (should be consistent for the same connection)
-      const traceThickness =
-        routes[0].traceThickness ||
-        this.highDensityRouteSolver.defaultTraceThickness
-
-      // Process and merge all route segments from all routes with the same traceId
-      // We'll sort and connect them appropriately
-      const allPoints: Array<{
-        x: number
-        y: number
-        z: number
-        routeIndex: number
-        pointIndex: number
-      }> = []
-
-      // First, collect all points with their indices for reference
-      routes.forEach((route, routeIndex) => {
-        const simplifiedRoute = this.simplifyRoute(route.route)
-        simplifiedRoute.forEach((point, pointIndex) => {
-          allPoints.push({ ...point, routeIndex, pointIndex })
-        })
-      })
-
-      // If we have no points, skip this trace
-      if (allPoints.length === 0) continue
-
-      // Sort points first by layer, then by position
-      // This is a simple approach; a more sophisticated approach would try to find nearest neighbors
-      allPoints.sort((a, b) => {
-        // First by z (layer)
-        if (a.z !== b.z) return a.z - b.z
-        // Then by x
-        if (a.x !== b.x) return a.x - b.x
-        // Then by y
-        return a.y - b.y
-      })
-
-      // Now process the sorted points, adding vias when layer changes
-      let currentLayer = allPoints[0].z.toString()
-
-      for (let i = 0; i < allPoints.length; i++) {
-        const point = allPoints[i]
-        const nextLayerStr = point.z.toString()
-
-        // Add a via if layer changed
-        if (nextLayerStr !== currentLayer) {
-          trace.route.push({
-            route_type: "via",
-            x: point.x,
-            y: point.y,
-            from_layer: this.mapLayer(currentLayer),
-            to_layer: this.mapLayer(nextLayerStr),
-          })
-          currentLayer = nextLayerStr
-        }
-
-        // Add wire segment
-        trace.route.push({
-          route_type: "wire",
-          x: point.x,
-          y: point.y,
-          width: traceThickness,
-          layer: this.mapLayer(currentLayer),
-        })
+        pcb_trace_id: pointPairConnName,
+        connection_name: this.getOriginalConnectionName(pointPairConnName),
+        route: convertHdRouteToSimplifiedRoute(hdRoute),
       }
 
       traces.push(trace)
     }
 
-    // Create a copy of the original SRJ with traces added
     return {
       ...this.srj,
       traces,
