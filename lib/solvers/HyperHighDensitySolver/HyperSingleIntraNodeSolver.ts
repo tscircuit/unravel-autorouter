@@ -2,21 +2,19 @@ import {
   HighDensityIntraNodeRoute,
   NodeWithPortPoints,
 } from "lib/types/high-density-types"
-import { SingleIntraNodeRouteSolver } from "../HighDensitySolver/SingleIntraNodeRouteSolver"
+import { IntraNodeRouteSolver } from "../HighDensitySolver/IntraNodeSolver"
 import {
   HyperParameterSupervisorSolver,
   SupervisedSolver,
 } from "../HyperParameterSupervisorSolver"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
-export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<SingleIntraNodeRouteSolver> {
-  constructorParams: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0]
+export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<IntraNodeRouteSolver> {
+  constructorParams: ConstructorParameters<typeof IntraNodeRouteSolver>[0]
   solvedRoutes: HighDensityIntraNodeRoute[] = []
   nodeWithPortPoints: NodeWithPortPoints
 
-  constructor(
-    opts: ConstructorParameters<typeof SingleIntraNodeRouteSolver>[0],
-  ) {
+  constructor(opts: ConstructorParameters<typeof IntraNodeRouteSolver>[0]) {
     super()
     this.nodeWithPortPoints = opts.nodeWithPortPoints
     this.constructorParams = opts
@@ -120,24 +118,24 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<S
     ]
   }
 
-  computeG(solver: SingleIntraNodeRouteSolver) {
+  computeG(solver: IntraNodeRouteSolver) {
     return (
       solver.iterations / 10_000 // + solver.hyperParameters.SHUFFLE_SEED! * 0.05
     )
   }
 
-  computeH(solver: SingleIntraNodeRouteSolver) {
+  computeH(solver: IntraNodeRouteSolver) {
     return 1 - (solver.progress || 0)
   }
 
-  generateSolver(hyperParameters: any): SingleIntraNodeRouteSolver {
-    return new SingleIntraNodeRouteSolver({
+  generateSolver(hyperParameters: any): IntraNodeRouteSolver {
+    return new IntraNodeRouteSolver({
       ...this.constructorParams,
       hyperParameters,
     })
   }
 
-  onSolve(solver: SupervisedSolver<SingleIntraNodeRouteSolver>) {
+  onSolve(solver: SupervisedSolver<IntraNodeRouteSolver>) {
     this.solvedRoutes = solver.solver.solvedRoutes
   }
 }

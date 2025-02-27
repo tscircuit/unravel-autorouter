@@ -1,5 +1,5 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import { SingleIntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/SingleIntraNodeRouteSolver"
+import { IntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/IntraNodeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 
 const nodeWithPortPoints = {
@@ -249,7 +249,7 @@ const colorMap = {
 }
 
 export default () => {
-  const solver = new SingleIntraNodeRouteSolver({
+  const solver = new IntraNodeRouteSolver({
     nodeWithPortPoints,
     colorMap,
   })

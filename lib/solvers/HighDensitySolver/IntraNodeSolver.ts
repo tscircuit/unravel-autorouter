@@ -19,7 +19,7 @@ import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWith
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { getMinDistBetweenEnteringPoints } from "lib/utils/getMinDistBetweenEnteringPoints"
 
-export class SingleIntraNodeRouteSolver extends BaseSolver {
+export class IntraNodeRouteSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
   unsolvedConnections: {

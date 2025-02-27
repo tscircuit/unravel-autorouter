@@ -1,5 +1,5 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import { SingleIntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/SingleIntraNodeRouteSolver"
+import { IntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/IntraNodeSolver"
 import { HyperSingleIntraNodeSolver } from "lib/solvers/HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { useEffect, useState, useMemo } from "react"
