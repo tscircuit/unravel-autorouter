@@ -248,6 +248,33 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   /**
+   * Maps numeric layer to named layer
+   * @param layer Numeric layer (0, 1, etc)
+   * @returns Named layer ("top", "bottom", etc)
+   */
+  private mapLayer(layer: string): string {
+    switch (layer) {
+      case "0":
+        return "top"
+      case "1":
+        return "bottom"
+      default:
+        return `layer${layer}`
+    }
+  }
+
+  /**
+   * Get original connection name from connection name with MST suffix
+   * @param mstConnectionName The MST-suffixed connection name (e.g. "connection1_mst0")
+   * @returns The original connection name (e.g. "connection1")
+   */
+  private getOriginalConnectionName(mstConnectionName: string): string {
+    // MST connections are named like "connection_mst0", so extract the original name
+    const match = mstConnectionName.match(/^(.+?)_mst\d+$/)
+    return match ? match[1] : mstConnectionName
+  }
+
+  /**
    * Returns the SimpleRouteJson with routes converted to SimplifiedPcbTraces
    */
   getOutputSimpleRouteJson(): SimpleRouteJson {
@@ -259,9 +286,13 @@ export class CapacityMeshSolver extends BaseSolver {
 
     for (const route of this.highDensityRouteSolver.routes) {
       const simplifiedRoute = this.simplifyRoute(route.route)
+      // Extract the original connection name (without MST suffix)
+      const originalConnectionName = this.getOriginalConnectionName(route.connectionName)
+      
       const trace: SimplifiedPcbTraces[number] = {
         type: "pcb_trace",
         pcb_trace_id: route.connectionName as TraceId,
+        connection_name: originalConnectionName,
         route: [],
       }
 
@@ -277,8 +308,8 @@ export class CapacityMeshSolver extends BaseSolver {
             route_type: "via",
             x: point.x,
             y: point.y,
-            from_layer: currentLayer,
-            to_layer: nextLayerStr,
+            from_layer: this.mapLayer(currentLayer),
+            to_layer: this.mapLayer(nextLayerStr),
           })
           currentLayer = nextLayerStr
         }
@@ -291,7 +322,7 @@ export class CapacityMeshSolver extends BaseSolver {
           width:
             route.traceThickness ||
             this.highDensityRouteSolver.defaultTraceThickness,
-          layer: currentLayer,
+          layer: this.mapLayer(currentLayer),
         })
       }
 

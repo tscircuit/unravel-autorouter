@@ -20,12 +20,18 @@ export interface Obstacle {
 
 export interface SimpleRouteConnection {
   name: string
-  pointsToConnect: Array<{ x: number; y: number; layer: string }>
+  pointsToConnect: Array<{
+    x: number
+    y: number
+    layer: string
+    pcb_port_id?: string
+  }>
 }
 
 export type SimplifiedPcbTraces = Array<{
   type: "pcb_trace"
   pcb_trace_id: TraceId
+  connection_name: string
   route: Array<
     | {
         route_type: "wire"
