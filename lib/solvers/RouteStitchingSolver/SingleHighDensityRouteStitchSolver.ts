@@ -1,7 +1,7 @@
 import { HighDensityIntraNodeRoute } from "lib/types/high-density-types"
 import { BaseSolver } from "../BaseSolver"
 
-export class SingleHighDensityRouteSticherSolver extends BaseSolver {
+export class SingleHighDensityRouteStitchSolver extends BaseSolver {
   remainingHdRoutes: HighDensityIntraNodeRoute[]
   start: { x: number; y: number; z: number }
   end: { x: number; y: number; z: number }

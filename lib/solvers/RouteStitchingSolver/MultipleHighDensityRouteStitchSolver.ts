@@ -2,10 +2,8 @@ import { SimpleRouteConnection } from "lib/types"
 import { HighDensityIntraNodeRoute } from "lib/types/high-density-types"
 import { BaseSolver } from "../BaseSolver"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
-import {
-  SingleHighDensityRouteSticherSolver,
-  SingleHighDensityRouteStitchSolver,
-} from "./SingleHighDensityRouteStitchSolver"
+import { SingleHighDensityRouteStitchSolver } from "./SingleHighDensityRouteStitchSolver"
+import { GraphicsObject } from "graphics-debug"
 
 export type UnsolvedRoute = {
   connectionName: string
@@ -14,9 +12,9 @@ export type UnsolvedRoute = {
   end: { x: number; y: number; z: number }
 }
 
-export class MultipleHighDensityRouteSticherSolver extends BaseSolver {
+export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
   unsolvedRoutes: UnsolvedRoute[]
-  activeSolver: SingleHighDensityRouteSticherSolver | null = null
+  activeSolver: SingleHighDensityRouteStitchSolver | null = null
 
   constructor(opts: {
     connections: SimpleRouteConnection[]
@@ -63,4 +61,8 @@ export class MultipleHighDensityRouteSticherSolver extends BaseSolver {
       end: unsolvedRoute.end,
     })
   }
+
+  // visualize(): GraphicsObject {
+
+  // }
 }

@@ -1,5 +1,4 @@
-import { InteractiveGraphics } from "graphics-debug/react"
-import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
+import { CapacityMeshPipelineDebugger } from "lib/testing/CapacityMeshPipelineDebugger"
 import { SimpleRouteJson } from "lib/types"
 
 const simpleRouteJson: SimpleRouteJson = {
@@ -30,8 +29,5 @@ const simpleRouteJson: SimpleRouteJson = {
 }
 
 export default () => {
-  const solver = new CapacityMeshSolver(simpleRouteJson)
-  solver.solve()
-
-  return <InteractiveGraphics graphics={solver.visualize()} />
+  return <CapacityMeshPipelineDebugger srj={simpleRouteJson} />
 }

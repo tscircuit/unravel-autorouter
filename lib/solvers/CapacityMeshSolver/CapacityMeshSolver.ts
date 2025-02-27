@@ -27,6 +27,7 @@ import { NetToPointPairsSolver } from "../NetToPointPairsSolver/NetToPointPairsS
 import { convertHdRouteToSimplifiedRoute } from "lib/utils/convertHdRouteToSimplifiedRoute"
 import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
+import { MultipleHighDensityRouteStitchSolver } from "../RouteStitchingSolver/MultipleHighDensityRouteStitchSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -74,6 +75,7 @@ export class CapacityMeshSolver extends BaseSolver {
   segmentToPointSolver?: CapacitySegmentToPointSolver
   segmentToPointOptimizer?: CapacitySegmentPointOptimizer
   highDensityRouteSolver?: HighDensityRouteSolver
+  highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
 
   activeSolver?: BaseSolver | null = null
   connMap: ConnectivityMap
@@ -163,6 +165,17 @@ export class CapacityMeshSolver extends BaseSolver {
             cms.segmentToPointOptimizer?.getNodesWithPortPoints() || [],
           colorMap: cms.colorMap,
           connMap: cms.connMap,
+        },
+      ],
+    ),
+    definePipelineStep(
+      "highDensityStitchSolver",
+      MultipleHighDensityRouteStitchSolver,
+      (cms) => [
+        {
+          connections: cms.srj.connections,
+          hdRoutes: cms.highDensityRouteSolver!.routes,
+          layerCount: cms.srj.layerCount,
         },
       ],
     ),
