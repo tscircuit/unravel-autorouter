@@ -4,6 +4,7 @@ import { BaseSolver } from "../BaseSolver"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { SingleHighDensityRouteStitchSolver } from "./SingleHighDensityRouteStitchSolver"
 import { GraphicsObject } from "graphics-debug"
+import { safeTransparentize } from "../colors"
 
 export type UnsolvedRoute = {
   connectionName: string
@@ -97,19 +98,23 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
     }
 
     // Visualize all remaining unsolved routes - start/end points only
-    for (const unsolvedRoute of this.unsolvedRoutes) {
+    const colorList = Array.from(
+      { length: this.unsolvedRoutes.length },
+      (_, i) => `hsl(${(i * 360) / this.unsolvedRoutes.length}, 100%, 50%)`,
+    )
+    for (const [i, unsolvedRoute] of this.unsolvedRoutes.entries()) {
       // Add start and end points for unsolved connections
       graphics.points?.push(
         {
           x: unsolvedRoute.start.x,
           y: unsolvedRoute.start.y,
-          color: "lightgreen",
+          color: colorList[i],
           label: `${unsolvedRoute.connectionName} Start`,
         },
         {
           x: unsolvedRoute.end.x,
           y: unsolvedRoute.end.y,
-          color: "pink",
+          color: colorList[i],
           label: `${unsolvedRoute.connectionName} End`,
         },
       )
@@ -120,7 +125,8 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
           { x: unsolvedRoute.start.x, y: unsolvedRoute.start.y },
           { x: unsolvedRoute.end.x, y: unsolvedRoute.end.y },
         ],
-        strokeColor: "gray",
+        strokeColor: colorList[i],
+        strokeDash: "2 2",
       })
 
       // Visualize HD routes associated with unsolved routes (faded)
@@ -128,7 +134,8 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
         if (hdRoute.route.length > 1) {
           graphics.lines?.push({
             points: hdRoute.route.map((point) => ({ x: point.x, y: point.y })),
-            strokeColor: "lightblue",
+            strokeColor: safeTransparentize(colorList[i], 0.5),
+            strokeDash: "10 5",
           })
         }
 
@@ -137,8 +144,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
           graphics.circles?.push({
             center: { x: via.x, y: via.y },
             radius: hdRoute.viaDiameter / 2,
-            fill: "lavender",
-            stroke: "lavender",
+            fill: colorList[i],
           })
         }
       }
