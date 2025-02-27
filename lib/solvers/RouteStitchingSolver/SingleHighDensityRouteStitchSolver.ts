@@ -110,7 +110,36 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       },
     )
 
-    // Visualize all HD routes
+    // Visualize the merged HD route in green
+    if (this.mergedHdRoute && this.mergedHdRoute.route.length > 1) {
+      graphics.lines?.push({
+        points: this.mergedHdRoute.route.map((point) => ({
+          x: point.x,
+          y: point.y,
+        })),
+        strokeColor: "green",
+      })
+
+      // Add points for the merged route
+      for (const point of this.mergedHdRoute.route) {
+        graphics.points?.push({
+          x: point.x,
+          y: point.y,
+          color: "green",
+        })
+      }
+
+      // Visualize vias in the merged route
+      for (const via of this.mergedHdRoute.vias) {
+        graphics.circles?.push({
+          center: { x: via.x, y: via.y },
+          radius: this.mergedHdRoute.viaDiameter / 2,
+          fill: "green",
+        })
+      }
+    }
+
+    // Visualize all remaining HD routes
     const colorList = Array.from(
       { length: this.remainingHdRoutes.length },
       (_, i) => `hsl(${(i * 360) / this.remainingHdRoutes.length}, 100%, 50%)`,

@@ -16,6 +16,7 @@ export type UnsolvedRoute = {
 export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
   unsolvedRoutes: UnsolvedRoute[]
   activeSolver: SingleHighDensityRouteStitchSolver | null = null
+  mergedHdRoutes: HighDensityIntraNodeRoute[] = []
 
   constructor(opts: {
     connections: SimpleRouteConnection[]
@@ -41,6 +42,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
     if (this.activeSolver) {
       this.activeSolver.step()
       if (this.activeSolver.solved) {
+        this.mergedHdRoutes.push(this.activeSolver.mergedHdRoute)
         this.activeSolver = null
       } else if (this.activeSolver.failed) {
         this.failed = true
@@ -94,6 +96,41 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
       // Merge rects if they exist
       if (activeSolverGraphics.rects?.length) {
         graphics.rects = activeSolverGraphics.rects
+      }
+    }
+
+    // Visualize all merged HD routes that have been solved
+    for (const [i, mergedRoute] of this.mergedHdRoutes.entries()) {
+      const solvedColor = `hsl(120, 100%, ${40 + ((i * 10) % 40)}%)` // Different shades of green
+
+      // Visualize the route path
+      if (mergedRoute.route.length > 1) {
+        graphics.lines?.push({
+          points: mergedRoute.route.map((point) => ({
+            x: point.x,
+            y: point.y,
+          })),
+          strokeColor: solvedColor,
+          strokeWidth: mergedRoute.traceThickness,
+        })
+      }
+
+      // Visualize route points
+      for (const point of mergedRoute.route) {
+        graphics.points?.push({
+          x: point.x,
+          y: point.y,
+          color: solvedColor,
+        })
+      }
+
+      // Visualize vias in the merged route
+      for (const via of mergedRoute.vias) {
+        graphics.circles?.push({
+          center: { x: via.x, y: via.y },
+          radius: mergedRoute.viaDiameter / 2,
+          fill: solvedColor,
+        })
       }
     }
 
