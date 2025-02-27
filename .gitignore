@@ -179,3 +179,4 @@ dist
 .vercel
 
 repomix-output.txt
+*.diff.png
