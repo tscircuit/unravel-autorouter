@@ -292,7 +292,7 @@ export class CapacityMeshSolver extends BaseSolver {
         type: "pcb_trace",
         pcb_trace_id: pointPairConnName,
         connection_name: this.getOriginalConnectionName(pointPairConnName),
-        route: convertHdRouteToSimplifiedRoute(hdRoute),
+        route: convertHdRouteToSimplifiedRoute(hdRoute, 2),
       }
 
       traces.push(trace)
