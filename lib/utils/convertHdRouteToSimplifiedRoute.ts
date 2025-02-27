@@ -1,5 +1,6 @@
 import { SimplifiedPcbTraces } from "lib/types"
 import { HighDensityIntraNodeRoute } from "lib/types/high-density-types"
+import { mapZToLayerName } from "./mapZToLayerName"
 
 type Point = { x: number; y: number; z: number }
 
@@ -10,17 +11,6 @@ export const convertHdRouteToSimplifiedRoute = (
   const result: SimplifiedPcbTraces[number]["route"] = []
   if (hdRoute.route.length === 0) return result
 
-  const mapZToLayerName = (z: number) => {
-    if (z < 0 || z >= layerCount) {
-      throw new Error(`Invalid z "${z}" for layer count: ${layerCount}`)
-    }
-
-    if (z === 0) return "top"
-    if (z === layerCount - 1) return "bottom"
-    return `inner${z}`
-  }
-
-  // Process segments by layer while inserting vias at layer changes
   let currentLayerPoints: Point[] = []
   let currentZ = hdRoute.route[0].z
 
@@ -32,7 +22,7 @@ export const convertHdRouteToSimplifiedRoute = (
     // and add a via if one exists at this position
     if (point.z !== currentZ) {
       // Add all wire segments for the current layer
-      const layerName = mapZToLayerName(currentZ)
+      const layerName = mapZToLayerName(currentZ, layerCount)
       for (const layerPoint of currentLayerPoints) {
         result.push({
           route_type: "wire",
@@ -52,8 +42,8 @@ export const convertHdRouteToSimplifiedRoute = (
 
       // Add a via if one exists
       if (viaExists) {
-        const fromLayer = mapZToLayerName(currentZ)
-        const toLayer = mapZToLayerName(point.z)
+        const fromLayer = mapZToLayerName(currentZ, layerCount)
+        const toLayer = mapZToLayerName(point.z, layerCount)
 
         result.push({
           route_type: "via",
@@ -74,7 +64,7 @@ export const convertHdRouteToSimplifiedRoute = (
   }
 
   // Add the final layer's wire segments
-  const layerName = mapZToLayerName(currentZ)
+  const layerName = mapZToLayerName(currentZ, layerCount)
   for (const layerPoint of currentLayerPoints) {
     result.push({
       route_type: "wire",

@@ -40,7 +40,8 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
               }[routePoint.layer]!,
               0.5,
             ),
-            strokeWidth: 0.15,
+            // For some reason this is too small, likely a graphics-debug bug
+            // strokeWidth: 0.15,
           })
         }
       }

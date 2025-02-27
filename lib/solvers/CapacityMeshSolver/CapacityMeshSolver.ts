@@ -1,6 +1,11 @@
 import type { GraphicsObject } from "graphics-debug"
 import { combineVisualizations } from "../../utils/combineVisualizations"
-import type { SimpleRouteJson, SimplifiedPcbTraces, TraceId } from "../../types"
+import type {
+  SimpleRouteJson,
+  SimplifiedPcbTrace,
+  SimplifiedPcbTraces,
+  TraceId,
+} from "../../types"
 import { BaseSolver } from "../BaseSolver"
 import { CapacityMeshEdgeSolver } from "./CapacityMeshEdgeSolver"
 import { CapacityMeshNodeSolver } from "./CapacityMeshNodeSolver"
@@ -20,6 +25,9 @@ import { CapacitySegmentPointOptimizer } from "../CapacitySegmentPointOptimizer/
 import { calculateOptimalCapacityDepth } from "../../utils/getTunedTotalCapacity1"
 import { NetToPointPairsSolver } from "../NetToPointPairsSolver/NetToPointPairsSolver"
 import { convertHdRouteToSimplifiedRoute } from "lib/utils/convertHdRouteToSimplifiedRoute"
+import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
+import { mergeHighDensityRoutes } from "lib/utils/mergeHighDensityRoutes"
+import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -249,22 +257,6 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   /**
-   * Maps numeric layer to named layer
-   * @param layer Numeric layer (0, 1, etc)
-   * @returns Named layer ("top", "bottom", etc)
-   */
-  private mapLayer(layer: string): string {
-    switch (layer) {
-      case "0":
-        return "top"
-      case "1":
-        return "bottom"
-      default:
-        return `layer${layer}`
-    }
-  }
-
-  /**
    * Get original connection name from connection name with MST suffix
    * @param mstConnectionName The MST-suffixed connection name (e.g. "connection1_mst0")
    * @returns The original connection name (e.g. "connection1")
@@ -278,29 +270,73 @@ export class CapacityMeshSolver extends BaseSolver {
   /**
    * Returns the SimpleRouteJson with routes converted to SimplifiedPcbTraces
    */
-  getOutputSimpleRouteJson(): SimpleRouteJson {
+  getOutputSimplifiedPcbTraces(): SimplifiedPcbTraces {
     if (!this.solved || !this.highDensityRouteSolver) {
       throw new Error("Cannot get output before solving is complete")
     }
 
     const traces: SimplifiedPcbTraces = []
 
-    for (const hdRoute of this.highDensityRouteSolver.routes) {
-      const pointPairConnName = hdRoute.connectionName
+    for (const connection of this.netToPointPairsSolver?.newConnections ?? []) {
+      const netConnection = this.srj.connections.find(
+        (c) => c.name === connection.netConnectionName,
+      )
 
-      const trace: SimplifiedPcbTraces[number] = {
+      // Find all the hdRoutes that correspond to this connection
+      const hdRoutes = this.highDensityRouteSolver.routes.filter(
+        (r) => r.connectionName === connection.name,
+      )
+
+      const [start, end] = connection.pointsToConnect
+
+      const startZ = mapLayerNameToZ(start.layer, this.srj.layerCount)
+      const endZ = mapLayerNameToZ(end.layer, this.srj.layerCount)
+
+      // Merge the hdRoutes into a single hdRoute
+      const mergedHdRoute = mergeHighDensityRoutes(
+        hdRoutes,
+        { ...start, z: startZ },
+        { ...end, z: endZ },
+      )
+
+      const simplifiedPcbTrace: SimplifiedPcbTrace = {
         type: "pcb_trace",
-        pcb_trace_id: pointPairConnName,
-        connection_name: this.getOriginalConnectionName(pointPairConnName),
-        route: convertHdRouteToSimplifiedRoute(hdRoute, 2),
+        pcb_trace_id: connection.name,
+        connection_name: this.getOriginalConnectionName(connection.name),
+        route: convertHdRouteToSimplifiedRoute(
+          mergedHdRoute,
+          this.srj.layerCount,
+        ),
       }
 
-      traces.push(trace)
+      traces.push(simplifiedPcbTrace)
+
+      // Convert the merged route points to a SimplifiedPcbTraces
     }
+
+    // for (const hdRoute of this.highDensityRouteSolver.routes) {
+    //   const pointPairConnName = hdRoute.connectionName
+
+    //   const trace: SimplifiedPcbTraces[number] = {
+    //     type: "pcb_trace",
+    //     pcb_trace_id: pointPairConnName,
+    //     connection_name: this.getOriginalConnectionName(pointPairConnName),
+    //     route: convertHdRouteToSimplifiedRoute(hdRoute, 2),
+    //   }
+
+    //   traces.push(trace)
+    // }
 
     return {
       ...this.srj,
       traces,
+    }
+  }
+
+  getOutputSimpleRouteJson(): SimpleRouteJson {
+    return {
+      ...this.srj,
+      traces: this.getOutputSimplifiedPcbTraces(),
     }
   }
 }
