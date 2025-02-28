@@ -257,7 +257,7 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   getCurrentPhase(): string {
-    return this.pipelineDef[this.currentPipelineStepIndex].solverName
+    return this.pipelineDef[this.currentPipelineStepIndex]?.solverName ?? "none"
   }
 
   visualize(): GraphicsObject {
