@@ -6,6 +6,9 @@ import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { doRectsOverlap } from "lib/utils/doRectsOverlap"
 import { isPointInRect } from "lib/utils/isPointInRect"
 
+/**
+ * Merge targets that are close to each other into a single target
+ */
 export class CapacityNodeTargetMerger extends BaseSolver {
   unprocessedObstacles: Obstacle[]
   newNodes: CapacityMeshNode[]
