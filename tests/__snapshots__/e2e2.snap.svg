@@ -1,4 +1,19 @@
 <svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <circle data-type="point" data-label="connection1 (top)" data-x="1" data-y="1" cx="97.49333333333333" cy="558.9333333333334" r="3" fill="hsl(0, 100%, 50%)" /><text x="102.49333333333333" y="553.9333333333334" font-family="sans-serif" font-size="12">connection1 (top)</text>
+  </g>
+  <g>
+    <circle data-type="point" data-label="connection1 (top)" data-x="9" data-y="9" cx="575.36" cy="81.06666666666672" r="3" fill="hsl(0, 100%, 50%)" /><text x="580.36" y="76.06666666666672" font-family="sans-serif" font-size="12">connection1 (top)</text>
+  </g>
+  <g>
+    <circle data-type="point" data-label="connection2 (top)" data-x="1" data-y="9" cx="97.49333333333333" cy="81.06666666666672" r="3" fill="hsl(170, 100%, 50%)" /><text x="102.49333333333333" y="76.06666666666672" font-family="sans-serif" font-size="12">connection2 (top)</text>
+  </g>
+  <g>
+    <circle data-type="point" data-label="connection2 (top)" data-x="4" data-y="1" cx="276.6933333333333" cy="558.9333333333334" r="3" fill="hsl(170, 100%, 50%)" /><text x="281.6933333333333" y="553.9333333333334" font-family="sans-serif" font-size="12">connection2 (top)</text>
+  </g>
+  <g>
+    <circle data-type="point" data-label="connection2 (top)" data-x="9" data-y="1" cx="575.36" cy="558.9333333333334" r="3" fill="hsl(170, 100%, 50%)" /><text x="580.36" y="553.9333333333334" font-family="sans-serif" font-size="12">connection2 (top)</text>
+  </g>
   <polyline data-points="4,1 4.375,0.9375" data-type="line" points="276.6933333333333,558.9333333333334 299.0933333333333,562.6666666666667" fill="none" stroke="rgba(255,0,0,0.5)" stroke-width="1" />
   <polyline data-points="4.375,0.9375 5,0.9375" data-type="line" points="299.0933333333333,562.6666666666667 336.4266666666667,562.6666666666667" fill="none" stroke="rgba(255,0,0,0.5)" stroke-width="1" />
   <polyline data-points="5,0.9375 5,0.9375" data-type="line" points="336.4266666666667,562.6666666666667 336.4266666666667,562.6666666666667" fill="none" stroke="rgba(255,0,0,0.5)" stroke-width="1" />
