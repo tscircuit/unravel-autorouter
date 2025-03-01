@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "start": "cosmos",
-    "build": "tsup ./lib/index.ts --external @tscircuit/core --format esm --dts --sourcemap",
+    "build": "tsup ./lib/index.ts --external @tscircuit/core --external circuit-to-svg --format esm --dts --sourcemap",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
@@ -24,6 +24,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "bun-match-svg": "^0.0.9",
     "circuit-json-to-connectivity-map": "^0.0.19",
+    "circuit-to-svg": "^0.0.110",
     "graphics-debug": "^0.0.23",
     "react": "18",
     "react-cosmos": "^6.2.3",
