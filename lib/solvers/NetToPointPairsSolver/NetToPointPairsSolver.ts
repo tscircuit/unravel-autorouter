@@ -26,7 +26,7 @@ export class NetToPointPairsSolver extends BaseSolver {
     public colorMap: Record<string, string> = {},
   ) {
     super()
-    this.unprocessedConnections = ogSrj.connections
+    this.unprocessedConnections = [...ogSrj.connections]
     this.newConnections = []
   }
 

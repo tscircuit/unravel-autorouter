@@ -333,21 +333,17 @@ export class CapacityMeshSolver extends BaseSolver {
         (r) => r.connectionName === connection.name,
       )
 
-      if (hdRoutes.length > 1) {
-        throw new Error("Multiple hdRoutes found for connection")
-      }
+      for (let i = 0; i < hdRoutes.length; i++) {
+        const hdRoute = hdRoutes[i]
+        const simplifiedPcbTrace: SimplifiedPcbTrace = {
+          type: "pcb_trace",
+          pcb_trace_id: `${connection.name}_${i}`,
+          connection_name: this.getOriginalConnectionName(connection.name),
+          route: convertHdRouteToSimplifiedRoute(hdRoute, this.srj.layerCount),
+        }
 
-      const simplifiedPcbTrace: SimplifiedPcbTrace = {
-        type: "pcb_trace",
-        pcb_trace_id: connection.name,
-        connection_name: this.getOriginalConnectionName(connection.name),
-        route: convertHdRouteToSimplifiedRoute(
-          hdRoutes[0],
-          this.srj.layerCount,
-        ),
+        traces.push(simplifiedPcbTrace)
       }
-
-      traces.push(simplifiedPcbTrace)
     }
 
     return traces

@@ -222,6 +222,34 @@ export const CapacityMeshPipelineDebugger = ({
                       onClick={() => {
                         // Get the constructor parameters for this step
                         const params = step.getConstructorParams(solver)
+                        // Recursively replace _parent: { ... } with _parent: { capacityMeshNodeId: "..." }
+                        // This prevents circular references in the JSON
+                        const replaceParent = (obj: any) => {
+                          if (obj && typeof obj === "object") {
+                            if (obj._parent) {
+                              obj._parent = {
+                                capacityMeshNodeId:
+                                  obj._parent.capacityMeshNodeId,
+                              }
+                            }
+
+                            // Recursively process all properties
+                            for (const key in obj) {
+                              if (
+                                Object.prototype.hasOwnProperty.call(obj, key)
+                              ) {
+                                replaceParent(obj[key])
+                              }
+                            }
+
+                            // Handle arrays
+                            if (Array.isArray(obj)) {
+                              obj.forEach((item) => replaceParent(item))
+                            }
+                          }
+                        }
+                        replaceParent(params[0])
+
                         // Create a JSON string with proper formatting
                         const paramsJson = JSON.stringify(params, null, 2)
                         // Create a blob with the JSON data
