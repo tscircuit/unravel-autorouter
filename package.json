@@ -8,13 +8,14 @@
   ],
   "scripts": {
     "start": "cosmos",
-    "build": "tsup ./lib/index.ts --format esm --dts --sourcemap",
+    "build": "tsup ./lib/index.ts --external @tscircuit/core --format esm --dts --sourcemap",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@react-hook/resize-observer": "^2.0.2",
+    "@tscircuit/core": "^0.0.336",
     "@tscircuit/math-utils": "^0.0.10",
     "@types/bun": "latest",
     "@types/react": "^19.0.8",
