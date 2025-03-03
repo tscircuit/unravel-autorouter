@@ -368,7 +368,7 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       op: "changeLayer",
       segmentId: randomSegmentId,
       pointIndex: randomPointIndex,
-      newLayer: point.point.y > 0 ? 0 : 1,
+      newLayer: point.point.z === 0 ? 1 : 0,
     } as ChangeLayerOperation
   }
 
