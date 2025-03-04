@@ -84,11 +84,20 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
         if (!adjNode) continue
         const segment = findOverlappingSegment(node, adjNode)
 
+        console.log({ node, adjNode })
+
+        const mutuallyAvailableZ = adjNode.availableZ.filter((z) =>
+          node.availableZ.includes(z),
+        )
+
+        if (mutuallyAvailableZ.length === 0) continue
+
         const portSegment: NodePortSegment = {
           capacityMeshNodeId: nodeId,
           start: segment.start,
           end: segment.end,
           connectionNames: [path.connectionName],
+          availableZ: mutuallyAvailableZ,
         }
 
         nodePortSegments.push(portSegment)

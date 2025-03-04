@@ -11,6 +11,7 @@ export interface CapacityMeshNode {
   width: number
   height: number
   layer: string
+  availableZ: number[]
 
   _depth?: number
 

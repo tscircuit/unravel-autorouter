@@ -15,6 +15,13 @@ interface CapacityMeshNodeSolverOptions {
   capacityDepth?: number
 }
 
+interface Target {
+  x: number
+  y: number
+  connectionName: string
+  availableZ: number[]
+}
+
 export class CapacityMeshNodeSolver extends BaseSolver {
   unfinishedNodes: CapacityMeshNode[]
   finishedNodes: CapacityMeshNode[]
@@ -25,11 +32,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
   MAX_DEPTH = 4
 
-  targets: Array<{
-    x: number
-    y: number
-    connectionName: string
-  }>
+  targets: Target[]
 
   constructor(
     public srj: SimpleRouteJson,
@@ -54,6 +57,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         width: maxWidthHeight,
         height: maxWidthHeight,
         layer: "top",
+        availableZ: [0, 1],
         _depth: 0,
         _containsTarget: true,
         _containsObstacle: true,
@@ -63,7 +67,11 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     this.finishedNodes = []
     this.nodeToOverlappingObstaclesMap = new Map()
     this.targets = this.srj.connections.flatMap((c) =>
-      c.pointsToConnect.map((p) => ({ ...p, connectionName: c.name })),
+      c.pointsToConnect.map((p) => ({
+        ...p,
+        connectionName: c.name,
+        availableZ: p.layer === "top" ? [0] : [1],
+      })),
     )
   }
 
@@ -76,7 +84,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     return (this.MAX_DEPTH - depth + 1) ** 2
   }
 
-  getTargetNameIfNodeContainsTarget(node: CapacityMeshNode): string | null {
+  getTargetIfNodeContainsTarget(node: CapacityMeshNode): Target | null {
     const overlappingObstacles = this.getOverlappingObstacles(node)
     for (const target of this.targets) {
       // if (target.layer !== node.layer) continue
@@ -86,7 +94,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
       if (targetObstacle) {
         if (doRectsOverlap(node, targetObstacle)) {
-          return target.connectionName
+          return target
         }
       }
 
@@ -96,7 +104,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         target.y >= node.center.y - node.height / 2 &&
         target.y <= node.center.y + node.height / 2
       ) {
-        return target.connectionName
+        return target
       }
     }
     return null
@@ -247,14 +255,19 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         width: childNodeSize.width,
         height: childNodeSize.height,
         layer: parent.layer,
+        availableZ: [0, 1],
         _depth: (parent._depth ?? 0) + 1,
         _parent: parent,
       }
       childNode._containsObstacle = this.doesNodeOverlapObstacle(childNode)
 
-      childNode._targetConnectionName =
-        this.getTargetNameIfNodeContainsTarget(childNode) ?? undefined
-      childNode._containsTarget = Boolean(childNode._targetConnectionName)
+      const target = this.getTargetIfNodeContainsTarget(childNode)
+
+      if (target) {
+        childNode._targetConnectionName = target.connectionName
+        childNode.availableZ = target.availableZ
+        childNode._containsTarget = true
+      }
 
       if (childNode._containsObstacle) {
         childNode._completelyInsideObstacle =
@@ -322,18 +335,6 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       title: "Capacity Mesh Visualization",
     }
 
-    // Draw mesh nodes (both finished and unfinished)
-    const allNodes = [...this.finishedNodes, ...this.unfinishedNodes]
-    for (const node of allNodes) {
-      graphics.rects!.push({
-        center: node.center,
-        width: Math.max(node.width - 2, node.width * 0.8),
-        height: Math.max(node.height - 2, node.height * 0.8),
-        fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
-        label: node.capacityMeshNodeId,
-      })
-    }
-
     // Draw obstacles
     for (const obstacle of this.srj.obstacles) {
       graphics.rects!.push({
@@ -346,6 +347,18 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       })
     }
 
+    // Draw mesh nodes (both finished and unfinished)
+    const allNodes = [...this.finishedNodes, ...this.unfinishedNodes]
+    for (const node of allNodes) {
+      graphics.rects!.push({
+        center: node.center,
+        width: Math.max(node.width - 2, node.width * 0.8),
+        height: Math.max(node.height - 2, node.height * 0.8),
+        fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
+        label: `${node.capacityMeshNodeId}\navailableZ: ${node.availableZ.join(",")}`,
+      })
+    }
+
     // Draw connection points (each connection gets a unique color).
     this.srj.connections.forEach((connection, index) => {
       const color = COLORS[index % COLORS.length]
@@ -353,7 +366,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         graphics.points!.push({
           x: pt.x,
           y: pt.y,
-          label: `conn-${index}`,
+          label: `conn-${index} (${pt.layer})`,
           color,
         })
       }

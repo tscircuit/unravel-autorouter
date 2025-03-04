@@ -172,6 +172,7 @@ export const CapacityMeshPipelineDebugger = ({
         <InteractiveGraphics
           graphics={visualization}
           onObjectClicked={({ object }) => {
+            if (!object.label?.includes("cn")) return
             setDialogObject(object)
           }}
         />

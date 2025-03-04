@@ -80,6 +80,7 @@ export class CapacityNodeTargetMerger extends BaseSolver {
       width: bounds.maxX - bounds.minX,
       height: bounds.maxY - bounds.minY,
       layer: connectedNodes[0].layer,
+      availableZ: connectedNodes[0].availableZ,
       _completelyInsideObstacle: false,
       _containsObstacle: true,
       _containsTarget: true,
