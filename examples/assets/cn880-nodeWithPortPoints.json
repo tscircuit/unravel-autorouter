@@ -1,0 +1,94 @@
+{
+  "nodeId": "cn880",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn880",
+    "center": {
+      "x": -9.375,
+      "y": 13.125
+    },
+    "width": 3.75,
+    "height": 3.75,
+    "layer": "top",
+    "_depth": 3,
+    "_parent": {
+      "capacityMeshNodeId": "cn699",
+      "center": {
+        "x": -11.25,
+        "y": 11.25
+      },
+      "width": 7.5,
+      "height": 7.5,
+      "layer": "top",
+      "_depth": 2,
+      "_parent": {
+        "capacityMeshNodeId": "cn3",
+        "center": {
+          "x": -7.5,
+          "y": 7.5
+        },
+        "width": 15,
+        "height": 15,
+        "layer": "top",
+        "_depth": 1,
+        "_parent": {
+          "capacityMeshNodeId": "cn0",
+          "center": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 30,
+          "height": 30,
+          "layer": "top",
+          "_depth": 0,
+          "_containsTarget": true,
+          "_containsObstacle": true,
+          "_completelyInsideObstacle": false
+        },
+        "_containsObstacle": true,
+        "_targetConnectionName": "source_trace_9",
+        "_containsTarget": true,
+        "_completelyInsideObstacle": false
+      },
+      "_containsObstacle": true,
+      "_containsTarget": false,
+      "_completelyInsideObstacle": false
+    },
+    "_containsObstacle": false,
+    "_containsTarget": false
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn880",
+    "portPoints": [
+      {
+        "x": -7.5,
+        "y": 13.75,
+        "z": 0,
+        "connectionName": "source_trace_3"
+      },
+      {
+        "x": -7.5,
+        "y": 14.375,
+        "z": 1,
+        "connectionName": "source_trace_9"
+      },
+      {
+        "x": -8.75,
+        "y": 11.25,
+        "z": 0,
+        "connectionName": "source_trace_3"
+      },
+      {
+        "x": -10,
+        "y": 11.25,
+        "z": 1,
+        "connectionName": "source_trace_9"
+      }
+    ],
+    "center": {
+      "x": -9.375,
+      "y": 13.125
+    },
+    "width": 3.75,
+    "height": 3.75
+  }
+}
