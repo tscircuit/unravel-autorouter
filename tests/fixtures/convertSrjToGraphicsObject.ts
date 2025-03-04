@@ -49,6 +49,7 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
               { x: routePoint.x, y: routePoint.y },
               { x: nextRoutePoint.x, y: nextRoutePoint.y },
             ],
+            strokeWidth: 0.15,
             strokeColor: safeTransparentize(
               {
                 top: "red",
