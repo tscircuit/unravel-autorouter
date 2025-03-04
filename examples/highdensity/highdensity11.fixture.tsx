@@ -3,25 +3,38 @@ import { IntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/IntraNodeSol
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { useState, useRef, useEffect } from "react"
-import type { NodeWithPortPoints } from "../types/high-density-types"
-import { HighDensityHyperParameters } from "lib/solvers/HighDensitySolver/HighDensityHyperParameters"
 
-interface HighDensityDebuggerProps {
-  startSeed?: number
-  nodeWithPortPoints: NodeWithPortPoints
-  hyperParameters?: Partial<HighDensityHyperParameters>
+const { nodeWithPortPoints } = {
+  nodeWithPortPoints: {
+    capacityMeshNodeId: "cn1092",
+    portPoints: [
+      { x: -15.859375, y: 3.59375, connectionName: "source_trace_22", z: 0 },
+      { x: -14.0625, y: 5.390625, connectionName: "source_trace_1", z: 0 },
+      {
+        x: -16.458333333333332,
+        y: 7.1875,
+        connectionName: "source_trace_1",
+        z: 0,
+      },
+      {
+        x: -15.260416666666668,
+        y: 7.1875,
+        connectionName: "source_trace_22",
+        z: 0,
+      },
+    ],
+    center: { x: -15.859375, y: 5.390625 },
+    width: 3.59375,
+    height: 3.59375,
+  },
 }
 
-export const HighDensityDebugger = ({
-  startSeed = 0,
-  nodeWithPortPoints,
-  hyperParameters = {},
-}: HighDensityDebuggerProps) => {
-  const [shuffleSeed, setShuffleSeed] = useState(startSeed)
+export default () => {
+  const [shuffleSeed, setShuffleSeed] = useState(10)
   const [isAnimating, setIsAnimating] = useState(false)
   const [maxSolvedRoutes, setMaxSolvedRoutes] = useState(0)
-  const [bestSeed, setBestSeed] = useState(0)
-  const animationRef = useRef<number>(0)
+  const [bestSeed, setBestSeed] = useState(10)
+  const animationRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (isAnimating) {
@@ -44,7 +57,12 @@ export const HighDensityDebugger = ({
     nodeWithPortPoints,
     colorMap: generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
     hyperParameters: {
-      ...hyperParameters,
+      // FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR: 20,
+      // FUTURE_CONNECTION_PROX_VIA_PENALTY_FACTOR: 20,
+      // FUTURE_CONNECTION_PROXIMITY_VD: 50,
+      FLIP_TRACE_ALIGNMENT_DIRECTION: false,
+      // MISALIGNED_DIST_PENALTY_FACTOR: 3,
+      CELL_SIZE_FACTOR: 1,
       SHUFFLE_SEED: shuffleSeed,
     },
   })
@@ -68,17 +86,42 @@ export const HighDensityDebugger = ({
   const graphics =
     solver.solvedRoutes.length > 0 ? solver.visualize() : { lines: [] }
 
+  if (solver.failedSubSolvers.length > 0) {
+    return (
+      <div>
+        <div className="border p-2 m-2 text-center font-bold">
+          {solver.solvedRoutes.length} / {solver.totalConnections}
+        </div>
+        <div className="border p-2 m-2 text-center">
+          Max Solved: {maxSolvedRoutes} (Seed: {bestSeed})
+        </div>
+        <button
+          className="border p-2 m-2"
+          onClick={() => setShuffleSeed(Math.floor(Math.random() * 1000))}
+        >
+          Shuffle (Current Seed: {shuffleSeed})
+        </button>
+        <button
+          className="border p-2 m-2"
+          onClick={() => setIsAnimating(!isAnimating)}
+        >
+          {isAnimating ? "Stop" : "Start"} Animation
+        </button>
+        <InteractiveGraphics
+          graphics={combineVisualizations(
+            solver.failedSubSolvers[0].visualize(),
+            solver.visualize(),
+          )}
+        />
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="border p-2 m-2 text-center">
         Max Solved: {maxSolvedRoutes} (Seed: {bestSeed})
       </div>
-      <button
-        className="border p-2 m-2"
-        onClick={() => setShuffleSeed(shuffleSeed + 1)}
-      >
-        Next Seed
-      </button>
       <button
         className="border p-2 m-2"
         onClick={() => setShuffleSeed(Math.floor(Math.random() * 1000))}
@@ -91,38 +134,7 @@ export const HighDensityDebugger = ({
       >
         {isAnimating ? "Stop" : "Start"} Animation
       </button>
-      <span className="border p-2 m-2 text-center font-bold">
-        {solver.solvedRoutes.length} / {solver.totalConnections}
-      </span>
-      <InteractiveGraphics
-        graphics={
-          solver.failedSubSolvers.length > 0
-            ? combineVisualizations(
-                solver.failedSubSolvers[0].visualize(),
-                solver.visualize(),
-              )
-            : solver.visualize()
-        }
-      />
-      <table className="border-collapse border m-2">
-        <thead>
-          <tr>
-            <th className="border p-2">Hyperparameter</th>
-            <th className="border p-2">Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries({
-            ...hyperParameters,
-            SHUFFLE_SEED: shuffleSeed,
-          }).map(([key, value]) => (
-            <tr key={key}>
-              <td className="border p-2">{key}</td>
-              <td className="border p-2">{value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <InteractiveGraphics graphics={graphics} />
     </div>
   )
 }

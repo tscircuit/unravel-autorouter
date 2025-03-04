@@ -12,32 +12,47 @@ export const GenericSolverDebugger = ({
   createSolver,
   animationSpeed = 10,
 }: GenericSolverDebuggerProps) => {
-  const [solver, setSolver] = useState<BaseSolver>(() => createSolver())
-  const [, setForceUpdate] = useState(0)
+  const [mainSolver, setMainSolver] = useState<BaseSolver>(() => createSolver())
+  const [forcedUpdates, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [selectedSolverKey, setSelectedSolverKey] = useState<"main" | number>(
+    "main",
+  )
+
+  const selectedSolver = useMemo(() => {
+    if (selectedSolverKey === "main") {
+      return mainSolver
+    } else if (
+      mainSolver.failedSubSolvers &&
+      mainSolver.failedSubSolvers.length > selectedSolverKey
+    ) {
+      return mainSolver.failedSubSolvers[selectedSolverKey]
+    }
+  }, [mainSolver, selectedSolverKey])
 
   const speedLevels = [1, 2, 5, 10, 100]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
 
   // Reset solver
   const resetSolver = () => {
-    setSolver(createSolver())
+    setMainSolver(createSolver())
+    setSelectedSolverKey("main")
   }
 
   // Animation effect
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | undefined
 
-    if (isAnimating && !solver.solved && !solver.failed) {
+    if (isAnimating && !mainSolver.solved && !mainSolver.failed) {
       intervalId = setInterval(() => {
         const stepsPerInterval = speedLevels[speedLevel]
 
         for (let i = 0; i < stepsPerInterval; i++) {
-          if (solver.solved || solver.failed) {
+          if (mainSolver.solved || mainSolver.failed) {
             break
           }
-          solver.step()
+          mainSolver.step()
         }
         setForceUpdate((prev) => prev + 1)
       }, animationSpeed)
@@ -48,20 +63,20 @@ export const GenericSolverDebugger = ({
         clearInterval(intervalId)
       }
     }
-  }, [isAnimating, speedLevel, solver, animationSpeed])
+  }, [isAnimating, speedLevel, mainSolver, animationSpeed])
 
   // Manual step function
   const handleStep = () => {
-    if (!solver.solved && !solver.failed) {
-      solver.step()
+    if (!mainSolver.solved && !mainSolver.failed) {
+      mainSolver.step()
       setForceUpdate((prev) => prev + 1)
     }
   }
 
   // Solve completely
   const handleSolveCompletely = () => {
-    if (!solver.solved && !solver.failed) {
-      solver.solve()
+    if (!mainSolver.solved && !mainSolver.failed) {
+      mainSolver.solve()
       setForceUpdate((prev) => prev + 1)
     }
   }
@@ -82,12 +97,33 @@ export const GenericSolverDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
-      return solver?.visualize() || { points: [], lines: [] }
+      return selectedSolver?.visualize() || { points: [], lines: [] }
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations])
+  }, [forcedUpdates, selectedSolver])
+
+  // Generate solver options for dropdown
+  const solverOptions = useMemo(() => {
+    const options = [
+      {
+        value: "main" as string | number,
+        label: `Main Solver (${mainSolver.constructor.name})`,
+      },
+    ]
+
+    if (mainSolver.failedSubSolvers && mainSolver.failedSubSolvers.length > 0) {
+      mainSolver.failedSubSolvers.forEach((subSolver, index) => {
+        options.push({
+          value: index,
+          label: `Failed Solver ${index + 1} (${subSolver.constructor.name})`,
+        })
+      })
+    }
+
+    return options
+  }, [forcedUpdates, mainSolver, mainSolver.failedSubSolvers?.length])
 
   return (
     <div className="p-4">
@@ -95,21 +131,21 @@ export const GenericSolverDebugger = ({
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleStep}
-          disabled={solver.solved || solver.failed}
+          disabled={mainSolver.solved || mainSolver.failed}
         >
           Step
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
           onClick={() => setIsAnimating(!isAnimating)}
-          disabled={solver.solved || solver.failed}
+          disabled={mainSolver.solved || mainSolver.failed}
         >
           {isAnimating ? "Stop" : "Animate"}
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
           onClick={decreaseSpeed}
-          disabled={speedLevel === 0 || solver.solved || solver.failed}
+          disabled={speedLevel === 0 || mainSolver.solved || mainSolver.failed}
         >
           Slower
         </button>
@@ -118,8 +154,8 @@ export const GenericSolverDebugger = ({
           onClick={increaseSpeed}
           disabled={
             speedLevel === speedLevels.length - 1 ||
-            solver.solved ||
-            solver.failed
+            mainSolver.solved ||
+            mainSolver.failed
           }
         >
           {speedLabels[speedLevel + 1] ?? "(Max)"}
@@ -127,7 +163,7 @@ export const GenericSolverDebugger = ({
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleSolveCompletely}
-          disabled={solver.solved || solver.failed}
+          disabled={mainSolver.solved || mainSolver.failed}
         >
           Solve Completely
         </button>
@@ -141,19 +177,45 @@ export const GenericSolverDebugger = ({
 
       <div className="flex gap-4 mb-4 tabular-nums">
         <div className="border p-2 rounded">
-          Iterations: <span className="font-bold">{solver.iterations}</span>
+          Iterations: <span className="font-bold">{mainSolver.iterations}</span>
         </div>
         <div className="border p-2 rounded">
           Status:{" "}
           <span
-            className={`font-bold ${solver.solved ? "text-green-600" : solver.failed ? "text-red-600" : "text-blue-600"}`}
+            className={`font-bold ${mainSolver.solved ? "text-green-600" : mainSolver.failed ? "text-red-600" : "text-blue-600"}`}
           >
-            {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
+            {mainSolver.solved
+              ? "Solved"
+              : mainSolver.failed
+                ? "Failed"
+                : "No Errors"}
           </span>
         </div>
-        {solver.error && (
+        {solverOptions.length > 1 && (
+          <div>
+            <select
+              className="border rounded-md p-2 w-full max-w-md"
+              value={selectedSolverKey.toString()}
+              onChange={(e) =>
+                setSelectedSolverKey(
+                  e.target.value === "main" ? "main" : parseInt(e.target.value),
+                )
+              }
+            >
+              {solverOptions.map((option) => (
+                <option
+                  key={option.value.toString()}
+                  value={option.value.toString()}
+                >
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {mainSolver.error && (
           <div className="border p-2 rounded bg-red-100">
-            Error: <span className="font-bold">{solver.error}</span>
+            Error: <span className="font-bold">{mainSolver.error}</span>
           </div>
         )}
       </div>
@@ -165,11 +227,12 @@ export const GenericSolverDebugger = ({
       <div className="mt-4 border-t pt-4">
         <h3 className="font-bold mb-2">Solver Information</h3>
         <div className="border p-2 rounded mb-2">
-          Type: <span className="font-bold">{solver.constructor.name}</span>
+          Type:{" "}
+          <span className="font-bold">{selectedSolver?.constructor.name}</span>
         </div>
         <div className="border p-2 rounded mb-2">
           Max Iterations:{" "}
-          <span className="font-bold">{solver.MAX_ITERATIONS}</span>
+          <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
         </div>
       </div>
     </div>

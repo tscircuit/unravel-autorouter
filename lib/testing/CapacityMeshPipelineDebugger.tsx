@@ -4,6 +4,7 @@ import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
 import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
+import { GraphicsObject, Rect } from "graphics-debug"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -24,6 +25,7 @@ export const CapacityMeshPipelineDebugger = ({
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [dialogObject, setDialogObject] = useState<Rect | null>(null)
 
   const speedLevels = [1, 2, 5, 10, 100]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
@@ -167,8 +169,102 @@ export const CapacityMeshPipelineDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        <InteractiveGraphics graphics={visualization} />
+        <InteractiveGraphics
+          graphics={visualization}
+          onObjectClicked={({ object }) => {
+            setDialogObject(object)
+          }}
+        />
       </div>
+
+      {dialogObject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg shadow-lg max-w-3xl max-h-[80vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">
+                Selected Object "{dialogObject.label?.split("\n")[0]}" (step{" "}
+                {dialogObject.step})
+              </h3>
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={() => setDialogObject(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div>
+              {dialogObject && (
+                <div className="mb-4">
+                  <pre className="bg-gray-100 p-3 rounded overflow-auto max-h-96 text-sm">
+                    {dialogObject.label}
+                  </pre>
+                  <button
+                    className="mt-2 bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm"
+                    onClick={() => {
+                      if (dialogObject?.label) {
+                        // Extract the capacity mesh node ID from the label
+                        const match = dialogObject.label.match(/cn(\d+)/)
+                        if (match?.[1]) {
+                          const nodeId = `cn${parseInt(match[1], 10)}`
+
+                          // Find the node in the solver's data
+                          let nodeData = null
+
+                          if (solver.nodeTargetMerger?.newNodes) {
+                            nodeData = solver.nodeTargetMerger.newNodes.find(
+                              (n) => n.capacityMeshNodeId === nodeId,
+                            )
+                          } else if (solver.nodeSolver?.finishedNodes) {
+                            nodeData = solver.nodeSolver.finishedNodes.find(
+                              (n) => n.capacityMeshNodeId === nodeId,
+                            )
+                          }
+
+                          // Get the node with port points from the segmentToPointOptimizer
+                          let nodeWithPortPoints = null
+                          if (
+                            solver.segmentToPointOptimizer
+                              ?.getNodesWithPortPoints
+                          ) {
+                            nodeWithPortPoints = solver.segmentToPointOptimizer
+                              .getNodesWithPortPoints()
+                              .find((n) => n.capacityMeshNodeId === nodeId)
+                          }
+
+                          const dataToDownload = {
+                            nodeId,
+                            capacityMeshNode: nodeData,
+                            nodeWithPortPoints: nodeWithPortPoints,
+                          }
+
+                          const dataStr = JSON.stringify(
+                            dataToDownload,
+                            null,
+                            2,
+                          )
+                          const dataBlob = new Blob([dataStr], {
+                            type: "application/json",
+                          })
+                          const url = URL.createObjectURL(dataBlob)
+                          const a = document.createElement("a")
+                          a.href = url
+                          a.download = `${nodeId}-nodeWithPortPoints.json`
+                          document.body.appendChild(a)
+                          a.click()
+                          document.body.removeChild(a)
+                          URL.revokeObjectURL(url)
+                        }
+                      }
+                    }}
+                  >
+                    Download High Density Node Input (NodeWithPortPoints)
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 border-t pt-4">
         <h3 className="font-bold mb-2">Pipeline Steps</h3>

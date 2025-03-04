@@ -8,9 +8,7 @@
   "obstacles": [
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -5.856893060790263,
         "y": -8.275436101920713
@@ -31,9 +29,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -5.856893060790263,
         "y": -8.425436101920713
@@ -54,9 +50,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -5.856893060790263,
         "y": -8.575436101920712
@@ -77,9 +71,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -5.856893060790263,
         "y": -8.725436101920712
@@ -100,9 +92,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.856893060790263,
         "y": -8.275436101920713
@@ -127,9 +117,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.856893060790263,
         "y": -8.425436101920713
@@ -154,9 +142,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.856893060790263,
         "y": -8.575436101920712
@@ -181,9 +167,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.856893060790263,
         "y": -8.725436101920712
@@ -208,9 +192,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.040227999999999,
         "y": 12.073
@@ -227,9 +209,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.040227999999999,
         "y": 9.533000000000001
@@ -254,9 +234,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.040227999999999,
         "y": 6.993
@@ -277,9 +255,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.040227999999999,
         "y": 4.453
@@ -296,9 +272,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.040227999999999,
         "y": 1.9129999999999998
@@ -315,9 +289,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.040227999999999,
         "y": -0.6269999999999998
@@ -334,9 +306,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -6.040227999999999,
         "y": -3.167
@@ -353,9 +323,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 10.124772,
         "y": -3.167
@@ -372,9 +340,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 10.124772,
         "y": -0.6269999999999998
@@ -391,9 +357,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 10.124772,
         "y": 1.9129999999999998
@@ -410,9 +374,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 10.124772,
         "y": 4.453
@@ -429,9 +391,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 10.124772,
         "y": 6.993
@@ -452,9 +412,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 10.124772,
         "y": 9.533000000000001
@@ -485,9 +443,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 10.124772,
         "y": 12.073
@@ -504,9 +460,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -2.4302279999999996,
         "y": 4.835
@@ -527,9 +481,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -2.4302279999999996,
         "y": 6.74
@@ -550,9 +502,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 0.7447720000000002,
         "y": 13.085
@@ -569,9 +519,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 3.2847720000000002,
         "y": 13.085
@@ -588,9 +536,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 0.7447720000000002,
         "y": 10.545
@@ -607,9 +553,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 3.2847720000000002,
         "y": 10.545
@@ -640,9 +584,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 0.7447720000000002,
         "y": 8.004999999999999
@@ -659,9 +601,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 3.2847720000000002,
         "y": 8.004999999999999
@@ -678,9 +618,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 0.7447720000000002,
         "y": 5.465
@@ -697,9 +635,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 3.2847720000000002,
         "y": 5.465
@@ -716,12 +652,7 @@
     },
     {
       "type": "oval",
-      "layers": [
-        "top",
-        "inner1",
-        "inner2",
-        "bottom"
-      ],
+      "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": 3.6885631738662035,
         "y": -10.96420520580684
@@ -742,12 +673,7 @@
     },
     {
       "type": "oval",
-      "layers": [
-        "top",
-        "inner1",
-        "inner2",
-        "bottom"
-      ],
+      "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": 3.6885631738662035,
         "y": -8.96420520580684
@@ -768,12 +694,7 @@
     },
     {
       "type": "oval",
-      "layers": [
-        "top",
-        "inner1",
-        "inner2",
-        "bottom"
-      ],
+      "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": -10.727385294299685,
         "y": -11.579453643315949
@@ -798,12 +719,7 @@
     },
     {
       "type": "oval",
-      "layers": [
-        "top",
-        "inner1",
-        "inner2",
-        "bottom"
-      ],
+      "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": -10.727385294299685,
         "y": -8.079453643315949
@@ -834,12 +750,7 @@
     },
     {
       "type": "oval",
-      "layers": [
-        "top",
-        "inner1",
-        "inner2",
-        "bottom"
-      ],
+      "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": -10.727385294299685,
         "y": -4.579453643315949
@@ -860,12 +771,7 @@
     },
     {
       "type": "oval",
-      "layers": [
-        "top",
-        "inner1",
-        "inner2",
-        "bottom"
-      ],
+      "layers": ["top", "inner1", "inner2", "bottom"],
       "center": {
         "x": -10.727385294299685,
         "y": -1.079453643315949
