@@ -29,12 +29,17 @@ export class IntraNodeRouteSolver extends BaseSolver {
 
   totalConnections: number
   solvedRoutes: HighDensityIntraNodeRoute[]
-  failedSolvers: SingleHighDensityRouteSolver[]
+  failedSubSolvers: SingleHighDensityRouteSolver[]
   hyperParameters: Partial<HighDensityHyperParameters>
   minDistBetweenEnteringPoints: number
 
   activeSolver: SingleHighDensityRouteSolver | null = null
   connMap?: ConnectivityMap
+
+  // Legacy compat
+  get failedSolvers() {
+    return this.failedSubSolvers
+  }
 
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
@@ -48,7 +53,7 @@ export class IntraNodeRouteSolver extends BaseSolver {
     this.colorMap = colorMap ?? {}
     this.solvedRoutes = []
     this.hyperParameters = params.hyperParameters ?? {}
-    this.failedSolvers = []
+    this.failedSubSolvers = []
     this.connMap = params.connMap
     const unsolvedConnectionsMap: Map<
       string,
@@ -139,9 +144,9 @@ export class IntraNodeRouteSolver extends BaseSolver {
         this.solvedRoutes.push(this.activeSolver.solvedPath!)
         this.activeSolver = null
       } else if (this.activeSolver.failed) {
-        this.failedSolvers.push(this.activeSolver)
+        this.failedSubSolvers.push(this.activeSolver)
         this.activeSolver = null
-        this.error = this.failedSolvers.map((s) => s.error).join("\n")
+        this.error = this.failedSubSolvers.map((s) => s.error).join("\n")
         this.failed = true
       }
       return
@@ -150,7 +155,7 @@ export class IntraNodeRouteSolver extends BaseSolver {
     const unsolvedConnection = this.unsolvedConnections.pop()
     this.progress = this.computeProgress()
     if (!unsolvedConnection) {
-      this.solved = this.failedSolvers.length === 0
+      this.solved = this.failedSubSolvers.length === 0
       return
     }
     if (unsolvedConnection.points.length === 1) {
@@ -251,6 +256,24 @@ export class IntraNodeRouteSolver extends BaseSolver {
         }
       }
     }
+
+    // Draw border around the node
+    const bounds = getBoundsFromNodeWithPortPoints(this.nodeWithPortPoints)
+    const { minX, minY, maxX, maxY } = bounds
+
+    // Draw the four sides of the border with thin red lines
+    graphics.lines!.push({
+      points: [
+        { x: minX, y: minY },
+        { x: maxX, y: minY },
+        { x: maxX, y: maxY },
+        { x: minX, y: maxY },
+        { x: minX, y: minY },
+      ],
+      strokeColor: "rgba(255, 0, 0, 0.25)",
+      strokeDash: "4 4",
+      layer: "border",
+    })
 
     return graphics
   }

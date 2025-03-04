@@ -1,6 +1,6 @@
 import React from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
-import { IntraNodeRouteSolver } from "../../lib/solvers/HighDensitySolver/IntraNodeSolver"
+import { IntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/IntraNodeSolver"
 
 const nodeWithPortPoints = {
   capacityMeshNodeId: "node1",

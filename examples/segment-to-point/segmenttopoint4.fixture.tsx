@@ -1,5 +1,5 @@
 import SegmentOptimizerDebugger from "lib/testing/SegmentOptimizerDebugger"
-import inputs from "./assets/segmenttopoint4.json"
+import inputs from "examples/assets/segmenttopoint4.json"
 
 export default function SegmentToPoint4Fixture() {
   return (

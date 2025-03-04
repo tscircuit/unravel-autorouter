@@ -1,7 +1,7 @@
 import { InteractiveGraphics } from "graphics-debug/react"
 import { CapacitySegmentToPointSolver } from "lib/solvers/CapacityMeshSolver/CapacitySegmentToPointSolver"
 import { CapacitySegmentPointOptimizer } from "lib/solvers/CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer"
-import inputs from "./assets/segmenttopoint3.json"
+import inputs from "examples/assets/segmenttopoint3.json"
 import { useEffect, useMemo, useReducer, useState } from "react"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import {

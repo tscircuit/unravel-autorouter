@@ -96,9 +96,9 @@ export const HighDensityDebugger = ({
       </span>
       <InteractiveGraphics
         graphics={
-          solver.failedSolvers.length > 0
+          solver.failedSubSolvers.length > 0
             ? combineVisualizations(
-                solver.failedSolvers[0].visualize(),
+                solver.failedSubSolvers[0].visualize(),
                 solver.visualize(),
               )
             : solver.visualize()

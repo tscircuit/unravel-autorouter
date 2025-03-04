@@ -1,5 +1,5 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import ledMatrix1 from "./assets/ledmatrix1.json"
+import ledMatrix1 from "examples/assets/ledmatrix1.json"
 import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
 import type { SimpleRouteJson } from "lib/types"
 import { useState } from "react"

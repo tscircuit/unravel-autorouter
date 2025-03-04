@@ -1,6 +1,6 @@
 import React from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
-import { SingleHighDensityRouteSolver } from "../../lib/solvers/HighDensitySolver/SingleHighDensityRouteSolver"
+import { SingleHighDensityRouteSolver } from "lib/solvers/HighDensitySolver/SingleHighDensityRouteSolver"
 
 const exampleRoutes = [
   {

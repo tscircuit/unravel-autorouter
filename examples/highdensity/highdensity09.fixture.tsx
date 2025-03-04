@@ -180,7 +180,7 @@ export default () => {
   const graphics =
     solver.solvedRoutes.length > 0 ? solver.visualize() : { lines: [] }
 
-  if (solver.failedSolvers.length > 0) {
+  if (solver.failedSubSolvers.length > 0) {
     return (
       <div>
         <div className="border p-2 m-2 text-center font-bold">
@@ -203,7 +203,7 @@ export default () => {
         </button>
         <InteractiveGraphics
           graphics={combineVisualizations(
-            solver.failedSolvers[0].visualize(),
+            solver.failedSubSolvers[0].visualize(),
             solver.visualize(),
           )}
         />

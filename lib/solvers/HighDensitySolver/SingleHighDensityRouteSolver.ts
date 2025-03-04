@@ -213,14 +213,20 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     return false
   }
 
-  isNodeTooCloseToEdge(node: Node) {
-    const viaRadius = this.viaDiameter / 2
-    return (
-      node.x < this.bounds.minX + viaRadius ||
-      node.x > this.bounds.maxX - viaRadius ||
-      node.y < this.bounds.minY + viaRadius ||
-      node.y > this.bounds.maxY - viaRadius
-    )
+  isNodeTooCloseToEdge(node: Node, isVia?: boolean) {
+    const margin = isVia ? this.viaDiameter / 2 : this.obstacleMargin
+    const tooClose =
+      node.x < this.bounds.minX + margin ||
+      node.x > this.bounds.maxX - margin ||
+      node.y < this.bounds.minY + margin ||
+      node.y > this.bounds.maxY - margin
+    if (tooClose && !isVia) {
+      // If it's close to B, it's an exception
+      if (distance(node, this.B) < margin * 2) {
+        return false
+      }
+    }
+    return tooClose
   }
 
   doesPathToParentIntersectObstacle(node: Node) {
@@ -294,6 +300,11 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
           continue
         }
 
+        if (this.isNodeTooCloseToEdge(neighbor, false)) {
+          this.exploredNodes.add(neighborKey)
+          continue
+        }
+
         if (this.doesPathToParentIntersectObstacle(neighbor)) {
           this.debug_nodePathToParentIntersectsObstacle.add(neighborKey)
           this.exploredNodes.add(neighborKey)
@@ -318,10 +329,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       !this.exploredNodes.has(this.getNodeKey(viaNeighbor)) &&
       !this.isNodeTooCloseToObstacle(
         viaNeighbor,
-        this.viaDiameter / 2 + this.obstacleMargin,
+        this.viaDiameter / 2 + this.obstacleMargin / 2,
         true,
       ) &&
-      !this.isNodeTooCloseToEdge(viaNeighbor)
+      !this.isNodeTooCloseToEdge(viaNeighbor, true)
     ) {
       viaNeighbor.g = this.computeG(viaNeighbor)
       viaNeighbor.h = this.computeH(viaNeighbor)
@@ -443,13 +454,13 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     graphics.points!.push({
       x: this.A.x,
       y: this.A.y,
-      label: "Input A",
+      label: `Input A\nz: ${this.A.z}`,
       color: "orange",
     })
     graphics.points!.push({
       x: this.B.x,
       y: this.B.y,
-      label: "Input B",
+      label: `Input B\nz: ${this.B.z}`,
       color: "orange",
     })
 

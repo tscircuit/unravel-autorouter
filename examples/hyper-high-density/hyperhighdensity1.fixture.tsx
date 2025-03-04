@@ -1,4 +1,4 @@
-import { HyperSingleIntraNodeSolver } from "../lib/solvers/HyperHighDensitySolver/HyperSingleIntraNodeSolver"
+import { HyperSingleIntraNodeSolver } from "lib/solvers/HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 
 export default () => {
   const solver = new HyperSingleIntraNodeSolver({

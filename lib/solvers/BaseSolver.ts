@@ -7,6 +7,7 @@ export class BaseSolver {
   iterations = 0
   progress = 0
   error: string | null = null
+  failedSubSolvers?: BaseSolver[]
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {

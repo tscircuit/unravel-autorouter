@@ -1,5 +1,5 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import gkSample95 from "../assets/growing-grid-keyboard-sample-sample95-unrouted_simple_route.json"
+import gkSample95 from "examples/assets/growing-grid-keyboard-sample-sample95-unrouted_simple_route.json"
 import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
 import type { SimpleRouteJson } from "lib/types"
 import { useState } from "react"

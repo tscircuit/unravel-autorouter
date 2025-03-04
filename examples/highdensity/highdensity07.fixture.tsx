@@ -288,8 +288,8 @@ export default () => {
       </div>
       <InteractiveGraphics
         graphics={combineVisualizations(
-          ...(solver.failedSolvers?.[0]
-            ? [solver.failedSolvers[0].visualize()]
+          ...(solver.failedSubSolvers?.[0]
+            ? [solver.failedSubSolvers[0].visualize()]
             : []),
           solver.visualize(),
         )}

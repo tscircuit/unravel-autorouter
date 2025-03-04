@@ -1,7 +1,7 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import { CapacityMeshNodeSolver } from "../lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver"
-import { CapacityMeshEdgeSolver } from "../lib/solvers/CapacityMeshSolver/CapacityMeshEdgeSolver"
-import type { SimpleRouteJson } from "../lib/types"
+import { CapacityMeshNodeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver"
+import { CapacityMeshEdgeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshEdgeSolver"
+import type { SimpleRouteJson } from "lib/types"
 
 const simpleSrj: SimpleRouteJson = {
   bounds: {
