@@ -7,6 +7,11 @@ export const getIssuesInSection = (
 ): UnravelIssue[] => {
   const issues: UnravelIssue[] = []
 
+  for (const nodeId of section.allNodeIds) {
+    const node = nodeMap.get(nodeId)
+    if (!node) continue
+  }
+
   // Find all issues in the section
 
   return issues

@@ -1,5 +1,5 @@
 import { UnravelSectionSolver } from "lib/solvers/CapacitySegmentPointOptimizer/UnravelSectionSolver"
-import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger"
+import UnravelSectionDebugger from "lib/testing/UnravelSectionDebugger"
 import unravel2 from "examples/assets/unravel2.json"
 import { getDedupedSegments } from "lib/solvers/CapacitySegmentPointOptimizer/getDedupedSegments"
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
@@ -7,7 +7,7 @@ import { SegmentId } from "lib/solvers/CapacitySegmentPointOptimizer/types"
 
 export default function Unravel2() {
   return (
-    <GenericSolverDebugger
+    <UnravelSectionDebugger
       createSolver={() => {
         const dedupedSegments = getDedupedSegments(unravel2.assignedSegments)
         const nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode> = new Map()
