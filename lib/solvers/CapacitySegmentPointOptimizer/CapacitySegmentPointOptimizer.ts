@@ -246,14 +246,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       (segmentId) => this.currentMutatedSegments.get(segmentId)!,
     )!
 
-    const points = segments.flatMap((s) => s.assignedPoints!)
+    // const points = segments.flatMap((s) => s.assignedPoints!)
 
-    if (points.length <= 2) {
-      if (points.length <= 1) return 0
-      // anything that requires a via has a very small chance of failure
-      return 0
-      // return points[0].point.z !== points[1].point.z ? 0.01 : 0
-    }
+    // if (points.length <= 2) {
+    //   if (points.length <= 1) return 0
+    //   // anything that requires a via has a very small chance of failure
+    //   return 0
+    //   // return points[0].point.z !== points[1].point.z ? 0.01 : 0
+    // }
 
     const {
       numEntryExitLayerChanges,
