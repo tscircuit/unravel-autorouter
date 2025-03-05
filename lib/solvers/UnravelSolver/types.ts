@@ -3,16 +3,42 @@ import type { CapacityMeshNodeId } from "lib/types"
 export type SegmentPointId = string
 export type SegmentId = string
 
-export type UnravelViaIssue = {
-  type: "via"
+export interface BaseUnravelIssue {
+  probabilityOfFailure: number
+}
+
+export interface UnravelTransitionViaIssue extends BaseUnravelIssue {
+  type: "transition_via"
   capacityMeshNodeId: CapacityMeshNodeId
   segmentPoints: SegmentPointId[]
 }
 
-export type UnravelCrossingIssue = {
-  type: "crossing"
+export interface UnravelSameLayerCrossingIssue extends BaseUnravelIssue {
+  type: "same_layer_crossing"
   capacityMeshNodeId: CapacityMeshNodeId
-  crossingLines: Array<[SegmentPointId, SegmentPointId]>
+  crossingLine1: [SegmentPointId, SegmentPointId]
+  crossingLine2: [SegmentPointId, SegmentPointId]
+}
+
+export interface UnravelSingleTransitionCrossingIssue extends BaseUnravelIssue {
+  type: "single_transition_crossing"
+  capacityMeshNodeId: CapacityMeshNodeId
+  sameLayerCrossingLine: [SegmentPointId, SegmentPointId]
+  transitionCrossingLine: [SegmentPointId, SegmentPointId]
+}
+
+export interface UnravelDoubleTransitionCrossingIssue extends BaseUnravelIssue {
+  type: "double_transition_crossing"
+  capacityMeshNodeId: CapacityMeshNodeId
+  crossingLine1: [SegmentPointId, SegmentPointId]
+  crossingLine2: [SegmentPointId, SegmentPointId]
+}
+
+export interface UnravelTraceCapacityIssue extends BaseUnravelIssue {
+  type: "same_layer_trace_imbalance_with_low_capacity"
+  capacityMeshNodeId: CapacityMeshNodeId
+  z: number
+  tracesOnLayer: Array<{ A: SegmentPointId; B: SegmentPointId }>
 }
 
 export interface SegmentPoint {
@@ -28,13 +54,21 @@ export interface SegmentPoint {
 
 export type SegmentPointMap = Map<SegmentPointId, SegmentPoint>
 
-export type UnravelIssue = UnravelViaIssue | UnravelCrossingIssue
+export type UnravelIssue =
+  | UnravelTransitionViaIssue
+  | UnravelSameLayerCrossingIssue
+  | UnravelSingleTransitionCrossingIssue
+  | UnravelDoubleTransitionCrossingIssue
 
 export interface UnravelSection {
   allNodeIds: CapacityMeshNodeId[]
   mutableNodeIds: CapacityMeshNodeId[]
   immutableNodeIds: CapacityMeshNodeId[]
   segmentPointMap: SegmentPointMap
+  segmentPairsInNode: Map<
+    CapacityMeshNodeId,
+    Array<[SegmentPointId, SegmentPointId]>
+  >
   segmentPointsInNode: Map<CapacityMeshNodeId, SegmentPointId[]>
   segmentPointsInSegment: Map<SegmentId, SegmentPointId[]>
 }

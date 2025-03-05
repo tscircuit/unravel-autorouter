@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
-import { UnravelSectionSolver } from "lib/solvers/CapacitySegmentPointOptimizer/UnravelSectionSolver"
-import { UnravelCandidate } from "lib/solvers/CapacitySegmentPointOptimizer/types"
+import { UnravelSectionSolver } from "lib/solvers/UnravelSolver/UnravelSectionSolver"
+import { UnravelCandidate } from "lib/solvers/UnravelSolver/types"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 
 interface UnravelSectionDebuggerProps {
@@ -211,8 +211,8 @@ export const UnravelSectionDebugger = ({
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedCandidates.map((candidate, index) => {
                   const isCurrent =
-                    solver.currentCandidate &&
-                    solver.currentCandidate.candidateHash ===
+                    solver.lastProcessedCandidate &&
+                    solver.lastProcessedCandidate.candidateHash ===
                       candidate.candidateHash
                   const isBest =
                     solver.bestCandidate &&

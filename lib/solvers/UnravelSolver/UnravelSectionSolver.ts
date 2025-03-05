@@ -7,11 +7,11 @@ import {
   SegmentPoint,
   SegmentPointId,
   SegmentId,
-} from "../UnravelSolver/types"
-import { getNodesNearNode } from "../UnravelSolver/getNodesNearNode"
+} from "./types"
+import { getNodesNearNode } from "./getNodesNearNode"
 import { GraphicsObject } from "graphics-debug"
-import { createPointModificationsHash } from "../UnravelSolver/createPointModificationsHash"
-import { getIssuesInSection } from "../UnravelSolver/getIssuesInSection"
+import { createPointModificationsHash } from "./createPointModificationsHash"
+import { getIssuesInSection } from "./getIssuesInSection"
 
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
@@ -312,7 +312,7 @@ export class UnravelSectionSolver extends BaseSolver {
       for (const issue of this.lastProcessedCandidate.issues) {
         const node = this.nodeMap.get(issue.capacityMeshNodeId)!
 
-        if (issue.type === "via") {
+        if (issue.type === "transition_via") {
           // Highlight via issues
           for (const segmentPointId of issue.segmentPoints) {
             const segmentPoint =
@@ -325,9 +325,12 @@ export class UnravelSectionSolver extends BaseSolver {
               label: `Via Issue\n${segmentPointId}`,
             })
           }
-        } else if (issue.type === "crossing") {
+        } else if (issue.type === "same_layer_crossing") {
           // Highlight crossing issues
-          for (const [sp1Id, sp2Id] of issue.crossingLines) {
+          for (const [sp1Id, sp2Id] of [
+            issue.crossingLine1,
+            issue.crossingLine2,
+          ]) {
             const sp1 = this.unravelSection.segmentPointMap.get(sp1Id)!
             const sp2 = this.unravelSection.segmentPointMap.get(sp2Id)!
 

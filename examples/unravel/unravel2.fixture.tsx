@@ -1,9 +1,9 @@
-import { UnravelSectionSolver } from "lib/solvers/CapacitySegmentPointOptimizer/UnravelSectionSolver"
+import { UnravelSectionSolver } from "lib/solvers/UnravelSolver/UnravelSectionSolver"
 import UnravelSectionDebugger from "lib/testing/UnravelSectionDebugger"
 import unravel2 from "examples/assets/unravel2.json"
-import { getDedupedSegments } from "lib/solvers/CapacitySegmentPointOptimizer/getDedupedSegments"
+import { getDedupedSegments } from "lib/solvers/UnravelSolver/getDedupedSegments"
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
-import { SegmentId } from "lib/solvers/CapacitySegmentPointOptimizer/types"
+import { SegmentId } from "lib/solvers/UnravelSolver/types"
 
 export default function Unravel2() {
   return (
