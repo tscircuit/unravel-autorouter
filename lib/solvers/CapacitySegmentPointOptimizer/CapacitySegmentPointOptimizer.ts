@@ -352,12 +352,6 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       } as SwitchOperation
     }
 
-    const nodeIds = this.segmentIdToNodeIds.get(segment.nodePortSegmentId!)
-
-    if (nodeIds?.some((nodeId) => this.nodesThatCantFitVias.has(nodeId))) {
-      return null
-    }
-
     const randomPointIndex = Math.floor(
       this.random() * segment.assignedPoints!.length,
     )
@@ -629,10 +623,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       this.solved = true
       return
     }
-    // const op = this.getRandomCombinedOperationOnSingleNode()
-    const op = this.getRandomCombinedOperationNearNode(
-      this.getRandomWeightedNodeId(),
-    )
+    const op = this.getRandomCombinedOperationOnSingleNode()
+    // const op = this.getRandomCombinedOperationNearNode(
+    //   this.getRandomWeightedNodeId(),
+    // )
     this.lastCreatedOperation = op
     this.applyOperation(op)
     const {
