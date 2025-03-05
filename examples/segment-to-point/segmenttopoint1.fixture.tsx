@@ -5,7 +5,7 @@ import { useMemo } from "react"
 
 export default () => {
   const solver = useMemo(() => {
-    const solver = new CapacitySegmentToPointSolver(inputs)
+    const solver = new CapacitySegmentToPointSolver(inputs as any)
     solver.solve()
     return solver
   }, [])

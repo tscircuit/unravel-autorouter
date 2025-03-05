@@ -246,14 +246,14 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       (segmentId) => this.currentMutatedSegments.get(segmentId)!,
     )!
 
-    const points = segments.flatMap((s) => s.assignedPoints!)
+    // const points = segments.flatMap((s) => s.assignedPoints!)
 
-    if (points.length <= 2) {
-      if (points.length <= 1) return 0
-      // anything that requires a via has a very small chance of failure
-      return 0
-      // return points[0].point.z !== points[1].point.z ? 0.01 : 0
-    }
+    // if (points.length <= 2) {
+    //   if (points.length <= 1) return 0
+    //   // anything that requires a via has a very small chance of failure
+    //   return 0
+    //   // return points[0].point.z !== points[1].point.z ? 0.01 : 0
+    // }
 
     const {
       numEntryExitLayerChanges,
@@ -350,12 +350,6 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
         point1Index: randomPointIndex1,
         point2Index: randomPointIndex2,
       } as SwitchOperation
-    }
-
-    const nodeIds = this.segmentIdToNodeIds.get(segment.nodePortSegmentId!)
-
-    if (nodeIds?.some((nodeId) => this.nodesThatCantFitVias.has(nodeId))) {
-      return null
     }
 
     const randomPointIndex = Math.floor(
@@ -629,10 +623,10 @@ export class CapacitySegmentPointOptimizer extends BaseSolver {
       this.solved = true
       return
     }
-    // const op = this.getRandomCombinedOperationOnSingleNode()
-    const op = this.getRandomCombinedOperationNearNode(
-      this.getRandomWeightedNodeId(),
-    )
+    const op = this.getRandomCombinedOperationOnSingleNode()
+    // const op = this.getRandomCombinedOperationNearNode(
+    //   this.getRandomWeightedNodeId(),
+    // )
     this.lastCreatedOperation = op
     this.applyOperation(op)
     const {

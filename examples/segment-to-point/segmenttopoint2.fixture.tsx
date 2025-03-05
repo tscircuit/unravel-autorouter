@@ -32,7 +32,7 @@ export default () => {
     const optimizer = new CapacitySegmentPointOptimizer({
       assignedSegments: initialPointSolver.solvedSegments,
       colorMap: initialPointSolver.colorMap,
-      nodes: inputs.nodes,
+      nodes: inputs.nodes as any,
     })
     // optimizer.step()
     return { optimizer }

@@ -82,7 +82,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
         const center = {
           x: (seg.start.x + seg.end.x) / 2,
           y: (seg.start.y + seg.end.y) / 2,
-          z: 0,
+          z: seg.availableZ[0],
         }
         ;(seg as any).assignedPoints = [
           { connectionName: seg.connectionNames[0], point: center },
@@ -116,7 +116,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
         points.push({
           x: candidate.start.x + dx * fraction,
           y: candidate.start.y + dy * fraction,
-          z: 0,
+          z: candidate.availableZ[0],
         })
       }
       ;(candidate as any).assignedPoints = sortedConnections.map(

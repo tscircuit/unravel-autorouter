@@ -1,10 +1,10 @@
 import SegmentOptimizerDebugger from "lib/testing/SegmentOptimizerDebugger"
-import inputs from "examples/assets/segmenttopoint4.json"
+import inputs from "examples/assets/segmenttopoint5.json"
 
-export default function SegmentToPoint4Fixture() {
+export default function SegmentToPoint5Fixture() {
   return (
     <SegmentOptimizerDebugger
-      segments={inputs.segments as any}
+      segments={inputs.assignedSegments}
       colorMap={inputs.colorMap}
       nodes={inputs.nodes as any}
     />
