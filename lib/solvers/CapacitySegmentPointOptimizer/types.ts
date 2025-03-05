@@ -17,6 +17,8 @@ export type UnravelCrossingIssue = {
 
 export interface SegmentPoint {
   segmentPointId: SegmentPointId
+  directlyConnectedSegmentPointIds: SegmentPointId[]
+  connectionName: string
   segmentId: string
   capacityMeshNodeIds: CapacityMeshNodeId[]
   x: number

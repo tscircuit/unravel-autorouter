@@ -105,9 +105,11 @@ export class UnravelSectionSolver extends BaseSolver {
           capacityMeshNodeIds: this.segmentIdToNodeIds.get(
             segment.nodePortSegmentId!,
           )!,
+          connectionName: point.connectionName,
           x: point.point.x,
           y: point.point.y,
           z: point.point.z,
+          directlyConnectedSegmentPointIds: [],
         })
       }
     }
@@ -133,6 +135,27 @@ export class UnravelSectionSolver extends BaseSolver {
         ...(segmentPointsInSegment.get(segmentPoint.segmentId) ?? []),
         segmentPoint.segmentPointId,
       ])
+    }
+
+    // Second pass: set neighboring segment point ids
+    for (let i = 0; i < segmentPoints.length; i++) {
+      const A = segmentPoints[i]
+      for (let j = i + 1; j < segmentPoints.length; j++) {
+        const B = segmentPoints[j]
+        if (B.segmentPointId === A.segmentPointId) continue
+        if (B.segmentId === A.segmentId) continue
+        if (B.connectionName !== A.connectionName) continue
+        // If the points share the same capacity node, and share the same
+        // connection name, then they're neighbors
+        if (
+          A.capacityMeshNodeIds.some((nId) =>
+            B.capacityMeshNodeIds.includes(nId),
+          )
+        ) {
+          A.directlyConnectedSegmentPointIds.push(B.segmentPointId)
+          B.directlyConnectedSegmentPointIds.push(A.segmentPointId)
+        }
+      }
     }
 
     return {
@@ -200,6 +223,38 @@ export class UnravelSectionSolver extends BaseSolver {
           ],
           strokeColor: this.colorMap[segmentId] || "#000",
         })
+      }
+    }
+
+    // Connect directly connected segment points (points with the same connection name)
+    for (const [segmentPointId, segmentPoint] of this.unravelSection
+      .segmentPointMap) {
+      for (const connectedPointId of segmentPoint.directlyConnectedSegmentPointIds) {
+        // Only process each connection once (when the current point's ID is less than the connected point's ID)
+        if (segmentPointId < connectedPointId) {
+          const connectedPoint =
+            this.unravelSection.segmentPointMap.get(connectedPointId)!
+
+          // Determine line style based on layer (z) values
+          const sameLayer = segmentPoint.z === connectedPoint.z
+          const commonLayer = segmentPoint.z
+
+          let strokeDash: string | undefined
+          if (sameLayer) {
+            strokeDash = commonLayer === 0 ? undefined : "10 5" // top layer: solid, bottom layer: long dash
+          } else {
+            strokeDash = "3 3 10" // transition between layers: mixed dash pattern
+          }
+
+          graphics.lines.push({
+            points: [
+              { x: segmentPoint.x, y: segmentPoint.y },
+              { x: connectedPoint.x, y: connectedPoint.y },
+            ],
+            strokeDash,
+            strokeColor: this.colorMap[segmentPoint.connectionName] || "#000",
+          })
+        }
       }
     }
 
