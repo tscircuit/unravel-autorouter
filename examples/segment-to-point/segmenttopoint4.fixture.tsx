@@ -4,9 +4,9 @@ import inputs from "examples/assets/segmenttopoint4.json"
 export default function SegmentToPoint4Fixture() {
   return (
     <SegmentOptimizerDebugger
-      segments={inputs.segments}
+      segments={inputs.segments as any}
       colorMap={inputs.colorMap}
-      nodes={inputs.nodes}
+      nodes={inputs.nodes as any}
     />
   )
 }
