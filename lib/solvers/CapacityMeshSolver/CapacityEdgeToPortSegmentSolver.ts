@@ -84,8 +84,6 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
         if (!adjNode) continue
         const segment = findOverlappingSegment(node, adjNode)
 
-        console.log({ node, adjNode })
-
         const mutuallyAvailableZ = adjNode.availableZ.filter((z) =>
           node.availableZ.includes(z),
         )
@@ -120,7 +118,7 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
       const node = this.nodeMap.get(nodeId)!
       segments.forEach((segment) => {
         const isVertical = segment.start.x === segment.end.x
-        const THICKNESS = 0.5 / segment.connectionNames.length
+        const THICKNESS = 0.1 / segment.connectionNames.length
         for (let i = 0; i < segment.connectionNames.length; i++) {
           const offsetAmount =
             (i / (segment.connectionNames.length - 1 + 0.000001) - 0.5) *
@@ -148,7 +146,7 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
               this.colorMap[segment.connectionNames[i]],
               0.6,
             ),
-            label: `${nodeId}: ${segment.connectionNames.join(", ")}`,
+            label: `${nodeId}: ${segment.connectionNames.join(", ")}\navailableZ: ${segment.availableZ.join(",")}`,
           })
         }
       })

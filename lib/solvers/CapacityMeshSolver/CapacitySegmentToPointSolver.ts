@@ -74,7 +74,6 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
     // Iterate over unsolved segments.
     for (const seg of unsolved) {
       const n = seg.connectionNames.length
-      console.log("seg", seg)
       // Already processed? Skip if assignedPoints exists for all connections.
       if ("assignedPoints" in seg && seg.assignedPoints?.length === n) continue
 
@@ -117,7 +116,7 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
         points.push({
           x: candidate.start.x + dx * fraction,
           y: candidate.start.y + dy * fraction,
-          z: 0,
+          z: candidate.availableZ[0],
         })
       }
       ;(candidate as any).assignedPoints = sortedConnections.map(
