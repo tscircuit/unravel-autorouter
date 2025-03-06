@@ -126,13 +126,7 @@ export const UnravelSectionDebugger = ({
     }
   }, [forcedUpdates, solver, solver?.selectedCandidateIndex])
 
-  // Get sorted candidates
-  const sortedCandidates = useMemo(() => {
-    if (!solver.candidates || solver.candidates.length === 0) {
-      return []
-    }
-    return [...solver.candidates].sort((a, b) => a.f - b.f)
-  }, [forcedUpdates, solver, solver.candidates])
+  const candidates = solver.candidates
 
   return (
     <div className="p-4">
@@ -279,7 +273,7 @@ export const UnravelSectionDebugger = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedCandidates.map((candidate, index) => {
+                {candidates.map((candidate, index) => {
                   const isCurrent = selectedCandidate === candidate
                   const isBest =
                     solver.bestCandidate &&

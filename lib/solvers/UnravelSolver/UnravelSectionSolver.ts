@@ -62,7 +62,7 @@ export class UnravelSectionSolver extends BaseSolver {
 
   lastProcessedCandidate: UnravelCandidate | null = null
   bestCandidate: UnravelCandidate | null = null
-  originalCandidate: UnravelCandidate | null = null
+  originalCandidate: UnravelCandidate
 
   rootNodeId: CapacityMeshNodeId
   nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
@@ -347,38 +347,54 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // 2. CHANGE LAYER OF EACH SEGMENT ENTIRELY TO REMOVE CROSSING
-      operations.push({
-        type: "change_layer",
-        newZ: A.z === 0 ? 1 : 0,
-        segmentPointIds: [APointId, BPointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: C.z === 0 ? 1 : 0,
-        segmentPointIds: [CPointId, DPointId],
-      })
+      const Amutable = this.unravelSection.mutableSegmentIds.has(A.segmentId)
+      const Bmutable = this.unravelSection.mutableSegmentIds.has(B.segmentId)
+      const Cmutable = this.unravelSection.mutableSegmentIds.has(C.segmentId)
+      const Dmutable = this.unravelSection.mutableSegmentIds.has(D.segmentId)
+      if (Amutable && Bmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: A.z === 0 ? 1 : 0,
+          segmentPointIds: [APointId, BPointId],
+        })
+      }
+      if (Cmutable && Dmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: C.z === 0 ? 1 : 0,
+          segmentPointIds: [CPointId, DPointId],
+        })
+      }
 
       // 3. CHANGE LAYER OF EACH POINT INDIVIDUALLY TO MAKE TRANSITION CROSSING
-      operations.push({
-        type: "change_layer",
-        newZ: A.z === 0 ? 1 : 0,
-        segmentPointIds: [APointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: B.z === 0 ? 1 : 0,
-        segmentPointIds: [BPointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: C.z === 0 ? 1 : 0,
-        segmentPointIds: [CPointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: D.z === 0 ? 1 : 0,
-        segmentPointIds: [DPointId],
-      })
+      if (Amutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: A.z === 0 ? 1 : 0,
+          segmentPointIds: [APointId],
+        })
+      }
+      if (Bmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: B.z === 0 ? 1 : 0,
+          segmentPointIds: [BPointId],
+        })
+      }
+      if (Cmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: C.z === 0 ? 1 : 0,
+          segmentPointIds: [CPointId],
+        })
+      }
+      if (Dmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: D.z === 0 ? 1 : 0,
+          segmentPointIds: [DPointId],
+        })
+      }
     }
 
     // TODO single_transition_crossing
@@ -567,6 +583,10 @@ export class UnravelSectionSolver extends BaseSolver {
       }
       this.candidates.push(neighbor)
     })
+    this.candidates.sort((a, b) => a.f - b.f)
+    if (this.candidates.length > 500) {
+      this.candidates.splice(500)
+    }
   }
 
   visualize(): GraphicsObject {
