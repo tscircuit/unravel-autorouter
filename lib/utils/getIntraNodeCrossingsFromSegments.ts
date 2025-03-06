@@ -45,13 +45,16 @@ export const getIntraNodeCrossingsFromSegments = (
       if (aConnName !== bConnName) continue
       if (A === B) continue
       pointPair.points.push(B)
+
+      if (pointPair.points.some((p) => p.z !== pointPair.z)) {
+        numEntryExitLayerChanges++
+        transitionPairPoints.push(pointPair)
+        break
+      } else {
+        pointPairs.push(pointPair)
+        break
+      }
     }
-    if (pointPair.points.some((p) => p.z !== pointPair.z)) {
-      numEntryExitLayerChanges++
-      transitionPairPoints.push(pointPair)
-      continue
-    }
-    pointPairs.push(pointPair)
   }
 
   for (let i = 0; i < pointPairs.length; i++) {

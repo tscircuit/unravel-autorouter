@@ -9,6 +9,7 @@ import {
   SegmentId,
   UnravelOperation,
   UnravelIssue,
+  SegmentPointMap,
 } from "./types"
 import { getNodesNearNode } from "./getNodesNearNode"
 import { GraphicsObject } from "graphics-debug"
@@ -20,6 +21,7 @@ import { getIssuesInSection } from "./getIssuesInSection"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { getLogProbability } from "./getLogProbability"
 import { applyOperationToPointModifications } from "./applyOperationToPointModifications"
+import { createSegmentPointMap } from "./createSegmentPointMap"
 
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
@@ -60,13 +62,14 @@ export class UnravelSectionSolver extends BaseSolver {
 
   lastProcessedCandidate: UnravelCandidate | null = null
   bestCandidate: UnravelCandidate | null = null
-  originalCandidate: UnravelCandidate | null = null
+  originalCandidate: UnravelCandidate
 
   rootNodeId: CapacityMeshNodeId
   nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
+  MAX_CANDIDATES = 500
 
   selectedCandidateIndex: number | "best" | "original" | null = null
 
@@ -80,6 +83,7 @@ export class UnravelSectionSolver extends BaseSolver {
     dedupedSegments: SegmentWithAssignedPoints[]
     nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
     segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
+    segmentPointMap?: SegmentPointMap
   }) {
     super()
 
@@ -91,7 +95,7 @@ export class UnravelSectionSolver extends BaseSolver {
     this.segmentIdToNodeIds = params.segmentIdToNodeIds
     this.rootNodeId = params.rootNodeId
     this.colorMap = params.colorMap ?? {}
-    this.unravelSection = this.createUnravelSection()
+    this.unravelSection = this.createUnravelSection(params.segmentPointMap)
     this.tunedNodeCapacityMap = new Map()
     for (const nodeId of this.unravelSection.allNodeIds) {
       this.tunedNodeCapacityMap.set(
@@ -103,7 +107,7 @@ export class UnravelSectionSolver extends BaseSolver {
     this.candidates = [this.originalCandidate]
   }
 
-  createUnravelSection(): UnravelSection {
+  createUnravelSection(segmentPointMap?: SegmentPointMap): UnravelSection {
     const mutableNodeIds = getNodesNearNode({
       nodeId: this.rootNodeId,
       nodeIdToSegmentIds: this.nodeIdToSegmentIds,
@@ -120,29 +124,14 @@ export class UnravelSectionSolver extends BaseSolver {
       new Set(allNodeIds).difference(new Set(mutableNodeIds)),
     )
 
-    const segmentPoints: SegmentPoint[] = []
-    let highestSegmentPointId = 0
-    for (const segment of this.dedupedSegments) {
-      for (const point of segment.assignedPoints!) {
-        segmentPoints.push({
-          segmentPointId: `SP${highestSegmentPointId++}`,
-          segmentId: segment.nodePortSegmentId!,
-          capacityMeshNodeIds: this.segmentIdToNodeIds.get(
-            segment.nodePortSegmentId!,
-          )!,
-          connectionName: point.connectionName,
-          x: point.point.x,
-          y: point.point.y,
-          z: point.point.z,
-          directlyConnectedSegmentPointIds: [],
-        })
-      }
+    if (!segmentPointMap) {
+      segmentPointMap = createSegmentPointMap(
+        this.dedupedSegments,
+        this.segmentIdToNodeIds,
+      )
     }
 
-    const segmentPointMap = new Map<SegmentPointId, SegmentPoint>()
-    for (const segmentPoint of segmentPoints) {
-      segmentPointMap.set(segmentPoint.segmentPointId, segmentPoint)
-    }
+    const segmentPoints = Array.from(segmentPointMap.values())
 
     const segmentPointsInNode = new Map<CapacityMeshNodeId, SegmentPointId[]>()
     for (const segmentPoint of segmentPoints) {
@@ -218,7 +207,14 @@ export class UnravelSectionSolver extends BaseSolver {
     const mutableSegmentIds = new Set<string>()
     for (const nodeId of mutableNodeIds) {
       for (const segmentId of this.nodeIdToSegmentIds.get(nodeId)!) {
-        mutableSegmentIds.add(segmentId)
+        const allNodeIdsWithSegment = this.segmentIdToNodeIds.get(segmentId)!
+        if (
+          allNodeIdsWithSegment.every(
+            (nodeId) => !this.nodeMap.get(nodeId)!._containsTarget,
+          )
+        ) {
+          mutableSegmentIds.add(segmentId)
+        }
       }
     }
 
@@ -258,10 +254,10 @@ export class UnravelSectionSolver extends BaseSolver {
       f: g,
       operationsPerformed: 0,
       candidateHash: createPointModificationsHash(pointModifications),
-      candidateFullHash: createFullPointModificationsHash(
-        this.unravelSection.segmentPointMap,
-        pointModifications,
-      ),
+      // candidateFullHash: createFullPointModificationsHash(
+      //   this.unravelSection.segmentPointMap,
+      //   pointModifications,
+      // ),
     }
   }
 
@@ -352,38 +348,54 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // 2. CHANGE LAYER OF EACH SEGMENT ENTIRELY TO REMOVE CROSSING
-      operations.push({
-        type: "change_layer",
-        newZ: A.z === 0 ? 1 : 0,
-        segmentPointIds: [APointId, BPointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: C.z === 0 ? 1 : 0,
-        segmentPointIds: [CPointId, DPointId],
-      })
+      const Amutable = this.unravelSection.mutableSegmentIds.has(A.segmentId)
+      const Bmutable = this.unravelSection.mutableSegmentIds.has(B.segmentId)
+      const Cmutable = this.unravelSection.mutableSegmentIds.has(C.segmentId)
+      const Dmutable = this.unravelSection.mutableSegmentIds.has(D.segmentId)
+      if (Amutable && Bmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: A.z === 0 ? 1 : 0,
+          segmentPointIds: [APointId, BPointId],
+        })
+      }
+      if (Cmutable && Dmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: C.z === 0 ? 1 : 0,
+          segmentPointIds: [CPointId, DPointId],
+        })
+      }
 
       // 3. CHANGE LAYER OF EACH POINT INDIVIDUALLY TO MAKE TRANSITION CROSSING
-      operations.push({
-        type: "change_layer",
-        newZ: A.z === 0 ? 1 : 0,
-        segmentPointIds: [APointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: B.z === 0 ? 1 : 0,
-        segmentPointIds: [BPointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: C.z === 0 ? 1 : 0,
-        segmentPointIds: [CPointId],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: D.z === 0 ? 1 : 0,
-        segmentPointIds: [DPointId],
-      })
+      if (Amutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: A.z === 0 ? 1 : 0,
+          segmentPointIds: [APointId],
+        })
+      }
+      if (Bmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: B.z === 0 ? 1 : 0,
+          segmentPointIds: [BPointId],
+        })
+      }
+      if (Cmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: C.z === 0 ? 1 : 0,
+          segmentPointIds: [CPointId],
+        })
+      }
+      if (Dmutable) {
+        operations.push({
+          type: "change_layer",
+          newZ: D.z === 0 ? 1 : 0,
+          segmentPointIds: [DPointId],
+        })
+      }
     }
 
     // TODO single_transition_crossing
@@ -504,10 +516,10 @@ export class UnravelSectionSolver extends BaseSolver {
       candidateHash: createPointModificationsHash(pointModifications),
 
       // TODO PERFORMANCE allow disabling this
-      candidateFullHash: createFullPointModificationsHash(
-        this.unravelSection.segmentPointMap,
-        pointModifications,
-      ),
+      // candidateFullHash: createFullPointModificationsHash(
+      //   this.unravelSection.segmentPointMap,
+      //   pointModifications,
+      // ),
 
       operationsPerformed,
     }
@@ -555,23 +567,29 @@ export class UnravelSectionSolver extends BaseSolver {
         this.queuedOrExploredCandidatePointModificationHashes.has(
           neighbor.candidateHash,
         )
-      const isFullHashExplored =
-        neighbor.candidateFullHash &&
-        this.queuedOrExploredCandidatePointModificationHashes.has(
-          neighbor.candidateFullHash,
-        )
+      // const isFullHashExplored =
+      //   neighbor.candidateFullHash &&
+      //   this.queuedOrExploredCandidatePointModificationHashes.has(
+      //     neighbor.candidateFullHash,
+      //   )
 
-      if (isPartialHashExplored || isFullHashExplored) return
+      // if (isPartialHashExplored || isFullHashExplored) return
+      if (isPartialHashExplored) return
       this.queuedOrExploredCandidatePointModificationHashes.add(
         neighbor.candidateHash,
       )
-      if (neighbor.candidateFullHash) {
-        this.queuedOrExploredCandidatePointModificationHashes.add(
-          neighbor.candidateFullHash,
-        )
-      }
+      // if (neighbor.candidateFullHash) {
+      //   this.queuedOrExploredCandidatePointModificationHashes.add(
+      //     neighbor.candidateFullHash,
+      //   )
+      // }
       this.candidates.push(neighbor)
     })
+    this.candidates.sort((a, b) => a.f - b.f)
+    this.candidates.length = Math.min(
+      this.candidates.length,
+      this.MAX_CANDIDATES,
+    )
   }
 
   visualize(): GraphicsObject {
@@ -622,8 +640,8 @@ export class UnravelSectionSolver extends BaseSolver {
       graphics.points.push({
         x: segmentPoint.x,
         y: segmentPoint.y,
-        label: `${segmentPointId}\nSegment: ${segmentPoint.segmentId}\nLayer: ${segmentPoint.z}`,
-        color: this.colorMap[segmentPoint.segmentId] || "#000",
+        label: `${segmentPointId}\nSegment: ${segmentPoint.segmentId} ${this.unravelSection.mutableSegmentIds.has(segmentPoint.segmentId) ? "MUTABLE" : "IMMUTABLE"}\nLayer: ${segmentPoint.z}`,
+        color: this.colorMap[segmentPoint.connectionName] || "#000",
       })
     }
 
@@ -740,7 +758,7 @@ export class UnravelSectionSolver extends BaseSolver {
         radius: 0.05,
         stroke: "#0000ff",
         fill: "rgba(0, 0, 255, 0.2)",
-        label: `Modified Point\nOriginal: (${originalPoint.x}, ${originalPoint.y}, ${originalPoint.z})\nNew: (${modifiedPoint.x}, ${modifiedPoint.y}, ${modifiedPoint.z})`,
+        label: `${segmentPointId}\nOriginal: (${originalPoint.x.toFixed(2)}, ${originalPoint.y.toFixed(2)}, ${originalPoint.z})\nNew: (${modifiedPoint.x.toFixed(2)}, ${modifiedPoint.y.toFixed(2)}, ${modifiedPoint.z})`,
       })
     }
 

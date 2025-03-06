@@ -191,6 +191,14 @@ export const GenericSolverDebugger = ({
                 : "No Errors"}
           </span>
         </div>
+        {mainSolver.timeToSolve !== undefined && (
+          <div className="border p-2 rounded">
+            Time to solve:{" "}
+            <span className="font-bold">
+              {(mainSolver.timeToSolve / 1000).toFixed(2)}s
+            </span>
+          </div>
+        )}
         {solverOptions.length > 1 && (
           <div>
             <select

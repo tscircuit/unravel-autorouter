@@ -29,6 +29,7 @@ import { mergeRouteSegments } from "lib/utils/mergeRouteSegments"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { MultipleHighDensityRouteStitchSolver } from "../RouteStitchingSolver/MultipleHighDensityRouteStitchSolver"
 import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
+import { UnravelMultiSectionSolver } from "../UnravelSolver/UnravelMultiSectionSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -74,6 +75,7 @@ export class CapacityMeshSolver extends BaseSolver {
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
   segmentToPointSolver?: CapacitySegmentToPointSolver
+  unravelMultiSectionSolver?: UnravelMultiSectionSolver
   segmentToPointOptimizer?: CapacitySegmentPointOptimizer
   highDensityRouteSolver?: HighDensitySolver
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
@@ -160,9 +162,20 @@ export class CapacityMeshSolver extends BaseSolver {
         ]
       },
     ),
+    // definePipelineStep(
+    //   "segmentToPointOptimizer",
+    //   CapacitySegmentPointOptimizer,
+    //   (cms) => [
+    //     {
+    //       assignedSegments: cms.segmentToPointSolver?.solvedSegments || [],
+    //       colorMap: cms.colorMap,
+    //       nodes: cms.nodeTargetMerger?.newNodes || [],
+    //     },
+    //   ],
+    // ),
     definePipelineStep(
-      "segmentToPointOptimizer",
-      CapacitySegmentPointOptimizer,
+      "unravelMultiSectionSolver",
+      UnravelMultiSectionSolver,
       (cms) => [
         {
           assignedSegments: cms.segmentToPointSolver?.solvedSegments || [],
@@ -174,7 +187,9 @@ export class CapacityMeshSolver extends BaseSolver {
     definePipelineStep("highDensityRouteSolver", HighDensitySolver, (cms) => [
       {
         nodePortPoints:
-          cms.segmentToPointOptimizer?.getNodesWithPortPoints() || [],
+          cms.unravelMultiSectionSolver?.getNodesWithPortPoints() ??
+          cms.segmentToPointOptimizer?.getNodesWithPortPoints() ??
+          [],
         colorMap: cms.colorMap,
         connMap: cms.connMap,
       },
@@ -268,7 +283,9 @@ export class CapacityMeshSolver extends BaseSolver {
     const pathingViz = this.pathingSolver?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
     const segmentToPointViz = this.segmentToPointSolver?.visualize()
-    const segmentOptimizationViz = this.segmentToPointOptimizer?.visualize()
+    const segmentOptimizationViz =
+      this.unravelMultiSectionSolver?.visualize() ??
+      this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const highDensityStitchViz = this.highDensityStitchSolver?.visualize()
     const problemViz = {

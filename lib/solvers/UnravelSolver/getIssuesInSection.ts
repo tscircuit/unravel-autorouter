@@ -27,12 +27,19 @@ export const getIssuesInSection = (
 ): UnravelIssue[] => {
   const issues: UnravelIssue[] = []
 
-  const getPoint = (segmentPointId: SegmentPointId) => {
-    const point = section.segmentPointMap.get(segmentPointId)!
-    return {
-      x: pointModifications.get(point.segmentPointId)?.x ?? point.x,
-      y: pointModifications.get(point.segmentPointId)?.y ?? point.y,
-      z: pointModifications.get(point.segmentPointId)?.z ?? point.z,
+  const points: Map<SegmentPointId, { x: number; y: number; z: number }> =
+    new Map()
+  for (const nodeId of section.allNodeIds) {
+    for (const segmentPointId of section.segmentPointsInNode.get(nodeId)!) {
+      if (!points.has(segmentPointId)) {
+        const ogPoint = section.segmentPointMap.get(segmentPointId)!
+        const modPoint = pointModifications.get(segmentPointId)
+        points.set(segmentPointId, {
+          x: modPoint?.x ?? ogPoint.x,
+          y: modPoint?.y ?? ogPoint.y,
+          z: modPoint?.z ?? ogPoint.z,
+        })
+      }
     }
   }
 
@@ -44,8 +51,8 @@ export const getIssuesInSection = (
 
     // If there's a Z transition within the pair, there's a transition_via issue
     for (const pair of nodeSegmentPairs) {
-      const A = getPoint(pair[0])!
-      const B = getPoint(pair[1])!
+      const A = points.get(pair[0])!
+      const B = points.get(pair[1])!
       if (A.z !== B.z) {
         issues.push({
           type: "transition_via",
@@ -71,10 +78,10 @@ export const getIssuesInSection = (
         const pair1 = nodeSegmentPairs[i]
         const pair2 = nodeSegmentPairs[j]
 
-        const A = getPoint(pair1[0])!
-        const B = getPoint(pair1[1])!
-        const C = getPoint(pair2[0])!
-        const D = getPoint(pair2[1])!
+        const A = points.get(pair1[0])!
+        const B = points.get(pair1[1])!
+        const C = points.get(pair2[0])!
+        const D = points.get(pair2[1])!
 
         // Are the lines ever on the same layer? Is there any risk of overlap?
         if (!hasZRangeOverlap(A.z, B.z, C.z, D.z)) continue
