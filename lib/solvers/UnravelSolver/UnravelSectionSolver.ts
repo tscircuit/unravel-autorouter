@@ -366,9 +366,30 @@ export class UnravelSectionSolver extends BaseSolver {
       title: "Unravel Section Solver",
     }
 
-    // Visualize all segment points
+    // Get the candidate to visualize
+    const candidate = this.lastProcessedCandidate || this.candidates[0]
+    if (!candidate) return graphics
+
+    // Create a map of segment points with modifications applied
+    const modifiedSegmentPoints = new Map<string, SegmentPoint>()
     for (const [segmentPointId, segmentPoint] of this.unravelSection
       .segmentPointMap) {
+      // Create a copy of the original point
+      const modifiedPoint = { ...segmentPoint }
+
+      // Apply any modifications from the candidate
+      const modification = candidate.pointModifications.get(segmentPointId)
+      if (modification) {
+        if (modification.x !== undefined) modifiedPoint.x = modification.x
+        if (modification.y !== undefined) modifiedPoint.y = modification.y
+        if (modification.z !== undefined) modifiedPoint.z = modification.z
+      }
+
+      modifiedSegmentPoints.set(segmentPointId, modifiedPoint)
+    }
+
+    // Visualize all segment points with modifications applied
+    for (const [segmentPointId, segmentPoint] of modifiedSegmentPoints) {
       graphics.points.push({
         x: segmentPoint.x,
         y: segmentPoint.y,
@@ -397,7 +418,7 @@ export class UnravelSectionSolver extends BaseSolver {
       if (segmentPointIds.length <= 1) continue
 
       const points = segmentPointIds.map(
-        (spId) => this.unravelSection.segmentPointMap.get(spId)!,
+        (spId) => modifiedSegmentPoints.get(spId)!,
       )
 
       // Connect points in order
@@ -413,13 +434,11 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     // Connect directly connected segment points (points with the same connection name)
-    for (const [segmentPointId, segmentPoint] of this.unravelSection
-      .segmentPointMap) {
+    for (const [segmentPointId, segmentPoint] of modifiedSegmentPoints) {
       for (const connectedPointId of segmentPoint.directlyConnectedSegmentPointIds) {
         // Only process each connection once (when the current point's ID is less than the connected point's ID)
         if (segmentPointId < connectedPointId) {
-          const connectedPoint =
-            this.unravelSection.segmentPointMap.get(connectedPointId)!
+          const connectedPoint = modifiedSegmentPoints.get(connectedPointId)!
 
           // Determine line style based on layer (z) values
           const sameLayer = segmentPoint.z === connectedPoint.z
@@ -445,62 +464,56 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     // Visualize issues
-    if (this.lastProcessedCandidate) {
-      for (const issue of this.lastProcessedCandidate.issues) {
-        const node = this.nodeMap.get(issue.capacityMeshNodeId)!
+    for (const issue of candidate.issues) {
+      const node = this.nodeMap.get(issue.capacityMeshNodeId)!
 
-        if (issue.type === "transition_via") {
-          // Highlight via issues
-          for (const segmentPointId of issue.segmentPoints) {
-            const segmentPoint =
-              this.unravelSection.segmentPointMap.get(segmentPointId)!
-            graphics.circles.push({
-              center: { x: segmentPoint.x, y: segmentPoint.y },
-              radius: node.width / 16,
-              stroke: "#ff0000",
-              fill: "rgba(255, 0, 0, 0.2)",
-              label: `Via Issue\n${segmentPointId}`,
-            })
-          }
-        } else if (issue.type === "same_layer_crossing") {
-          // Highlight crossing issues
-          for (const [sp1Id, sp2Id] of [
-            issue.crossingLine1,
-            issue.crossingLine2,
-          ]) {
-            const sp1 = this.unravelSection.segmentPointMap.get(sp1Id)!
-            const sp2 = this.unravelSection.segmentPointMap.get(sp2Id)!
+      if (issue.type === "transition_via") {
+        // Highlight via issues
+        for (const segmentPointId of issue.segmentPoints) {
+          const segmentPoint = modifiedSegmentPoints.get(segmentPointId)!
+          graphics.circles.push({
+            center: { x: segmentPoint.x, y: segmentPoint.y },
+            radius: node.width / 16,
+            stroke: "#ff0000",
+            fill: "rgba(255, 0, 0, 0.2)",
+            label: `Via Issue\n${segmentPointId}`,
+          })
+        }
+      } else if (issue.type === "same_layer_crossing") {
+        // Highlight crossing issues
+        for (const [sp1Id, sp2Id] of [
+          issue.crossingLine1,
+          issue.crossingLine2,
+        ]) {
+          const sp1 = modifiedSegmentPoints.get(sp1Id)!
+          const sp2 = modifiedSegmentPoints.get(sp2Id)!
 
-            graphics.lines.push({
-              points: [
-                { x: sp1.x, y: sp1.y },
-                { x: sp2.x, y: sp2.y },
-              ],
-              strokeColor: "#ff0000",
-              strokeDash: "3 3",
-              strokeWidth: node.width / 32,
-            })
-          }
+          graphics.lines.push({
+            points: [
+              { x: sp1.x, y: sp1.y },
+              { x: sp2.x, y: sp2.y },
+            ],
+            strokeColor: "#ff0000",
+            strokeDash: "3 3",
+            strokeWidth: node.width / 32,
+          })
         }
       }
+    }
 
-      // Visualize point modifications in the current candidate
-      for (const [segmentPointId, modification] of this.lastProcessedCandidate
-        .pointModifications) {
-        const originalPoint =
-          this.unravelSection.segmentPointMap.get(segmentPointId)!
-        const x = modification.x ?? originalPoint.x
-        const y = modification.y ?? originalPoint.y
-        const z = modification.z ?? originalPoint.z
+    // Highlight modified points
+    for (const [segmentPointId, modification] of candidate.pointModifications) {
+      const modifiedPoint = modifiedSegmentPoints.get(segmentPointId)!
+      const originalPoint =
+        this.unravelSection.segmentPointMap.get(segmentPointId)!
 
-        graphics.circles.push({
-          center: { x, y },
-          radius: 0.05,
-          stroke: "#0000ff",
-          fill: "rgba(0, 0, 255, 0.2)",
-          label: `Modified Point\nOriginal: (${originalPoint.x}, ${originalPoint.y}, ${originalPoint.z})\nNew: (${x}, ${y}, ${z})`,
-        })
-      }
+      graphics.circles.push({
+        center: { x: modifiedPoint.x, y: modifiedPoint.y },
+        radius: 0.05,
+        stroke: "#0000ff",
+        fill: "rgba(0, 0, 255, 0.2)",
+        label: `Modified Point\nOriginal: (${originalPoint.x}, ${originalPoint.y}, ${originalPoint.z})\nNew: (${modifiedPoint.x}, ${modifiedPoint.y}, ${modifiedPoint.z})`,
+      })
     }
 
     return graphics

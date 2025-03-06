@@ -201,9 +201,6 @@ export const UnravelSectionDebugger = ({
                     Hash
                   </th>
                   <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                    F
-                  </th>
-                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
                     G
                   </th>
                   <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
@@ -251,10 +248,7 @@ export const UnravelSectionDebugger = ({
                         </button>
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                        {candidate.f.toFixed(4)}
-                      </td>
-                      <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                        {candidate.g.toFixed(4)}
+                        {candidate.g.toFixed(3)}
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">
                         {candidate.issues.length}
