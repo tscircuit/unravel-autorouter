@@ -475,12 +475,16 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     // Get the candidate to visualize
-    const candidate =
-      this.selectedCandidateIndex !== null
-        ? this.selectedCandidateIndex === "best"
-          ? this.bestCandidate
-          : this.candidates[this.selectedCandidateIndex]
-        : this.lastProcessedCandidate || this.candidates[0]
+    let candidate: UnravelCandidate | null = null
+    if (this.selectedCandidateIndex !== null) {
+      if (this.selectedCandidateIndex === "best") {
+        candidate = this.bestCandidate
+      } else {
+        candidate = this.candidates[this.selectedCandidateIndex]
+      }
+    } else {
+      candidate = this.lastProcessedCandidate || this.candidates[0]
+    }
     if (!candidate) return graphics
 
     // Create a map of segment points with modifications applied

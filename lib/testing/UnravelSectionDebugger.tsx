@@ -84,7 +84,6 @@ export const UnravelSectionDebugger = ({
     setSpeedLevel((prev) => Math.max(prev - 1, 0))
   }
 
-  // Safely get visualization
   const visualization = useMemo(() => {
     try {
       return solver?.visualize() || { points: [], lines: [] }
@@ -92,7 +91,7 @@ export const UnravelSectionDebugger = ({
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [forcedUpdates, solver])
+  }, [forcedUpdates, solver, solver?.selectedCandidateIndex])
 
   // Get sorted candidates
   const sortedCandidates = useMemo(() => {
@@ -101,13 +100,6 @@ export const UnravelSectionDebugger = ({
     }
     return [...solver.candidates].sort((a, b) => a.f - b.f)
   }, [forcedUpdates, solver, solver.candidates])
-
-  // Auto-select first candidate when candidates change
-  useEffect(() => {
-    if (sortedCandidates.length > 0) {
-      setSelectedCandidate(sortedCandidates[0])
-    }
-  }, [sortedCandidates])
 
   return (
     <div className="p-4">
@@ -191,7 +183,36 @@ export const UnravelSectionDebugger = ({
       </div>
 
       <div className="mb-4">
-        <h3 className="font-bold mb-2 text-sm">Candidates by F-Score</h3>
+        <h3 className="font-bold mb-2 text-sm">
+          Candidates by F-Score
+          <button
+            onClick={() => {
+              solver.selectedCandidateIndex = null
+              setSelectedCandidate(null)
+              setForceUpdate((prev) => prev + 1)
+            }}
+            className={`ml-1 border rounded-md px-2 py-1 hover:bg-gray-100 ${
+              solver.selectedCandidateIndex === null ? "bg-blue-100" : ""
+            }`}
+          >
+            last
+          </button>
+          <button
+            onClick={() => {
+              solver.selectedCandidateIndex = "best"
+              setSelectedCandidate(solver.bestCandidate)
+              setForceUpdate((prev) => prev + 1)
+            }}
+            className={`ml-1 border rounded-md px-2 py-1 hover:bg-gray-100 ${
+              solver.selectedCandidateIndex === "best" &&
+              selectedCandidate === solver.bestCandidate
+                ? "bg-blue-100"
+                : ""
+            }`}
+          >
+            best
+          </button>
+        </h3>
         <div className="flex gap-4">
           <div className="flex-1 max-h-[400px] overflow-y-auto border rounded">
             <table className="min-w-full divide-y divide-gray-200 text-xs">
@@ -213,10 +234,7 @@ export const UnravelSectionDebugger = ({
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedCandidates.map((candidate, index) => {
-                  const isCurrent =
-                    solver.lastProcessedCandidate &&
-                    solver.lastProcessedCandidate.candidateHash ===
-                      candidate.candidateHash
+                  const isCurrent = selectedCandidate === candidate
                   const isBest =
                     solver.bestCandidate &&
                     solver.bestCandidate.candidateHash ===
@@ -240,7 +258,10 @@ export const UnravelSectionDebugger = ({
                                   ? "bg-yellow-100"
                                   : "hover:bg-gray-100"
                           }`}
-                          onClick={() => setSelectedCandidate(candidate)}
+                          onClick={() => {
+                            setSelectedCandidate(candidate)
+                            solver.selectedCandidateIndex = index
+                          }}
                         >
                           {candidate.candidateHash}
                           {isCurrent && " (current)"}
