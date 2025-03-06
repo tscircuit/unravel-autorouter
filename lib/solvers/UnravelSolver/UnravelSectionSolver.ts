@@ -206,7 +206,14 @@ export class UnravelSectionSolver extends BaseSolver {
     const mutableSegmentIds = new Set<string>()
     for (const nodeId of mutableNodeIds) {
       for (const segmentId of this.nodeIdToSegmentIds.get(nodeId)!) {
-        mutableSegmentIds.add(segmentId)
+        const allNodeIdsWithSegment = this.segmentIdToNodeIds.get(segmentId)!
+        if (
+          allNodeIdsWithSegment.every(
+            (nodeId) => !this.nodeMap.get(nodeId)!._containsTarget,
+          )
+        ) {
+          mutableSegmentIds.add(segmentId)
+        }
       }
     }
 
@@ -616,7 +623,7 @@ export class UnravelSectionSolver extends BaseSolver {
       graphics.points.push({
         x: segmentPoint.x,
         y: segmentPoint.y,
-        label: `${segmentPointId}\nSegment: ${segmentPoint.segmentId}\nLayer: ${segmentPoint.z}`,
+        label: `${segmentPointId}\nSegment: ${segmentPoint.segmentId} ${this.unravelSection.mutableSegmentIds.has(segmentPoint.segmentId) ? "MUTABLE" : "IMMUTABLE"}\nLayer: ${segmentPoint.z}`,
         color: this.colorMap[segmentPoint.segmentId] || "#000",
       })
     }
@@ -734,7 +741,7 @@ export class UnravelSectionSolver extends BaseSolver {
         radius: 0.05,
         stroke: "#0000ff",
         fill: "rgba(0, 0, 255, 0.2)",
-        label: `Modified Point\nOriginal: (${originalPoint.x}, ${originalPoint.y}, ${originalPoint.z})\nNew: (${modifiedPoint.x}, ${modifiedPoint.y}, ${modifiedPoint.z})`,
+        label: `${segmentPointId}\nOriginal: (${originalPoint.x.toFixed(2)}, ${originalPoint.y.toFixed(2)}, ${originalPoint.z})\nNew: (${modifiedPoint.x.toFixed(2)}, ${modifiedPoint.y.toFixed(2)}, ${modifiedPoint.z})`,
       })
     }
 
