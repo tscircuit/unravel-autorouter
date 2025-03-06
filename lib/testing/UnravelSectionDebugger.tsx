@@ -183,19 +183,19 @@ export const UnravelSectionDebugger = ({
       </div>
 
       <div className="mb-4">
-        <h3 className="font-bold mb-2 text-sm">
-          Candidates by F-Score
+        <h3 className="mb-2 text-sm">
+          <b>Candidates by F-Score</b>
           <button
             onClick={() => {
               solver.selectedCandidateIndex = null
               setSelectedCandidate(null)
               setForceUpdate((prev) => prev + 1)
             }}
-            className={`ml-1 border rounded-md px-2 py-1 hover:bg-gray-100 ${
+            className={`ml-1 text-xs border rounded-md px-2 py-1 hover:bg-gray-100 ${
               solver.selectedCandidateIndex === null ? "bg-blue-100" : ""
             }`}
           >
-            last
+            last {solver.lastProcessedCandidate?.candidateHash.slice(-10)}
           </button>
           <button
             onClick={() => {
@@ -203,14 +203,27 @@ export const UnravelSectionDebugger = ({
               setSelectedCandidate(solver.bestCandidate)
               setForceUpdate((prev) => prev + 1)
             }}
-            className={`ml-1 border rounded-md px-2 py-1 hover:bg-gray-100 ${
+            className={`ml-1 text-xs border rounded-md px-2 py-1 hover:bg-gray-100 ${
               solver.selectedCandidateIndex === "best" &&
               selectedCandidate === solver.bestCandidate
                 ? "bg-blue-100"
                 : ""
             }`}
           >
-            best
+            best {solver.bestCandidate?.g.toFixed(3)}{" "}
+            {solver.bestCandidate?.candidateHash.slice(-10)}
+          </button>
+          <button
+            className={`ml-1 text-xs border rounded-md px-2 py-1 hover:bg-gray-100 ${
+              solver.selectedCandidateIndex === "original" ? "bg-blue-100" : ""
+            }`}
+            onClick={() => {
+              solver.selectedCandidateIndex = "original"
+              setSelectedCandidate(null)
+              setForceUpdate((prev) => prev + 1)
+            }}
+          >
+            original {solver.originalCandidate?.g.toFixed(3)}
           </button>
         </h3>
         <div className="flex gap-4">

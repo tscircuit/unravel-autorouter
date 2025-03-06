@@ -64,6 +64,7 @@ export type UnravelIssue =
 export interface UnravelSection {
   allNodeIds: CapacityMeshNodeId[]
   mutableNodeIds: CapacityMeshNodeId[]
+  mutableSegmentIds: Set<string>
   immutableNodeIds: CapacityMeshNodeId[]
   segmentPointMap: SegmentPointMap
   segmentPairsInNode: Map<

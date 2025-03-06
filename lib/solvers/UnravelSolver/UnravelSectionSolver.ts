@@ -56,6 +56,7 @@ export class UnravelSectionSolver extends BaseSolver {
 
   lastProcessedCandidate: UnravelCandidate | null = null
   bestCandidate: UnravelCandidate | null = null
+  originalCandidate: UnravelCandidate | null = null
 
   rootNodeId: CapacityMeshNodeId
   nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
@@ -63,7 +64,7 @@ export class UnravelSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
 
-  selectedCandidateIndex: number | "best" | null = null
+  selectedCandidateIndex: number | "best" | "original" | null = null
 
   queuedOrExploredCandidatePointModificationHashes: Set<string> = new Set()
 
@@ -94,7 +95,8 @@ export class UnravelSectionSolver extends BaseSolver {
         getTunedTotalCapacity1(this.nodeMap.get(nodeId)!),
       )
     }
-    this.candidates = [this.createInitialCandidate()]
+    this.originalCandidate = this.createInitialCandidate()
+    this.candidates = [this.originalCandidate]
   }
 
   createUnravelSection(): UnravelSection {
@@ -209,10 +211,18 @@ export class UnravelSectionSolver extends BaseSolver {
       }
     }
 
+    const mutableSegmentIds = new Set<string>()
+    for (const nodeId of mutableNodeIds) {
+      for (const segmentId of this.nodeIdToSegmentIds.get(nodeId)!) {
+        mutableSegmentIds.add(segmentId)
+      }
+    }
+
     return {
       allNodeIds,
       mutableNodeIds,
       immutableNodeIds,
+      mutableSegmentIds,
       segmentPairsInNode,
       segmentPointMap,
       segmentPointsInNode,
@@ -254,7 +264,7 @@ export class UnravelSectionSolver extends BaseSolver {
   getPointInCandidate(
     candidate: UnravelCandidate,
     segmentPointId: SegmentPointId,
-  ): { x: number; y: number; z: number } {
+  ): { x: number; y: number; z: number; segmentId: string } {
     const originalPoint =
       this.unravelSection.segmentPointMap.get(segmentPointId)!
     const modifications = candidate.pointModifications.get(segmentPointId)
@@ -263,6 +273,7 @@ export class UnravelSectionSolver extends BaseSolver {
       x: modifications?.x ?? originalPoint.x,
       y: modifications?.y ?? originalPoint.y,
       z: modifications?.z ?? originalPoint.z,
+      segmentId: originalPoint.segmentId,
     }
   }
 
@@ -275,19 +286,24 @@ export class UnravelSectionSolver extends BaseSolver {
     if (issue.type === "transition_via") {
       // When there's a transition via, we attempt to change the layer of either
       // end to match the other end
-      const pointA = this.getPointInCandidate(candidate, issue.segmentPoints[0])
-      const pointB = this.getPointInCandidate(candidate, issue.segmentPoints[1])
+      const [APointId, BPointId] = issue.segmentPoints
+      const pointA = this.getPointInCandidate(candidate, APointId)
+      const pointB = this.getPointInCandidate(candidate, BPointId)
 
-      operations.push({
-        type: "change_layer",
-        newZ: pointA.z,
-        segmentPointIds: [issue.segmentPoints[1]],
-      })
-      operations.push({
-        type: "change_layer",
-        newZ: pointB.z,
-        segmentPointIds: [issue.segmentPoints[0]],
-      })
+      if (this.unravelSection.mutableSegmentIds.has(pointA.segmentId)) {
+        operations.push({
+          type: "change_layer",
+          newZ: pointA.z,
+          segmentPointIds: [issue.segmentPoints[0]],
+        })
+      }
+      if (this.unravelSection.mutableSegmentIds.has(pointB.segmentId)) {
+        operations.push({
+          type: "change_layer",
+          newZ: pointB.z,
+          segmentPointIds: [issue.segmentPoints[1]],
+        })
+      }
     }
 
     // TODO same_layer_crossing
@@ -479,6 +495,8 @@ export class UnravelSectionSolver extends BaseSolver {
     if (this.selectedCandidateIndex !== null) {
       if (this.selectedCandidateIndex === "best") {
         candidate = this.bestCandidate
+      } else if (this.selectedCandidateIndex === "original") {
+        candidate = this.originalCandidate
       } else {
         candidate = this.candidates[this.selectedCandidateIndex]
       }
