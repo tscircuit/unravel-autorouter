@@ -590,14 +590,8 @@ export class UnravelSectionSolver extends BaseSolver {
         candidate = this.candidates[this.selectedCandidateIndex]
       }
     } else {
-      console.log(
-        "no candidate",
-        this.lastProcessedCandidate,
-        this.candidates[0],
-      )
       candidate = this.lastProcessedCandidate || this.candidates[0]
     }
-    console.log("candidate", candidate)
     if (!candidate) return graphics
 
     // Create a map of segment points with modifications applied

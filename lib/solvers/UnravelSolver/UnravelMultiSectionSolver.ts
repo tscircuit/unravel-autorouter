@@ -27,10 +27,14 @@ export class UnravelMultiSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
 
+  MAX_NODE_ATTEMPTS = 2
+
   /**
    * Probability of failure for each node
    */
   nodePfMap: Map<CapacityMeshNodeId, number>
+
+  attemptsToFixNode: Map<CapacityMeshNodeId, number>
 
   activeSolver: UnravelSectionSolver | null = null
 
@@ -59,6 +63,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
     this.nodeIdToSegmentIds = new Map()
     this.segmentIdToNodeIds = new Map()
+    this.attemptsToFixNode = new Map()
 
     for (const segment of assignedSegments) {
       this.segmentIdToNodeIds.set(segment.nodePortSegmentId!, [
@@ -90,31 +95,34 @@ export class UnravelMultiSectionSolver extends BaseSolver {
   computeInitialPfMap() {
     const pfMap = new Map<CapacityMeshNodeId, number>()
 
-    for (const [nodeId, node] of this.nodeMap) {
-      const {
-        numSameLayerCrossings,
-        numEntryExitLayerChanges,
-        numTransitionCrossings,
-      } = getIntraNodeCrossingsFromSegments(
-        this.dedupedSegments.filter((seg) => {
-          const capacityNodeIds = this.segmentIdToNodeIds.get(
-            seg.nodePortSegmentId!,
-          )
-          return capacityNodeIds?.includes(nodeId)
-        }),
-      )
-
-      const probabilityOfFailure = calculateNodeProbabilityOfFailure(
-        node,
-        numSameLayerCrossings,
-        numEntryExitLayerChanges,
-        numTransitionCrossings,
-      )
-
-      pfMap.set(nodeId, probabilityOfFailure)
+    for (const [nodeId, node] of this.nodeMap.entries()) {
+      pfMap.set(nodeId, this.computeNodePf(node))
     }
 
     return pfMap
+  }
+
+  computeNodePf(node: CapacityMeshNode) {
+    const {
+      numSameLayerCrossings,
+      numEntryExitLayerChanges,
+      numTransitionCrossings,
+    } = getIntraNodeCrossingsFromSegments(
+      this.dedupedSegments.filter((seg) =>
+        this.segmentIdToNodeIds
+          .get(seg.nodePortSegmentId!)!
+          .includes(node.capacityMeshNodeId),
+      ),
+    )
+
+    const probabilityOfFailure = calculateNodeProbabilityOfFailure(
+      node,
+      numSameLayerCrossings,
+      numEntryExitLayerChanges,
+      numTransitionCrossings,
+    )
+
+    return probabilityOfFailure
   }
 
   _step() {
@@ -123,7 +131,11 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       let highestPfNodeId = null
       let highestPf = 0
       for (const [nodeId, pf] of this.nodePfMap.entries()) {
-        if (pf > highestPf) {
+        const pfReduced =
+          pf *
+          (1 -
+            (this.attemptsToFixNode.get(nodeId) ?? 0) / this.MAX_NODE_ATTEMPTS)
+        if (pfReduced > highestPf) {
           highestPf = pf
           highestPfNodeId = nodeId
         }
@@ -134,6 +146,10 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         return
       }
 
+      this.attemptsToFixNode.set(
+        highestPfNodeId,
+        (this.attemptsToFixNode.get(highestPfNodeId) ?? 0) + 1,
+      )
       this.activeSolver = new UnravelSectionSolver({
         dedupedSegments: this.dedupedSegments,
         nodeMap: this.nodeMap,
@@ -148,9 +164,17 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
     this.activeSolver.step()
 
-    if (this.activeSolver.solved) {
+    const { bestCandidate, originalCandidate, lastProcessedCandidate } =
+      this.activeSolver
+
+    const giveUpFactor =
+      1 + 4 * (1 - Math.min(1, this.activeSolver.iterations / 30))
+    const shouldEarlyStop =
+      lastProcessedCandidate &&
+      lastProcessedCandidate!.g > originalCandidate!.g * giveUpFactor
+
+    if (this.activeSolver.solved || shouldEarlyStop) {
       // Incorporate the changes from the active solver
-      const { bestCandidate, originalCandidate } = this.activeSolver
 
       const foundBetterSolution =
         bestCandidate && bestCandidate.g < originalCandidate!.g
@@ -168,16 +192,20 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         }
       }
 
+      // Update node failure probabilities
+      for (const nodeId of this.activeSolver.unravelSection.allNodeIds) {
+        this.nodePfMap.set(
+          nodeId,
+          this.computeNodePf(this.nodeMap.get(nodeId)!),
+        )
+      }
+
       this.activeSolver = null
-      this.solved = true
     }
   }
 
   visualize(): GraphicsObject {
     if (this.activeSolver) {
-      console.log("Visualizing active solver")
-      const viz = this.activeSolver.visualize()
-      console.log("viz", viz)
       return this.activeSolver.visualize()
     }
 
