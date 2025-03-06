@@ -29,6 +29,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   MAX_NODE_ATTEMPTS = 2
 
+  MUTABLE_HOPS = 1
+
   ACCEPTABLE_PF = 0.05
 
   /**
@@ -165,7 +167,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         segmentIdToNodeIds: this.segmentIdToNodeIds,
         colorMap: this.colorMap,
         rootNodeId: highestPfNodeId,
-        MUTABLE_HOPS: 1,
+        MUTABLE_HOPS: this.MUTABLE_HOPS,
         segmentPointMap: this.segmentPointMap,
       })
     }
@@ -176,10 +178,10 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       this.activeSolver
 
     const giveUpFactor =
-      1 + 4 * (1 - Math.min(1, this.activeSolver.iterations / 30))
+      1 + 4 * (1 - Math.min(1, this.activeSolver.iterations / 40))
     const shouldEarlyStop =
       lastProcessedCandidate &&
-      lastProcessedCandidate!.g > originalCandidate!.g * giveUpFactor
+      lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
 
     if (this.activeSolver.solved || shouldEarlyStop) {
       // Incorporate the changes from the active solver
@@ -250,7 +252,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         x: segmentPoint.x,
         y: segmentPoint.y,
         label: `${segmentPoint.segmentPointId}\nSegment: ${segmentPoint.segmentId}\nLayer: ${segmentPoint.z}`,
-        color: this.colorMap[segmentPoint.segmentId] || "#000",
+        color: this.colorMap[segmentPoint.connectionName] || "#000",
       })
     }
 
