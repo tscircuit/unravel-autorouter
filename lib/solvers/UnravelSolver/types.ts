@@ -59,6 +59,7 @@ export type UnravelIssue =
   | UnravelSameLayerCrossingIssue
   | UnravelSingleTransitionCrossingIssue
   | UnravelDoubleTransitionCrossingIssue
+  | UnravelTraceCapacityIssue
 
 export interface UnravelSection {
   allNodeIds: CapacityMeshNodeId[]
