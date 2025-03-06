@@ -9,6 +9,7 @@ import {
   SegmentId,
   UnravelOperation,
   UnravelIssue,
+  SegmentPointMap,
 } from "./types"
 import { getNodesNearNode } from "./getNodesNearNode"
 import { GraphicsObject } from "graphics-debug"
@@ -20,6 +21,7 @@ import { getIssuesInSection } from "./getIssuesInSection"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { getLogProbability } from "./getLogProbability"
 import { applyOperationToPointModifications } from "./applyOperationToPointModifications"
+import { createSegmentPointMap } from "./createSegmentPointMap"
 
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
@@ -80,6 +82,7 @@ export class UnravelSectionSolver extends BaseSolver {
     dedupedSegments: SegmentWithAssignedPoints[]
     nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
     segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
+    segmentPointMap?: SegmentPointMap
   }) {
     super()
 
@@ -91,7 +94,7 @@ export class UnravelSectionSolver extends BaseSolver {
     this.segmentIdToNodeIds = params.segmentIdToNodeIds
     this.rootNodeId = params.rootNodeId
     this.colorMap = params.colorMap ?? {}
-    this.unravelSection = this.createUnravelSection()
+    this.unravelSection = this.createUnravelSection(params.segmentPointMap)
     this.tunedNodeCapacityMap = new Map()
     for (const nodeId of this.unravelSection.allNodeIds) {
       this.tunedNodeCapacityMap.set(
@@ -103,7 +106,7 @@ export class UnravelSectionSolver extends BaseSolver {
     this.candidates = [this.originalCandidate]
   }
 
-  createUnravelSection(): UnravelSection {
+  createUnravelSection(segmentPointMap?: SegmentPointMap): UnravelSection {
     const mutableNodeIds = getNodesNearNode({
       nodeId: this.rootNodeId,
       nodeIdToSegmentIds: this.nodeIdToSegmentIds,
@@ -120,29 +123,14 @@ export class UnravelSectionSolver extends BaseSolver {
       new Set(allNodeIds).difference(new Set(mutableNodeIds)),
     )
 
-    const segmentPoints: SegmentPoint[] = []
-    let highestSegmentPointId = 0
-    for (const segment of this.dedupedSegments) {
-      for (const point of segment.assignedPoints!) {
-        segmentPoints.push({
-          segmentPointId: `SP${highestSegmentPointId++}`,
-          segmentId: segment.nodePortSegmentId!,
-          capacityMeshNodeIds: this.segmentIdToNodeIds.get(
-            segment.nodePortSegmentId!,
-          )!,
-          connectionName: point.connectionName,
-          x: point.point.x,
-          y: point.point.y,
-          z: point.point.z,
-          directlyConnectedSegmentPointIds: [],
-        })
-      }
+    if (!segmentPointMap) {
+      segmentPointMap = createSegmentPointMap(
+        this.dedupedSegments,
+        this.segmentIdToNodeIds,
+      )
     }
 
-    const segmentPointMap = new Map<SegmentPointId, SegmentPoint>()
-    for (const segmentPoint of segmentPoints) {
-      segmentPointMap.set(segmentPoint.segmentPointId, segmentPoint)
-    }
+    const segmentPoints = Array.from(segmentPointMap.values())
 
     const segmentPointsInNode = new Map<CapacityMeshNodeId, SegmentPointId[]>()
     for (const segmentPoint of segmentPoints) {

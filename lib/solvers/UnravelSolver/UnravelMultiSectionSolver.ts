@@ -9,6 +9,9 @@ import { getIntraNodeCrossingsFromSegments } from "lib/utils/getIntraNodeCrossin
 import { calculateNodeProbabilityOfFailure } from "./calculateCrossingProbabilityOfFailure"
 import { BaseSolver } from "../BaseSolver"
 import { GraphicsObject } from "graphics-debug"
+import { NodeWithPortPoints } from "lib/types/high-density-types"
+import { PointModificationsMap, SegmentPointMap } from "./types"
+import { createSegmentPointMap } from "./createSegmentPointMap"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
@@ -24,6 +27,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
   nodePfMap: Map<CapacityMeshNodeId, number>
 
   activeSolver: UnravelSectionSolver | null = null
+
+  segmentPointMap: SegmentPointMap
 
   constructor({
     assignedSegments,
@@ -67,6 +72,11 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     for (const [nodeId, node] of this.nodeMap) {
       this.tunedNodeCapacityMap.set(nodeId, getTunedTotalCapacity1(node))
     }
+
+    this.segmentPointMap = createSegmentPointMap(
+      this.dedupedSegments,
+      this.segmentIdToNodeIds,
+    )
 
     this.nodePfMap = this.computeInitialPfMap()
   }
@@ -126,6 +136,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         colorMap: this.colorMap,
         rootNodeId: highestPfNodeId,
         MUTABLE_HOPS: 1,
+        segmentPointMap: this.segmentPointMap,
       })
     }
 
@@ -150,11 +161,44 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     }
 
     // Draw each segment
+    // TODO draw problem
     for (const segment of this.dedupedSegments) {
       graphics.lines!.push({
         points: [segment.start, segment.end],
       })
     }
     return graphics
+  }
+
+  getNodesWithPortPoints(): NodeWithPortPoints[] {
+    if (!this.solved) {
+      throw new Error(
+        "CapacitySegmentToPointSolver not solved, can't give port points yet",
+      )
+    }
+    const nodeWithPortPointsMap = new Map<string, NodeWithPortPoints>()
+    for (const segId of this.allSegmentIds) {
+      for (const nodeId of this.segmentIdToNodeIds.get(segId)!) {
+        const node = this.nodeMap.get(nodeId)!
+        if (!nodeWithPortPointsMap.has(nodeId)) {
+          nodeWithPortPointsMap.set(nodeId, {
+            capacityMeshNodeId: nodeId,
+            portPoints: [],
+            center: node.center,
+            width: node.width,
+            height: node.height,
+          })
+        }
+        nodeWithPortPointsMap.get(nodeId)!.portPoints.push(
+          ...this.currentMutatedSegments
+            .get(segId)!
+            .assignedPoints!.map((ap) => ({
+              ...ap.point,
+              connectionName: ap.connectionName,
+            })),
+        )
+      }
+    }
+    return Array.from(nodeWithPortPointsMap.values())
   }
 }

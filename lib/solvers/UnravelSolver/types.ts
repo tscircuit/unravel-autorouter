@@ -98,6 +98,15 @@ export type UnravelOperation =
   | UnravelSwapPositionOnSegmentOperation
   | UnravelCombinedOperation
 
+export type PointModificationsMap = Map<
+  SegmentPointId,
+  {
+    x?: number
+    y?: number
+    z?: number
+  }
+>
+
 export type UnravelCandidate = {
   operationsPerformed: number
 
