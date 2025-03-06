@@ -60,6 +60,8 @@ export class UnravelSectionSolver extends BaseSolver {
   segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   colorMap: Record<string, string>
 
+  queuedOrExploredCandidatePointModificationHashes: Set<string> = new Set()
+
   constructor(params: {
     rootNodeId: CapacityMeshNodeId
     colorMap?: Record<string, string>
@@ -281,7 +283,27 @@ export class UnravelSectionSolver extends BaseSolver {
     originalCandidate: UnravelCandidate,
     operation: UnravelOperation,
   ): UnravelCandidate {
-    // TODO
+    const pointModifications = new Map<
+      SegmentPointId,
+      { x?: number; y?: number; z?: number }
+    >(originalCandidate.pointModifications)
+
+    if (operation.type === "change_layer") {
+      for (const segmentPointId of operation.segmentPointIds) {
+        pointModifications.set(segmentPointId, {
+          z: operation.newZ,
+        })
+      }
+    } else if (operation.type === "swap_position_on_segment") {
+      // TODO
+    }
+
+    return {
+      ...originalCandidate,
+      pointModifications,
+      candidateHash: createPointModificationsHash(pointModifications),
+      operationsPerformed: originalCandidate.operationsPerformed + 1,
+    }
   }
 
   getNeighborOperationsForCandidate(
@@ -292,14 +314,14 @@ export class UnravelSectionSolver extends BaseSolver {
     )
   }
 
-  getUnexploredNeighbors(candidate: UnravelCandidate): UnravelCandidate[] {
+  getNeighbors(candidate: UnravelCandidate): UnravelCandidate[] {
     const neighbors: UnravelCandidate[] = []
 
     const operations = this.getNeighborOperationsForCandidate(candidate)
-
-    // TODO compute neighbors from operations, check the hash of the
-    // pointModifications to see if it's already been explored and don't
-    // add as neighbor if so
+    for (const operation of operations) {
+      const neighbor = this.getNeighborFromOperation(candidate, operation)
+      neighbors.push(neighbor)
+    }
 
     return neighbors
   }
@@ -314,13 +336,22 @@ export class UnravelSectionSolver extends BaseSolver {
 
     if (candidate.f < (this.bestCandidate?.f ?? Infinity)) {
       this.bestCandidate = candidate
-      if (candidate.f <= 0.00001) {
-        this.solved = true
-        return
-      }
+      // TODO, only works if we start computing f
+      // if (candidate.f <= 0.00001) {
+      //   this.solved = true
+      //   return
+      // }
     }
 
-    this.getUnexploredNeighbors(candidate).forEach((neighbor) => {
+    this.getNeighbors(candidate).forEach((neighbor) => {
+      const isExplored =
+        this.queuedOrExploredCandidatePointModificationHashes.has(
+          neighbor.candidateHash,
+        )
+      if (isExplored) return
+      this.queuedOrExploredCandidatePointModificationHashes.add(
+        neighbor.candidateHash,
+      )
       this.candidates.push(neighbor)
     })
   }
@@ -464,7 +495,7 @@ export class UnravelSectionSolver extends BaseSolver {
 
         graphics.circles.push({
           center: { x, y },
-          radius: 5,
+          radius: 0.05,
           stroke: "#0000ff",
           fill: "rgba(0, 0, 255, 0.2)",
           label: `Modified Point\nOriginal: (${originalPoint.x}, ${originalPoint.y}, ${originalPoint.z})\nNew: (${x}, ${y}, ${z})`,

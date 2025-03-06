@@ -198,16 +198,13 @@ export const UnravelSectionDebugger = ({
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
                   <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                    #
+                    Hash
                   </th>
                   <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                    F Score
+                    F
                   </th>
                   <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                    G Cost
-                  </th>
-                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                    H Cost
+                    G
                   </th>
                   <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Issues
@@ -232,7 +229,7 @@ export const UnravelSectionDebugger = ({
 
                   return (
                     <tr
-                      key={index}
+                      key={candidate.candidateHash}
                       className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
                     >
                       <td className="px-2 py-1 whitespace-nowrap">
@@ -248,7 +245,7 @@ export const UnravelSectionDebugger = ({
                           }`}
                           onClick={() => setSelectedCandidate(candidate)}
                         >
-                          {index + 1}
+                          {candidate.candidateHash}
                           {isCurrent && " (current)"}
                           {isBest && " (best)"}
                         </button>
@@ -258,9 +255,6 @@ export const UnravelSectionDebugger = ({
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">
                         {candidate.g.toFixed(4)}
-                      </td>
-                      <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                        {candidate.h.toFixed(4)}
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">
                         {candidate.issues.length}
