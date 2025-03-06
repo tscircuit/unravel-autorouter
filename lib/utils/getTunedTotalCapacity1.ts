@@ -2,6 +2,10 @@ import { CapacityMeshNode } from "lib/types/capacity-mesh-types"
 
 /**
  * Calculate the capacity of a node based on its width
+ *
+ * This capacity corresponds to how many vias the node can fit, tuned for two
+ * layers.
+ *
  * @param nodeOrWidth The node or width to calculate capacity for
  * @param maxCapacityFactor Optional multiplier to adjust capacity
  * @returns The calculated capacity
