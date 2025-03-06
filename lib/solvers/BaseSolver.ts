@@ -9,6 +9,7 @@ export class BaseSolver {
   error: string | null = null
   activeSubSolver?: BaseSolver | null
   failedSubSolvers?: BaseSolver[]
+  timeToSolve?: number
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {
@@ -33,9 +34,12 @@ export class BaseSolver {
   _step() {}
 
   solve() {
+    const startTime = Date.now()
     while (!this.solved && !this.failed) {
       this.step()
     }
+    const endTime = Date.now()
+    this.timeToSolve = endTime - startTime
   }
 
   visualize(): GraphicsObject {

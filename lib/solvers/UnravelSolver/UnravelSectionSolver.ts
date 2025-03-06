@@ -69,6 +69,7 @@ export class UnravelSectionSolver extends BaseSolver {
   segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
+  MAX_CANDIDATES = 500
 
   selectedCandidateIndex: number | "best" | "original" | null = null
 
@@ -585,9 +586,10 @@ export class UnravelSectionSolver extends BaseSolver {
       this.candidates.push(neighbor)
     })
     this.candidates.sort((a, b) => a.f - b.f)
-    if (this.candidates.length > 500) {
-      this.candidates.splice(500)
-    }
+    this.candidates.length = Math.min(
+      this.candidates.length,
+      this.MAX_CANDIDATES,
+    )
   }
 
   visualize(): GraphicsObject {
@@ -639,7 +641,7 @@ export class UnravelSectionSolver extends BaseSolver {
         x: segmentPoint.x,
         y: segmentPoint.y,
         label: `${segmentPointId}\nSegment: ${segmentPoint.segmentId} ${this.unravelSection.mutableSegmentIds.has(segmentPoint.segmentId) ? "MUTABLE" : "IMMUTABLE"}\nLayer: ${segmentPoint.z}`,
-        color: this.colorMap[segmentPoint.segmentId] || "#000",
+        color: this.colorMap[segmentPoint.connectionName] || "#000",
       })
     }
 
