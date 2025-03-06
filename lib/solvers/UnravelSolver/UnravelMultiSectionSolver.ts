@@ -29,6 +29,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   MAX_NODE_ATTEMPTS = 2
 
+  ACCEPTABLE_PF = 0.05
+
   /**
    * Probability of failure for each node
    */
@@ -147,7 +149,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         }
       }
 
-      if (!highestPfNodeId || highestPf < 0.01) {
+      if (!highestPfNodeId || highestPf < this.ACCEPTABLE_PF) {
         this.solved = true
         return
       }
