@@ -177,87 +177,84 @@ export const UnravelSectionDebugger = ({
         )}
       </div>
 
-      <div className="flex">
-        <div className="border rounded-md p-4 mb-4 w-3/5">
-          <InteractiveGraphics graphics={visualization} />
-        </div>
+      <div className="border rounded-md p-4 mb-4">
+        <InteractiveGraphics graphics={visualization} />
+      </div>
 
-        <div className="w-2/5 pl-4">
-          <h3 className="font-bold mb-2">Candidates by F-Score</h3>
-          <div className="max-h-[600px] overflow-y-auto border rounded">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    #
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    F Score
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    G Cost
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    H Cost
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Issues
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ops
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedCandidates.map((candidate, index) => {
-                  const isCurrent =
-                    solver.lastProcessedCandidate &&
-                    solver.lastProcessedCandidate.candidateHash ===
-                      candidate.candidateHash
-                  const isBest =
-                    solver.bestCandidate &&
-                    solver.bestCandidate.candidateHash ===
-                      candidate.candidateHash
+      <div className="mb-4">
+        <h3 className="font-bold mb-2 text-sm">Candidates by F-Score</h3>
+        <div className="max-h-[400px] overflow-y-auto border rounded">
+          <table className="min-w-full divide-y divide-gray-200 text-xs">
+            <thead className="bg-gray-50 sticky top-0">
+              <tr>
+                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  #
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  F Score
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  G Cost
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  H Cost
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  Issues
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  Ops
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sortedCandidates.map((candidate, index) => {
+                const isCurrent =
+                  solver.lastProcessedCandidate &&
+                  solver.lastProcessedCandidate.candidateHash ===
+                    candidate.candidateHash
+                const isBest =
+                  solver.bestCandidate &&
+                  solver.bestCandidate.candidateHash === candidate.candidateHash
 
-                  return (
-                    <tr
-                      key={index}
-                      className={
-                        isCurrent
-                          ? "bg-blue-100"
-                          : isBest
-                            ? "bg-green-100"
-                            : index % 2 === 0
-                              ? "bg-white"
-                              : "bg-gray-50"
-                      }
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {index + 1}
-                        {isCurrent && " (current)"}
-                        {isBest && " (best)"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {candidate.f.toFixed(4)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {candidate.g.toFixed(4)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {candidate.h.toFixed(4)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {candidate.issues.length}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {candidate.operationsPerformed}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                return (
+                  <tr
+                    key={index}
+                    className={
+                      isCurrent
+                        ? "bg-blue-100"
+                        : isBest
+                          ? "bg-green-100"
+                          : index % 2 === 0
+                            ? "bg-white"
+                            : "bg-gray-50"
+                    }
+                  >
+                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                      {index + 1}
+                      {isCurrent && " (current)"}
+                      {isBest && " (best)"}
+                    </td>
+                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                      {candidate.f.toFixed(4)}
+                    </td>
+                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                      {candidate.g.toFixed(4)}
+                    </td>
+                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                      {candidate.h.toFixed(4)}
+                    </td>
+                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                      {candidate.issues.length}
+                    </td>
+                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                      {candidate.operationsPerformed}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 

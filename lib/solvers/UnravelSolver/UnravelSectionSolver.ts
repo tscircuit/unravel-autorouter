@@ -224,6 +224,10 @@ export class UnravelSectionSolver extends BaseSolver {
     }
   }
 
+  get nextCandidate(): UnravelCandidate | null {
+    return this.candidates[0] ?? null
+  }
+
   _step() {}
 
   visualize(): GraphicsObject {

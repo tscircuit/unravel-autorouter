@@ -25,13 +25,23 @@ export const getIssuesInSection = (
     const node = nodeMap.get(nodeId)
     if (!node) continue
 
-    const nodeSegmentPoints = section.segmentPointsInNode.get(nodeId)!
+    const nodeSegmentPairs = section.segmentPairsInNode.get(nodeId)!
 
-    if (nodeSegmentPoints.length === 2) {
-      // This node may have a via issue
+    // If there's a Z transition within the pair, there's a transition_via issue
+    for (const pair of nodeSegmentPairs) {
+      const A = section.segmentPointMap.get(pair[0])!
+      const B = section.segmentPointMap.get(pair[1])!
+      const Az = pointModifications.get(A.segmentPointId)?.z ?? A.z
+      const Bz = pointModifications.get(B.segmentPointId)?.z ?? B.z
+      if (Az !== Bz) {
+        issues.push({
+          type: "transition_via",
+          nodeId,
+          segmentPoints: [A, B],
+          capacityMeshNodeId: nodeId,
+        })
+      }
     }
-
-    // Get via issues
   }
 
   return issues
