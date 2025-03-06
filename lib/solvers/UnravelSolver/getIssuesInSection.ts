@@ -3,13 +3,14 @@ import {
   UnravelSection,
   UnravelIssue,
   UnravelTransitionViaIssue,
-  UnravelCrossingIssue,
   SegmentPoint,
   SegmentPointId,
-} from "../CapacitySegmentPointOptimizer/types"
+} from "./types"
 import { getIntraNodeCrossingsFromSegments } from "lib/utils/getIntraNodeCrossingsFromSegments"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { getLogProbability } from "./getLogProbability"
+import { doSegmentsIntersect } from "@tscircuit/math-utils"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export const getIssuesInSection = (
   section: UnravelSection,
@@ -18,6 +19,7 @@ export const getIssuesInSection = (
     SegmentPointId,
     { x?: number; y?: number; z?: number }
   >,
+  connMap?: ConnectivityMap,
 ): UnravelIssue[] => {
   const issues: UnravelIssue[] = []
 
@@ -36,10 +38,32 @@ export const getIssuesInSection = (
       if (Az !== Bz) {
         issues.push({
           type: "transition_via",
-          nodeId,
-          segmentPoints: [A, B],
+          segmentPoints: pair,
           capacityMeshNodeId: nodeId,
+          probabilityOfFailure: 0,
         })
+      }
+    }
+
+    // Find crossing issues
+    for (let i = 0; i < nodeSegmentPairs.length; i++) {
+      for (let j = i + 1; j < nodeSegmentPairs.length; j++) {
+        if (
+          !connMap?.areIdsConnected(
+            nodeSegmentPairs[i][0],
+            nodeSegmentPairs[i][1],
+          )
+        ) {
+          continue
+        }
+
+        const connectionName2 = connMap?.areIdsConnected(
+          nodeSegmentPairs[j][0],
+          nodeSegmentPairs[j][1],
+        )
+        const pair1 = nodeSegmentPairs[i]
+        const pair2 = nodeSegmentPairs[j]
+        const crossing = doSegmentsIntersect(pair1, pair2)
       }
     }
   }

@@ -19,6 +19,8 @@ export const UnravelSectionDebugger = ({
   const [forcedUpdates, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<UnravelCandidate | null>(null)
 
   const speedLevels = [1, 2, 5, 10, 100]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
@@ -183,78 +185,134 @@ export const UnravelSectionDebugger = ({
 
       <div className="mb-4">
         <h3 className="font-bold mb-2 text-sm">Candidates by F-Score</h3>
-        <div className="max-h-[400px] overflow-y-auto border rounded">
-          <table className="min-w-full divide-y divide-gray-200 text-xs">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr>
-                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                  #
-                </th>
-                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                  F Score
-                </th>
-                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                  G Cost
-                </th>
-                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                  H Cost
-                </th>
-                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                  Issues
-                </th>
-                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
-                  Ops
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedCandidates.map((candidate, index) => {
-                const isCurrent =
-                  solver.lastProcessedCandidate &&
-                  solver.lastProcessedCandidate.candidateHash ===
-                    candidate.candidateHash
-                const isBest =
-                  solver.bestCandidate &&
-                  solver.bestCandidate.candidateHash === candidate.candidateHash
+        <div className="flex gap-4">
+          <div className="flex-1 max-h-[400px] overflow-y-auto border rounded">
+            <table className="min-w-full divide-y divide-gray-200 text-xs">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    #
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    F Score
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    G Cost
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    H Cost
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    Issues
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    Ops
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedCandidates.map((candidate, index) => {
+                  const isCurrent =
+                    solver.lastProcessedCandidate &&
+                    solver.lastProcessedCandidate.candidateHash ===
+                      candidate.candidateHash
+                  const isBest =
+                    solver.bestCandidate &&
+                    solver.bestCandidate.candidateHash ===
+                      candidate.candidateHash
+                  const isSelected =
+                    selectedCandidate?.candidateHash === candidate.candidateHash
 
-                return (
+                  return (
+                    <tr
+                      key={index}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    >
+                      <td className="px-2 py-1 whitespace-nowrap">
+                        <button
+                          className={`w-full text-left text-gray-500 px-2 py-1 rounded ${
+                            isCurrent
+                              ? "bg-blue-100"
+                              : isBest
+                                ? "bg-green-100"
+                                : isSelected
+                                  ? "bg-yellow-100"
+                                  : "hover:bg-gray-100"
+                          }`}
+                          onClick={() => setSelectedCandidate(candidate)}
+                        >
+                          {index + 1}
+                          {isCurrent && " (current)"}
+                          {isBest && " (best)"}
+                        </button>
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                        {candidate.f.toFixed(4)}
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                        {candidate.g.toFixed(4)}
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                        {candidate.h.toFixed(4)}
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                        {candidate.issues.length}
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                        {candidate.operationsPerformed}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="w-[400px] max-h-[400px] overflow-y-auto border rounded">
+            <table className="min-w-full divide-y divide-gray-200 text-xs">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    #
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    Issue
+                  </th>
+                  <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                    Pf
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {selectedCandidate?.issues.map((issue, index) => (
                   <tr
                     key={index}
-                    className={
-                      isCurrent
-                        ? "bg-blue-100"
-                        : isBest
-                          ? "bg-green-100"
-                          : index % 2 === 0
-                            ? "bg-white"
-                            : "bg-gray-50"
-                    }
+                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
                   >
                     <td className="px-2 py-1 whitespace-nowrap text-gray-500">
                       {index + 1}
-                      {isCurrent && " (current)"}
-                      {isBest && " (best)"}
                     </td>
                     <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                      {candidate.f.toFixed(4)}
+                      {issue.type}
                     </td>
                     <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                      {candidate.g.toFixed(4)}
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                      {candidate.h.toFixed(4)}
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                      {candidate.issues.length}
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                      {candidate.operationsPerformed}
+                      {issue.probabilityOfFailure?.toFixed(2)}
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                ))}
+                {!selectedCandidate && (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="px-2 py-4 text-center text-gray-500"
+                    >
+                      Select a candidate to view issues
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
