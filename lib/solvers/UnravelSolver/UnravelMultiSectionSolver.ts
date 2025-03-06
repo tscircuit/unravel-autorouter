@@ -95,7 +95,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         numTransitionCrossings,
       )
 
-      this.nodePfMap.set(nodeId, probabilityOfFailure)
+      pfMap.set(nodeId, probabilityOfFailure)
     }
 
     return pfMap
@@ -139,9 +139,22 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   visualize(): GraphicsObject {
     if (this.activeSolver) {
+      console.log("Visualizing active solver")
+      const viz = this.activeSolver.visualize()
+      console.log("viz", viz)
       return this.activeSolver.visualize()
     }
 
-    return {}
+    const graphics: GraphicsObject = {
+      lines: [],
+    }
+
+    // Draw each segment
+    for (const segment of this.dedupedSegments) {
+      graphics.lines!.push({
+        points: [segment.start, segment.end],
+      })
+    }
+    return graphics
   }
 }
