@@ -193,8 +193,6 @@ export class UnravelSectionSolver extends BaseSolver {
       }
     }
 
-    console.log(segmentPairsInNode)
-
     return {
       allNodeIds,
       mutableNodeIds,
