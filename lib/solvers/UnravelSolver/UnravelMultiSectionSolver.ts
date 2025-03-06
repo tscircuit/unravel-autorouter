@@ -10,7 +10,12 @@ import { calculateNodeProbabilityOfFailure } from "./calculateCrossingProbabilit
 import { BaseSolver } from "../BaseSolver"
 import { GraphicsObject } from "graphics-debug"
 import { NodeWithPortPoints } from "lib/types/high-density-types"
-import { PointModificationsMap, SegmentPointMap } from "./types"
+import {
+  PointModificationsMap,
+  SegmentId,
+  SegmentPointId,
+  SegmentPointMap,
+} from "./types"
 import { createSegmentPointMap } from "./createSegmentPointMap"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
@@ -144,7 +149,26 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
     if (this.activeSolver.solved) {
       // Incorporate the changes from the active solver
+      const { bestCandidate, originalCandidate } = this.activeSolver
+
+      const foundBetterSolution =
+        bestCandidate && bestCandidate.g < originalCandidate!.g
+
+      if (foundBetterSolution) {
+        // Modify the points using the pointModifications of the candidate
+        for (const [
+          segmentPointId,
+          pointModification,
+        ] of bestCandidate.pointModifications.entries()) {
+          const segmentPoint = this.segmentPointMap.get(segmentPointId)!
+          segmentPoint.x = pointModification.x ?? segmentPoint.x
+          segmentPoint.y = pointModification.y ?? segmentPoint.y
+          segmentPoint.z = pointModification.z ?? segmentPoint.z
+        }
+      }
+
       this.activeSolver = null
+      this.solved = true
     }
   }
 
@@ -177,7 +201,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       )
     }
     const nodeWithPortPointsMap = new Map<string, NodeWithPortPoints>()
-    for (const segId of this.allSegmentIds) {
+    for (const segment of this.dedupedSegments) {
+      const segId = segment.nodePortSegmentId!
       for (const nodeId of this.segmentIdToNodeIds.get(segId)!) {
         const node = this.nodeMap.get(nodeId)!
         if (!nodeWithPortPointsMap.has(nodeId)) {
@@ -189,16 +214,23 @@ export class UnravelMultiSectionSolver extends BaseSolver {
             height: node.height,
           })
         }
-        nodeWithPortPointsMap.get(nodeId)!.portPoints.push(
-          ...this.currentMutatedSegments
-            .get(segId)!
-            .assignedPoints!.map((ap) => ({
-              ...ap.point,
-              connectionName: ap.connectionName,
-            })),
-        )
       }
     }
+
+    for (const segmentPoint of this.segmentPointMap.values()) {
+      for (const nodeId of segmentPoint.capacityMeshNodeIds) {
+        const nodeWithPortPoints = nodeWithPortPointsMap.get(nodeId)
+        if (nodeWithPortPoints) {
+          nodeWithPortPoints.portPoints.push({
+            x: segmentPoint.x,
+            y: segmentPoint.y,
+            z: segmentPoint.z,
+            connectionName: segmentPoint.connectionName,
+          })
+        }
+      }
+    }
+
     return Array.from(nodeWithPortPointsMap.values())
   }
 }
