@@ -3,6 +3,15 @@ import { InteractiveGraphics } from "graphics-debug/react"
 import { UnravelSectionSolver } from "lib/solvers/UnravelSolver/UnravelSectionSolver"
 import { UnravelCandidate } from "lib/solvers/UnravelSolver/types"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
 
 interface UnravelSectionDebuggerProps {
   createSolver: () => UnravelSectionSolver
@@ -21,6 +30,9 @@ export const UnravelSectionDebugger = ({
   const [speedLevel, setSpeedLevel] = useState(0)
   const [selectedCandidate, setSelectedCandidate] =
     useState<UnravelCandidate | null>(null)
+  const [gScoreHistory, setGScoreHistory] = useState<
+    { iteration: number; g: number }[]
+  >([])
 
   const speedLevels = [1, 2, 5, 10, 100]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
@@ -28,6 +40,7 @@ export const UnravelSectionDebugger = ({
   // Reset solver
   const resetSolver = () => {
     setSolver(createSolver())
+    setGScoreHistory([])
   }
 
   // Animation effect
@@ -43,6 +56,16 @@ export const UnravelSectionDebugger = ({
             break
           }
           solver.step()
+          const lastCandidate = solver.lastProcessedCandidate
+          if (lastCandidate !== null) {
+            setGScoreHistory((prev) => [
+              ...prev,
+              {
+                iteration: solver.iterations,
+                g: lastCandidate.g,
+              },
+            ])
+          }
         }
         setForceUpdate((prev) => prev + 1)
       }, animationSpeed)
@@ -59,6 +82,16 @@ export const UnravelSectionDebugger = ({
   const handleStep = () => {
     if (!solver.solved && !solver.failed) {
       solver.step()
+      const lastCandidate = solver.lastProcessedCandidate
+      if (lastCandidate !== null) {
+        setGScoreHistory((prev) => [
+          ...prev,
+          {
+            iteration: solver.iterations,
+            g: lastCandidate.g,
+          },
+        ])
+      }
       setForceUpdate((prev) => prev + 1)
     }
   }
@@ -345,6 +378,27 @@ export const UnravelSectionDebugger = ({
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div className="border rounded-md p-4 mb-4">
+        <h3 className="font-bold mb-2">Candidate Cost</h3>
+        <div className="h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={gScoreHistory}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="iteration" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="g"
+                stroke="#8884d8"
+                dot={false}
+                name="Cost"
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
