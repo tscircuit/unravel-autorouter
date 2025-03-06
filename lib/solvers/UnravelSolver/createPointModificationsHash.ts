@@ -1,4 +1,4 @@
-import { SegmentPointId } from "../CapacitySegmentPointOptimizer/types"
+import { SegmentPointId } from "./types"
 
 export const createPointModificationsHash = (
   pointModifications: Map<
