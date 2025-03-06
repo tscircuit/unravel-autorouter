@@ -14,6 +14,8 @@ import { getNodesNearNode } from "./getNodesNearNode"
 import { GraphicsObject } from "graphics-debug"
 import { createPointModificationsHash } from "./createPointModificationsHash"
 import { getIssuesInSection } from "./getIssuesInSection"
+import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
+import { getLogProbability } from "./getLogProbability"
 
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
@@ -59,6 +61,9 @@ export class UnravelSectionSolver extends BaseSolver {
   nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   colorMap: Record<string, string>
+  tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
+
+  selectedCandidateIndex: number | "best" | null = null
 
   queuedOrExploredCandidatePointModificationHashes: Set<string> = new Set()
 
@@ -82,6 +87,13 @@ export class UnravelSectionSolver extends BaseSolver {
     this.rootNodeId = params.rootNodeId
     this.colorMap = params.colorMap ?? {}
     this.unravelSection = this.createUnravelSection()
+    this.tunedNodeCapacityMap = new Map()
+    for (const nodeId of this.unravelSection.allNodeIds) {
+      this.tunedNodeCapacityMap.set(
+        nodeId,
+        getTunedTotalCapacity1(this.nodeMap.get(nodeId)!),
+      )
+    }
     this.candidates = [this.createInitialCandidate()]
   }
 
@@ -213,16 +225,23 @@ export class UnravelSectionSolver extends BaseSolver {
       SegmentPointId,
       { x?: number; y?: number; z?: number }
     >()
+    const issues = getIssuesInSection(
+      this.unravelSection,
+      this.nodeMap,
+      pointModifications,
+    )
+    const g = this.computeG({
+      issues,
+      originalCandidate: {} as any,
+      operationsPerformed: 0,
+      operation: {} as any,
+    })
     return {
       pointModifications,
-      issues: getIssuesInSection(
-        this.unravelSection,
-        this.nodeMap,
-        pointModifications,
-      ),
-      g: 0,
+      issues,
+      g,
       h: 0,
-      f: 0,
+      f: g,
       operationsPerformed: 0,
       candidateHash: createPointModificationsHash(pointModifications),
     }
@@ -279,6 +298,77 @@ export class UnravelSectionSolver extends BaseSolver {
     return operations
   }
 
+  computeG(params: {
+    issues: UnravelIssue[]
+    originalCandidate: UnravelCandidate
+    operationsPerformed: number
+    operation: UnravelOperation
+  }): number {
+    const { issues, originalCandidate, operationsPerformed, operation } = params
+
+    const nodeProblemCounts = new Map<
+      CapacityMeshNodeId,
+      {
+        numTransitionCrossings: number
+        numSameLayerCrossings: number
+        numEntryExitLayerChanges: number
+      }
+    >()
+
+    for (const issue of issues) {
+      if (!nodeProblemCounts.has(issue.capacityMeshNodeId)) {
+        nodeProblemCounts.set(issue.capacityMeshNodeId, {
+          numTransitionCrossings: 0,
+          numSameLayerCrossings: 0,
+          numEntryExitLayerChanges: 0,
+        })
+      }
+
+      const nodeProblemCount = nodeProblemCounts.get(issue.capacityMeshNodeId)!
+
+      if (issue.type === "transition_via") {
+        nodeProblemCount.numTransitionCrossings++
+      } else if (issue.type === "same_layer_crossing") {
+        nodeProblemCount.numSameLayerCrossings++
+      } else if (
+        issue.type === "double_transition_crossing" ||
+        issue.type === "single_transition_crossing"
+      ) {
+        nodeProblemCount.numEntryExitLayerChanges++
+      } else if (
+        issue.type === "same_layer_trace_imbalance_with_low_capacity"
+      ) {
+        // TODO
+      }
+    }
+
+    let cost = 0
+
+    for (const [
+      nodeId,
+      {
+        numEntryExitLayerChanges,
+        numSameLayerCrossings,
+        numTransitionCrossings,
+      },
+    ] of nodeProblemCounts) {
+      const estNumVias =
+        numSameLayerCrossings * 0.82 +
+        numEntryExitLayerChanges * 0.41 +
+        numTransitionCrossings * 0.2
+
+      const estUsedCapacity = (estNumVias / 2) ** 1.1
+
+      const totalCapacity = this.tunedNodeCapacityMap.get(nodeId)!
+
+      const estPf = estUsedCapacity / totalCapacity
+
+      cost += getLogProbability(estPf)
+    }
+
+    return cost
+  }
+
   getNeighborFromOperation(
     originalCandidate: UnravelCandidate,
     operation: UnravelOperation,
@@ -298,11 +388,29 @@ export class UnravelSectionSolver extends BaseSolver {
       // TODO
     }
 
+    const issues = getIssuesInSection(
+      this.unravelSection,
+      this.nodeMap,
+      pointModifications,
+    )
+
+    const operationsPerformed = originalCandidate.operationsPerformed + 1
+
+    const g = this.computeG({
+      issues,
+      originalCandidate,
+      operationsPerformed,
+      operation,
+    })
+
     return {
-      ...originalCandidate,
+      issues,
+      g,
+      h: 0,
+      f: g,
       pointModifications,
       candidateHash: createPointModificationsHash(pointModifications),
-      operationsPerformed: originalCandidate.operationsPerformed + 1,
+      operationsPerformed,
     }
   }
 
@@ -367,7 +475,12 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     // Get the candidate to visualize
-    const candidate = this.lastProcessedCandidate || this.candidates[0]
+    const candidate =
+      this.selectedCandidateIndex !== null
+        ? this.selectedCandidateIndex === "best"
+          ? this.bestCandidate
+          : this.candidates[this.selectedCandidateIndex]
+        : this.lastProcessedCandidate || this.candidates[0]
     if (!candidate) return graphics
 
     // Create a map of segment points with modifications applied
@@ -493,8 +606,7 @@ export class UnravelSectionSolver extends BaseSolver {
               { x: sp1.x, y: sp1.y },
               { x: sp2.x, y: sp2.y },
             ],
-            strokeColor: "#ff0000",
-            strokeDash: "3 3",
+            strokeColor: "rgba(255,0,0,0.2)",
             strokeWidth: node.width / 32,
           })
         }
