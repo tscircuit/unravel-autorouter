@@ -168,23 +168,32 @@ export class UnravelSectionSolver extends BaseSolver {
     for (const nodeId of allNodeIds) {
       segmentPairsInNode.set(nodeId, [])
     }
-    for (const segmentPoint of segmentPoints) {
-      for (const nodeId of segmentPoint.capacityMeshNodeIds) {
+
+    for (const A of segmentPoints) {
+      for (const nodeId of A.capacityMeshNodeIds) {
         const otherSegmentPoints = segmentPointsInNode
           .get(nodeId)!
           .map((spId) => segmentPointMap.get(spId)!)
-        for (const otherSegmentPoint of otherSegmentPoints) {
-          if (otherSegmentPoint.segmentPointId === segmentPoint.segmentPointId)
-            continue
-          segmentPairsInNode
-            .get(nodeId)!
-            .push([
-              segmentPoint.segmentPointId,
-              otherSegmentPoint.segmentPointId,
-            ])
+        const segmentPairs = segmentPairsInNode.get(nodeId)
+        if (!segmentPairs) continue
+        for (const BId of A.directlyConnectedSegmentPointIds) {
+          const B = segmentPointMap.get(BId)!
+          if (B.segmentPointId === A.segmentPointId) continue
+          if (!B.capacityMeshNodeIds.some((nId) => nId === nodeId)) continue
+          if (
+            !segmentPairs.some(
+              ([a, b]) =>
+                (a === A.segmentPointId && b === B.segmentPointId) ||
+                (a === B.segmentPointId && b === A.segmentPointId),
+            )
+          ) {
+            segmentPairs.push([A.segmentPointId, B.segmentPointId])
+          }
         }
       }
     }
+
+    console.log(segmentPairsInNode)
 
     return {
       allNodeIds,
