@@ -266,7 +266,10 @@ export const UnravelSectionDebugger = ({
                         {candidate.issues.length}
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-gray-500">
-                        {candidate.operationsPerformed}
+                        {
+                          solver.getNeighborOperationsForCandidate(candidate)
+                            .length
+                        }
                       </td>
                     </tr>
                   )

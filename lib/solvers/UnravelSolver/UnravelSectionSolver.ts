@@ -7,6 +7,8 @@ import {
   SegmentPoint,
   SegmentPointId,
   SegmentId,
+  UnravelOperation,
+  UnravelIssue,
 } from "./types"
 import { getNodesNearNode } from "./getNodesNearNode"
 import { GraphicsObject } from "graphics-debug"
@@ -228,7 +230,100 @@ export class UnravelSectionSolver extends BaseSolver {
     return this.candidates[0] ?? null
   }
 
-  _step() {}
+  getPointInCandidate(
+    candidate: UnravelCandidate,
+    segmentPointId: SegmentPointId,
+  ): { x: number; y: number; z: number } {
+    const originalPoint =
+      this.unravelSection.segmentPointMap.get(segmentPointId)!
+    const modifications = candidate.pointModifications.get(segmentPointId)
+
+    return {
+      x: modifications?.x ?? originalPoint.x,
+      y: modifications?.y ?? originalPoint.y,
+      z: modifications?.z ?? originalPoint.z,
+    }
+  }
+
+  getOperationsForIssue(
+    candidate: UnravelCandidate,
+    issue: UnravelIssue,
+  ): UnravelOperation[] {
+    const operations: UnravelOperation[] = []
+
+    if (issue.type === "transition_via") {
+      // When there's a transition via, we attempt to change the layer of either
+      // end to match the other end
+      const pointA = this.getPointInCandidate(candidate, issue.segmentPoints[0])
+      const pointB = this.getPointInCandidate(candidate, issue.segmentPoints[1])
+
+      operations.push({
+        type: "change_layer",
+        newZ: pointA.z,
+        segmentPointIds: [issue.segmentPoints[1]],
+      })
+      operations.push({
+        type: "change_layer",
+        newZ: pointB.z,
+        segmentPointIds: [issue.segmentPoints[0]],
+      })
+    }
+
+    // TODO same_layer_crossing
+    // TODO single_transition_crossing
+    // TODO double_transition_crossing
+    // TODO same_layer_trace_imbalance_with_low_capacity
+
+    return operations
+  }
+
+  getNeighborFromOperation(
+    originalCandidate: UnravelCandidate,
+    operation: UnravelOperation,
+  ): UnravelCandidate {
+    // TODO
+  }
+
+  getNeighborOperationsForCandidate(
+    candidate: UnravelCandidate,
+  ): UnravelOperation[] {
+    return candidate.issues.flatMap((issue) =>
+      this.getOperationsForIssue(candidate, issue),
+    )
+  }
+
+  getUnexploredNeighbors(candidate: UnravelCandidate): UnravelCandidate[] {
+    const neighbors: UnravelCandidate[] = []
+
+    const operations = this.getNeighborOperationsForCandidate(candidate)
+
+    // TODO compute neighbors from operations, check the hash of the
+    // pointModifications to see if it's already been explored and don't
+    // add as neighbor if so
+
+    return neighbors
+  }
+
+  _step() {
+    const candidate = this.candidates.shift()
+    if (!candidate) {
+      this.solved = true
+      return
+    }
+    this.lastProcessedCandidate = candidate
+
+    if (candidate.f < (this.bestCandidate?.f ?? Infinity)) {
+      this.bestCandidate = candidate
+      if (candidate.f <= 0.00001) {
+        this.solved = true
+        return
+      }
+    }
+
+    this.getUnexploredNeighbors(candidate).forEach((neighbor) => {
+      this.candidates.push(neighbor)
+    })
+  }
 
   visualize(): GraphicsObject {
     const graphics: Required<GraphicsObject> = {

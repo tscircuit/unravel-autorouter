@@ -74,6 +74,17 @@ export interface UnravelSection {
   segmentPointsInSegment: Map<SegmentId, SegmentPointId[]>
 }
 
+export type UnravelOperation =
+  | {
+      type: "change_layer"
+      newZ: number
+      segmentPointIds: SegmentPointId[]
+    }
+  | {
+      type: "swap_position_on_segment"
+      segmentPointIds: SegmentPointId[]
+    }
+
 export type UnravelCandidate = {
   operationsPerformed: number
 
