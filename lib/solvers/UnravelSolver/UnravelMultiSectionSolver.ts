@@ -55,6 +55,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
   }) {
     super()
 
+    this.MAX_ITERATIONS = 100_000
+
     this.dedupedSegments = getDedupedSegments(assignedSegments)
     this.nodeMap = new Map()
     for (const node of nodes) {
@@ -126,6 +128,10 @@ export class UnravelMultiSectionSolver extends BaseSolver {
   }
 
   _step() {
+    if (this.iterations >= this.MAX_ITERATIONS - 1) {
+      this.solved = true
+      return
+    }
     if (!this.activeSolver) {
       // Find the node with the highest probability of failure
       let highestPfNodeId = null
