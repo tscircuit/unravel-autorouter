@@ -13,6 +13,7 @@ import { NodeWithPortPoints } from "lib/types/high-density-types"
 import {
   PointModificationsMap,
   SegmentId,
+  SegmentPoint,
   SegmentPointId,
   SegmentPointMap,
 } from "./types"
@@ -180,16 +181,122 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       return this.activeSolver.visualize()
     }
 
-    const graphics: GraphicsObject = {
+    const graphics: Required<GraphicsObject> = {
       lines: [],
+      points: [],
+      rects: [],
+      circles: [],
+      coordinateSystem: "cartesian",
+      title: "Unravel Multi Section Solver",
     }
 
-    // Draw each segment
-    // TODO draw problem
-    for (const segment of this.dedupedSegments) {
-      graphics.lines!.push({
-        points: [segment.start, segment.end],
+    // Visualize nodes
+    for (const [nodeId, node] of this.nodeMap.entries()) {
+      const probabilityOfFailure = this.nodePfMap.get(nodeId) || 0
+      // Color based on probability of failure - red for high, gradient to green for low
+      const pf = Math.min(probabilityOfFailure, 1) // Cap at 1
+      const red = Math.floor(255 * pf)
+      const green = Math.floor(255 * (1 - pf))
+      const color = `rgb(${red}, ${green}, 0)`
+
+      graphics.rects.push({
+        center: node.center,
+        label: `${nodeId}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}\nPf: ${probabilityOfFailure.toFixed(3)}`,
+        color,
+        width: node.width / 8,
+        height: node.height / 8,
       })
+    }
+
+    // Visualize segment points
+    for (const segmentPoint of this.segmentPointMap.values()) {
+      graphics.points.push({
+        x: segmentPoint.x,
+        y: segmentPoint.y,
+        label: `${segmentPoint.segmentPointId}\nSegment: ${segmentPoint.segmentId}\nLayer: ${segmentPoint.z}`,
+        color: this.colorMap[segmentPoint.segmentId] || "#000",
+      })
+    }
+
+    // Connect segment points that belong to the same segment
+    // Group points by segment ID
+    const pointsBySegment = new Map<string, SegmentPoint[]>()
+    for (const point of this.segmentPointMap.values()) {
+      if (!pointsBySegment.has(point.segmentId)) {
+        pointsBySegment.set(point.segmentId, [])
+      }
+      pointsBySegment.get(point.segmentId)!.push(point)
+    }
+
+    // Connect points in each segment
+    for (const [segmentId, points] of pointsBySegment.entries()) {
+      if (points.length < 2) continue
+
+      // Sort points by some logical order (this approximates the correct ordering)
+      const sortedPoints = [...points].sort((a, b) =>
+        a.x !== b.x ? a.x - b.x : a.y - b.y,
+      )
+
+      // Connect adjacent points in the sorted order
+      for (let i = 0; i < sortedPoints.length - 1; i++) {
+        graphics.lines.push({
+          points: [
+            { x: sortedPoints[i].x, y: sortedPoints[i].y },
+            { x: sortedPoints[i + 1].x, y: sortedPoints[i + 1].y },
+          ],
+          strokeColor: this.colorMap[segmentId] || "#000",
+        })
+      }
+    }
+
+    // Connect points with the same connection name that share a node
+    const processedConnections = new Set<string>()
+    const allPoints = Array.from(this.segmentPointMap.values())
+
+    for (let i = 0; i < allPoints.length; i++) {
+      const point1 = allPoints[i]
+      for (let j = i + 1; j < allPoints.length; j++) {
+        const point2 = allPoints[j]
+
+        // Skip if they have different connection names or are in the same segment
+        if (
+          point1.connectionName !== point2.connectionName ||
+          point1.segmentId === point2.segmentId
+        ) {
+          continue
+        }
+
+        // Check if they share a node
+        const hasSharedNode = point1.capacityMeshNodeIds.some((nodeId) =>
+          point2.capacityMeshNodeIds.includes(nodeId),
+        )
+
+        if (hasSharedNode) {
+          const connectionKey = `${point1.segmentPointId}-${point2.segmentPointId}`
+          if (processedConnections.has(connectionKey)) continue
+          processedConnections.add(connectionKey)
+
+          // Determine line style based on layer (z) values
+          const sameLayer = point1.z === point2.z
+          const layer = point1.z
+
+          let strokeDash: string | undefined
+          if (sameLayer) {
+            strokeDash = layer === 0 ? undefined : "10 5" // Solid for layer 0, long dash for other layers
+          } else {
+            strokeDash = "3 3 10" // Mixed dash for transitions between layers
+          }
+
+          graphics.lines.push({
+            points: [
+              { x: point1.x, y: point1.y },
+              { x: point2.x, y: point2.y },
+            ],
+            strokeDash,
+            strokeColor: this.colorMap[point1.connectionName] || "#666",
+          })
+        }
+      }
     }
     return graphics
   }
