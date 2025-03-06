@@ -102,6 +102,13 @@ export const UnravelSectionDebugger = ({
     return [...solver.candidates].sort((a, b) => a.f - b.f)
   }, [forcedUpdates, solver, solver.candidates])
 
+  // Auto-select first candidate when candidates change
+  useEffect(() => {
+    if (sortedCandidates.length > 0) {
+      setSelectedCandidate(sortedCandidates[0])
+    }
+  }, [sortedCandidates])
+
   return (
     <div className="p-4">
       <div className="flex gap-2 mb-4">
