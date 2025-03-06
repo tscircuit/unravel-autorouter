@@ -253,10 +253,10 @@ export class UnravelSectionSolver extends BaseSolver {
       f: g,
       operationsPerformed: 0,
       candidateHash: createPointModificationsHash(pointModifications),
-      candidateFullHash: createFullPointModificationsHash(
-        this.unravelSection.segmentPointMap,
-        pointModifications,
-      ),
+      // candidateFullHash: createFullPointModificationsHash(
+      //   this.unravelSection.segmentPointMap,
+      //   pointModifications,
+      // ),
     }
   }
 
@@ -515,10 +515,10 @@ export class UnravelSectionSolver extends BaseSolver {
       candidateHash: createPointModificationsHash(pointModifications),
 
       // TODO PERFORMANCE allow disabling this
-      candidateFullHash: createFullPointModificationsHash(
-        this.unravelSection.segmentPointMap,
-        pointModifications,
-      ),
+      // candidateFullHash: createFullPointModificationsHash(
+      //   this.unravelSection.segmentPointMap,
+      //   pointModifications,
+      // ),
 
       operationsPerformed,
     }
@@ -566,21 +566,22 @@ export class UnravelSectionSolver extends BaseSolver {
         this.queuedOrExploredCandidatePointModificationHashes.has(
           neighbor.candidateHash,
         )
-      const isFullHashExplored =
-        neighbor.candidateFullHash &&
-        this.queuedOrExploredCandidatePointModificationHashes.has(
-          neighbor.candidateFullHash,
-        )
+      // const isFullHashExplored =
+      //   neighbor.candidateFullHash &&
+      //   this.queuedOrExploredCandidatePointModificationHashes.has(
+      //     neighbor.candidateFullHash,
+      //   )
 
-      if (isPartialHashExplored || isFullHashExplored) return
+      // if (isPartialHashExplored || isFullHashExplored) return
+      if (isPartialHashExplored) return
       this.queuedOrExploredCandidatePointModificationHashes.add(
         neighbor.candidateHash,
       )
-      if (neighbor.candidateFullHash) {
-        this.queuedOrExploredCandidatePointModificationHashes.add(
-          neighbor.candidateFullHash,
-        )
-      }
+      // if (neighbor.candidateFullHash) {
+      //   this.queuedOrExploredCandidatePointModificationHashes.add(
+      //     neighbor.candidateFullHash,
+      //   )
+      // }
       this.candidates.push(neighbor)
     })
     this.candidates.sort((a, b) => a.f - b.f)
