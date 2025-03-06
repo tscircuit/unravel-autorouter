@@ -12,10 +12,14 @@ import {
 } from "./types"
 import { getNodesNearNode } from "./getNodesNearNode"
 import { GraphicsObject } from "graphics-debug"
-import { createPointModificationsHash } from "./createPointModificationsHash"
+import {
+  createFullPointModificationsHash,
+  createPointModificationsHash,
+} from "./createPointModificationsHash"
 import { getIssuesInSection } from "./getIssuesInSection"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { getLogProbability } from "./getLogProbability"
+import { applyOperationToPointModifications } from "./applyOperationToPointModifications"
 
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
@@ -254,6 +258,10 @@ export class UnravelSectionSolver extends BaseSolver {
       f: g,
       operationsPerformed: 0,
       candidateHash: createPointModificationsHash(pointModifications),
+      candidateFullHash: createFullPointModificationsHash(
+        this.unravelSection.segmentPointMap,
+        pointModifications,
+      ),
     }
   }
 
@@ -293,15 +301,51 @@ export class UnravelSectionSolver extends BaseSolver {
       if (this.unravelSection.mutableSegmentIds.has(pointA.segmentId)) {
         operations.push({
           type: "change_layer",
-          newZ: pointA.z,
-          segmentPointIds: [issue.segmentPoints[0]],
+          newZ: pointB.z,
+          segmentPointIds: [APointId],
         })
       }
       if (this.unravelSection.mutableSegmentIds.has(pointB.segmentId)) {
         operations.push({
           type: "change_layer",
-          newZ: pointB.z,
-          segmentPointIds: [issue.segmentPoints[1]],
+          newZ: pointA.z,
+          segmentPointIds: [BPointId],
+        })
+      }
+    }
+
+    if (issue.type === "same_layer_crossing") {
+      // For a same-layer crossing, we should try all the following:
+      // - Swap the points on each segment (for each shared segment, if any)
+      // - Change the layer of each segment entirely to remove the crossing
+      // - Change the layer of each point individually to make it a transition
+      //   crossing
+      const [APointId, BPointId] = issue.crossingLine1
+      const [CPointId, DPointId] = issue.crossingLine2
+
+      const sharedSegments: Array<[SegmentPointId, SegmentPointId]> = []
+      const A = this.unravelSection.segmentPointMap.get(APointId)!
+      const B = this.unravelSection.segmentPointMap.get(BPointId)!
+      const C = this.unravelSection.segmentPointMap.get(CPointId)!
+      const D = this.unravelSection.segmentPointMap.get(DPointId)!
+
+      if (A.segmentId === C.segmentId) {
+        sharedSegments.push([APointId, CPointId])
+      }
+      if (A.segmentId === D.segmentId) {
+        sharedSegments.push([APointId, DPointId])
+      }
+      if (B.segmentId === C.segmentId) {
+        sharedSegments.push([BPointId, CPointId])
+      }
+      if (B.segmentId === D.segmentId) {
+        sharedSegments.push([BPointId, DPointId])
+      }
+
+      for (const [EPointId, FPointId] of sharedSegments) {
+        operations.push({
+          type: "swap_position_on_segment",
+          segmentPointIds: [EPointId, FPointId],
         })
       }
     }
@@ -385,24 +429,21 @@ export class UnravelSectionSolver extends BaseSolver {
     return cost
   }
 
-  getNeighborFromOperation(
-    originalCandidate: UnravelCandidate,
+  getNeighborByApplyingOperation(
+    currentCandidate: UnravelCandidate,
     operation: UnravelOperation,
   ): UnravelCandidate {
     const pointModifications = new Map<
       SegmentPointId,
       { x?: number; y?: number; z?: number }
-    >(originalCandidate.pointModifications)
+    >(currentCandidate.pointModifications)
 
-    if (operation.type === "change_layer") {
-      for (const segmentPointId of operation.segmentPointIds) {
-        pointModifications.set(segmentPointId, {
-          z: operation.newZ,
-        })
-      }
-    } else if (operation.type === "swap_position_on_segment") {
-      // TODO
-    }
+    applyOperationToPointModifications(
+      pointModifications,
+      operation,
+      (segmentPointId) =>
+        this.getPointInCandidate(currentCandidate, segmentPointId),
+    )
 
     const issues = getIssuesInSection(
       this.unravelSection,
@@ -410,11 +451,11 @@ export class UnravelSectionSolver extends BaseSolver {
       pointModifications,
     )
 
-    const operationsPerformed = originalCandidate.operationsPerformed + 1
+    const operationsPerformed = currentCandidate.operationsPerformed + 1
 
     const g = this.computeG({
       issues,
-      originalCandidate,
+      originalCandidate: currentCandidate,
       operationsPerformed,
       operation,
     })
@@ -426,6 +467,13 @@ export class UnravelSectionSolver extends BaseSolver {
       f: g,
       pointModifications,
       candidateHash: createPointModificationsHash(pointModifications),
+
+      // TODO PERFORMANCE allow disabling this
+      candidateFullHash: createFullPointModificationsHash(
+        this.unravelSection.segmentPointMap,
+        pointModifications,
+      ),
+
       operationsPerformed,
     }
   }
@@ -443,7 +491,7 @@ export class UnravelSectionSolver extends BaseSolver {
 
     const operations = this.getNeighborOperationsForCandidate(candidate)
     for (const operation of operations) {
-      const neighbor = this.getNeighborFromOperation(candidate, operation)
+      const neighbor = this.getNeighborByApplyingOperation(candidate, operation)
       neighbors.push(neighbor)
     }
 
@@ -468,14 +516,26 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     this.getNeighbors(candidate).forEach((neighbor) => {
-      const isExplored =
+      console.log(neighbor.candidateHash)
+      const isPartialHashExplored =
         this.queuedOrExploredCandidatePointModificationHashes.has(
           neighbor.candidateHash,
         )
-      if (isExplored) return
+      const isFullHashExplored =
+        neighbor.candidateFullHash &&
+        this.queuedOrExploredCandidatePointModificationHashes.has(
+          neighbor.candidateFullHash,
+        )
+
+      if (isPartialHashExplored || isFullHashExplored) return
       this.queuedOrExploredCandidatePointModificationHashes.add(
         neighbor.candidateHash,
       )
+      if (neighbor.candidateFullHash) {
+        this.queuedOrExploredCandidatePointModificationHashes.add(
+          neighbor.candidateFullHash,
+        )
+      }
       this.candidates.push(neighbor)
     })
   }
@@ -611,7 +671,7 @@ export class UnravelSectionSolver extends BaseSolver {
             radius: node.width / 16,
             stroke: "#ff0000",
             fill: "rgba(255, 0, 0, 0.2)",
-            label: `Via Issue\n${segmentPointId}`,
+            label: `Via Issue\n${segmentPointId}\nLayer: ${segmentPoint.z}`,
           })
         }
       } else if (issue.type === "same_layer_crossing") {

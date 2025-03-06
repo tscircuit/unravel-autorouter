@@ -75,16 +75,28 @@ export interface UnravelSection {
   segmentPointsInSegment: Map<SegmentId, SegmentPointId[]>
 }
 
+export interface UnravelChangeLayerOperation {
+  type: "change_layer"
+  newZ: number
+  segmentPointIds: SegmentPointId[]
+}
+
+export interface UnravelSwapPositionOnSegmentOperation {
+  type: "swap_position_on_segment"
+  segmentPointIds: SegmentPointId[]
+}
+
+export interface UnravelCombinedOperation {
+  type: "combined"
+  operations: Array<
+    UnravelChangeLayerOperation | UnravelSwapPositionOnSegmentOperation
+  >
+}
+
 export type UnravelOperation =
-  | {
-      type: "change_layer"
-      newZ: number
-      segmentPointIds: SegmentPointId[]
-    }
-  | {
-      type: "swap_position_on_segment"
-      segmentPointIds: SegmentPointId[]
-    }
+  | UnravelChangeLayerOperation
+  | UnravelSwapPositionOnSegmentOperation
+  | UnravelCombinedOperation
 
 export type UnravelCandidate = {
   operationsPerformed: number
@@ -94,6 +106,11 @@ export type UnravelCandidate = {
    * explored
    */
   candidateHash: string
+
+  /**
+   * More expensive hash that includes original positions
+   */
+  candidateFullHash?: string
 
   pointModifications: Map<
     SegmentPointId,
