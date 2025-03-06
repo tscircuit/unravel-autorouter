@@ -316,10 +316,12 @@ export class UnravelSectionSolver extends BaseSolver {
 
     if (issue.type === "same_layer_crossing") {
       // For a same-layer crossing, we should try all the following:
-      // - Swap the points on each segment (for each shared segment, if any)
-      // - Change the layer of each segment entirely to remove the crossing
-      // - Change the layer of each point individually to make it a transition
+      // 1. Swap the points on each segment (for each shared segment, if any)
+      // 2. Change the layer of each segment entirely to remove the crossing
+      // 3. Change the layer of each point individually to make it a transition
       //   crossing
+
+      // 1. SWAP POINTS
       const [APointId, BPointId] = issue.crossingLine1
       const [CPointId, DPointId] = issue.crossingLine2
 
@@ -348,9 +350,42 @@ export class UnravelSectionSolver extends BaseSolver {
           segmentPointIds: [EPointId, FPointId],
         })
       }
+
+      // 2. CHANGE LAYER OF EACH SEGMENT ENTIRELY TO REMOVE CROSSING
+      operations.push({
+        type: "change_layer",
+        newZ: A.z === 0 ? 1 : 0,
+        segmentPointIds: [APointId, BPointId],
+      })
+      operations.push({
+        type: "change_layer",
+        newZ: C.z === 0 ? 1 : 0,
+        segmentPointIds: [CPointId, DPointId],
+      })
+
+      // 3. CHANGE LAYER OF EACH POINT INDIVIDUALLY TO MAKE TRANSITION CROSSING
+      operations.push({
+        type: "change_layer",
+        newZ: A.z === 0 ? 1 : 0,
+        segmentPointIds: [APointId],
+      })
+      operations.push({
+        type: "change_layer",
+        newZ: B.z === 0 ? 1 : 0,
+        segmentPointIds: [BPointId],
+      })
+      operations.push({
+        type: "change_layer",
+        newZ: C.z === 0 ? 1 : 0,
+        segmentPointIds: [CPointId],
+      })
+      operations.push({
+        type: "change_layer",
+        newZ: D.z === 0 ? 1 : 0,
+        segmentPointIds: [DPointId],
+      })
     }
 
-    // TODO same_layer_crossing
     // TODO single_transition_crossing
     // TODO double_transition_crossing
     // TODO same_layer_trace_imbalance_with_low_capacity
@@ -516,7 +551,6 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     this.getNeighbors(candidate).forEach((neighbor) => {
-      console.log(neighbor.candidateHash)
       const isPartialHashExplored =
         this.queuedOrExploredCandidatePointModificationHashes.has(
           neighbor.candidateHash,
