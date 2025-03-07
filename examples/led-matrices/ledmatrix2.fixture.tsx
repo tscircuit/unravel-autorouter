@@ -1,6 +1,6 @@
 import { InteractiveGraphics } from "graphics-debug/react"
 import contributionBoardRoutes from "examples/assets/contribution-board_routes_small.json"
-import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
+import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
 import type { SimpleRouteJson } from "lib/types"
 import { useState } from "react"
 import { combineVisualizations } from "lib/utils/combineVisualizations"

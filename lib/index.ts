@@ -1,4 +1,4 @@
-export { CapacityMeshSolver } from "./solvers/CapacityMeshSolver/CapacityMeshSolver"
+export { CapacityMeshSolver } from "./solvers/AutoroutingPipelineSolver"
 export {
   getTunedTotalCapacity1,
   calculateOptimalCapacityDepth,
