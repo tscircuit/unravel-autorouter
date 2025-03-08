@@ -180,7 +180,9 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       } else if (!shouldBeXYSubdivided && !childNode._containsObstacle) {
         finishedNewNodes.push(childNode)
       } else if (!shouldBeXYSubdivided && childNode._containsTarget) {
-        finishedNewNodes.push(childNode)
+        const zSubNodes = this.getZSubdivisionChildNodes(childNode)
+        console.log(childNode.capacityMeshNodeId, zSubNodes)
+        finishedNewNodes.push(...zSubNodes)
       } else if (shouldBeZSubdivided) {
         finishedNewNodes.push(
           ...this.getZSubdivisionChildNodes(childNode).filter(

@@ -102,6 +102,8 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     const overlappingObstacles = this.getXYOverlappingObstacles(node)
     for (const target of this.targets) {
       // if (target.layer !== node.layer) continue
+      if (!target.availableZ.some((z) => node.availableZ.includes(z))) continue
+
       const targetObstacle = overlappingObstacles.find((o) =>
         isPointInRect(target, o),
       )
@@ -392,9 +394,12 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         center: obstacle.center,
         width: obstacle.width,
         height: obstacle.height,
-        fill: "rgba(255,0,0,0.3)",
+        fill:
+          obstacle.zLayers?.length === 1 && obstacle.zLayers?.includes(1)
+            ? "rgba(0,0,255,0.3)"
+            : "rgba(255,0,0,0.3)",
         stroke: "red",
-        label: ["obstacle", obstacle.zLayers!.join(",")].join("\n"),
+        label: ["obstacle", `z: ${obstacle.zLayers!.join(",")}`].join("\n"),
       })
     }
 

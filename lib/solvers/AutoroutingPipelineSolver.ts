@@ -9,6 +9,7 @@ import type {
 import { BaseSolver } from "./BaseSolver"
 import { CapacityMeshEdgeSolver } from "./CapacityMeshSolver/CapacityMeshEdgeSolver"
 import { CapacityMeshNodeSolver } from "./CapacityMeshSolver/CapacityMeshNodeSolver1"
+import { CapacityMeshNodeSolver2_NodeUnderObstacle } from "./CapacityMeshSolver/CapacityMeshNodeSolver2_NodesUnderObstacles"
 import { CapacityPathingSolver } from "./CapacityPathingSolver/CapacityPathingSolver"
 import { CapacityEdgeToPortSegmentSolver } from "./CapacityMeshSolver/CapacityEdgeToPortSegmentSolver"
 import { getColorMap } from "./colors"
@@ -104,10 +105,15 @@ export class CapacityMeshSolver extends BaseSolver {
         },
       },
     ),
-    definePipelineStep("nodeSolver", CapacityMeshNodeSolver, (cms) => [
-      cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
-      cms.opts,
-    ]),
+    // definePipelineStep("nodeSolver", CapacityMeshNodeSolver, (cms) => [
+    //   cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
+    //   cms.opts,
+    // ]),
+    definePipelineStep(
+      "nodeSolver",
+      CapacityMeshNodeSolver2_NodeUnderObstacle,
+      (cms) => [cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj],
+    ),
     definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger, (cms) => [
       cms.nodeSolver?.finishedNodes || [],
       cms.srj.obstacles,
