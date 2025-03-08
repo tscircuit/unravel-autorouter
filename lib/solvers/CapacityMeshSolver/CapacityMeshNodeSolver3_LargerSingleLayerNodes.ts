@@ -16,10 +16,11 @@ import { CapacityMeshNodeSolver2_NodeUnderObstacle } from "./CapacityMeshNodeSol
 
 export class CapacityMeshNodeSolver3_LargerSingleLayerNodes extends CapacityMeshNodeSolver2_NodeUnderObstacle {
   shouldNodeBeXYSubdivided(node: CapacityMeshNode) {
+    if (node.availableZ.length === 1) return false
     if (node._depth! >= this.MAX_DEPTH) return false
     if (node._containsTarget) return true
-    if (node.availableZ.length === 1 && node._depth! <= this.MAX_DEPTH - 4)
-      return true
+    // if (node.availableZ.length === 1 && node._depth! <= this.MAX_DEPTH - 4)
+    //   return true
     if (node._containsObstacle && !node._completelyInsideObstacle) return true
     return false
   }
