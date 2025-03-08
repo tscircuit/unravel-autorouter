@@ -23,15 +23,15 @@ export default () => {
   // Combine finished and unfinished nodes for edge solving
   const allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
 
-  // const nodeTargetMerger = new CapacityNodeTargetMerger(
-  //   allNodes,
-  //   (meshunderobstacle1 as SimpleRouteJson).obstacles,
-  //   connMap,
-  // )
-  // nodeTargetMerger.solve()
+  const nodeTargetMerger = new CapacityNodeTargetMerger(
+    allNodes,
+    (meshunderobstacle1 as SimpleRouteJson).obstacles,
+    connMap,
+  )
+  nodeTargetMerger.solve()
 
   // Solve for mesh edges
-  const edgeSolver = new CapacityMeshEdgeSolver(nodeSolver.finishedNodes)
+  const edgeSolver = new CapacityMeshEdgeSolver(nodeTargetMerger.newNodes)
   edgeSolver.solve()
 
   return (

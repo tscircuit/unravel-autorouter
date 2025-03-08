@@ -22,7 +22,10 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     this.edges = []
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
-        if (this.areNodesBordering(this.nodes[i], this.nodes[j])) {
+        if (
+          this.areNodesBordering(this.nodes[i], this.nodes[j]) &&
+          this.doNodesHaveSharedLayer(this.nodes[i], this.nodes[j])
+        ) {
           this.edges.push({
             capacityMeshEdgeId: this.getNextCapacityMeshEdgeId(),
             nodeIds: [
@@ -97,6 +100,13 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
       Math.min(n1Right, n2Right) - Math.max(n1Left, n2Left) >= epsilon
 
     return shareVerticalBorder || shareHorizontalBorder
+  }
+
+  private doNodesHaveSharedLayer(
+    node1: CapacityMeshNode,
+    node2: CapacityMeshNode,
+  ): boolean {
+    return node1.availableZ.some((z) => node2.availableZ.includes(z))
   }
 
   visualize(): GraphicsObject {
