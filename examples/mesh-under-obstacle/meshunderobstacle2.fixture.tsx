@@ -37,8 +37,8 @@ export default () => {
   return (
     <InteractiveGraphics
       graphics={combineVisualizations(
-        // nodeSolver.visualize(),
-        // nodeTargetMerger.visualize(),
+        nodeSolver.visualize(),
+        nodeTargetMerger.visualize(),
         edgeSolver.visualize(),
       )}
     />

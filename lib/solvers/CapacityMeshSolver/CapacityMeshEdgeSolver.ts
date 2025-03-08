@@ -149,6 +149,10 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
       if (node1?.center && node2?.center) {
         graphics.lines!.push({
           points: [node1.center, node2.center],
+          strokeDash:
+            node1.availableZ.join(",") === node2.availableZ.join(",")
+              ? undefined
+              : "10 5",
         })
       }
     }
