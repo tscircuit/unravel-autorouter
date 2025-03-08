@@ -31,6 +31,7 @@ import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { MultipleHighDensityRouteStitchSolver } from "./RouteStitchingSolver/MultipleHighDensityRouteStitchSolver"
 import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
 import { UnravelMultiSectionSolver } from "./UnravelSolver/UnravelMultiSectionSolver"
+import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -125,21 +126,17 @@ export class CapacityMeshSolver extends BaseSolver {
     definePipelineStep("edgeSolver", CapacityMeshEdgeSolver, (cms) => [
       cms.nodeTargetMerger?.newNodes || [],
     ]),
-    definePipelineStep(
-      "pathingSolver",
-      CapacityPathingSolver4_FlexibleNegativeCapacity,
-      (cms) => [
-        {
-          simpleRouteJson: cms.srjWithPointPairs!,
-          nodes: cms.nodeTargetMerger?.newNodes || [],
-          edges: cms.edgeSolver?.edges || [],
-          colorMap: cms.colorMap,
-          hyperParameters: {
-            MAX_CAPACITY_FACTOR: 1,
-          },
+    definePipelineStep("pathingSolver", CapacityPathingSolver5, (cms) => [
+      {
+        simpleRouteJson: cms.srjWithPointPairs!,
+        nodes: cms.nodeTargetMerger?.newNodes || [],
+        edges: cms.edgeSolver?.edges || [],
+        colorMap: cms.colorMap,
+        hyperParameters: {
+          MAX_CAPACITY_FACTOR: 1,
         },
-      ],
-    ),
+      },
+    ]),
     definePipelineStep(
       "edgeToPortSegmentSolver",
       CapacityEdgeToPortSegmentSolver,
