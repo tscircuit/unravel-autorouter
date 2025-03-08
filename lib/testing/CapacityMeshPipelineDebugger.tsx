@@ -22,6 +22,7 @@ export const CapacityMeshPipelineDebugger = ({
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
     createSolver(srj),
   )
+  const [canSelectObjects, setCanSelectObjects] = useState(false)
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
@@ -147,6 +148,12 @@ export const CapacityMeshPipelineDebugger = ({
         >
           Reset
         </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() => setCanSelectObjects(!canSelectObjects)}
+        >
+          {canSelectObjects ? "Disable" : "Enable"} Object Selection
+        </button>
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
@@ -172,6 +179,7 @@ export const CapacityMeshPipelineDebugger = ({
         <InteractiveGraphics
           graphics={visualization}
           onObjectClicked={({ object }) => {
+            if (!canSelectObjects) return
             if (!object.label?.includes("cn")) return
             setDialogObject(object)
           }}

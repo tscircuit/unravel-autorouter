@@ -147,8 +147,18 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
         (node) => node.capacityMeshNodeId === edge.nodeIds[1],
       )
       if (node1?.center && node2?.center) {
+        const lowestZ1 = Math.min(...node1.availableZ)
+        const lowestZ2 = Math.min(...node2.availableZ)
+        const nodeCenter1Adj = {
+          x: node1.center.x + lowestZ1 * node1.width * 0.05,
+          y: node1.center.y - lowestZ1 * node1.width * 0.05,
+        }
+        const nodeCenter2Adj = {
+          x: node2.center.x + lowestZ2 * node2.width * 0.05,
+          y: node2.center.y - lowestZ2 * node2.width * 0.05,
+        }
         graphics.lines!.push({
-          points: [node1.center, node2.center],
+          points: [nodeCenter1Adj, nodeCenter2Adj],
           strokeDash:
             node1.availableZ.join(",") === node2.availableZ.join(",")
               ? undefined

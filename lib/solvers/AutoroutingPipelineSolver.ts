@@ -285,6 +285,7 @@ export class CapacityMeshSolver extends BaseSolver {
     if (!this.solved && this.activeSolver) return this.activeSolver.visualize()
     const netToPPSolver = this.netToPointPairsSolver?.visualize()
     const nodeViz = this.nodeSolver?.visualize()
+    const nodeTargetMergerViz = this.nodeTargetMerger?.visualize()
     const edgeViz = this.edgeSolver?.visualize()
     const pathingViz = this.pathingSolver?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
@@ -307,6 +308,7 @@ export class CapacityMeshSolver extends BaseSolver {
       problemViz,
       netToPPSolver,
       nodeViz,
+      nodeTargetMergerViz,
       edgeViz,
       pathingViz,
       edgeToPortSegmentViz,
