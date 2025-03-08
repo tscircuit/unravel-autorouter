@@ -100,11 +100,12 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     )
 
     if (adjacentNodesToLeft.length > 0) {
-      const { width: adjNodeWidth, height: adjNodeHeight } =
+      const { width: leftAdjNodeWidth, height: leftAdjNodeHeight } =
         adjacentNodesToLeft[0]
       const leftAdjNodesAreAllSameSize = adjacentNodesToLeft.every(
         (adjNode) =>
-          adjNode.width === adjNodeWidth && adjNode.height === adjNodeHeight,
+          adjNode.width === leftAdjNodeWidth &&
+          adjNode.height === leftAdjNodeHeight,
       )
 
       const leftAdjNodesTakeUpEntireHeight =
@@ -115,8 +116,8 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         ) < EPSILON
 
       if (leftAdjNodesTakeUpEntireHeight && leftAdjNodesAreAllSameSize) {
-        rootNode.width += adjNodeWidth
-        rootNode.center.x = rootNode.center.x - adjNodeWidth / 2
+        rootNode.width += leftAdjNodeWidth
+        rootNode.center.x = rootNode.center.x - leftAdjNodeWidth / 2
 
         for (const adjNode of adjacentNodesToLeft) {
           this.processedNodeIds.add(adjNode.capacityMeshNodeId)
@@ -134,11 +135,12 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     )
 
     if (adjacentNodesToRight.length > 0 && !rootNodeHasGrown) {
-      const { width: adjNodeWidth, height: adjNodeHeight } =
+      const { width: rightAdjNodeWidth, height: rightAdjNodeHeight } =
         adjacentNodesToRight[0]
       const rightAdjNodesAreAllSameSize = adjacentNodesToRight.every(
         (adjNode) =>
-          adjNode.width === adjNodeWidth && adjNode.height === adjNodeHeight,
+          adjNode.width === rightAdjNodeWidth &&
+          adjNode.height === rightAdjNodeHeight,
       )
 
       const rightAdjNodesTakeUpEntireHeight =
@@ -149,8 +151,8 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         ) < EPSILON
 
       if (rightAdjNodesTakeUpEntireHeight && rightAdjNodesAreAllSameSize) {
-        rootNode.width += adjNodeWidth
-        rootNode.center.x = rootNode.center.x + adjNodeWidth / 2
+        rootNode.width += rightAdjNodeWidth
+        rootNode.center.x = rootNode.center.x + rightAdjNodeWidth / 2
 
         for (const adjNode of adjacentNodesToRight) {
           this.processedNodeIds.add(adjNode.capacityMeshNodeId)
@@ -168,11 +170,12 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     )
 
     if (adjacentNodesToTop.length > 0 && !rootNodeHasGrown) {
-      const { width: adjNodeWidth, height: adjNodeHeight } =
+      const { width: topAdjNodeWidth, height: topAdjNodeHeight } =
         adjacentNodesToTop[0]
       const topAdjNodesAreAllSameSize = adjacentNodesToTop.every(
         (adjNode) =>
-          adjNode.width === adjNodeWidth && adjNode.height === adjNodeHeight,
+          adjNode.width === topAdjNodeWidth &&
+          adjNode.height === topAdjNodeHeight,
       )
 
       const topAdjNodesTakeUpEntireWidth =
@@ -183,8 +186,8 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         ) < EPSILON
 
       if (topAdjNodesTakeUpEntireWidth && topAdjNodesAreAllSameSize) {
-        rootNode.height += adjNodeHeight
-        rootNode.center.y = rootNode.center.y + adjNodeHeight / 2
+        rootNode.height += topAdjNodeHeight
+        rootNode.center.y = rootNode.center.y + topAdjNodeHeight / 2
 
         for (const adjNode of adjacentNodesToTop) {
           this.processedNodeIds.add(adjNode.capacityMeshNodeId)
@@ -202,11 +205,12 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     )
 
     if (adjacentNodesToBottom.length > 0 && !rootNodeHasGrown) {
-      const { width: adjNodeWidth, height: adjNodeHeight } =
+      const { width: bottomAdjNodeWidth, height: bottomAdjNodeHeight } =
         adjacentNodesToBottom[0]
       const bottomAdjNodesAreAllSameSize = adjacentNodesToBottom.every(
         (adjNode) =>
-          adjNode.width === adjNodeWidth && adjNode.height === adjNodeHeight,
+          adjNode.width === bottomAdjNodeWidth &&
+          adjNode.height === bottomAdjNodeHeight,
       )
 
       const bottomAdjNodesTakeUpEntireWidth =
@@ -217,8 +221,8 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         ) < EPSILON
 
       if (bottomAdjNodesTakeUpEntireWidth && bottomAdjNodesAreAllSameSize) {
-        rootNode.height += adjNodeHeight
-        rootNode.center.y = rootNode.center.y - adjNodeHeight / 2
+        rootNode.height += bottomAdjNodeHeight
+        rootNode.center.y = rootNode.center.y - bottomAdjNodeHeight / 2
 
         for (const adjNode of adjacentNodesToBottom) {
           this.processedNodeIds.add(adjNode.capacityMeshNodeId)
