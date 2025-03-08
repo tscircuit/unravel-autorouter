@@ -69,6 +69,37 @@ export const CapacityMeshPipelineDebugger = ({
     }
   }
 
+  // Next Stage function
+  const handleNextStage = () => {
+    if (!solver.solved && !solver.failed) {
+      const initialSubSolver = solver.activeSubSolver
+
+      // Step until we get a new subsolver (null -> something)
+      if (initialSubSolver === null) {
+        while (
+          !solver.solved &&
+          !solver.failed &&
+          solver.activeSubSolver === null
+        ) {
+          solver.step()
+        }
+      }
+
+      // Now step until the subsolver completes (something -> null)
+      if (solver.activeSubSolver !== null) {
+        while (
+          !solver.solved &&
+          !solver.failed &&
+          solver.activeSubSolver !== null
+        ) {
+          solver.step()
+        }
+      }
+
+      setForceUpdate((prev) => prev + 1)
+    }
+  }
+
   // Solve completely
   const handleSolveCompletely = () => {
     if (!solver.solved && !solver.failed) {
@@ -109,6 +140,13 @@ export const CapacityMeshPipelineDebugger = ({
           disabled={solver.solved || solver.failed}
         >
           Step
+        </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={handleNextStage}
+          disabled={solver.solved || solver.failed}
+        >
+          Next Stage
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
@@ -168,6 +206,14 @@ export const CapacityMeshPipelineDebugger = ({
             {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
           </span>
         </div>
+        {solver.activeSubSolver && (
+          <div className="border p-2 rounded">
+            Active Stage:{" "}
+            <span className="font-bold">
+              {solver.activeSubSolver.constructor.name}
+            </span>
+          </div>
+        )}
         {solver.error && (
           <div className="border p-2 rounded bg-red-100">
             Error: <span className="font-bold">{solver.error}</span>

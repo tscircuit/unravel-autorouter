@@ -10,13 +10,6 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
     return this.hyperParameters.MAX_CAPACITY_FACTOR ?? 1
   }
 
-  // /**
-  //  * In the FlexibleNegativeCapacity mode, we allow negative capacity
-  //  */
-  // doesNodeHaveCapacityForTrace(node: CapacityMeshNode): boolean {
-  //   return node.
-  // }
-
   getTotalCapacity(node: CapacityMeshNode): number {
     return getTunedTotalCapacity1(node, this.maxCapacityFactor)
   }

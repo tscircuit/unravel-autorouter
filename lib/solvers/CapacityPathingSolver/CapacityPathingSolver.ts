@@ -12,6 +12,7 @@ import { distance } from "@tscircuit/math-utils"
 import { CapacityHyperParameters } from "../CapacityHyperParameters"
 import { GraphicsObject } from "graphics-debug"
 import { safeTransparentize } from "../colors"
+import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode"
 
 export type Candidate = {
   prevCandidate: Candidate | null
@@ -193,6 +194,15 @@ export class CapacityPathingSolver extends BaseSolver {
     const usedCapacity =
       this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
     const totalCapacity = this.getTotalCapacity(node)
+
+    // Single layer nodes can't safely have multiple traces because there's no
+    // way to cross over two traces without a via
+    if (
+      node.availableZ.length === 1 &&
+      !node._containsTarget &&
+      usedCapacity > 0
+    )
+      return false
     return usedCapacity < totalCapacity
   }
 
@@ -330,10 +340,7 @@ export class CapacityPathingSolver extends BaseSolver {
 
     for (const node of this.nodes) {
       graphics.rects!.push({
-        center: node.center,
-        width: Math.max(node.width - 2, node.width * 0.8),
-        height: Math.max(node.height - 2, node.height * 0.8),
-        fill: node._containsObstacle ? "rgba(255,0,0,0.1)" : "rgba(0,0,0,0.1)",
+        ...createRectFromCapacityNode(node),
         label: `${node.capacityMeshNodeId}\n${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node).toFixed(2)}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
       })
     }

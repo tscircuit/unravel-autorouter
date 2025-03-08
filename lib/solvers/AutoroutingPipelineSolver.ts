@@ -32,6 +32,7 @@ import { MultipleHighDensityRouteStitchSolver } from "./RouteStitchingSolver/Mul
 import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
 import { UnravelMultiSectionSolver } from "./UnravelSolver/UnravelMultiSectionSolver"
 import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
+import { CapacityMeshNodeSolver3_LargerSingleLayerNodes } from "./CapacityMeshSolver/CapacityMeshNodeSolver3_LargerSingleLayerNodes"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -86,7 +87,7 @@ export class CapacityMeshSolver extends BaseSolver {
   endTimeOfPhase: Record<string, number>
   timeSpentOnPhase: Record<string, number>
 
-  activeSolver?: BaseSolver | null = null
+  activeSubSolver?: BaseSolver | null = null
   connMap: ConnectivityMap
   srjWithPointPairs?: SimpleRouteJson
 
@@ -250,29 +251,29 @@ export class CapacityMeshSolver extends BaseSolver {
       return
     }
 
-    if (this.activeSolver) {
-      this.activeSolver.step()
-      if (this.activeSolver.solved) {
+    if (this.activeSubSolver) {
+      this.activeSubSolver.step()
+      if (this.activeSubSolver.solved) {
         this.endTimeOfPhase[pipelineStepDef.solverName] = performance.now()
         this.timeSpentOnPhase[pipelineStepDef.solverName] =
           this.endTimeOfPhase[pipelineStepDef.solverName] -
           this.startTimeOfPhase[pipelineStepDef.solverName]
         pipelineStepDef.onSolved?.(this)
-        this.activeSolver = null
+        this.activeSubSolver = null
         this.currentPipelineStepIndex++
-      } else if (this.activeSolver.failed) {
-        this.error = this.activeSolver?.error
+      } else if (this.activeSubSolver.failed) {
+        this.error = this.activeSubSolver?.error
         this.failed = true
-        this.activeSolver = null
+        this.activeSubSolver = null
       }
       return
     }
 
     const constructorParams = pipelineStepDef.getConstructorParams(this)
-    this.activeSolver = new pipelineStepDef.solverClass(
+    this.activeSubSolver = new pipelineStepDef.solverClass(
       ...(constructorParams as [any, any, any]),
     )
-    ;(this as any)[pipelineStepDef.solverName] = this.activeSolver
+    ;(this as any)[pipelineStepDef.solverName] = this.activeSubSolver
     this.timeSpentOnPhase[pipelineStepDef.solverName] = 0
     this.startTimeOfPhase[pipelineStepDef.solverName] = performance.now()
   }
@@ -282,7 +283,8 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
-    if (!this.solved && this.activeSolver) return this.activeSolver.visualize()
+    if (!this.solved && this.activeSubSolver)
+      return this.activeSubSolver.visualize()
     const netToPPSolver = this.netToPointPairsSolver?.visualize()
     const nodeViz = this.nodeSolver?.visualize()
     const nodeTargetMergerViz = this.nodeTargetMerger?.visualize()
