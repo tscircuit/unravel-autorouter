@@ -25,6 +25,10 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
    * Penalty you pay for using this node
    */
   getNodeCapacityPenalty(node: CapacityMeshNode): number {
+    if (node.availableZ.length === 1) {
+      return 0
+    }
+
     const totalCapacity = this.getTotalCapacity(node)
     const usedCapacity =
       this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0

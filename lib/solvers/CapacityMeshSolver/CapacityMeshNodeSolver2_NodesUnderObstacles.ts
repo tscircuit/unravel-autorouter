@@ -181,7 +181,6 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
         finishedNewNodes.push(childNode)
       } else if (!shouldBeXYSubdivided && childNode._containsTarget) {
         const zSubNodes = this.getZSubdivisionChildNodes(childNode)
-        console.log(childNode.capacityMeshNodeId, zSubNodes)
         finishedNewNodes.push(...zSubNodes)
       } else if (shouldBeZSubdivided) {
         finishedNewNodes.push(

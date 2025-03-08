@@ -300,10 +300,33 @@ export class CapacityMeshSolver extends BaseSolver {
       rects: [
         ...(this.srj.obstacles ?? []).map((o) => ({
           ...o,
-          fill: "rgba(255,0,0,0.25)",
+          fill: o.layers?.includes("top")
+            ? "rgba(255,0,0,0.25)"
+            : o.layers?.includes("bottom")
+              ? "rgba(0,0,255,0.25)"
+              : "rgba(255,0,0,0.25)",
         })),
       ],
-    }
+      lines: [
+        {
+          points: [
+            // Add five points representing the bounds of the PCB
+            {
+              x: this.srj.bounds?.minX ?? -50,
+              y: this.srj.bounds?.minY ?? -50,
+            },
+            { x: this.srj.bounds?.maxX ?? 50, y: this.srj.bounds?.minY ?? -50 },
+            { x: this.srj.bounds?.maxX ?? 50, y: this.srj.bounds?.maxY ?? 50 },
+            { x: this.srj.bounds?.minX ?? -50, y: this.srj.bounds?.maxY ?? 50 },
+            {
+              x: this.srj.bounds?.minX ?? -50,
+              y: this.srj.bounds?.minY ?? -50,
+            }, // Close the rectangle
+          ],
+          strokeColor: "rgba(255,0,0,0.25)",
+        },
+      ],
+    } as GraphicsObject
     const visualizations = [
       problemViz,
       netToPPSolver,
