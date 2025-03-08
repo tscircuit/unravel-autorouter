@@ -401,8 +401,12 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     // Draw mesh nodes (both finished and unfinished)
     const allNodes = [...this.finishedNodes, ...this.unfinishedNodes]
     for (const node of allNodes) {
+      const lowestZ = Math.min(...node.availableZ)
       graphics.rects!.push({
-        center: node.center,
+        center: {
+          x: node.center.x + lowestZ * node.width * 0.05,
+          y: node.center.y - lowestZ * node.width * 0.05,
+        },
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
         fill: node._containsObstacle
@@ -420,6 +424,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
         ].join("\n"),
       })
     }
+    graphics.rects!.sort((a, b) => a.center.y - b.center.y)
 
     // Draw connection points (each connection gets a unique color).
     this.srj.connections.forEach((connection, index) => {

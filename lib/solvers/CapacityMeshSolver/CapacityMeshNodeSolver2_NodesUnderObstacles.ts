@@ -39,6 +39,7 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       width: number
       height: number
       availableZ: number[]
+      _depth?: number
     },
   ): CapacityMeshNode {
     const childNode: CapacityMeshNode = {
@@ -48,7 +49,7 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       height: opts.height,
       layer: parent.layer,
       availableZ: opts.availableZ,
-      _depth: (parent._depth ?? 0) + 1,
+      _depth: opts._depth ?? (parent._depth ?? 0) + 1,
       _parent: parent,
     }
 
@@ -90,6 +91,8 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
         width: node.width,
         height: node.height,
         availableZ: zBlock,
+        // z-subdivision doesn't count towards depth, should be same as parent
+        _depth: node._depth!,
       })
 
       if (childNode._shouldBeInGraph) {
@@ -101,7 +104,7 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
   }
 
   getChildNodes(parent: CapacityMeshNode): CapacityMeshNode[] {
-    if (parent._depth === this.MAX_DEPTH) return []
+    if (parent._depth! >= this.MAX_DEPTH) return []
     const childNodes: CapacityMeshNode[] = []
 
     const childNodeSize = { width: parent.width / 2, height: parent.height / 2 }
@@ -130,15 +133,16 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
         center: position,
         width: childNodeSize.width,
         height: childNodeSize.height,
-        availableZ: [0, 1],
+        availableZ: parent.availableZ,
       })
       if (childNode._shouldBeInGraph) {
         childNodes.push(childNode)
         continue
       }
-      if (childNode.availableZ.length === 1) continue
 
-      childNodes.push(...this.getZSubdivisionChildNodes(childNode))
+      if (childNode.availableZ.length > 1) {
+        childNodes.push(...this.getZSubdivisionChildNodes(childNode))
+      }
     }
 
     return childNodes
@@ -147,8 +151,9 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
   shouldNodeBeXYSubdivided(node: CapacityMeshNode) {
     if (node._depth! >= this.MAX_DEPTH) return false
     if (node._containsTarget) return true
+    if (node.availableZ.length === 1 && node._depth! <= this.MAX_DEPTH)
+      return true
     if (node._containsObstacle && !node._completelyInsideObstacle) return true
-    if (node.availableZ.length === 1) return true
     return false
   }
 
@@ -159,25 +164,27 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       return
     }
 
-    const newNodes = this.getChildNodes(nextNode)
+    const childNodes = this.getChildNodes(nextNode)
 
     const finishedNewNodes: CapacityMeshNode[] = []
     const unfinishedNewNodes: CapacityMeshNode[] = []
 
-    for (const newNode of newNodes) {
-      const shouldBeXYSubdivided = this.shouldNodeBeXYSubdivided(newNode)
-      if (shouldBeXYSubdivided) {
-        unfinishedNewNodes.push(newNode)
-      } else if (!shouldBeXYSubdivided && !newNode._containsObstacle) {
-        finishedNewNodes.push(newNode)
-      } else if (!shouldBeXYSubdivided && newNode._containsTarget) {
-        finishedNewNodes.push(newNode)
-      } else if (
+    for (const childNode of childNodes) {
+      const shouldBeXYSubdivided = this.shouldNodeBeXYSubdivided(childNode)
+      const shouldBeZSubdivided =
+        childNode.availableZ.length > 1 &&
         !shouldBeXYSubdivided &&
-        newNode._containsObstacle &&
-        newNode.availableZ.length > 1
-      ) {
-        finishedNewNodes.push(...this.getZSubdivisionChildNodes(newNode))
+        childNode._containsObstacle
+      if (shouldBeXYSubdivided) {
+        unfinishedNewNodes.push(childNode)
+      } else if (!shouldBeXYSubdivided && !childNode._containsObstacle) {
+        finishedNewNodes.push(childNode)
+      } else if (!shouldBeXYSubdivided && childNode._containsTarget) {
+        finishedNewNodes.push(childNode)
+      } else if (shouldBeZSubdivided) {
+        finishedNewNodes.push(...this.getZSubdivisionChildNodes(childNode))
+      } else {
+        finishedNewNodes.push(childNode)
       }
     }
 
