@@ -1,15 +1,26 @@
 import { Rect } from "graphics-debug"
 import { CapacityMeshNode } from "lib/types"
 
-export const createRectFromCapacityNode = (node: CapacityMeshNode): Rect => {
+export const createRectFromCapacityNode = (
+  node: CapacityMeshNode,
+  opts: {
+    rectMargin?: number
+  } = {},
+): Rect => {
   const lowestZ = Math.min(...node.availableZ)
   return {
-    center: {
-      x: node.center.x + lowestZ * node.width * 0.05,
-      y: node.center.y - lowestZ * node.width * 0.05,
-    },
-    width: Math.max(node.width - 2, node.width * 0.8),
-    height: Math.max(node.height - 2, node.height * 0.8),
+    center: !opts.rectMargin
+      ? {
+          x: node.center.x + lowestZ * node.width * 0.05,
+          y: node.center.y - lowestZ * node.width * 0.05,
+        }
+      : node.center,
+    width: opts.rectMargin
+      ? node.width - opts.rectMargin * 2
+      : Math.max(node.width - 0.5, node.width * 0.8),
+    height: opts.rectMargin
+      ? node.height - opts.rectMargin * 2
+      : Math.max(node.height - 0.5, node.height * 0.8),
     fill: node._containsObstacle
       ? "rgba(255,0,0,0.1)"
       : ({
