@@ -14,7 +14,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   currentBatchNodeIds: CapacityMeshNodeId[]
 
-  processedNodeIds: Set<CapacityMeshNodeId>
+  absorbedNodeIds: Set<CapacityMeshNodeId>
 
   nextBatchNodeIds: CapacityMeshNodeId[]
   batchHadModifications: boolean
@@ -28,12 +28,12 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
       this.nodeMap.set(node.capacityMeshNodeId, node)
     }
     this.newNodes = []
-    this.processedNodeIds = new Set()
+    this.absorbedNodeIds = new Set()
     const nodeWithArea: Array<[string, number]> = []
     for (const node of nodes) {
       if (node.availableZ.length > 1) {
         this.newNodes.push(node)
-        this.processedNodeIds.add(node.capacityMeshNodeId)
+        this.absorbedNodeIds.add(node.capacityMeshNodeId)
       } else {
         nodeWithArea.push([node.capacityMeshNodeId, node.width * node.height])
       }
@@ -57,7 +57,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
 
   _step() {
     let rootNodeId = this.currentBatchNodeIds.pop()
-    while (rootNodeId && this.processedNodeIds.has(rootNodeId)) {
+    while (rootNodeId && this.absorbedNodeIds.has(rootNodeId)) {
       rootNodeId = this.currentBatchNodeIds.pop()
     }
 
@@ -86,8 +86,6 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     const adjacentNodes = this.getAdjacentSameLayerUnprocessedNodes(rootNode)
 
     if (adjacentNodes.length === 0) {
-      // this.processedNodeIds.add(rootNodeId)
-      // this.newNodes.push(rootNode)
       this.nextBatchNodeIds.push(rootNodeId)
       return
     }
@@ -120,7 +118,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         rootNode.center.x = rootNode.center.x - leftAdjNodeWidth / 2
 
         for (const adjNode of adjacentNodesToLeft) {
-          this.processedNodeIds.add(adjNode.capacityMeshNodeId)
+          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
 
         rootNodeHasGrown = true
@@ -155,7 +153,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         rootNode.center.x = rootNode.center.x + rightAdjNodeWidth / 2
 
         for (const adjNode of adjacentNodesToRight) {
-          this.processedNodeIds.add(adjNode.capacityMeshNodeId)
+          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
 
         rootNodeHasGrown = true
@@ -190,7 +188,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         rootNode.center.y = rootNode.center.y + topAdjNodeHeight / 2
 
         for (const adjNode of adjacentNodesToTop) {
-          this.processedNodeIds.add(adjNode.capacityMeshNodeId)
+          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
 
         rootNodeHasGrown = true
@@ -225,7 +223,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
         rootNode.center.y = rootNode.center.y - bottomAdjNodeHeight / 2
 
         for (const adjNode of adjacentNodesToBottom) {
-          this.processedNodeIds.add(adjNode.capacityMeshNodeId)
+          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
 
         rootNodeHasGrown = true
@@ -233,6 +231,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     }
 
     if (rootNodeHasGrown) {
+      this.batchHadModifications = true
       this.currentBatchNodeIds.push(rootNodeId)
     } else {
       this.nextBatchNodeIds.unshift(rootNodeId)
@@ -258,7 +257,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     // Visualize unprocessed nodes with a different style
     for (const nodeId of this.currentBatchNodeIds) {
       const node = this.nodeMap.get(nodeId)
-      if (this.processedNodeIds.has(nodeId)) continue
+      if (this.absorbedNodeIds.has(nodeId)) continue
       if (node) {
         const rect = createRectFromCapacityNode(node, {
           rectMargin: 0.01,
@@ -272,12 +271,13 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
     // Visualize next batch nodes with a different style
     for (const nodeId of this.nextBatchNodeIds) {
       const node = this.nodeMap.get(nodeId)
+      if (this.absorbedNodeIds.has(nodeId)) continue
       if (node) {
         const rect = createRectFromCapacityNode(node, {
           rectMargin: 0.01,
         })
         rect.stroke = "rgba(0, 255, 0, 0.8)" // Green border
-        rect.label = `${rect.label}\n(next batch)`
+        rect.label = `${rect.label}\nx: ${node.center.x}, y: ${node.center.y}\n${node.width}x${node.height}\n(next batch)`
         graphics.rects.push(rect)
       }
     }
