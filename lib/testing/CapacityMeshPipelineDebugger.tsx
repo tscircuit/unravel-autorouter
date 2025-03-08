@@ -3,7 +3,7 @@ import { InteractiveGraphics } from "graphics-debug/react"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
-import { CapacityMeshSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshSolver"
+import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
 import { GraphicsObject, Rect } from "graphics-debug"
 
 interface CapacityMeshPipelineDebuggerProps {

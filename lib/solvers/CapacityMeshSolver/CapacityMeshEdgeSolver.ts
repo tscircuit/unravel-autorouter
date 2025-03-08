@@ -22,7 +22,10 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     this.edges = []
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
-        if (this.areNodesBordering(this.nodes[i], this.nodes[j])) {
+        if (
+          this.areNodesBordering(this.nodes[i], this.nodes[j]) &&
+          this.doNodesHaveSharedLayer(this.nodes[i], this.nodes[j])
+        ) {
           this.edges.push({
             capacityMeshEdgeId: this.getNextCapacityMeshEdgeId(),
             nodeIds: [
@@ -99,20 +102,41 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     return shareVerticalBorder || shareHorizontalBorder
   }
 
+  private doNodesHaveSharedLayer(
+    node1: CapacityMeshNode,
+    node2: CapacityMeshNode,
+  ): boolean {
+    return node1.availableZ.some((z) => node2.availableZ.includes(z))
+  }
+
   visualize(): GraphicsObject {
     const graphics: GraphicsObject = {
       lines: [],
       points: [],
-      rects: this.nodes.map((node) => ({
-        width: Math.max(node.width - 2, node.width * 0.8),
-        height: Math.max(node.height - 2, node.height * 0.8),
-        center: node.center,
-        fill: node._containsObstacle
-          ? "rgba(255,0,0,0.1)"
-          : node._containsTarget
-            ? "rgba(0,255,0,0.2)"
-            : "rgba(0,0,0,0.1)",
-      })),
+      rects: this.nodes.map((node) => {
+        const lowestZ = Math.min(...node.availableZ)
+        return {
+          width: Math.max(node.width - 2, node.width * 0.8),
+          height: Math.max(node.height - 2, node.height * 0.8),
+          center: {
+            x: node.center.x + lowestZ * node.width * 0.05,
+            y: node.center.y - lowestZ * node.width * 0.05,
+          },
+          fill: node._containsObstacle
+            ? "rgba(255,0,0,0.1)"
+            : ({
+                "0,1": "rgba(0,0,0,0.1)",
+                "0": "rgba(0,200,200, 0.1)",
+                "1": "rgba(0,0,200, 0.1)",
+              }[node.availableZ.join(",")] ?? "rgba(0,200,200,0.1)"),
+          label: [
+            node.capacityMeshNodeId,
+            `availableZ: ${node.availableZ.join(",")}`,
+            `target? ${node._containsTarget ?? false}`,
+            `obs? ${node._containsObstacle ?? false}`,
+          ].join("\n"),
+        }
+      }),
       circles: [],
     }
     for (const edge of this.edges) {

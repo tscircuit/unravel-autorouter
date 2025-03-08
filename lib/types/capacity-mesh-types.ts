@@ -20,6 +20,8 @@ export interface CapacityMeshNode {
   _containsTarget?: boolean
   _targetConnectionName?: string
 
+  _shouldBeInGraph?: boolean
+
   _parent?: CapacityMeshNode
 }
 
