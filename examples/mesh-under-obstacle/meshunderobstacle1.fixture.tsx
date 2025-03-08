@@ -1,15 +1,17 @@
 import { InteractiveGraphics } from "graphics-debug/react"
 import { CapacityMeshNodeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver1"
+import { CapacityMeshNodeSolver2_NodeUnderObstacle } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver2_NodesUnderObstacles"
 
 export default () => {
-  const meshSolver = new CapacityMeshNodeSolver({
+  const meshSolver = new CapacityMeshNodeSolver2_NodeUnderObstacle({
+    // const meshSolver = new CapacityMeshNodeSolver({
     bounds: {
       minX: 0,
       maxX: 100,
       minY: 0,
       maxY: 100,
     },
-    layerCount: 1,
+    layerCount: 2,
     minTraceWidth: 1,
     obstacles: [
       {
@@ -21,6 +23,17 @@ export default () => {
         height: 10,
         type: "rect",
         layers: ["top", "bottom"],
+        connectedTo: [],
+      },
+      {
+        center: {
+          x: 80,
+          y: 50,
+        },
+        width: 20,
+        height: 30,
+        type: "rect",
+        layers: ["top"],
         connectedTo: [],
       },
     ],

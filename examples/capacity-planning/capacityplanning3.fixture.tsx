@@ -1,5 +1,5 @@
 import { InteractiveGraphics } from "graphics-debug/react"
-import { CapacityMeshNodeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver"
+import { CapacityMeshNodeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver1"
 import type { SimpleRouteJson } from "lib/types"
 import { CapacityMeshEdgeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshEdgeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"

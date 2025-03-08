@@ -8,7 +8,7 @@ import type {
 } from "../types"
 import { BaseSolver } from "./BaseSolver"
 import { CapacityMeshEdgeSolver } from "./CapacityMeshSolver/CapacityMeshEdgeSolver"
-import { CapacityMeshNodeSolver } from "./CapacityMeshSolver/CapacityMeshNodeSolver"
+import { CapacityMeshNodeSolver } from "./CapacityMeshSolver/CapacityMeshNodeSolver1"
 import { CapacityPathingSolver } from "./CapacityPathingSolver/CapacityPathingSolver"
 import { CapacityEdgeToPortSegmentSolver } from "./CapacityMeshSolver/CapacityEdgeToPortSegmentSolver"
 import { getColorMap } from "./colors"
