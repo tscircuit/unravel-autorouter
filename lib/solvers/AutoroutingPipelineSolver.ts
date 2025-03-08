@@ -112,7 +112,10 @@ export class CapacityMeshSolver extends BaseSolver {
     definePipelineStep(
       "nodeSolver",
       CapacityMeshNodeSolver2_NodeUnderObstacle,
-      (cms) => [cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj],
+      (cms) => [
+        cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
+        cms.opts,
+      ],
     ),
     definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger, (cms) => [
       cms.nodeSolver?.finishedNodes || [],

@@ -7,6 +7,9 @@ import meshunderobstacle1 from "../assets/meshunderobstacle1.json"
 export default () => {
   const meshSolver = new CapacityMeshNodeSolver2_NodeUnderObstacle(
     meshunderobstacle1 as SimpleRouteJson,
+    {
+      capacityDepth: 7,
+    },
   )
   meshSolver.solve()
   return <InteractiveGraphics graphics={meshSolver.visualize()} />

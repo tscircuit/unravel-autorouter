@@ -89,6 +89,9 @@ export class CapacityNodeTargetMerger extends BaseSolver {
       _targetConnectionName: connectionName,
       _depth: connectedNodes[0]._depth,
       _parent: connectedNodes[0]._parent,
+
+      // @ts-ignore
+      _createdByMerger: true,
     }
 
     this.newNodes.push(newNode)
@@ -111,6 +114,8 @@ export class CapacityNodeTargetMerger extends BaseSolver {
         },
         width: Math.max(node.width - 2, node.width * 0.8),
         height: Math.max(node.height - 2, node.height * 0.8),
+        // @ts-ignore
+        stroke: node._createdByMerger ? "rgba(0,0,255,0.5)" : undefined,
         fill: node._containsObstacle
           ? "rgba(255,0,0,0.1)"
           : ({
@@ -118,7 +123,13 @@ export class CapacityNodeTargetMerger extends BaseSolver {
               "0": "rgba(0,200,200, 0.1)",
               "1": "rgba(0,0,200, 0.1)",
             }[node.availableZ.join(",")] ?? "rgba(0,200,200,0.1)"),
-        label: node.capacityMeshNodeId,
+        label: [
+          node.capacityMeshNodeId,
+          node._containsTarget ? "containsTarget" : "",
+          node.availableZ.join(","),
+        ]
+          .filter(Boolean)
+          .join("\n"),
       })
     }
 
