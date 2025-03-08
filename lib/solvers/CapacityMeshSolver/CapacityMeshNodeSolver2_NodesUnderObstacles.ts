@@ -187,8 +187,6 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
             (zSubNode) => !zSubNode._containsObstacle,
           ),
         )
-      } else {
-        finishedNewNodes.push(childNode)
       }
     }
 

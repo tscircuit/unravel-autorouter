@@ -413,7 +413,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
           ? "rgba(255,0,0,0.1)"
           : ({
               "0,1": "rgba(0,0,0,0.1)",
-              "0": "rgba(0,200,0, 0.1)",
+              "0": "rgba(0,200,200, 0.1)",
               "1": "rgba(0,0,200, 0.1)",
             }[node.availableZ.join(",")] ?? "rgba(0,200,200,0.1)"),
         label: [

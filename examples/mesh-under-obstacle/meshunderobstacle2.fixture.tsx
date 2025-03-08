@@ -1,7 +1,11 @@
 import { InteractiveGraphics } from "graphics-debug/react"
 import { CapacityMeshNodeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver1"
+import type { SimpleRouteJson } from "lib/types"
+import { CapacityMeshEdgeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshEdgeSolver"
+import { combineVisualizations } from "lib/utils/combineVisualizations"
+import { CapacityNodeTargetMerger } from "lib/solvers/CapacityMeshSolver/CapacityNodeTargetMerger"
+import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
 import { CapacityMeshNodeSolver2_NodeUnderObstacle } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver2_NodesUnderObstacles"
-import { SimpleRouteJson } from "lib/types/srj-types"
 
 const simpleSrj = {
   // const meshSolver = new CapacityMeshNodeSolver({
@@ -42,7 +46,7 @@ const simpleSrj = {
         y: 20,
       },
       width: 20,
-      height: 34,
+      height: 40,
       type: "rect",
       layers: ["bottom"],
       connectedTo: [],
@@ -83,7 +87,34 @@ const simpleSrj = {
 } as SimpleRouteJson
 
 export default () => {
-  const meshSolver = new CapacityMeshNodeSolver2_NodeUnderObstacle(simpleSrj)
-  meshSolver.solve()
-  return <InteractiveGraphics graphics={meshSolver.visualize()} />
+  // Solve for mesh nodes using the CapacityMeshNodeSolver
+  const nodeSolver = new CapacityMeshNodeSolver2_NodeUnderObstacle(simpleSrj)
+  const connMap = getConnectivityMapFromSimpleRouteJson(simpleSrj)
+  while (!nodeSolver.solved) {
+    nodeSolver.step()
+  }
+
+  // Combine finished and unfinished nodes for edge solving
+  const allNodes = [...nodeSolver.finishedNodes, ...nodeSolver.unfinishedNodes]
+
+  const nodeTargetMerger = new CapacityNodeTargetMerger(
+    allNodes,
+    simpleSrj.obstacles,
+    connMap,
+  )
+  nodeTargetMerger.solve()
+
+  // Solve for mesh edges
+  const edgeSolver = new CapacityMeshEdgeSolver(nodeTargetMerger.newNodes)
+  edgeSolver.solve()
+
+  return (
+    <InteractiveGraphics
+      graphics={combineVisualizations(
+        nodeSolver.visualize(),
+        nodeTargetMerger.visualize(),
+        edgeSolver.visualize(),
+      )}
+    />
+  )
 }
