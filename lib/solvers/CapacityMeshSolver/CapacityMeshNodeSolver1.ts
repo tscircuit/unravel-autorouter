@@ -407,6 +407,10 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     const allNodes = [...this.finishedNodes, ...this.unfinishedNodes]
     for (const node of allNodes) {
       const lowestZ = Math.min(...node.availableZ)
+      const isNextToBeProcessed =
+        this.unfinishedNodes.length > 0 &&
+        node === this.unfinishedNodes[this.unfinishedNodes.length - 1]
+
       graphics.rects!.push({
         center: {
           x: node.center.x + lowestZ * node.width * 0.05,
@@ -421,6 +425,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
               "0": "rgba(0,200,200, 0.1)",
               "1": "rgba(0,0,200, 0.1)",
             }[node.availableZ.join(",")] ?? "rgba(0,200,200,0.1)"),
+        stroke: isNextToBeProcessed ? "rgba(255,165,0,0.5)" : undefined,
         label: [
           node.capacityMeshNodeId,
           `availableZ: ${node.availableZ.join(",")}`,
