@@ -3,7 +3,7 @@ import { CapacityMeshNodeSolver } from "lib/solvers/CapacityMeshSolver/CapacityM
 import { CapacityMeshNodeSolver3_LargerSingleLayerNodes } from "lib/solvers/CapacityMeshSolver/CapacityMeshNodeSolver3_LargerSingleLayerNodes"
 import { SimpleRouteJson } from "lib/types/srj-types"
 import meshunderobstacle1 from "../assets/meshunderobstacle1.json"
-import { SameLayerNodeMergerSolver } from "lib/solvers/SameLayerNodeMerger/SameLayerNodeMergerSolver"
+import { SingleLayerNodeMergerSolver } from "lib/solvers/SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger"
 import { StrawSolver } from "lib/solvers/StrawSolver/StrawSolver"
@@ -17,7 +17,7 @@ export default () => {
   )
   meshSolver.solve()
 
-  const sameLayerNodeMerger = new SameLayerNodeMergerSolver(
+  const sameLayerNodeMerger = new SingleLayerNodeMergerSolver(
     meshSolver.finishedNodes,
     Math.min(...meshSolver.finishedNodes.map((n) => n.width)),
   )

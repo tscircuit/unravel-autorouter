@@ -33,6 +33,8 @@ import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsO
 import { UnravelMultiSectionSolver } from "./UnravelSolver/UnravelMultiSectionSolver"
 import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
 import { CapacityMeshNodeSolver3_LargerSingleLayerNodes } from "./CapacityMeshSolver/CapacityMeshNodeSolver3_LargerSingleLayerNodes"
+import { StrawSolver } from "./StrawSolver/StrawSolver"
+import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -82,6 +84,8 @@ export class CapacityMeshSolver extends BaseSolver {
   segmentToPointOptimizer?: CapacitySegmentPointOptimizer
   highDensityRouteSolver?: HighDensitySolver
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
+  singleLayerNodeMerger?: SingleLayerNodeMergerSolver
+  strawSolver?: StrawSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,13 +128,21 @@ export class CapacityMeshSolver extends BaseSolver {
       cms.srj.obstacles,
       cms.connMap,
     ]),
+    definePipelineStep(
+      "singleLayerNodeMerger",
+      SingleLayerNodeMergerSolver,
+      (cms) => [cms.nodeTargetMerger?.newNodes!],
+    ),
+    definePipelineStep("strawSolver", StrawSolver, (cms) => [
+      { nodes: cms.singleLayerNodeMerger?.newNodes! },
+    ]),
     definePipelineStep("edgeSolver", CapacityMeshEdgeSolver, (cms) => [
-      cms.nodeTargetMerger?.newNodes || [],
+      cms.strawSolver?.getResultNodes() || [],
     ]),
     definePipelineStep("pathingSolver", CapacityPathingSolver5, (cms) => [
       {
         simpleRouteJson: cms.srjWithPointPairs!,
-        nodes: cms.nodeTargetMerger?.newNodes || [],
+        nodes: cms.strawSolver?.getResultNodes() || [],
         edges: cms.edgeSolver?.edges || [],
         colorMap: cms.colorMap,
         hyperParameters: {
@@ -288,6 +300,8 @@ export class CapacityMeshSolver extends BaseSolver {
     const netToPPSolver = this.netToPointPairsSolver?.visualize()
     const nodeViz = this.nodeSolver?.visualize()
     const nodeTargetMergerViz = this.nodeTargetMerger?.visualize()
+    const singleLayerNodeMergerViz = this.singleLayerNodeMerger?.visualize()
+    const strawSolverViz = this.strawSolver?.visualize()
     const edgeViz = this.edgeSolver?.visualize()
     const pathingViz = this.pathingSolver?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
@@ -334,6 +348,8 @@ export class CapacityMeshSolver extends BaseSolver {
       netToPPSolver,
       nodeViz,
       nodeTargetMergerViz,
+      singleLayerNodeMergerViz,
+      strawSolverViz,
       edgeViz,
       pathingViz,
       edgeToPortSegmentViz,

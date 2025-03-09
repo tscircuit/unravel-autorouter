@@ -10,7 +10,7 @@ const EPSILON = 0.005
  * Merges same layer nodes into larger nodes. Pre-processing stage necessary
  * for "strawing".
  */
-export class SameLayerNodeMergerSolver extends BaseSolver {
+export class SingleLayerNodeMergerSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   currentBatchNodeIds: CapacityMeshNodeId[]
 
@@ -20,7 +20,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
   batchHadModifications: boolean
 
   newNodes: CapacityMeshNode[]
-  constructor(nodes: CapacityMeshNode[], minCellSize: number) {
+  constructor(nodes: CapacityMeshNode[]) {
     super()
     this.nodeMap = new Map()
     this.MAX_ITERATIONS = 100_000
@@ -39,6 +39,7 @@ export class SameLayerNodeMergerSolver extends BaseSolver {
       }
     }
     nodeWithArea.sort((a, b) => a[1] - b[1])
+    console.log(nodeWithArea)
     this.currentBatchNodeIds = nodeWithArea.map((n) => n[0])
     this.nextBatchNodeIds = []
     this.batchHadModifications = false

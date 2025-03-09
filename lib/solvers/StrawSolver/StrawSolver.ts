@@ -16,10 +16,10 @@ export class StrawSolver extends BaseSolver {
 
   constructor(params: {
     nodes: CapacityMeshNode[]
-    strawSize: number
+    strawSize?: number
   }) {
     super()
-    this.strawSize = params.strawSize
+    this.strawSize = params.strawSize ?? 0.2
     this.multiLayerNodes = []
     this.strawNodes = []
     this.skippedNodes = []
@@ -79,7 +79,7 @@ export class StrawSolver extends BaseSolver {
     topSurroundingCapacity: number
     bottomSurroundingCapacity: number
   } {
-    const searchDistance = Math.max(node.width, node.height)
+    const searchDistance = Math.min(node.width, node.height)
 
     const leftSurroundingCapacity =
       this.getCapacityOfMultiLayerNodesWithinBounds({
@@ -139,15 +139,12 @@ export class StrawSolver extends BaseSolver {
 
     // Layer-specific preferred direction
     // Layer 0 (top) prefers horizontal traces, Layer 1 (bottom) prefers vertical
-    const layerPrefersFactor = node.availableZ[0] === 0 ? 1.3 : 0.7
+    const layerPrefersFactor = 1 // node.availableZ[0] === 0 ? 1.3 : 0.7
 
     const effectiveHorizontalCapacity = horizontalCapacity * layerPrefersFactor
 
     // Create straws based on dimensions and surrounding capacity
-    if (
-      node.width > node.height * 1.5 ||
-      effectiveHorizontalCapacity > verticalCapacity
-    ) {
+    if (effectiveHorizontalCapacity > verticalCapacity) {
       // Create horizontal straws
       const numStraws = Math.max(1, Math.floor(node.height / this.strawSize))
       const strawHeight = node.height / numStraws
@@ -206,8 +203,8 @@ export class StrawSolver extends BaseSolver {
 
     // Skip nodes that are too small to subdivide
     if (
-      rootNode.width < this.strawSize * 2 &&
-      rootNode.height < this.strawSize * 2
+      rootNode.width < this.strawSize * 5 &&
+      rootNode.height < this.strawSize * 5
     ) {
       this.skippedNodes.push(rootNode)
       return

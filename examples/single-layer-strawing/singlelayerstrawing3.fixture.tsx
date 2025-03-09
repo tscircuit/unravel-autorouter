@@ -6,22 +6,16 @@ import meshunderobstacle1 from "../assets/meshunderobstacle1.json"
 import { SingleLayerNodeMergerSolver } from "lib/solvers/SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger"
+import { StrawSolver } from "lib/solvers/StrawSolver/StrawSolver"
+import singlelayerstrawing3 from "../assets/singlelayerstrawing3.json"
+import { CapacityMeshNode } from "lib/types"
 
 export default () => {
-  const meshSolver = new CapacityMeshNodeSolver3_LargerSingleLayerNodes(
-    meshunderobstacle1 as SimpleRouteJson,
-    {
-      capacityDepth: 7,
-    },
-  )
-  meshSolver.solve()
-
   return (
     <GenericSolverDebugger
       createSolver={() => {
         const sameLayerNodeMerger = new SingleLayerNodeMergerSolver(
-          meshSolver.finishedNodes,
-          Math.min(...meshSolver.finishedNodes.map((n) => n.width)),
+          singlelayerstrawing3[0] as CapacityMeshNode[],
         )
         return sameLayerNodeMerger
       }}
