@@ -21,7 +21,7 @@ import { CapacityPathingSolver3_FlexibleNegativeCapacity_AvoidLowCapacity } from
 import { CapacityPathingSolver4_FlexibleNegativeCapacity } from "./CapacityPathingSolver/CapacityPathingSolver4_FlexibleNegativeCapacity_AvoidLowCapacity_FixedDistanceCost"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
-import { CapacityNodeTargetMerger } from "./CapacityMeshSolver/CapacityNodeTargetMerger"
+import { CapacityNodeTargetMerger } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger"
 import { CapacitySegmentPointOptimizer } from "./CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer"
 import { calculateOptimalCapacityDepth } from "../utils/getTunedTotalCapacity1"
 import { NetToPointPairsSolver } from "./NetToPointPairsSolver/NetToPointPairsSolver"
@@ -35,6 +35,7 @@ import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingS
 import { CapacityMeshNodeSolver3_LargerSingleLayerNodes } from "./CapacityMeshSolver/CapacityMeshNodeSolver3_LargerSingleLayerNodes"
 import { StrawSolver } from "./StrawSolver/StrawSolver"
 import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
+import { CapacityNodeTargetMerger2 } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger2"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -123,10 +124,17 @@ export class CapacityMeshSolver extends BaseSolver {
         cms.opts,
       ],
     ),
-    definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger, (cms) => [
+    // definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger, (cms) => [
+    //   cms.nodeSolver?.finishedNodes || [],
+    //   cms.srj.obstacles,
+    //   cms.connMap,
+    // ]),
+    definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger2, (cms) => [
       cms.nodeSolver?.finishedNodes || [],
       cms.srj.obstacles,
       cms.connMap,
+      cms.colorMap,
+      cms.srj.connections,
     ]),
     definePipelineStep(
       "singleLayerNodeMerger",

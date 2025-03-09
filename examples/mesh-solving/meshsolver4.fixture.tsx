@@ -3,7 +3,7 @@ import { CapacityMeshNodeSolver } from "lib/solvers/CapacityMeshSolver/CapacityM
 import type { SimpleRouteJson } from "lib/types"
 import { CapacityMeshEdgeSolver } from "lib/solvers/CapacityMeshSolver/CapacityMeshEdgeSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
-import { CapacityNodeTargetMerger } from "lib/solvers/CapacityMeshSolver/CapacityNodeTargetMerger"
+import { CapacityNodeTargetMerger } from "lib/solvers/CapacityNodeTargetMerger/CapacityNodeTargetMerger"
 import { getConnectivityMapFromSimpleRouteJson } from "lib/utils/getConnectivityMapFromSimpleRouteJson"
 
 const simpleSrj = {
