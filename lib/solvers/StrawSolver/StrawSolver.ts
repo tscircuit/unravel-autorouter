@@ -19,7 +19,7 @@ export class StrawSolver extends BaseSolver {
     strawSize?: number
   }) {
     super()
-    this.strawSize = params.strawSize ?? 0.2
+    this.strawSize = params.strawSize ?? 0.5
     this.multiLayerNodes = []
     this.strawNodes = []
     this.skippedNodes = []
@@ -146,7 +146,7 @@ export class StrawSolver extends BaseSolver {
     // Create straws based on dimensions and surrounding capacity
     if (effectiveHorizontalCapacity > verticalCapacity) {
       // Create horizontal straws
-      const numStraws = Math.max(1, Math.floor(node.height / this.strawSize))
+      const numStraws = Math.floor(node.height / this.strawSize)
       const strawHeight = node.height / numStraws
 
       for (let i = 0; i < numStraws; i++) {
@@ -166,7 +166,7 @@ export class StrawSolver extends BaseSolver {
       }
     } else {
       // Create vertical straws
-      const numStraws = Math.max(1, Math.floor(node.width / this.strawSize))
+      const numStraws = Math.floor(node.width / this.strawSize)
       const strawWidth = node.width / numStraws
 
       for (let i = 0; i < numStraws; i++) {

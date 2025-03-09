@@ -24,6 +24,7 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
         if (
+          !(this.nodes[i]._strawNode && this.nodes[j]._strawNode) &&
           areNodesBordering(this.nodes[i], this.nodes[j]) &&
           this.doNodesHaveSharedLayer(this.nodes[i], this.nodes[j])
         ) {

@@ -118,7 +118,7 @@ export class CapacityMeshSolver extends BaseSolver {
     // ]),
     definePipelineStep(
       "nodeSolver",
-      CapacityMeshNodeSolver3_LargerSingleLayerNodes,
+      CapacityMeshNodeSolver2_NodeUnderObstacle,
       (cms) => [
         cms.netToPointPairsSolver?.getNewSimpleRouteJson() || cms.srj,
         cms.opts,
@@ -129,17 +129,17 @@ export class CapacityMeshSolver extends BaseSolver {
     //   cms.srj.obstacles,
     //   cms.connMap,
     // ]),
-    definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger2, (cms) => [
-      cms.nodeSolver?.finishedNodes || [],
-      cms.srj.obstacles,
-      cms.connMap,
-      cms.colorMap,
-      cms.srj.connections,
-    ]),
+    // definePipelineStep("nodeTargetMerger", CapacityNodeTargetMerger2, (cms) => [
+    //   cms.nodeSolver?.finishedNodes || [],
+    //   cms.srj.obstacles,
+    //   cms.connMap,
+    //   cms.colorMap,
+    //   cms.srj.connections,
+    // ]),
     definePipelineStep(
       "singleLayerNodeMerger",
       SingleLayerNodeMergerSolver,
-      (cms) => [cms.nodeTargetMerger?.newNodes!],
+      (cms) => [cms.nodeSolver?.finishedNodes!],
     ),
     definePipelineStep("strawSolver", StrawSolver, (cms) => [
       { nodes: cms.singleLayerNodeMerger?.newNodes! },
