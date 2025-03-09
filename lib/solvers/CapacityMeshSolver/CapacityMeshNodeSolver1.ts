@@ -264,14 +264,14 @@ export class CapacityMeshNodeSolver extends BaseSolver {
       }
     }
 
-    if (
-      nodeRight < this.srj.bounds.minX ||
-      nodeLeft > this.srj.bounds.maxX ||
-      nodeBottom < this.srj.bounds.minY ||
-      nodeTop > this.srj.bounds.maxY
-    ) {
-      return true
-    }
+    // if (
+    //   nodeRight < this.srj.bounds.minX ||
+    //   nodeLeft > this.srj.bounds.maxX ||
+    //   nodeBottom < this.srj.bounds.minY ||
+    //   nodeTop > this.srj.bounds.maxY
+    // ) {
+    //   return true
+    // }
 
     return false
   }
