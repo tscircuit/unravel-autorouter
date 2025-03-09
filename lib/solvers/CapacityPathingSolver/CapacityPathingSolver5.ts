@@ -6,6 +6,11 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
   NEGATIVE_CAPACITY_PENALTY_FACTOR = 1
   REDUCED_CAPACITY_PENALTY_FACTOR = 1
 
+  constructor(...args: ConstructorParameters<typeof CapacityPathingSolver>) {
+    super(...args)
+    this.GREEDY_MULTIPLIER = 2.5
+  }
+
   get maxCapacityFactor() {
     return this.hyperParameters.MAX_CAPACITY_FACTOR ?? 1
   }
@@ -18,6 +23,7 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
    * Penalty you pay for using this node
    */
   getNodeCapacityPenalty(node: CapacityMeshNode): number {
+    return 0.05
     if (node.availableZ.length === 1) {
       return 0
     }
@@ -66,12 +72,15 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
     const dx = A.center.x - B.center.x
     const dy = A.center.y - B.center.y
 
-    const szx = Math.max(A.width, B.width)
-    const szy = Math.max(A.height, B.height)
+    return Math.sqrt(dx ** 2 + dy ** 2)
 
-    const dist = Math.sqrt(dx ** 2 + dy ** 2) / (szx * szy)
+    // REWARD BIG NODE TRAVEL
+    // const szx = Math.max(A.width, B.width)
+    // const szy = Math.max(A.height, B.height)
 
-    return dist
+    // const dist = Math.sqrt(dx ** 2 + dy ** 2) / (szx * szy)
+
+    // return dist
   }
 
   computeG(
@@ -91,9 +100,6 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
     node: CapacityMeshNode,
     endGoal: CapacityMeshNode,
   ) {
-    return (
-      this.getDistanceBetweenNodes(node, endGoal) +
-      this.getNodeCapacityPenalty(node)
-    )
+    return this.getDistanceBetweenNodes(node, endGoal)
   }
 }

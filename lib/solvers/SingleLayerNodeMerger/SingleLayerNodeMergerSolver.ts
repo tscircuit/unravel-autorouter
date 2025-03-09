@@ -39,7 +39,6 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
       }
     }
     nodeWithArea.sort((a, b) => a[1] - b[1])
-    console.log(nodeWithArea)
     this.currentBatchNodeIds = nodeWithArea.map((n) => n[0])
     this.nextBatchNodeIds = []
     this.batchHadModifications = false

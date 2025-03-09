@@ -44,6 +44,15 @@ export class CapacityPathingSolver extends BaseSolver {
 
   activeCandidateStraightLineDistance?: number
 
+  debug_lastNodeCostMap: Map<
+    CapacityMeshNodeId,
+    {
+      g: number
+      h: number
+      f: number
+    }
+  >
+
   hyperParameters: Partial<CapacityHyperParameters>
 
   constructor({
@@ -82,6 +91,7 @@ export class CapacityPathingSolver extends BaseSolver {
     this.maxDepthOfNodes = Math.max(
       ...this.nodes.map((node) => node._depth ?? 0),
     )
+    this.debug_lastNodeCostMap = new Map()
   }
 
   getTotalCapacity(node: CapacityMeshNode): number {
@@ -245,6 +255,7 @@ export class CapacityPathingSolver extends BaseSolver {
     const [start, end] = nextConnection.nodes
     if (!this.candidates) {
       this.candidates = [{ prevCandidate: null, node: start, f: 0, g: 0, h: 0 }]
+      this.debug_lastNodeCostMap = new Map()
       this.visitedNodes = new Set([start.capacityMeshNodeId])
       this.activeCandidateStraightLineDistance = distance(
         start.center,
@@ -300,6 +311,13 @@ export class CapacityPathingSolver extends BaseSolver {
       const g = this.computeG(currentCandidate, neighborNode, end)
       const h = this.computeH(currentCandidate, neighborNode, end)
       const f = g + h * this.GREEDY_MULTIPLIER
+
+      this.debug_lastNodeCostMap.set(neighborNode.capacityMeshNodeId, {
+        f,
+        g,
+        h,
+      })
+
       const newCandidate = {
         prevCandidate: currentCandidate,
         node: neighborNode,
@@ -339,9 +357,17 @@ export class CapacityPathingSolver extends BaseSolver {
     }
 
     for (const node of this.nodes) {
+      const nodeCosts = this.debug_lastNodeCostMap.get(node.capacityMeshNodeId)
       graphics.rects!.push({
         ...createRectFromCapacityNode(node),
-        label: `${node.capacityMeshNodeId}\n${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node).toFixed(2)}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+        label: [
+          `${node.capacityMeshNodeId}`,
+          `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node).toFixed(2)}`,
+          `${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+          `g: ${nodeCosts?.g !== undefined ? nodeCosts.g.toFixed(2) : "?"}`,
+          `h: ${nodeCosts?.h !== undefined ? nodeCosts.h.toFixed(2) : "?"}`,
+          `f: ${nodeCosts?.f !== undefined ? nodeCosts.f.toFixed(2) : "?"}`,
+        ].join("\n"),
       })
     }
 

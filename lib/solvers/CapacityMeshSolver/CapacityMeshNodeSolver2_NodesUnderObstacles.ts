@@ -181,7 +181,6 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
     }
 
     const childNodes = this.getChildNodes(nextNode)
-    console.log("childNodes", childNodes)
 
     const finishedNewNodes: CapacityMeshNode[] = []
     const unfinishedNewNodes: CapacityMeshNode[] = []
@@ -192,11 +191,6 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
         childNode.availableZ.length > 1 &&
         !shouldBeXYSubdivided &&
         childNode._containsObstacle
-      console.log(
-        childNode.capacityMeshNodeId,
-        shouldBeXYSubdivided,
-        shouldBeZSubdivided,
-      )
       if (shouldBeXYSubdivided) {
         unfinishedNewNodes.push(childNode)
       } else if (!shouldBeXYSubdivided && !childNode._containsObstacle) {
