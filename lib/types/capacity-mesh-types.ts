@@ -19,6 +19,7 @@ export interface CapacityMeshNode {
   _containsObstacle?: boolean
   _containsTarget?: boolean
   _targetConnectionName?: string
+  _strawNode?: boolean
 
   _shouldBeInGraph?: boolean
 
