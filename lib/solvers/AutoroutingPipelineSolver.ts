@@ -1,6 +1,7 @@
 import type { GraphicsObject } from "graphics-debug"
 import { combineVisualizations } from "../utils/combineVisualizations"
 import type {
+  CapacityMeshNode,
   SimpleRouteJson,
   SimplifiedPcbTrace,
   SimplifiedPcbTraces,
@@ -95,6 +96,7 @@ export class CapacityMeshSolver extends BaseSolver {
   activeSubSolver?: BaseSolver | null = null
   connMap: ConnectivityMap
   srjWithPointPairs?: SimpleRouteJson
+  capacityNodes: CapacityMeshNode[] | null = null
 
   pipelineDef = [
     definePipelineStep(
@@ -141,16 +143,23 @@ export class CapacityMeshSolver extends BaseSolver {
       SingleLayerNodeMergerSolver,
       (cms) => [cms.nodeSolver?.finishedNodes!],
     ),
-    definePipelineStep("strawSolver", StrawSolver, (cms) => [
-      { nodes: cms.singleLayerNodeMerger?.newNodes! },
-    ]),
+    definePipelineStep(
+      "strawSolver",
+      StrawSolver,
+      (cms) => [{ nodes: cms.singleLayerNodeMerger?.newNodes! }],
+      {
+        onSolved: (cms) => {
+          cms.capacityNodes = cms.strawSolver?.getResultNodes()!
+        },
+      },
+    ),
     definePipelineStep("edgeSolver", CapacityMeshEdgeSolver, (cms) => [
-      cms.strawSolver?.getResultNodes() || [],
+      cms.capacityNodes!,
     ]),
     definePipelineStep("pathingSolver", CapacityPathingSolver5, (cms) => [
       {
         simpleRouteJson: cms.srjWithPointPairs!,
-        nodes: cms.strawSolver?.getResultNodes() || [],
+        nodes: cms.capacityNodes!,
         edges: cms.edgeSolver?.edges || [],
         colorMap: cms.colorMap,
         hyperParameters: {
@@ -163,7 +172,7 @@ export class CapacityMeshSolver extends BaseSolver {
       CapacityEdgeToPortSegmentSolver,
       (cms) => [
         {
-          nodes: cms.nodeTargetMerger?.newNodes || [],
+          nodes: cms.capacityNodes!,
           edges: cms.edgeSolver?.edges || [],
           capacityPaths: cms.pathingSolver?.getCapacityPaths() || [],
           colorMap: cms.colorMap,
@@ -184,7 +193,7 @@ export class CapacityMeshSolver extends BaseSolver {
           {
             segments: allSegments,
             colorMap: cms.colorMap,
-            nodes: cms.nodeTargetMerger?.newNodes || [],
+            nodes: cms.capacityNodes!,
           },
         ]
       },
@@ -207,7 +216,7 @@ export class CapacityMeshSolver extends BaseSolver {
         {
           assignedSegments: cms.segmentToPointSolver?.solvedSegments || [],
           colorMap: cms.colorMap,
-          nodes: cms.nodeTargetMerger?.newNodes || [],
+          nodes: cms.capacityNodes!,
         },
       ],
     ),
