@@ -267,6 +267,7 @@ export class StrawSolver extends BaseSolver {
         height: node.height * 0.9,
         fill: "rgba(100, 255, 100, 0.5)",
         stroke: "rgba(0, 0, 0, 0.5)",
+        layer: `z${node.availableZ.join(",")}`,
         label: `${node.capacityMeshNodeId}\nLayers: ${node.availableZ.join(",")}\n${node.width}x${node.height}`,
       })
     }

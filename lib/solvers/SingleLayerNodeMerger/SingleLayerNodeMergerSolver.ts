@@ -50,6 +50,11 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
       if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
       const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
       if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
+      if (
+        unprocessedNode._containsTarget &&
+        unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
+      )
+        continue
       if (!areNodesBordering(rootNode, unprocessedNode)) continue
       adjacentNodes.push(unprocessedNode)
     }
@@ -61,6 +66,7 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
     while (rootNodeId && this.absorbedNodeIds.has(rootNodeId)) {
       rootNodeId = this.currentBatchNodeIds.pop()
     }
+    console.log(rootNodeId)
 
     if (!rootNodeId) {
       if (this.batchHadModifications) {
@@ -85,6 +91,7 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
     let rootNodeHasGrown = false
 
     const adjacentNodes = this.getAdjacentSameLayerUnprocessedNodes(rootNode)
+    console.log(adjacentNodes.map((n) => n.capacityMeshNodeId))
 
     if (adjacentNodes.length === 0) {
       this.nextBatchNodeIds.push(rootNodeId)
@@ -255,6 +262,15 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
       graphics.rects.push(createRectFromCapacityNode(node))
     }
 
+    const nextNodeIdInBatch =
+      this.currentBatchNodeIds[this.currentBatchNodeIds.length - 1]
+    let adjacentNodes: CapacityMeshNode[] | undefined
+    if (nextNodeIdInBatch) {
+      adjacentNodes = this.getAdjacentSameLayerUnprocessedNodes(
+        this.nodeMap.get(nextNodeIdInBatch)!,
+      )
+    }
+
     // Visualize unprocessed nodes with a different style
     for (const nodeId of this.currentBatchNodeIds) {
       const node = this.nodeMap.get(nodeId)
@@ -263,7 +279,18 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         const rect = createRectFromCapacityNode(node, {
           rectMargin: 0.01,
         })
-        rect.stroke = "rgba(255, 165, 0, 0.8)" // Orange border
+        if (nodeId === nextNodeIdInBatch) {
+          rect.stroke = "rgba(0, 255, 0, 0.8)" // Green for next node in batch
+        } else if (
+          adjacentNodes?.some(
+            (adjNode) => adjNode.capacityMeshNodeId === nodeId,
+          )
+        ) {
+          rect.stroke = "rgba(128, 0, 128, 0.8)" // Purple for adjacent nodes
+        } else {
+          rect.stroke = "rgba(255, 165, 0, 0.8)" // Orange border for other nodes
+        }
+        rect.layer = `z${node.availableZ.join(",")}`
         rect.label = `${rect.label}\n(unprocessed)`
         graphics.rects.push(rect)
       }
@@ -277,7 +304,8 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         const rect = createRectFromCapacityNode(node, {
           rectMargin: 0.01,
         })
-        rect.stroke = "rgba(0, 255, 0, 0.8)" // Green border
+        rect.layer = `z${node.availableZ.join(",")}`
+        rect.stroke = "rgba(0, 217, 255, 0.8)" // Green border
         rect.label = `${rect.label}\nx: ${node.center.x}, y: ${node.center.y}\n${node.width}x${node.height}\n(next batch)`
         graphics.rects.push(rect)
       }

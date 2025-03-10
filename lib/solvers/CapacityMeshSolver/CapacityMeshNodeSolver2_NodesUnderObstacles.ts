@@ -105,7 +105,7 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
 
     for (const zBlock of otherZBlocks) {
       const childNode = this.createChildNodeAtPosition(node, {
-        center: node.center,
+        center: { ...node.center },
         width: node.width,
         height: node.height,
         availableZ: zBlock,
@@ -198,7 +198,11 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       } else if (!shouldBeXYSubdivided && childNode._containsTarget) {
         if (shouldBeZSubdivided) {
           const zSubNodes = this.getZSubdivisionChildNodes(childNode)
-          finishedNewNodes.push(...zSubNodes)
+          finishedNewNodes.push(
+            ...zSubNodes.filter(
+              (n) => n._containsTarget || !n._containsObstacle,
+            ),
+          )
         } else {
           finishedNewNodes.push(childNode)
         }

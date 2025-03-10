@@ -27,6 +27,9 @@ export const CapacityMeshPipelineDebugger = ({
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
   const [dialogObject, setDialogObject] = useState<Rect | null>(null)
+  const [lastTargetIteration, setLastTargetIteration] = useState<number>(
+    parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
+  )
 
   const speedLevels = [1, 2, 5, 10, 100]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
@@ -106,6 +109,54 @@ export const CapacityMeshPipelineDebugger = ({
       solver.solve()
       setForceUpdate((prev) => prev + 1)
     }
+  }
+
+  // Go to specific iteration
+  const handleGoToIteration = () => {
+    if (solver.solved || solver.failed) {
+      return
+    }
+
+    const targetIteration = window.prompt(
+      "Enter target iteration number:",
+      lastTargetIteration.toString(),
+    )
+
+    if (targetIteration === null) {
+      return // User canceled the dialog
+    }
+
+    const target = parseInt(targetIteration, 10)
+
+    if (Number.isNaN(target) || target < 0) {
+      alert("Please enter a valid positive number")
+      return
+    }
+
+    setLastTargetIteration(target)
+    window.localStorage.setItem("lastTargetIteration", target.toString())
+
+    // If we're already past the target, we need to reset and start over
+    if (solver.iterations > target) {
+      const newSolver = createSolver(srj)
+      setSolver(newSolver)
+
+      // Now run until we reach the target
+      while (
+        newSolver.iterations < target &&
+        !newSolver.solved &&
+        !newSolver.failed
+      ) {
+        newSolver.step()
+      }
+    } else {
+      // We just need to run until we reach the target
+      while (solver.iterations < target && !solver.solved && !solver.failed) {
+        solver.step()
+      }
+    }
+
+    setForceUpdate((prev) => prev + 1)
   }
 
   // Increase animation speed
@@ -195,8 +246,21 @@ export const CapacityMeshPipelineDebugger = ({
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
-        <div className="border p-2 rounded">
-          Iterations: <span className="font-bold">{solver.iterations}</span>
+        <div className="border p-2 rounded flex items-center">
+          Iterations:{" "}
+          <span className="font-bold ml-1">{solver.iterations}</span>
+          <button
+            className="ml-2 border rounded-md px-2 py-1 text-sm hover:bg-gray-100"
+            onClick={handleGoToIteration}
+            disabled={solver.solved || solver.failed}
+            title={
+              lastTargetIteration > 0
+                ? `Last: ${lastTargetIteration}`
+                : "Go to specific iteration"
+            }
+          >
+            Go to Iteration
+          </button>
         </div>
         <div className="border p-2 rounded">
           Status:{" "}
