@@ -65,7 +65,6 @@ export class IntraNodeRouteSolver extends BaseSolver {
         { x, y, z: z ?? 0 },
       ])
     }
-    console.log({ unsolvedConnectionsMap })
     this.unsolvedConnections = Array.from(
       unsolvedConnectionsMap.entries().map(([connectionName, points]) => ({
         connectionName,
