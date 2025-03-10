@@ -1,8 +1,8 @@
 # @tscircuit/capacity-autorouter
 
-[View Online Playground](https://unraveller.vercel.app) &middot; [tscircuit docs](https://docs.tscircuit.com)
+An MIT-licensed full-pipeline PCB autorouter library for node.js and TypeScript projects. Part of [tscircuit](https://github.com/tscircuit/tscircuit)
 
-A high-density PCB autorouter library for node.js and TypeScript projects. Part of the [tscircuit project](https://github.com/tscircuit/tscircuit) &middot; [discord](https://tscircuit.com/join) &middot; [twitter](https://x.com/seveibar) &middot; [try tscircuit online](https://tscircuit.com)
+[View Online Playground](https://unraveller.vercel.app) &middot; [tscircuit docs](https://docs.tscircuit.com) &middot; [discord](https://tscircuit.com/join) &middot; [twitter](https://x.com/seveibar) &middot; [try tscircuit online](https://tscircuit.com)
 
 Check out this [short youtube explanation of this autorouter](https://youtu.be/MmTk0806fAo)
 
