@@ -21,7 +21,6 @@ export default () => {
       createSolver={() => {
         const sameLayerNodeMerger = new SingleLayerNodeMergerSolver(
           meshSolver.finishedNodes,
-          Math.min(...meshSolver.finishedNodes.map((n) => n.width)),
         )
         return sameLayerNodeMerger
       }}

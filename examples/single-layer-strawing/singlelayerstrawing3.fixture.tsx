@@ -15,7 +15,7 @@ export default () => {
     <GenericSolverDebugger
       createSolver={() => {
         const sameLayerNodeMerger = new SingleLayerNodeMergerSolver(
-          singlelayerstrawing3[0] as CapacityMeshNode[],
+          singlelayerstrawing3[0] as any,
         )
         return sameLayerNodeMerger
       }}
