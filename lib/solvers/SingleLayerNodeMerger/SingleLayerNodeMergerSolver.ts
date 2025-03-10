@@ -66,7 +66,6 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
     while (rootNodeId && this.absorbedNodeIds.has(rootNodeId)) {
       rootNodeId = this.currentBatchNodeIds.pop()
     }
-    console.log(rootNodeId)
 
     if (!rootNodeId) {
       if (this.batchHadModifications) {
@@ -91,7 +90,6 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
     let rootNodeHasGrown = false
 
     const adjacentNodes = this.getAdjacentSameLayerUnprocessedNodes(rootNode)
-    console.log(adjacentNodes.map((n) => n.capacityMeshNodeId))
 
     if (adjacentNodes.length === 0) {
       this.nextBatchNodeIds.push(rootNodeId)
