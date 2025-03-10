@@ -21,6 +21,7 @@ import { createSegmentPointMap } from "./createSegmentPointMap"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
+  dedupedSegmentMap: Map<SegmentId, SegmentWithAssignedPoints>
   dedupedSegments: SegmentWithAssignedPoints[]
   nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
@@ -62,6 +63,10 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     this.MAX_ITERATIONS = 100_000
 
     this.dedupedSegments = getDedupedSegments(assignedSegments)
+    this.dedupedSegmentMap = new Map()
+    for (const segment of this.dedupedSegments) {
+      this.dedupedSegmentMap.set(segment.nodePortSegmentId!, segment)
+    }
     this.nodeMap = new Map()
     for (const node of nodes) {
       this.nodeMap.set(node.capacityMeshNodeId, node)
@@ -162,6 +167,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       )
       this.activeSolver = new UnravelSectionSolver({
         dedupedSegments: this.dedupedSegments,
+        dedupedSegmentMap: this.dedupedSegmentMap,
         nodeMap: this.nodeMap,
         nodeIdToSegmentIds: this.nodeIdToSegmentIds,
         segmentIdToNodeIds: this.segmentIdToNodeIds,
@@ -237,9 +243,17 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       const green = Math.floor(255 * (1 - pf))
       const color = `rgb(${red}, ${green}, 0)`
 
+      if ((this.attemptsToFixNode.get(nodeId) ?? 0) === 0 && pf === 0) {
+        continue
+      }
+
       graphics.rects.push({
         center: node.center,
-        label: `${nodeId}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}\nPf: ${probabilityOfFailure.toFixed(3)}`,
+        label: [
+          nodeId,
+          `${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+          `Pf: ${probabilityOfFailure.toFixed(3)}`,
+        ].join("\n"),
         color,
         width: node.width / 8,
         height: node.height / 8,
@@ -248,10 +262,16 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
     // Visualize segment points
     for (const segmentPoint of this.segmentPointMap.values()) {
+      const segment = this.dedupedSegmentMap.get(segmentPoint.segmentId)
       graphics.points.push({
         x: segmentPoint.x,
         y: segmentPoint.y,
-        label: `${segmentPoint.segmentPointId}\nSegment: ${segmentPoint.segmentId}\nLayer: ${segmentPoint.z}`,
+        label: [
+          segmentPoint.segmentPointId,
+          segmentPoint.segmentId,
+          `z: ${segmentPoint.z}`,
+          `segment.availableZ: ${segment?.availableZ.join(",")}`,
+        ].join("\n"),
         color: this.colorMap[segmentPoint.connectionName] || "#000",
       })
     }

@@ -53,6 +53,7 @@ import { createSegmentPointMap } from "./createSegmentPointMap"
 export class UnravelSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   dedupedSegments: SegmentWithAssignedPoints[]
+  dedupedSegmentMap: Map<SegmentId, SegmentWithAssignedPoints>
 
   MUTABLE_HOPS = 1
 
@@ -81,6 +82,7 @@ export class UnravelSectionSolver extends BaseSolver {
     MUTABLE_HOPS?: number
     nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
     dedupedSegments: SegmentWithAssignedPoints[]
+    dedupedSegmentMap?: Map<SegmentId, SegmentWithAssignedPoints>
     nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
     segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
     segmentPointMap?: SegmentPointMap
@@ -91,6 +93,14 @@ export class UnravelSectionSolver extends BaseSolver {
 
     this.nodeMap = params.nodeMap
     this.dedupedSegments = params.dedupedSegments
+    if (params.dedupedSegmentMap) {
+      this.dedupedSegmentMap = params.dedupedSegmentMap
+    } else {
+      this.dedupedSegmentMap = new Map()
+      for (const segment of this.dedupedSegments) {
+        this.dedupedSegmentMap.set(segment.nodePortSegmentId!, segment)
+      }
+    }
     this.nodeIdToSegmentIds = params.nodeIdToSegmentIds
     this.segmentIdToNodeIds = params.segmentIdToNodeIds
     this.rootNodeId = params.rootNodeId
@@ -294,14 +304,27 @@ export class UnravelSectionSolver extends BaseSolver {
       const pointA = this.getPointInCandidate(candidate, APointId)
       const pointB = this.getPointInCandidate(candidate, BPointId)
 
-      if (this.unravelSection.mutableSegmentIds.has(pointA.segmentId)) {
+      const aAvailableZ = this.dedupedSegmentMap.get(
+        pointA.segmentId,
+      )!.availableZ
+      const bAvailableZ = this.dedupedSegmentMap.get(
+        pointB.segmentId,
+      )!.availableZ
+
+      if (
+        this.unravelSection.mutableSegmentIds.has(pointA.segmentId) &&
+        aAvailableZ.includes(pointB.z)
+      ) {
         operations.push({
           type: "change_layer",
           newZ: pointB.z,
           segmentPointIds: [APointId],
         })
       }
-      if (this.unravelSection.mutableSegmentIds.has(pointB.segmentId)) {
+      if (
+        this.unravelSection.mutableSegmentIds.has(pointB.segmentId) &&
+        bAvailableZ.includes(pointA.z)
+      ) {
         operations.push({
           type: "change_layer",
           newZ: pointA.z,

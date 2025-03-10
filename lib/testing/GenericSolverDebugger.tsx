@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
@@ -18,6 +18,9 @@ export const GenericSolverDebugger = ({
   const [speedLevel, setSpeedLevel] = useState(0)
   const [selectedSolverKey, setSelectedSolverKey] = useState<"main" | number>(
     "main",
+  )
+  const [lastTargetIteration, setLastTargetIteration] = useState<number>(
+    parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
   )
 
   const selectedSolver = useMemo(() => {
@@ -73,12 +76,98 @@ export const GenericSolverDebugger = ({
     }
   }
 
+  // Next Stage function
+  const handleNextStage = () => {
+    if (!mainSolver.solved && !mainSolver.failed) {
+      const initialSubSolver = mainSolver.activeSubSolver
+
+      // Step until we get a new subsolver (null -> something)
+      if (initialSubSolver === null) {
+        while (
+          !mainSolver.solved &&
+          !mainSolver.failed &&
+          mainSolver.activeSubSolver === null
+        ) {
+          mainSolver.step()
+        }
+      }
+
+      // Now step until the subsolver completes (something -> null)
+      if (mainSolver.activeSubSolver !== null) {
+        while (
+          !mainSolver.solved &&
+          !mainSolver.failed &&
+          mainSolver.activeSubSolver !== null
+        ) {
+          mainSolver.step()
+        }
+      }
+
+      setForceUpdate((prev) => prev + 1)
+    }
+  }
+
   // Solve completely
   const handleSolveCompletely = () => {
     if (!mainSolver.solved && !mainSolver.failed) {
       mainSolver.solve()
       setForceUpdate((prev) => prev + 1)
     }
+  }
+
+  // Go to specific iteration
+  const handleGoToIteration = () => {
+    if (mainSolver.solved || mainSolver.failed) {
+      return
+    }
+
+    const targetIterationStr = window.prompt(
+      "Enter target iteration number:",
+      lastTargetIteration.toString(),
+    )
+
+    if (targetIterationStr === null) {
+      return // User canceled the dialog
+    }
+
+    const targetIterations = parseInt(targetIterationStr, 10)
+
+    if (Number.isNaN(targetIterations) || targetIterations < 0) {
+      alert("Please enter a valid positive number")
+      return
+    }
+
+    setLastTargetIteration(targetIterations)
+    window.localStorage.setItem(
+      "lastTargetIteration",
+      targetIterations.toString(),
+    )
+
+    // If we're already past the target, we need to reset and start over
+    if (mainSolver.iterations > targetIterations) {
+      const newSolver = createSolver()
+      setMainSolver(newSolver)
+
+      // Now run until we reach the target
+      while (
+        newSolver.iterations < targetIterations &&
+        !newSolver.solved &&
+        !newSolver.failed
+      ) {
+        newSolver.step()
+      }
+    } else {
+      // We just need to run until we reach the target
+      while (
+        mainSolver.iterations < targetIterations &&
+        !mainSolver.solved &&
+        !mainSolver.failed
+      ) {
+        mainSolver.step()
+      }
+    }
+
+    setForceUpdate((prev) => prev + 1)
   }
 
   // Increase animation speed
@@ -137,6 +226,13 @@ export const GenericSolverDebugger = ({
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={handleNextStage}
+          disabled={mainSolver.solved || mainSolver.failed}
+        >
+          Next Stage
+        </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
           onClick={() => setIsAnimating(!isAnimating)}
           disabled={mainSolver.solved || mainSolver.failed}
         >
@@ -176,8 +272,21 @@ export const GenericSolverDebugger = ({
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
-        <div className="border p-2 rounded">
-          Iterations: <span className="font-bold">{mainSolver.iterations}</span>
+        <div className="border p-2 rounded flex items-center">
+          Iterations:{" "}
+          <span className="font-bold ml-1">{mainSolver.iterations}</span>
+          <button
+            className="ml-2 border rounded-md px-2 py-1 text-sm hover:bg-gray-100"
+            onClick={handleGoToIteration}
+            disabled={mainSolver.solved || mainSolver.failed}
+            title={
+              lastTargetIteration > 0
+                ? `Last: ${lastTargetIteration}`
+                : "Go to specific iteration"
+            }
+          >
+            Go to Iteration
+          </button>
         </div>
         <div className="border p-2 rounded">
           Status:{" "}
@@ -191,6 +300,14 @@ export const GenericSolverDebugger = ({
                 : "No Errors"}
           </span>
         </div>
+        {mainSolver.activeSubSolver && (
+          <div className="border p-2 rounded">
+            Active Stage:{" "}
+            <span className="font-bold">
+              {mainSolver.activeSubSolver.constructor.name}
+            </span>
+          </div>
+        )}
         {mainSolver.timeToSolve !== undefined && (
           <div className="border p-2 rounded">
             Time to solve:{" "}
