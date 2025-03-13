@@ -292,6 +292,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
         this.newRoute.length === 0 ||
         !this.arePointsEqual(this.newRoute[this.newRoute.length - 1], lastPoint)
       ) {
+        // TODO find path from tail to end w/ 45 degree paths
         this.newRoute.push(lastPoint)
       }
       this.solved = true

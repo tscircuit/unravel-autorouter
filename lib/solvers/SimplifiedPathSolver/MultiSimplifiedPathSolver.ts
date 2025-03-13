@@ -3,13 +3,16 @@ import { BaseSolver } from "../BaseSolver"
 import { Obstacle } from "lib/types"
 import { SingleSimplifiedPathSolver2 } from "./SingleSimplifiedPathSolver2"
 import { GraphicsObject } from "graphics-debug"
+import { combineVisualizations } from "lib/utils/combineVisualizations"
+import { SingleSimplifiedPathSolver5 } from "./SingleSimplifiedPathSolver5_Deg45"
+import { SingleSimplifiedPathSolver } from "./SingleSimplifiedPathSolver"
 
 export class MultiSimplifiedPathSolver extends BaseSolver {
   simplifiedHdRoutes: HighDensityIntraNodeRoute[]
 
   currentUnsimplifiedHdRouteIndex = 0
 
-  activeSubSolver: SingleSimplifiedPathSolver2 | null = null
+  activeSubSolver: SingleSimplifiedPathSolver | null = null
 
   constructor(
     public unsimplifiedHdRoutes: HighDensityIntraNodeRoute[],
@@ -29,7 +32,7 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
         return
       }
 
-      this.activeSubSolver = new SingleSimplifiedPathSolver2(
+      this.activeSubSolver = new SingleSimplifiedPathSolver5(
         hdRoute,
         this.unsimplifiedHdRoutes
           .slice(this.currentUnsimplifiedHdRouteIndex + 1)
