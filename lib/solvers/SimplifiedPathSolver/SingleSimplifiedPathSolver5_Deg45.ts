@@ -27,7 +27,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private headDistanceAlongPath: number = 0
   private tailDistanceAlongPath: number = 0
   private stepSize: number = 0.5 // Default step size, can be adjusted
-  private currentValidPath: Point[] | null = null // Store the current valid path
+  private lastValidPath: Point[] | null = null // Store the current valid path
 
   OBSTACLE_MARGIN = 0.15
 
@@ -285,8 +285,10 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   }
 
   _step() {
-    // If we've reached the end of the path, we're done
-    if (this.tailDistanceAlongPath >= this.totalPathLength) {
+    const tailHasReachedEnd = this.tailDistanceAlongPath >= this.totalPathLength
+    const headHasReachedEnd = this.headDistanceAlongPath >= this.totalPathLength
+
+    if (tailHasReachedEnd) {
       // Make sure to add the last point if needed
       const lastPoint = this.inputRoute.route[this.inputRoute.route.length - 1]
       if (
@@ -300,8 +302,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       return
     }
 
-    // Special case: If head reaches the end, check if we can draw a 45-degree path from tail to end
-    if (this.headDistanceAlongPath >= this.totalPathLength) {
+    if (headHasReachedEnd) {
       const tailPoint = this.getPointAtDistance(this.tailDistanceAlongPath)
       const endPoint = this.inputRoute.route[this.inputRoute.route.length - 1]
 
@@ -316,10 +317,10 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       } else {
         // No valid 45-degree path to the end,
         // add the current path if any and continue with normal advance
-        if (this.currentValidPath) {
+        if (this.lastValidPath) {
           console.log("couldn't find 45 degree path to end")
-          this.addPathToResult(this.currentValidPath)
-          this.currentValidPath = null
+          this.addPathToResult(this.lastValidPath)
+          this.lastValidPath = null
           this.tailDistanceAlongPath = this.headDistanceAlongPath
         }
       }
@@ -344,30 +345,30 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     )
 
     // If there's a potential layer change in this segment
-    let hasLayerChange = false
-    let layerChangeDistance = -1
+    let layerChangeBtwHeadAndTail = false
+    let layerChangeAtDistance = -1
 
     for (let i = tailIndex; i < headIndex; i++) {
       if (
         i + 1 < this.inputRoute.route.length &&
         this.inputRoute.route[i].z !== this.inputRoute.route[i + 1].z
       ) {
-        hasLayerChange = true
+        layerChangeBtwHeadAndTail = true
         // Find the segment with the layer change
         const changeSegmentIndex = i
-        layerChangeDistance =
+        layerChangeAtDistance =
           this.pathSegments[changeSegmentIndex].startDistance
         break
       }
     }
 
     // If there's a layer change, handle it
-    if (hasLayerChange && layerChangeDistance > 0) {
+    if (layerChangeBtwHeadAndTail && layerChangeAtDistance > 0) {
       // Get points before and after layer change
-      const pointBeforeChange = this.getPointAtDistance(layerChangeDistance)
+      const pointBeforeChange = this.getPointAtDistance(layerChangeAtDistance)
       const pointAfterChange =
         this.inputRoute.route[
-          this.getNearestIndexForDistance(layerChangeDistance) + 1
+          this.getNearestIndexForDistance(layerChangeAtDistance) + 1
         ]
 
       // Find a 45 degree path from pointBeforeChange to pointAfterChange
@@ -398,7 +399,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       // Update tail to the layer change point
       this.tailDistanceAlongPath =
         this.pathSegments[
-          this.getNearestIndexForDistance(layerChangeDistance) + 1
+          this.getNearestIndexForDistance(layerChangeAtDistance) + 1
         ].startDistance
       this.headDistanceAlongPath = this.tailDistanceAlongPath
       return
@@ -409,19 +410,19 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
     if (path45) {
       // Valid 45-degree path found, store it and continue expanding
-      this.currentValidPath = path45
+      this.lastValidPath = path45
       return
     }
 
     // No valid 45-degree path from tail to head, try to find a path to a midpoint
-    const midDistance =
+    const jumpForwardDistance =
       this.tailDistanceAlongPath +
       (this.headDistanceAlongPath - this.tailDistanceAlongPath) *
         this.TAIL_JUMP_RATIO
-    const midPoint = this.getPointAtDistance(midDistance)
+    const jumpForwardPoint = this.getPointAtDistance(jumpForwardDistance)
 
     // Try to find a valid 45-degree path from tail to midpoint
-    const pathToMidpoint = this.find45DegreePath(tailPoint, midPoint)
+    const pathToMidpoint = this.find45DegreePath(tailPoint, jumpForwardPoint)
 
     if (pathToMidpoint) {
       // Valid 45-degree path to midpoint found, add it to the result
@@ -429,7 +430,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       this.addPathToResult(pathToMidpoint)
 
       // Update tail to the midpoint position
-      this.tailDistanceAlongPath = midDistance
+      this.tailDistanceAlongPath = jumpForwardDistance
       this.headDistanceAlongPath = this.tailDistanceAlongPath
       return
     }
@@ -446,8 +447,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     }
 
     // If midpoint is different from tail, add it and update tail
-    if (midDistance > this.tailDistanceAlongPath) {
-      this.tailDistanceAlongPath = midDistance
+    if (jumpForwardDistance > this.tailDistanceAlongPath) {
+      this.tailDistanceAlongPath = jumpForwardDistance
     }
     // If we can't advance further, force a small advance
     else if (this.tailDistanceAlongPath < this.totalPathLength) {
@@ -494,15 +495,15 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     }
 
     // Visualize the current prospective 45-degree path from tail to head
-    if (this.currentValidPath && this.currentValidPath.length > 1) {
+    if (this.lastValidPath && this.lastValidPath.length > 1) {
       // Draw the path in a bright cyan color to make it stand out
-      for (let i = 0; i < this.currentValidPath.length - 1; i++) {
+      for (let i = 0; i < this.lastValidPath.length - 1; i++) {
         graphics.lines.push({
           points: [
-            { x: this.currentValidPath[i].x, y: this.currentValidPath[i].y },
+            { x: this.lastValidPath[i].x, y: this.lastValidPath[i].y },
             {
-              x: this.currentValidPath[i + 1].x,
-              y: this.currentValidPath[i + 1].y,
+              x: this.lastValidPath[i + 1].x,
+              y: this.lastValidPath[i + 1].y,
             },
           ],
           strokeColor: "rgba(0, 255, 255, 0.9)", // Bright cyan
