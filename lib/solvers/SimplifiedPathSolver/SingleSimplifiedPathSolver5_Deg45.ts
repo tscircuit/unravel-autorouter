@@ -60,7 +60,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       const end = this.inputRoute.route[i + 1]
 
       // Calculate segment length using Euclidean distance
-      const length = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2)
+      const length =
+        Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2) + i / 10000
 
       this.pathSegments.push({
         start,
@@ -316,6 +317,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
         // No valid 45-degree path to the end,
         // add the current path if any and continue with normal advance
         if (this.currentValidPath) {
+          console.log("couldn't find 45 degree path to end")
           this.addPathToResult(this.currentValidPath)
           this.currentValidPath = null
           this.tailDistanceAlongPath = this.headDistanceAlongPath
@@ -368,8 +370,13 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
           this.getNearestIndexForDistance(layerChangeDistance) + 1
         ]
 
-      // Add the point before change if not already added
-      if (
+      // Find a 45 degree path from pointBeforeChange to pointAfterChange
+      const path45 = this.find45DegreePath(pointBeforeChange, pointAfterChange)
+
+      if (path45) {
+        // Add the path to the result
+        this.addPathToResult(path45)
+      } else if (
         this.newRoute.length === 0 ||
         !this.arePointsEqual(
           this.newRoute[this.newRoute.length - 1],
@@ -390,9 +397,9 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
       // Update tail to the layer change point
       this.tailDistanceAlongPath =
-        layerChangeDistance +
-        this.pathSegments[this.getNearestIndexForDistance(layerChangeDistance)]
-          .length
+        this.pathSegments[
+          this.getNearestIndexForDistance(layerChangeDistance) + 1
+        ].startDistance
       this.headDistanceAlongPath = this.tailDistanceAlongPath
       return
     }
@@ -418,6 +425,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
     if (pathToMidpoint) {
       // Valid 45-degree path to midpoint found, add it to the result
+      console.log("adding path to midpoint")
       this.addPathToResult(pathToMidpoint)
 
       // Update tail to the midpoint position
@@ -433,6 +441,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       this.newRoute.length === 0 ||
       !this.arePointsEqual(this.newRoute[this.newRoute.length - 1], tailPoint)
     ) {
+      console.log("adding tail point")
       this.newRoute.push(tailPoint)
     }
 
@@ -455,24 +464,18 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     const tailPoint = this.getPointAtDistance(this.tailDistanceAlongPath)
     const headPoint = this.getPointAtDistance(this.headDistanceAlongPath)
 
-    graphics.circles.push({
-      center: {
-        x: tailPoint.x,
-        y: tailPoint.y,
-      },
-      radius: 0.2,
-      fill: "yellow",
-      label: "Tail",
+    graphics.points.push({
+      x: tailPoint.x,
+      y: tailPoint.y,
+      color: "yellow",
+      label: ["Tail", `z: ${tailPoint.z}`].join("\n"),
     })
 
-    graphics.circles.push({
-      center: {
-        x: headPoint.x,
-        y: headPoint.y,
-      },
-      radius: 0.2,
-      fill: "orange",
-      label: "Head",
+    graphics.points.push({
+      x: headPoint.x,
+      y: headPoint.y,
+      color: "orange",
+      label: ["Head", `z: ${headPoint.z}`].join("\n"),
     })
 
     // Add visualization of the path segments
@@ -506,26 +509,6 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
           strokeDash: "3, 3", // Dashed line to indicate it's a prospective path
         })
       }
-
-      // Add small markers at each point in the path
-      for (const point of this.currentValidPath) {
-        graphics.circles.push({
-          center: { x: point.x, y: point.y },
-          radius: 0.08,
-          fill: "rgba(0, 255, 255, 0.9)",
-        })
-      }
-
-      // Add a label for the first point
-      graphics.circles.push({
-        center: {
-          x: this.currentValidPath[0].x,
-          y: this.currentValidPath[0].y,
-        },
-        radius: 0.1,
-        fill: "rgba(0, 255, 255, 0.9)",
-        label: "45° Path",
-      })
     }
 
     return graphics

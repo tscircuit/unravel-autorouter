@@ -244,11 +244,11 @@ export class CapacityMeshSolver extends BaseSolver {
         },
       ],
     ),
-    definePipelineStep(
-      "multiSimplifiedPathSolver",
-      MultiSimplifiedPathSolver,
-      (cms) => [cms.highDensityStitchSolver!.mergedHdRoutes, cms.srj.obstacles],
-    ),
+    // definePipelineStep(
+    //   "multiSimplifiedPathSolver",
+    //   MultiSimplifiedPathSolver,
+    //   (cms) => [cms.highDensityStitchSolver!.mergedHdRoutes, cms.srj.obstacles],
+    // ),
   ]
 
   constructor(

@@ -71,18 +71,27 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
     }
 
     // Visualize the simplified route in green
-    for (let i = 0; i < this.newRoute.length - 1; i++) {
-      graphics.lines.push({
-        points: [
-          { x: this.newRoute[i].x, y: this.newRoute[i].y },
-          { x: this.newRoute[i + 1].x, y: this.newRoute[i + 1].y },
-        ],
-        strokeWidth: 0.15,
-        strokeColor: "rgba(0, 255, 0, 0.8)",
+    for (let i = 0; i < this.newRoute.length; i++) {
+      if (i < this.newRoute.length - 1) {
+        graphics.lines.push({
+          points: [
+            { x: this.newRoute[i].x, y: this.newRoute[i].y },
+            { x: this.newRoute[i + 1].x, y: this.newRoute[i + 1].y },
+          ],
+          strokeWidth: 0.15,
+          strokeColor: "rgba(0, 255, 0, 0.8)",
+          strokeDash: this.newRoute[i].z === 1 ? "5, 5" : undefined,
+        })
+      }
+      graphics.points.push({
+        x: this.newRoute[i].x,
+        y: this.newRoute[i].y,
+        color: "rgba(0, 255, 0, 0.8)",
+        label: `z: ${this.newRoute[i].z}`,
       })
     }
 
-    // Visualize vias
+    // // Visualize vias
     for (const via of this.newVias) {
       graphics.circles.push({
         center: via,
