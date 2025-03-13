@@ -5,6 +5,7 @@ import { Obstacle } from "lib/types"
 import { GraphicsObject } from "graphics-debug"
 import { SingleSimplifiedPathSolver } from "./SingleSimplifiedPathSolver"
 import { calculate45DegreePaths } from "lib/utils/calculate45DegreePaths"
+import { minimumDistanceBetweenSegments } from "lib/utils/minimumDistanceBetweenSegments"
 
 interface Point {
   x: number
@@ -191,12 +192,12 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
         // Only check intersection if we're on the same layer
         if (routeStart.z === start.z && routeEnd.z === start.z) {
           if (
-            doSegmentsIntersect(
+            minimumDistanceBetweenSegments(
               { x: start.x, y: start.y },
               { x: end.x, y: end.y },
               { x: routeStart.x, y: routeStart.y },
               { x: routeEnd.x, y: routeEnd.y },
-            )
+            ) < this.OBSTACLE_MARGIN
           ) {
             return false
           }

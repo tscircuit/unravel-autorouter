@@ -4,6 +4,7 @@ import { SingleSimplifiedPathSolver2 } from "lib/solvers/SimplifiedPathSolver/Si
 import inputData from "examples/assets/simplifiedpathsolver1.json"
 import { SingleSimplifiedPathSolver4 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver4_DistanceBased"
 import { SingleSimplifiedPathSolver5 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver5_Deg45"
+import { MultiSimplifiedPathSolver } from "lib/solvers/SimplifiedPathSolver/MultiSimplifiedPathSolver"
 
 export default () => {
   const createSolver = () => {
@@ -11,14 +12,8 @@ export default () => {
     const routes = inputData[0] as any[]
     const obstacles = inputData[1] as any[]
 
-    // Use the first route as input route and the rest as other routes
-    const inputRoute = routes[0]
-    const otherRoutes = routes.slice(1)
-
-    return new SingleSimplifiedPathSolver5(inputRoute, otherRoutes, obstacles)
+    return new MultiSimplifiedPathSolver(routes, obstacles)
   }
 
-  return (
-    <GenericSolverDebugger createSolver={createSolver} animationSpeed={100} />
-  )
+  return <GenericSolverDebugger createSolver={createSolver} />
 }
