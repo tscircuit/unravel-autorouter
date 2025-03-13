@@ -4,6 +4,7 @@ import { BaseSolver } from "../BaseSolver"
 import { Obstacle } from "lib/types"
 import { GraphicsObject } from "graphics-debug"
 import { SingleSimplifiedPathSolver } from "./SingleSimplifiedPathSolver"
+import { calculate45DegreePaths } from "lib/utils/calculate45DegreePaths"
 
 interface Point {
   x: number
@@ -244,7 +245,8 @@ export class SingleSimplifiedPathSolver2 extends SingleSimplifiedPathSolver {
             y: this.inputRoute.route[i + 1].y,
           },
         ],
-        strokeColor: "rgba(255, 0, 0, 0.3)",
+        strokeColor: "rgba(255, 0, 0, 0.8)",
+        strokeDash: this.inputRoute.route[i].z === 1 ? "5, 5" : undefined,
       })
     }
 
@@ -255,6 +257,7 @@ export class SingleSimplifiedPathSolver2 extends SingleSimplifiedPathSolver {
           { x: this.newRoute[i].x, y: this.newRoute[i].y },
           { x: this.newRoute[i + 1].x, y: this.newRoute[i + 1].y },
         ],
+        strokeWidth: 0.15,
         strokeColor: "rgba(0, 255, 0, 0.8)",
       })
     }
@@ -274,8 +277,30 @@ export class SingleSimplifiedPathSolver2 extends SingleSimplifiedPathSolver {
         center: obstacle.center,
         width: obstacle.width,
         height: obstacle.height,
-        fill: "rgba(128, 128, 128, 0.3)",
+        fill: obstacle.layers?.includes("top")
+          ? "rgba(255, 0, 0, 0.3)"
+          : obstacle.layers?.includes("bottom")
+            ? "rgba(0, 0, 255, 0.3)"
+            : "rgba(128, 128, 128, 0.3)",
       })
+    }
+    // Visualize other routes as obstacles (in purple)
+    for (const route of this.otherHdRoutes) {
+      for (let i = 0; i < route.route.length - 1; i++) {
+        graphics.lines!.push({
+          points: [
+            { x: route.route[i].x, y: route.route[i].y },
+            { x: route.route[i + 1].x, y: route.route[i + 1].y },
+          ],
+          strokeWidth: 0.15,
+          strokeColor:
+            route.route[i].z === 0
+              ? "rgba(255, 0, 255, 0.5)" // top layer (purple)
+              : route.route[i].z === 1
+                ? "rgba(128, 0, 128, 0.5)" // inner layer (darker purple)
+                : "rgba(0, 0, 255, 0.5)", // bottom layer (blue)
+        })
+      }
     }
 
     // Highlight current head and tail
