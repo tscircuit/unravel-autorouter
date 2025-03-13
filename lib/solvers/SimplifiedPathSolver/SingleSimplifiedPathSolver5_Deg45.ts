@@ -28,6 +28,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private stepSize: number = 0.5 // Default step size, can be adjusted
   private currentValidPath: Point[] | null = null // Store the current valid path
 
+  OBSTACLE_MARGIN = 0.15
+
   TAIL_JUMP_RATIO: number = 0.8
 
   constructor(
@@ -140,10 +142,14 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     // Check if the segment intersects with any obstacle
     for (const obstacle of this.obstacles) {
       // Simple bounding box check first
-      const obstacleLeft = obstacle.center.x - obstacle.width / 2
-      const obstacleRight = obstacle.center.x + obstacle.width / 2
-      const obstacleTop = obstacle.center.y - obstacle.height / 2
-      const obstacleBottom = obstacle.center.y + obstacle.height / 2
+      const obstacleLeft =
+        obstacle.center.x - obstacle.width / 2 - this.OBSTACLE_MARGIN
+      const obstacleRight =
+        obstacle.center.x + obstacle.width / 2 + this.OBSTACLE_MARGIN
+      const obstacleTop =
+        obstacle.center.y - obstacle.height / 2 - this.OBSTACLE_MARGIN
+      const obstacleBottom =
+        obstacle.center.y + obstacle.height / 2 + this.OBSTACLE_MARGIN
 
       // Check if the line might intersect with this obstacle's borders
       if (
