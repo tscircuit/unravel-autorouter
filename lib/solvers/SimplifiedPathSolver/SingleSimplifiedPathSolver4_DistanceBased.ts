@@ -227,6 +227,31 @@ export class SingleSimplifiedPathSolver4 extends SingleSimplifiedPathSolver {
       return
     }
 
+    // Special case: If head reaches the end, check if we can draw a straight line from tail to end
+    if (this.headDistanceAlongPath >= this.totalPathLength) {
+      const tailPoint = this.getPointAtDistance(this.tailDistanceAlongPath)
+      const endPoint = this.inputRoute.route[this.inputRoute.route.length - 1]
+
+      // Check if direct path from tail to end is valid
+      if (this.isValidPath([tailPoint, endPoint])) {
+        // Add tail point if not already added
+        if (
+          this.newRoute.length === 0 ||
+          !this.arePointsEqual(
+            this.newRoute[this.newRoute.length - 1],
+            tailPoint,
+          )
+        ) {
+          this.newRoute.push(tailPoint)
+        }
+
+        // Add end point
+        this.newRoute.push(endPoint)
+        this.solved = true
+        return
+      }
+    }
+
     // Increment head distance but don't go past the end of the path
     this.headDistanceAlongPath = Math.min(
       this.headDistanceAlongPath + this.stepSize,
