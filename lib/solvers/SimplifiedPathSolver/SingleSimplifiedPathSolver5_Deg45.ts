@@ -28,7 +28,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private stepSize: number = 0.5 // Default step size, can be adjusted
   private currentValidPath: Point[] | null = null // Store the current valid path
 
-  TAIL_JUMP_RATIO: number = 0.5
+  TAIL_JUMP_RATIO: number = 0.8
 
   constructor(
     public inputRoute: HighDensityIntraNodeRoute,
@@ -394,22 +394,27 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       return
     }
 
-    // No valid 45-degree path, add the last valid path if any
-    if (this.currentValidPath) {
-      this.addPathToResult(this.currentValidPath)
-      this.currentValidPath = null
-
-      // Update tail to the head position
-      this.tailDistanceAlongPath = this.headDistanceAlongPath - this.stepSize
-      return
-    }
-
-    // No valid path at all, use the normal approach to advance
+    // No valid 45-degree path from tail to head, try to find a path to a midpoint
     const midDistance =
       this.tailDistanceAlongPath +
       (this.headDistanceAlongPath - this.tailDistanceAlongPath) *
         this.TAIL_JUMP_RATIO
     const midPoint = this.getPointAtDistance(midDistance)
+
+    // Try to find a valid 45-degree path from tail to midpoint
+    const pathToMidpoint = this.find45DegreePath(tailPoint, midPoint)
+
+    if (pathToMidpoint) {
+      // Valid 45-degree path to midpoint found, add it to the result
+      this.addPathToResult(pathToMidpoint)
+
+      // Update tail to the midpoint position
+      this.tailDistanceAlongPath = midDistance
+      this.headDistanceAlongPath = this.tailDistanceAlongPath
+      return
+    }
+
+    // No valid path to midpoint either, use the normal approach to advance
 
     // Add the tail point if not already added
     if (
