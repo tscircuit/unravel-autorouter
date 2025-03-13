@@ -2,6 +2,7 @@ import { useMemo } from "react"
 import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger"
 import { SingleSimplifiedPathSolver2 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver2"
 import inputData from "examples/assets/simplifiedpathsolver1.json"
+import { SingleSimplifiedPathSolver4 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver4_DistanceBased"
 
 export default () => {
   const createSolver = () => {
@@ -13,7 +14,7 @@ export default () => {
     const inputRoute = routes[0]
     const otherRoutes = routes.slice(1)
 
-    return new SingleSimplifiedPathSolver2(inputRoute, otherRoutes, obstacles)
+    return new SingleSimplifiedPathSolver4(inputRoute, otherRoutes, obstacles)
   }
 
   return (
