@@ -27,6 +27,8 @@ export class SingleSimplifiedPathSolver4 extends SingleSimplifiedPathSolver {
   private tailDistanceAlongPath: number = 0
   private stepSize: number = 0.5 // Default step size, can be adjusted
 
+  TAIL_JUMP_RATIO: number = 0.8
+
   constructor(
     public inputRoute: HighDensityIntraNodeRoute,
     public otherHdRoutes: HighDensityIntraNodeRoute[],
@@ -335,7 +337,8 @@ export class SingleSimplifiedPathSolver4 extends SingleSimplifiedPathSolver {
     // Path is not valid, add the middle segment
     const midDistance =
       this.tailDistanceAlongPath +
-      (this.headDistanceAlongPath - this.tailDistanceAlongPath) / 2
+      (this.headDistanceAlongPath - this.tailDistanceAlongPath) *
+        this.TAIL_JUMP_RATIO
     const midPoint = this.getPointAtDistance(midDistance)
 
     // Add the tail point if not already added

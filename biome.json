@@ -51,6 +51,7 @@
         "noNonNullAssertion": "off",
         "useNumberNamespace": "off",
         "noParameterAssign": "off",
+        "noInferrableTypes": "off",
         "useFilenamingConvention": {
           "level": "error",
           "options": {
