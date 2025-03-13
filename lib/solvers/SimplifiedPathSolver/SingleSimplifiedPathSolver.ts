@@ -2,6 +2,7 @@ import { HighDensityIntraNodeRoute } from "lib/types/high-density-types"
 import { BaseSolver } from "../BaseSolver"
 import { Obstacle } from "lib/types"
 import { calculate45DegreePaths } from "lib/utils/calculate45DegreePaths"
+import { GraphicsObject } from "graphics-debug"
 
 interface Point {
   x: number
@@ -42,5 +43,87 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
     // simplification for that segment (add to newRoute and newVias, set tail to
     // head)
     throw new Error("Not implemented")
+  }
+
+  getVisualsForNewRouteAndObstacles() {
+    const graphics: Required<GraphicsObject> = {
+      lines: [],
+      points: [],
+      circles: [],
+      rects: [],
+      coordinateSystem: "cartesian",
+      title: "Simplified Path Solver",
+    }
+
+    // Visualize the original route in red
+    for (let i = 0; i < this.inputRoute.route.length - 1; i++) {
+      graphics.lines.push({
+        points: [
+          { x: this.inputRoute.route[i].x, y: this.inputRoute.route[i].y },
+          {
+            x: this.inputRoute.route[i + 1].x,
+            y: this.inputRoute.route[i + 1].y,
+          },
+        ],
+        strokeColor: "rgba(255, 0, 0, 0.8)",
+        strokeDash: this.inputRoute.route[i].z === 1 ? "5, 5" : undefined,
+      })
+    }
+
+    // Visualize the simplified route in green
+    for (let i = 0; i < this.newRoute.length - 1; i++) {
+      graphics.lines.push({
+        points: [
+          { x: this.newRoute[i].x, y: this.newRoute[i].y },
+          { x: this.newRoute[i + 1].x, y: this.newRoute[i + 1].y },
+        ],
+        strokeWidth: 0.15,
+        strokeColor: "rgba(0, 255, 0, 0.8)",
+      })
+    }
+
+    // Visualize vias
+    for (const via of this.newVias) {
+      graphics.circles.push({
+        center: via,
+        radius: this.inputRoute.viaDiameter / 2,
+        fill: "rgba(0, 0, 255, 0.5)",
+      })
+    }
+
+    // Visualize obstacles
+    for (const obstacle of this.obstacles) {
+      graphics.rects.push({
+        center: obstacle.center,
+        width: obstacle.width,
+        height: obstacle.height,
+        fill: obstacle.layers?.includes("top")
+          ? "rgba(255, 0, 0, 0.3)"
+          : obstacle.layers?.includes("bottom")
+            ? "rgba(0, 0, 255, 0.3)"
+            : "rgba(128, 128, 128, 0.3)",
+      })
+    }
+
+    // Visualize other routes as obstacles (in purple)
+    for (const route of this.otherHdRoutes) {
+      for (let i = 0; i < route.route.length - 1; i++) {
+        graphics.lines.push({
+          points: [
+            { x: route.route[i].x, y: route.route[i].y },
+            { x: route.route[i + 1].x, y: route.route[i + 1].y },
+          ],
+          strokeWidth: 0.15,
+          strokeColor:
+            route.route[i].z === 0
+              ? "rgba(255, 0, 255, 0.5)" // top layer (purple)
+              : route.route[i].z === 1
+                ? "rgba(128, 0, 128, 0.5)" // inner layer (darker purple)
+                : "rgba(0, 0, 255, 0.5)", // bottom layer (blue)
+        })
+      }
+    }
+
+    return graphics
   }
 }
