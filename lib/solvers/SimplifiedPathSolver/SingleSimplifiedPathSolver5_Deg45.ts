@@ -286,7 +286,6 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   }
 
   _step() {
-    console.log("lastValidPath", this.lastValidPath)
     const tailHasReachedEnd = this.tailDistanceAlongPath >= this.totalPathLength
     const headHasReachedEnd = this.headDistanceAlongPath >= this.totalPathLength
 
@@ -305,7 +304,6 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     }
 
     if (headHasReachedEnd) {
-      console.log("head has reached end")
       const tailPoint = this.getPointAtDistance(this.tailDistanceAlongPath)
       const endPoint = this.inputRoute.route[this.inputRoute.route.length - 1]
 
@@ -369,10 +367,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
     // If there's a layer change, handle it
     if (layerChangeBtwHeadAndTail && layerChangeAtDistance > 0) {
-      console.log("layer change btw head and tail")
-
       if (this.lastValidPath) {
-        console.log("adding last valid path")
         this.addPathToResult(this.lastValidPath!)
         this.lastValidPath = null
       }
@@ -421,10 +416,6 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
     // No valid path found, use the last valid path and reset
     if (this.lastValidPath) {
-      console.log(
-        "no valid path found, using last valid path",
-        this.lastValidPath,
-      )
       this.addPathToResult(this.lastValidPath)
       this.lastValidPath = null
       this.tailDistanceAlongPath = this.lastValidPathHeadDistance
