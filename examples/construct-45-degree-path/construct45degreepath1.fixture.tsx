@@ -1,3 +1,4 @@
+import { calculate45DegreePaths } from "lib/utils/calculate45DegreePaths"
 import React, { useState, useEffect, useRef } from "react"
 import { Stage, Layer, Circle, Line, Text } from "react-konva"
 

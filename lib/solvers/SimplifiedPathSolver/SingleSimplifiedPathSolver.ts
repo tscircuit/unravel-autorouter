@@ -29,7 +29,7 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
   isValidPath(pointsInRoute: Point[]): boolean {
     // check that the segments don't intersect with any obstacles or other
     // routes or vias
-    // TODO
+    throw new Error("Not implemented")
   }
 
   _step() {
@@ -41,5 +41,6 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
     // If there is a Z change between the tail and the head, we stop the
     // simplification for that segment (add to newRoute and newVias, set tail to
     // head)
+    throw new Error("Not implemented")
   }
 }

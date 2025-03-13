@@ -37,6 +37,8 @@ import { CapacityMeshNodeSolver3_LargerSingleLayerNodes } from "./CapacityMeshSo
 import { StrawSolver } from "./StrawSolver/StrawSolver"
 import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 import { CapacityNodeTargetMerger2 } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger2"
+import { SingleSimplifiedPathSolver } from "./SimplifiedPathSolver/SingleSimplifiedPathSolver"
+import { MultiSimplifiedPathSolver } from "./SimplifiedPathSolver/MultiSimplifiedPathSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -88,6 +90,7 @@ export class CapacityMeshSolver extends BaseSolver {
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
   singleLayerNodeMerger?: SingleLayerNodeMergerSolver
   strawSolver?: StrawSolver
+  multiSimplifiedPathSolver?: MultiSimplifiedPathSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -240,6 +243,11 @@ export class CapacityMeshSolver extends BaseSolver {
           layerCount: cms.srj.layerCount,
         },
       ],
+    ),
+    definePipelineStep(
+      "multiSimplifiedPathSolver",
+      MultiSimplifiedPathSolver,
+      (cms) => [cms.highDensityStitchSolver!.mergedHdRoutes, cms.srj.obstacles],
     ),
   ]
 
