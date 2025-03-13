@@ -80,7 +80,7 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
           ],
           strokeWidth: 0.15,
           strokeColor: "rgba(0, 255, 0, 0.8)",
-          strokeDash: this.newRoute[i].z === 1 ? "5, 5" : undefined,
+          strokeDash: this.newRoute[i].z === 1 ? [0.4, 0.4] : undefined,
         })
       }
       graphics.points.push({

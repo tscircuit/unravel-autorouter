@@ -26,8 +26,9 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private totalPathLength: number = 0
   private headDistanceAlongPath: number = 0
   private tailDistanceAlongPath: number = 0
-  private stepSize: number = 0.5 // Default step size, can be adjusted
+  private stepSize: number = 0.25 // Default step size, can be adjusted
   private lastValidPath: Point[] | null = null // Store the current valid path
+  private lastValidPathHeadDistance: number = 0
 
   OBSTACLE_MARGIN = 0.15
 
@@ -285,6 +286,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   }
 
   _step() {
+    console.log("lastValidPath", this.lastValidPath)
     const tailHasReachedEnd = this.tailDistanceAlongPath >= this.totalPathLength
     const headHasReachedEnd = this.headDistanceAlongPath >= this.totalPathLength
 
@@ -303,6 +305,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     }
 
     if (headHasReachedEnd) {
+      console.log("head has reached end")
       const tailPoint = this.getPointAtDistance(this.tailDistanceAlongPath)
       const endPoint = this.inputRoute.route[this.inputRoute.route.length - 1]
 
@@ -318,10 +321,12 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
         // No valid 45-degree path to the end,
         // add the current path if any and continue with normal advance
         if (this.lastValidPath) {
-          console.log("couldn't find 45 degree path to end")
           this.addPathToResult(this.lastValidPath)
           this.lastValidPath = null
-          this.tailDistanceAlongPath = this.headDistanceAlongPath
+          this.tailDistanceAlongPath = this.lastValidPathHeadDistance
+        } else {
+          this.newRoute.push(endPoint)
+          this.solved = true
         }
       }
     }
@@ -364,28 +369,20 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
     // If there's a layer change, handle it
     if (layerChangeBtwHeadAndTail && layerChangeAtDistance > 0) {
+      console.log("layer change btw head and tail")
+
+      if (this.lastValidPath) {
+        console.log("adding last valid path")
+        this.addPathToResult(this.lastValidPath!)
+        this.lastValidPath = null
+      }
+
       // Get points before and after layer change
       const pointBeforeChange = this.getPointAtDistance(layerChangeAtDistance)
       const pointAfterChange =
         this.inputRoute.route[
           this.getNearestIndexForDistance(layerChangeAtDistance) + 1
         ]
-
-      // Find a 45 degree path from pointBeforeChange to pointAfterChange
-      const path45 = this.find45DegreePath(pointBeforeChange, pointAfterChange)
-
-      if (path45) {
-        // Add the path to the result
-        this.addPathToResult(path45)
-      } else if (
-        this.newRoute.length === 0 ||
-        !this.arePointsEqual(
-          this.newRoute[this.newRoute.length - 1],
-          pointBeforeChange,
-        )
-      ) {
-        this.newRoute.push(pointBeforeChange)
-      }
 
       // Add a via at the layer change point
       this.newVias.push({
@@ -408,54 +405,35 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     // Try to find a valid 45-degree path from tail to head
     const path45 = this.find45DegreePath(tailPoint, headPoint)
 
+    if (!path45 && !this.lastValidPath) {
+      // Move tail and head forward by stepSize
+      this.tailDistanceAlongPath += this.stepSize
+      this.headDistanceAlongPath += this.stepSize
+      return
+    }
+
     if (path45) {
       // Valid 45-degree path found, store it and continue expanding
       this.lastValidPath = path45
+      this.lastValidPathHeadDistance = this.headDistanceAlongPath
       return
     }
 
-    // No valid 45-degree path from tail to head, try to find a path to a midpoint
-    const jumpForwardDistance =
-      this.tailDistanceAlongPath +
-      (this.headDistanceAlongPath - this.tailDistanceAlongPath) *
-        this.TAIL_JUMP_RATIO
-    const jumpForwardPoint = this.getPointAtDistance(jumpForwardDistance)
-
-    // Try to find a valid 45-degree path from tail to midpoint
-    const pathToMidpoint = this.find45DegreePath(tailPoint, jumpForwardPoint)
-
-    if (pathToMidpoint) {
-      // Valid 45-degree path to midpoint found, add it to the result
-      console.log("adding path to midpoint")
-      this.addPathToResult(pathToMidpoint)
-
-      // Update tail to the midpoint position
-      this.tailDistanceAlongPath = jumpForwardDistance
-      this.headDistanceAlongPath = this.tailDistanceAlongPath
-      return
+    // No valid path found, use the last valid path and reset
+    if (this.lastValidPath) {
+      console.log(
+        "no valid path found, using last valid path",
+        this.lastValidPath,
+      )
+      this.addPathToResult(this.lastValidPath)
+      this.lastValidPath = null
+      this.tailDistanceAlongPath = this.lastValidPathHeadDistance
     }
 
-    // No valid path to midpoint either, use the normal approach to advance
-
-    // Add the tail point if not already added
-    if (
-      this.newRoute.length === 0 ||
-      !this.arePointsEqual(this.newRoute[this.newRoute.length - 1], tailPoint)
-    ) {
-      console.log("adding tail point")
-      this.newRoute.push(tailPoint)
-    }
-
-    // If midpoint is different from tail, add it and update tail
-    if (jumpForwardDistance > this.tailDistanceAlongPath) {
-      this.tailDistanceAlongPath = jumpForwardDistance
-    }
-    // If we can't advance further, force a small advance
-    else if (this.tailDistanceAlongPath < this.totalPathLength) {
-      this.tailDistanceAlongPath += this.stepSize
-    }
-
-    this.headDistanceAlongPath = this.tailDistanceAlongPath
+    this.headDistanceAlongPath = Math.min(
+      this.headDistanceAlongPath + this.stepSize,
+      this.totalPathLength,
+    )
   }
 
   visualize(): GraphicsObject {
