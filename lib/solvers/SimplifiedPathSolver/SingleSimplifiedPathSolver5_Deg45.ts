@@ -142,6 +142,10 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   isValidPathSegment(start: Point, end: Point): boolean {
     // Check if the segment intersects with any obstacle
     for (const obstacle of this.obstacles) {
+      if (!obstacle.zLayers?.includes(start.z)) {
+        continue
+      }
+
       // Simple bounding box check first
       const obstacleLeft =
         obstacle.center.x - obstacle.width / 2 - this.OBSTACLE_MARGIN

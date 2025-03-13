@@ -5,6 +5,7 @@ import inputData from "examples/assets/simplifiedpathsolver1.json"
 import { SingleSimplifiedPathSolver4 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver4_DistanceBased"
 import { SingleSimplifiedPathSolver5 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver5_Deg45"
 import { MultiSimplifiedPathSolver } from "lib/solvers/SimplifiedPathSolver/MultiSimplifiedPathSolver"
+import { createColorMapFromStrings } from "lib/solvers/colors"
 
 export default () => {
   const createSolver = () => {
@@ -12,7 +13,11 @@ export default () => {
     const routes = inputData[0] as any[]
     const obstacles = inputData[1] as any[]
 
-    return new MultiSimplifiedPathSolver(routes, obstacles)
+    return new MultiSimplifiedPathSolver(
+      routes,
+      obstacles,
+      createColorMapFromStrings(routes.map((r) => r.connectionName)),
+    )
   }
 
   return <GenericSolverDebugger createSolver={createSolver} />
