@@ -63,14 +63,34 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
 
     // Visualize the original unsimplified routes in red with transparency
     for (const route of this.unsimplifiedHdRoutes) {
+      if (
+        this.simplifiedHdRoutes.some(
+          (r) => r.connectionName === route.connectionName,
+        )
+      ) {
+        continue
+      }
+
       for (let i = 0; i < route.route.length - 1; i++) {
         graphics.lines.push({
           points: [
             { x: route.route[i].x, y: route.route[i].y },
             { x: route.route[i + 1].x, y: route.route[i + 1].y },
           ],
-          strokeColor: "rgba(255, 0, 0, 0.4)",
-          strokeDash: route.route[i].z === 1 ? "5, 5" : undefined,
+          strokeColor:
+            route.route[i].z === 1
+              ? "rgba(0, 0, 255, 0.4)"
+              : "rgba(255, 0, 0, 0.4)",
+          strokeWidth: 0.15,
+        })
+      }
+
+      // Draw vias for unsimplified routes
+      for (const via of route.vias || []) {
+        graphics.circles.push({
+          center: via,
+          radius: route.viaDiameter / 2 || 0.3, // Default radius if viaDiameter not specified
+          fill: "rgba(0, 0, 255, 0.4)",
         })
       }
     }
@@ -87,6 +107,7 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
             { x: route.route[i].x, y: route.route[i].y },
             { x: route.route[i + 1].x, y: route.route[i + 1].y },
           ],
+          strokeWidth: 0.15,
           strokeColor: routeColor,
           strokeDash: route.route[i].z === 1 ? "5, 5" : undefined,
         })
