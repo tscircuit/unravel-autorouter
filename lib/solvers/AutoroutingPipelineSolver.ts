@@ -33,7 +33,6 @@ import { MultipleHighDensityRouteStitchSolver } from "./RouteStitchingSolver/Mul
 import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
 import { UnravelMultiSectionSolver } from "./UnravelSolver/UnravelMultiSectionSolver"
 import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
-import { CapacityMeshNodeSolver3_LargerSingleLayerNodes } from "./CapacityMeshSolver/CapacityMeshNodeSolver3_LargerSingleLayerNodes"
 import { StrawSolver } from "./StrawSolver/StrawSolver"
 import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 import { CapacityNodeTargetMerger2 } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger2"
