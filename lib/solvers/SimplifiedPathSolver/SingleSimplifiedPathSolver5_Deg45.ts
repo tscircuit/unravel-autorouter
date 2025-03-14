@@ -38,11 +38,9 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   TAIL_JUMP_RATIO: number = 0.8
 
   constructor(
-    public inputRoute: HighDensityIntraNodeRoute,
-    public otherHdRoutes: HighDensityIntraNodeRoute[],
-    public obstacles: Obstacle[],
+    params: ConstructorParameters<typeof SingleSimplifiedPathSolver>[0],
   ) {
-    super(inputRoute, otherHdRoutes, obstacles)
+    super(params)
 
     // Handle empty or single-point routes
     if (this.inputRoute.route.length <= 1) {
@@ -130,17 +128,6 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     const midDistance = (segment.startDistance + segment.endDistance) / 2
 
     return distance > midDistance ? segmentIndex + 1 : segmentIndex
-  }
-
-  // Get the simplified route result
-  get simplifiedRoute(): HighDensityIntraNodeRoute {
-    return {
-      connectionName: this.inputRoute.connectionName,
-      traceThickness: this.inputRoute.traceThickness,
-      viaDiameter: this.inputRoute.viaDiameter,
-      route: this.newRoute,
-      vias: this.newVias,
-    }
   }
 
   // Check if a path segment is valid

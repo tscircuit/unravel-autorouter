@@ -251,7 +251,14 @@ export class CapacityMeshSolver extends BaseSolver {
     definePipelineStep(
       "multiSimplifiedPathSolver",
       MultiSimplifiedPathSolver,
-      (cms) => [cms.highDensityStitchSolver!.mergedHdRoutes, cms.srj.obstacles],
+      (cms) => [
+        {
+          unsimplifiedHdRoutes: cms.highDensityStitchSolver!.mergedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          connMap: cms.connMap,
+          colorMap: cms.colorMap,
+        },
+      ],
     ),
   ]
 

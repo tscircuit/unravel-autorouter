@@ -6,6 +6,7 @@ import { GraphicsObject } from "graphics-debug"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SingleSimplifiedPathSolver5 } from "./SingleSimplifiedPathSolver5_Deg45"
 import { SingleSimplifiedPathSolver } from "./SingleSimplifiedPathSolver"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export class MultiSimplifiedPathSolver extends BaseSolver {
   simplifiedHdRoutes: HighDensityIntraNodeRoute[]
@@ -14,14 +15,26 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
 
   activeSubSolver: SingleSimplifiedPathSolver | null = null
 
-  constructor(
-    public unsimplifiedHdRoutes: HighDensityIntraNodeRoute[],
-    public obstacles: Obstacle[],
-    public colorMap?: Record<string, string>,
-  ) {
+  unsimplifiedHdRoutes: HighDensityIntraNodeRoute[]
+  obstacles: Obstacle[]
+  connMap: ConnectivityMap
+  colorMap: Record<string, string>
+
+  constructor(params: {
+    unsimplifiedHdRoutes: HighDensityIntraNodeRoute[]
+    obstacles: Obstacle[]
+    connMap?: ConnectivityMap
+    colorMap?: Record<string, string>
+  }) {
     super()
-    this.simplifiedHdRoutes = []
     this.MAX_ITERATIONS = 100e6
+
+    this.unsimplifiedHdRoutes = params.unsimplifiedHdRoutes
+    this.obstacles = params.obstacles
+    this.connMap = params.connMap || new ConnectivityMap({})
+    this.colorMap = params.colorMap || {}
+
+    this.simplifiedHdRoutes = []
   }
 
   _step() {
@@ -33,13 +46,15 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
         return
       }
 
-      this.activeSubSolver = new SingleSimplifiedPathSolver5(
-        hdRoute,
-        this.unsimplifiedHdRoutes
+      this.activeSubSolver = new SingleSimplifiedPathSolver5({
+        inputRoute: hdRoute,
+        otherHdRoutes: this.unsimplifiedHdRoutes
           .slice(this.currentUnsimplifiedHdRouteIndex + 1)
           .concat(this.simplifiedHdRoutes),
-        this.obstacles,
-      )
+        obstacles: this.obstacles,
+        connMap: this.connMap,
+        colorMap: this.colorMap,
+      })
       this.currentUnsimplifiedHdRouteIndex++
       return
     }

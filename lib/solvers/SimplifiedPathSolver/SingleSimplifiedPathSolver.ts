@@ -3,6 +3,7 @@ import { BaseSolver } from "../BaseSolver"
 import { Obstacle } from "lib/types"
 import { calculate45DegreePaths } from "lib/utils/calculate45DegreePaths"
 import { GraphicsObject } from "graphics-debug"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 interface Point {
   x: number
@@ -17,14 +18,39 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
   headIndex = 0
   tailIndex = 0
 
-  constructor(
-    public inputRoute: HighDensityIntraNodeRoute,
-    public otherHdRoutes: HighDensityIntraNodeRoute[],
-    public obstacles: Obstacle[],
-  ) {
+  inputRoute: HighDensityIntraNodeRoute
+  otherHdRoutes: HighDensityIntraNodeRoute[]
+  obstacles: Obstacle[]
+  connMap: ConnectivityMap
+  colorMap: Record<string, string>
+
+  constructor(params: {
+    inputRoute: HighDensityIntraNodeRoute
+    otherHdRoutes: HighDensityIntraNodeRoute[]
+    obstacles: Obstacle[]
+    connMap: ConnectivityMap
+    colorMap: Record<string, string>
+  }) {
     super()
+
+    this.inputRoute = params.inputRoute
+    this.otherHdRoutes = params.otherHdRoutes
+    this.obstacles = params.obstacles
+    this.connMap = params.connMap
+    this.colorMap = params.colorMap
+
     this.newRoute = []
     this.newVias = []
+  }
+
+  get simplifiedRoute(): HighDensityIntraNodeRoute {
+    return {
+      connectionName: this.inputRoute.connectionName,
+      traceThickness: this.inputRoute.traceThickness,
+      viaDiameter: this.inputRoute.viaDiameter,
+      route: this.newRoute,
+      vias: this.newVias,
+    }
   }
 
   isValidPath(pointsInRoute: Point[]): boolean {

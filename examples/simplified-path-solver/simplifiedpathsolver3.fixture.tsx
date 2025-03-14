@@ -4,6 +4,7 @@ import { SingleSimplifiedPathSolver2 } from "lib/solvers/SimplifiedPathSolver/Si
 import inputData from "examples/assets/simplifiedpathsolver1.json"
 import { SingleSimplifiedPathSolver4 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver4_DistanceBased"
 import { SingleSimplifiedPathSolver5 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver5_Deg45"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export default () => {
   const createSolver = () => {
@@ -15,7 +16,13 @@ export default () => {
     const inputRoute = routes[1]
     const otherRoutes = [routes[0], ...routes.slice(2)]
 
-    return new SingleSimplifiedPathSolver5(inputRoute, otherRoutes, obstacles)
+    return new SingleSimplifiedPathSolver5({
+      inputRoute,
+      otherHdRoutes: otherRoutes,
+      obstacles,
+      connMap: new ConnectivityMap({}),
+      colorMap: {},
+    })
   }
 
   return (

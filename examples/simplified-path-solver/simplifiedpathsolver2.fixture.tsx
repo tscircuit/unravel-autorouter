@@ -6,6 +6,7 @@ import { SingleSimplifiedPathSolver4 } from "lib/solvers/SimplifiedPathSolver/Si
 import { SingleSimplifiedPathSolver5 } from "lib/solvers/SimplifiedPathSolver/SingleSimplifiedPathSolver5_Deg45"
 import { MultiSimplifiedPathSolver } from "lib/solvers/SimplifiedPathSolver/MultiSimplifiedPathSolver"
 import { createColorMapFromStrings } from "lib/solvers/colors"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export default () => {
   const createSolver = () => {
@@ -13,11 +14,12 @@ export default () => {
     const routes = inputData[0] as any[]
     const obstacles = inputData[1] as any[]
 
-    return new MultiSimplifiedPathSolver(
-      routes,
+    return new MultiSimplifiedPathSolver({
+      unsimplifiedHdRoutes: routes,
       obstacles,
-      createColorMapFromStrings(routes.map((r) => r.connectionName)),
-    )
+      connMap: new ConnectivityMap({}),
+      colorMap: createColorMapFromStrings(routes.map((r) => r.connectionName)),
+    })
   }
 
   return <GenericSolverDebugger createSolver={createSolver} />
