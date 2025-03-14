@@ -34,3 +34,5 @@ export type HighDensityIntraNodeRoute = {
   route: Array<{ x: number; y: number; z: number }>
   vias: Array<{ x: number; y: number }>
 }
+
+export type HighDensityRoute = HighDensityIntraNodeRoute

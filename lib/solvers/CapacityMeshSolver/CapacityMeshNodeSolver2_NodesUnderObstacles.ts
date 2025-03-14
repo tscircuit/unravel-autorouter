@@ -25,6 +25,8 @@ interface Target {
 }
 
 export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeSolver {
+  VIA_DIAMETER = 0.6
+
   constructor(
     public srj: SimpleRouteJson,
     public opts: CapacityMeshNodeSolverOptions = {},
@@ -190,10 +192,14 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       const shouldBeZSubdivided =
         childNode.availableZ.length > 1 &&
         !shouldBeXYSubdivided &&
-        childNode._containsObstacle
+        (childNode._containsObstacle || childNode.width < this.VIA_DIAMETER)
       if (shouldBeXYSubdivided) {
         unfinishedNewNodes.push(childNode)
-      } else if (!shouldBeXYSubdivided && !childNode._containsObstacle) {
+      } else if (
+        !shouldBeXYSubdivided &&
+        !childNode._containsObstacle &&
+        !shouldBeZSubdivided
+      ) {
         finishedNewNodes.push(childNode)
       } else if (!shouldBeXYSubdivided && childNode._containsTarget) {
         if (shouldBeZSubdivided) {

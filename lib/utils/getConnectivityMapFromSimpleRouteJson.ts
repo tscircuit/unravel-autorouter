@@ -10,5 +10,8 @@ export const getConnectivityMapFromSimpleRouteJson = (srj: SimpleRouteJson) => {
       }
     }
   }
+  for (const obstacle of srj.obstacles) {
+    connMap.addConnections([obstacle.connectedTo])
+  }
   return connMap
 }

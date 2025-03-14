@@ -33,10 +33,15 @@ import { MultipleHighDensityRouteStitchSolver } from "./RouteStitchingSolver/Mul
 import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
 import { UnravelMultiSectionSolver } from "./UnravelSolver/UnravelMultiSectionSolver"
 import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
-import { CapacityMeshNodeSolver3_LargerSingleLayerNodes } from "./CapacityMeshSolver/CapacityMeshNodeSolver3_LargerSingleLayerNodes"
 import { StrawSolver } from "./StrawSolver/StrawSolver"
 import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 import { CapacityNodeTargetMerger2 } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger2"
+import { SingleSimplifiedPathSolver } from "./SimplifiedPathSolver/SingleSimplifiedPathSolver"
+import { MultiSimplifiedPathSolver } from "./SimplifiedPathSolver/MultiSimplifiedPathSolver"
+import {
+  HighDensityIntraNodeRoute,
+  HighDensityRoute,
+} from "lib/types/high-density-types"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -88,6 +93,7 @@ export class CapacityMeshSolver extends BaseSolver {
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
   singleLayerNodeMerger?: SingleLayerNodeMergerSolver
   strawSolver?: StrawSolver
+  multiSimplifiedPathSolver?: MultiSimplifiedPathSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -241,6 +247,18 @@ export class CapacityMeshSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep(
+      "multiSimplifiedPathSolver",
+      MultiSimplifiedPathSolver,
+      (cms) => [
+        {
+          unsimplifiedHdRoutes: cms.highDensityStitchSolver!.mergedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          connMap: cms.connMap,
+          colorMap: cms.colorMap,
+        },
+      ],
+    ),
   ]
 
   constructor(
@@ -327,8 +345,16 @@ export class CapacityMeshSolver extends BaseSolver {
       this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const highDensityStitchViz = this.highDensityStitchSolver?.visualize()
+    const simplifiedPathSolverViz = this.multiSimplifiedPathSolver?.visualize()
     const problemViz = {
-      points: [...this.srj.connections.flatMap((c) => c.pointsToConnect)],
+      points: [
+        ...this.srj.connections.flatMap((c) =>
+          c.pointsToConnect.map((p) => ({
+            ...p,
+            label: `${c.name} ${p.pcb_port_id ?? ""}`,
+          })),
+        ),
+      ],
       rects: [
         ...(this.srj.obstacles ?? []).map((o) => ({
           ...o,
@@ -337,6 +363,7 @@ export class CapacityMeshSolver extends BaseSolver {
             : o.layers?.includes("bottom")
               ? "rgba(0,0,255,0.25)"
               : "rgba(255,0,0,0.25)",
+          label: o.layers?.join(", "),
         })),
       ],
       lines: [
@@ -373,6 +400,7 @@ export class CapacityMeshSolver extends BaseSolver {
       segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
       highDensityStitchViz,
+      simplifiedPathSolverViz,
       this.solved
         ? combineVisualizations(
             problemViz,
@@ -395,6 +423,13 @@ export class CapacityMeshSolver extends BaseSolver {
     return match ? match[1] : mstConnectionName
   }
 
+  _getOutputHdRoutes(): HighDensityRoute[] {
+    return (
+      this.multiSimplifiedPathSolver?.simplifiedHdRoutes ??
+      this.highDensityStitchSolver!.mergedHdRoutes
+    )
+  }
+
   /**
    * Returns the SimpleRouteJson with routes converted to SimplifiedPcbTraces
    */
@@ -404,6 +439,7 @@ export class CapacityMeshSolver extends BaseSolver {
     }
 
     const traces: SimplifiedPcbTraces = []
+    const allHdRoutes = this._getOutputHdRoutes()
 
     for (const connection of this.netToPointPairsSolver?.newConnections ?? []) {
       const netConnection = this.srj.connections.find(
@@ -411,7 +447,7 @@ export class CapacityMeshSolver extends BaseSolver {
       )
 
       // Find all the hdRoutes that correspond to this connection
-      const hdRoutes = this.highDensityStitchSolver!.mergedHdRoutes.filter(
+      const hdRoutes = allHdRoutes.filter(
         (r) => r.connectionName === connection.name,
       )
 
