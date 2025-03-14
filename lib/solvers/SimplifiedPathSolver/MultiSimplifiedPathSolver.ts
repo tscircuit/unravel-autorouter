@@ -113,6 +113,7 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
           strokeWidth: 0.15,
           strokeColor: routeColor,
           strokeDash: route.route[i].z === 1 ? "5, 5" : undefined,
+          step: 1,
         })
       }
 
@@ -122,6 +123,35 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
           center: via,
           radius: route.viaDiameter / 2,
           fill: "rgba(0, 0, 255, 0.5)",
+          step: 1,
+        })
+      }
+    }
+
+    // Visualize the original unsimplified routes in red
+    for (const route of this.unsimplifiedHdRoutes) {
+      // Draw the route lines
+      for (let i = 0; i < route.route.length - 1; i++) {
+        graphics.lines.push({
+          points: [
+            { x: route.route[i].x, y: route.route[i].y },
+            { x: route.route[i + 1].x, y: route.route[i + 1].y },
+          ],
+          strokeWidth: 0.15,
+          strokeColor: "rgba(255, 0, 0, 0.2)",
+          strokeDash: [0.5, 0.5],
+          step: 0,
+          layer: route.route[i].z.toString(),
+        })
+      }
+
+      // Add small circles at each point of the original route
+      for (const point of route.vias) {
+        graphics.circles.push({
+          center: { x: point.x, y: point.y },
+          radius: route.viaDiameter / 2,
+          fill: "rgba(255, 0, 0, 0.2)",
+          step: 0,
         })
       }
     }

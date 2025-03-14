@@ -1,4 +1,7 @@
-import { doSegmentsIntersect } from "@tscircuit/math-utils"
+import {
+  doSegmentsIntersect,
+  pointToSegmentDistance,
+} from "@tscircuit/math-utils"
 import { HighDensityIntraNodeRoute } from "lib/types/high-density-types"
 import { BaseSolver } from "../BaseSolver"
 import { Obstacle } from "lib/types"
@@ -207,6 +210,16 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
           ) {
             return false
           }
+        }
+      }
+
+      // Check if route is too close to any vias
+      for (const via of route.vias) {
+        if (
+          pointToSegmentDistance(via, start, end) <
+          this.OBSTACLE_MARGIN + route.viaDiameter / 2
+        ) {
+          return false
         }
       }
     }
