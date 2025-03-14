@@ -21,11 +21,9 @@ export class SingleSimplifiedPathSolver3_PartialIndexes extends SingleSimplified
   private maxStepDistance = 0.5
 
   constructor(
-    public inputRoute: HighDensityIntraNodeRoute,
-    public otherHdRoutes: HighDensityIntraNodeRoute[],
-    public obstacles: Obstacle[],
+    params: ConstructorParameters<typeof SingleSimplifiedPathSolver>[0],
   ) {
-    super(inputRoute, otherHdRoutes, obstacles)
+    super(params)
 
     // Handle empty or single-point routes
     if (this.inputRoute.route.length <= 1) {

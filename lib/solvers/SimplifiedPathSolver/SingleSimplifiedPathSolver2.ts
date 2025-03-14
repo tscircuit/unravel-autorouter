@@ -14,11 +14,9 @@ interface Point {
 
 export class SingleSimplifiedPathSolver2 extends SingleSimplifiedPathSolver {
   constructor(
-    public inputRoute: HighDensityIntraNodeRoute,
-    public otherHdRoutes: HighDensityIntraNodeRoute[],
-    public obstacles: Obstacle[],
+    params: ConstructorParameters<typeof SingleSimplifiedPathSolver>[0],
   ) {
-    super(inputRoute, otherHdRoutes, obstacles)
+    super(params)
 
     // Handle empty or single-point routes
     if (this.inputRoute.route.length <= 1) {
