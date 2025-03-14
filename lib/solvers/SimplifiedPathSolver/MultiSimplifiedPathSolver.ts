@@ -158,7 +158,7 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
           strokeColor: "rgba(255, 0, 0, 0.2)",
           strokeDash: [0.5, 0.5],
           step: 0,
-          layer: route.route[i].z.toString(),
+          layer: `z${route.route[i].z.toString()}`,
         })
       }
 

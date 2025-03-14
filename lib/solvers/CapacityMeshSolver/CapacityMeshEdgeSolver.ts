@@ -23,8 +23,13 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     this.edges = []
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
+        const strawNodesWithSameParent =
+          this.nodes[i]._strawNode &&
+          this.nodes[j]._strawNode &&
+          this.nodes[i]._strawParentCapacityMeshNodeId ===
+            this.nodes[j]._strawParentCapacityMeshNodeId
         if (
-          !(this.nodes[i]._strawNode && this.nodes[j]._strawNode) &&
+          !strawNodesWithSameParent &&
           areNodesBordering(this.nodes[i], this.nodes[j]) &&
           this.doNodesHaveSharedLayer(this.nodes[i], this.nodes[j])
         ) {
