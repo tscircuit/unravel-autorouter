@@ -346,6 +346,7 @@ export class CapacityMeshSolver extends BaseSolver {
       this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const highDensityStitchViz = this.highDensityStitchSolver?.visualize()
+    const simplifiedPathSolverViz = this.multiSimplifiedPathSolver?.visualize()
     const problemViz = {
       points: [
         ...this.srj.connections.flatMap((c) =>
@@ -400,6 +401,7 @@ export class CapacityMeshSolver extends BaseSolver {
       segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
       highDensityStitchViz,
+      simplifiedPathSolverViz,
       this.solved
         ? combineVisualizations(
             problemViz,

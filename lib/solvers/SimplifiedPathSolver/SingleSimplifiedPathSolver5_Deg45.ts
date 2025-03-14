@@ -33,6 +33,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private lastValidPath: Point[] | null = null // Store the current valid path
   private lastValidPathHeadDistance: number = 0
 
+  filteredObstacles: Obstacle[]
+
   OBSTACLE_MARGIN = 0.15
 
   TAIL_JUMP_RATIO: number = 0.8
@@ -48,6 +50,12 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       this.solved = true
       return
     }
+
+    this.filteredObstacles = this.obstacles.filter((obstacle) =>
+      obstacle.connectedTo.some((id) =>
+        this.connMap.areIdsConnected(this.inputRoute.connectionName, id),
+      ),
+    )
 
     // Compute path segments and total length
     this.computePathSegments()
@@ -133,7 +141,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   // Check if a path segment is valid
   isValidPathSegment(start: Point, end: Point): boolean {
     // Check if the segment intersects with any obstacle
-    for (const obstacle of this.obstacles) {
+    for (const obstacle of this.filteredObstacles) {
       if (!obstacle.zLayers?.includes(start.z)) {
         continue
       }
