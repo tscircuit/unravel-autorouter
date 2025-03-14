@@ -21,6 +21,7 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
   ) {
     super()
     this.simplifiedHdRoutes = []
+    this.MAX_ITERATIONS = 100e6
   }
 
   _step() {

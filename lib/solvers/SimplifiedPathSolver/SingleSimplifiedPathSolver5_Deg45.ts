@@ -401,12 +401,19 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       // Add the point after change
       this.newRoute.push(pointAfterChange)
 
-      // Update tail to the layer change point
-      this.tailDistanceAlongPath =
-        this.pathSegments[
-          this.getNearestIndexForDistance(layerChangeAtDistance) + 1
-        ].startDistance
-      this.headDistanceAlongPath = this.tailDistanceAlongPath
+      const nextTailIndex =
+        this.getNearestIndexForDistance(layerChangeAtDistance) + 1
+
+      if (this.pathSegments[nextTailIndex]) {
+        // Update tail to the layer change point
+        this.tailDistanceAlongPath =
+          this.pathSegments[nextTailIndex].startDistance
+        this.headDistanceAlongPath = this.tailDistanceAlongPath
+      } else {
+        console.error("Creating via at end, this is probably not right")
+        this.solved = true
+        return
+      }
       return
     }
 
