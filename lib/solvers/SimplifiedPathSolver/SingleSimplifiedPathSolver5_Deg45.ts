@@ -33,7 +33,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private lastValidPath: Point[] | null = null // Store the current valid path
   private lastValidPathHeadDistance: number = 0
 
-  filteredObstacles: Obstacle[]
+  filteredObstacles: Obstacle[] = []
 
   OBSTACLE_MARGIN = 0.15
 
@@ -51,10 +51,11 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       return
     }
 
-    this.filteredObstacles = this.obstacles.filter((obstacle) =>
-      obstacle.connectedTo.some((id) =>
-        this.connMap.areIdsConnected(this.inputRoute.connectionName, id),
-      ),
+    this.filteredObstacles = this.obstacles.filter(
+      (obstacle) =>
+        !obstacle.connectedTo.some((id) =>
+          this.connMap.areIdsConnected(this.inputRoute.connectionName, id),
+        ),
     )
 
     // Compute path segments and total length
@@ -189,6 +190,14 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
     // Check if the segment intersects with any other route
     for (const route of this.otherHdRoutes) {
+      if (
+        this.connMap.areIdsConnected(
+          this.inputRoute.connectionName,
+          route.connectionName,
+        )
+      ) {
+        continue
+      }
       for (let j = 0; j < route.route.length - 1; j++) {
         const routeStart = route.route[j]
         const routeEnd = route.route[j + 1]

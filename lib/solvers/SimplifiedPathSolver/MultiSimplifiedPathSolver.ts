@@ -101,6 +101,7 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
               ? "rgba(0, 0, 255, 0.4)"
               : "rgba(255, 0, 0, 0.4)",
           strokeWidth: 0.15,
+          strokeDash: route.route[i].z === 1 ? [0.5, 0.5] : undefined,
         })
       }
 
@@ -128,7 +129,7 @@ export class MultiSimplifiedPathSolver extends BaseSolver {
           ],
           strokeWidth: 0.15,
           strokeColor: routeColor,
-          strokeDash: route.route[i].z === 1 ? "5, 5" : undefined,
+          strokeDash: route.route[i].z === 1 ? [0.5, 0.5] : undefined,
           step: 1,
         })
       }
