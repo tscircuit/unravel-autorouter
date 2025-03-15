@@ -88,28 +88,34 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
     }
   }
 
-  // getAdjacentSameLayerUnprocessedNodes(rootNode: CapacityMeshNode) {
-  //   const adjacentNodes: CapacityMeshNode[] = []
-  //   for (const unprocessedNodeId of this.currentBatchNodeIds) {
-  //     const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
-  //     if (!areNodesBordering(rootNode, unprocessedNode)) continue
-  //     if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
-  //     if (
-  //       unprocessedNode._containsTarget &&
-  //       unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
-  //     )
-  //       continue
-  //     if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
-  //     adjacentNodes.push(unprocessedNode)
-  //   }
-  //   return adjacentNodes
-  // }
+  getAdjacentSameLayerUnprocessedNodes1(rootNode: CapacityMeshNode) {
+    const adjacentNodes: CapacityMeshNode[] = []
+    for (const unprocessedNodeId of this.currentBatchNodeIds) {
+      const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
+      if (!areNodesBordering(rootNode, unprocessedNode)) continue
+      if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
+      if (
+        unprocessedNode._containsTarget &&
+        unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
+      )
+        continue
+      if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
+      adjacentNodes.push(unprocessedNode)
+    }
+    return adjacentNodes
+  }
 
   getAdjacentSameLayerUnprocessedNodes(rootNode: CapacityMeshNode) {
+    return this.getAdjacentSameLayerUnprocessedNodes2(rootNode)
+  }
+
+  getAdjacentSameLayerUnprocessedNodes2(rootNode: CapacityMeshNode) {
     const adjacentNodes: CapacityMeshNode[] = []
-    const unprocessedAdjNodes: CapacityMeshNode[] = (
-      rootNode._adjacentNodeIds ?? []
-    ).map((a) => this.nodeMap.get(a)!)
+    const unprocessedAdjNodes: CapacityMeshNode[] = Array.from(
+      new Set(
+        (rootNode._adjacentNodeIds ?? []).map((a) => this.nodeMap.get(a)!),
+      ),
+    )
 
     unprocessedAdjNodes.sort((a, b) => a.width * a.height - b.width * b.height)
 
@@ -171,6 +177,21 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
       return
     }
 
+    const absorbAdjacentNodeIds = (nodesToAbsorb: CapacityMeshNode[]) => {
+      for (const adjNode of nodesToAbsorb) {
+        this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
+      }
+
+      rootNode._adjacentNodeIds = Array.from(
+        new Set(
+          [
+            ...(rootNode._adjacentNodeIds ?? []),
+            ...nodesToAbsorb.flatMap((n) => n._adjacentNodeIds ?? []),
+          ].filter((id) => !this.absorbedNodeIds.has(id)),
+        ),
+      )
+    }
+
     // Handle adjacent nodes to the LEFT
     const adjacentNodesToLeft = adjacentNodes.filter(
       (adjNode) =>
@@ -198,14 +219,7 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         rootNode.width += leftAdjNodeWidth
         rootNode.center.x = rootNode.center.x - leftAdjNodeWidth / 2
 
-        for (const adjNode of adjacentNodesToLeft) {
-          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
-        }
-
-        rootNode._adjacentNodeIds = [
-          ...(rootNode._adjacentNodeIds ?? []),
-          ...adjacentNodesToLeft.flatMap((n) => n._adjacentNodeIds ?? []),
-        ].filter((id) => !this.absorbedNodeIds.has(id))
+        absorbAdjacentNodeIds(adjacentNodesToLeft)
 
         rootNodeHasGrown = true
       }
@@ -238,14 +252,7 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         rootNode.width += rightAdjNodeWidth
         rootNode.center.x = rootNode.center.x + rightAdjNodeWidth / 2
 
-        for (const adjNode of adjacentNodesToRight) {
-          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
-        }
-
-        rootNode._adjacentNodeIds = [
-          ...(rootNode._adjacentNodeIds ?? []),
-          ...adjacentNodesToRight.flatMap((n) => n._adjacentNodeIds ?? []),
-        ].filter((id) => !this.absorbedNodeIds.has(id))
+        absorbAdjacentNodeIds(adjacentNodesToRight)
 
         rootNodeHasGrown = true
       }
@@ -278,14 +285,7 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         rootNode.height += topAdjNodeHeight
         rootNode.center.y = rootNode.center.y + topAdjNodeHeight / 2
 
-        for (const adjNode of adjacentNodesToTop) {
-          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
-        }
-
-        rootNode._adjacentNodeIds = [
-          ...(rootNode._adjacentNodeIds ?? []),
-          ...adjacentNodesToTop.flatMap((n) => n._adjacentNodeIds ?? []),
-        ].filter((id) => !this.absorbedNodeIds.has(id))
+        absorbAdjacentNodeIds(adjacentNodesToTop)
 
         rootNodeHasGrown = true
       }
@@ -318,14 +318,7 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         rootNode.height += bottomAdjNodeHeight
         rootNode.center.y = rootNode.center.y - bottomAdjNodeHeight / 2
 
-        for (const adjNode of adjacentNodesToBottom) {
-          this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
-        }
-
-        rootNode._adjacentNodeIds = [
-          ...(rootNode._adjacentNodeIds ?? []),
-          ...adjacentNodesToBottom.flatMap((n) => n._adjacentNodeIds ?? []),
-        ].filter((id) => !this.absorbedNodeIds.has(id))
+        absorbAdjacentNodeIds(adjacentNodesToBottom)
 
         rootNodeHasGrown = true
       }
