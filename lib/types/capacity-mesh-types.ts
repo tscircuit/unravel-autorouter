@@ -22,6 +22,8 @@ export interface CapacityMeshNode {
   _strawNode?: boolean
   _strawParentCapacityMeshNodeId?: CapacityMeshNodeId
 
+  _adjacentNodeIds?: CapacityMeshNodeId[]
+
   _parent?: CapacityMeshNode
 }
 

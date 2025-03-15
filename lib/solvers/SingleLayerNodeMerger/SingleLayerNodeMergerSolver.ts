@@ -3,6 +3,7 @@ import { BaseSolver } from "../BaseSolver"
 import { areNodesBordering } from "lib/utils/areNodesBordering"
 import { GraphicsObject } from "graphics-debug"
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode"
+import { CapacityNodeTree } from "./CapacityNodeTree"
 
 const EPSILON = 0.005
 
@@ -40,20 +41,83 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
     }
     nodeWithArea.sort((a, b) => a[1] - b[1])
     for (const [node, area] of nodeWithArea) {
-      this.nodeMap.set(node.capacityMeshNodeId, {
+      const newNode = {
         ...node,
         center: { ...node.center },
-      })
+      }
+      this.nodeMap.set(node.capacityMeshNodeId, newNode)
     }
-    this.currentBatchNodeIds = nodeWithArea.map((n) => n[0].capacityMeshNodeId)
+    const newNodes = Array.from(this.nodeMap.values())
+    this.currentBatchNodeIds = newNodes.map((n) => n.capacityMeshNodeId)
     this.nextBatchNodeIds = []
     this.batchHadModifications = false
+    this.computeAdjacentNodeIdsForFirstBatch(newNodes)
   }
+
+  computeAdjacentNodeIdsForFirstBatch(nodes: CapacityMeshNode[]) {
+    const nodeTree = new CapacityNodeTree(nodes)
+    for (const node of nodes) {
+      const adjacentNodes: CapacityMeshNode[] = []
+
+      const nodesInArea = nodeTree.getNodesInArea(
+        node.center.x,
+        node.center.y,
+        10,
+        10,
+      )
+
+      for (const unprocessedNode of nodesInArea) {
+        if (unprocessedNode.availableZ[0] !== node.availableZ[0]) continue
+        if (
+          unprocessedNode._containsTarget &&
+          unprocessedNode._targetConnectionName !== node._targetConnectionName
+        )
+          continue
+        if (this.absorbedNodeIds.has(unprocessedNode.capacityMeshNodeId))
+          continue
+        if (unprocessedNode.capacityMeshNodeId === node.capacityMeshNodeId)
+          continue
+        if (
+          !this.currentBatchNodeIds.includes(unprocessedNode.capacityMeshNodeId)
+        )
+          continue
+        adjacentNodes.push(unprocessedNode)
+      }
+
+      node._adjacentNodeIds = adjacentNodes.map((n) => n.capacityMeshNodeId)
+    }
+  }
+
+  // getAdjacentSameLayerUnprocessedNodes(rootNode: CapacityMeshNode) {
+  //   const adjacentNodes: CapacityMeshNode[] = []
+  //   for (const unprocessedNodeId of this.currentBatchNodeIds) {
+  //     const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
+  //     if (!areNodesBordering(rootNode, unprocessedNode)) continue
+  //     if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
+  //     if (
+  //       unprocessedNode._containsTarget &&
+  //       unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
+  //     )
+  //       continue
+  //     if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
+  //     adjacentNodes.push(unprocessedNode)
+  //   }
+  //   return adjacentNodes
+  // }
 
   getAdjacentSameLayerUnprocessedNodes(rootNode: CapacityMeshNode) {
     const adjacentNodes: CapacityMeshNode[] = []
-    for (const unprocessedNodeId of this.currentBatchNodeIds) {
-      const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
+    const unprocessedAdjNodes: CapacityMeshNode[] = (
+      rootNode._adjacentNodeIds ?? []
+    ).map((a) => this.nodeMap.get(a)!)
+
+    unprocessedAdjNodes.sort((a, b) => a.width * a.height - b.width * b.height)
+
+    // for (const unprocessedNodeId of rootNode._adjacentNodeIds ?? []) {
+    //   const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
+    for (const unprocessedNode of unprocessedAdjNodes) {
+      // for (const unprocessedNodeId of this.currentBatchNodeIds) {
+      // const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
       if (!areNodesBordering(rootNode, unprocessedNode)) continue
       if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
       if (
@@ -61,9 +125,14 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
       )
         continue
-      if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
+      if (this.absorbedNodeIds.has(unprocessedNode.capacityMeshNodeId)) continue
+      if (
+        !this.currentBatchNodeIds.includes(unprocessedNode.capacityMeshNodeId)
+      )
+        continue
       adjacentNodes.push(unprocessedNode)
     }
+
     return adjacentNodes
   }
 
@@ -133,6 +202,11 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
           this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
 
+        rootNode._adjacentNodeIds = [
+          ...(rootNode._adjacentNodeIds ?? []),
+          ...adjacentNodesToLeft.flatMap((n) => n._adjacentNodeIds ?? []),
+        ].filter((id) => !this.absorbedNodeIds.has(id))
+
         rootNodeHasGrown = true
       }
     }
@@ -167,6 +241,11 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         for (const adjNode of adjacentNodesToRight) {
           this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
+
+        rootNode._adjacentNodeIds = [
+          ...(rootNode._adjacentNodeIds ?? []),
+          ...adjacentNodesToRight.flatMap((n) => n._adjacentNodeIds ?? []),
+        ].filter((id) => !this.absorbedNodeIds.has(id))
 
         rootNodeHasGrown = true
       }
@@ -203,6 +282,11 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
           this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
 
+        rootNode._adjacentNodeIds = [
+          ...(rootNode._adjacentNodeIds ?? []),
+          ...adjacentNodesToTop.flatMap((n) => n._adjacentNodeIds ?? []),
+        ].filter((id) => !this.absorbedNodeIds.has(id))
+
         rootNodeHasGrown = true
       }
     }
@@ -237,6 +321,11 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
         for (const adjNode of adjacentNodesToBottom) {
           this.absorbedNodeIds.add(adjNode.capacityMeshNodeId)
         }
+
+        rootNode._adjacentNodeIds = [
+          ...(rootNode._adjacentNodeIds ?? []),
+          ...adjacentNodesToBottom.flatMap((n) => n._adjacentNodeIds ?? []),
+        ].filter((id) => !this.absorbedNodeIds.has(id))
 
         rootNodeHasGrown = true
       }
