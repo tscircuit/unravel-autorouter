@@ -345,13 +345,24 @@ export class CapacityPathingSolver extends BaseSolver {
         if (conn.path && conn.path.length > 0) {
           const pathPoints = conn.path.map(({ center: { x, y }, width }) => ({
             // slight offset to allow viewing overlapping paths
-            x: x + ((i % 10) + (i % 19)) * (0.01 * width),
-            y: y + ((i % 10) + (i % 19)) * (0.01 * width),
+            x: x + ((i % 10) + (i % 19)) * (0.005 * width),
+            y: y + ((i % 10) + (i % 19)) * (0.005 * width),
           }))
           graphics.lines!.push({
             points: pathPoints,
             strokeColor: this.colorMap[conn.connection.name],
           })
+          for (let u = 0; u < pathPoints.length; u++) {
+            const point = pathPoints[u]
+            graphics.points!.push({
+              x: point.x,
+              y: point.y,
+              label: [
+                `conn: ${conn.connection.name}`,
+                `node: ${conn.path[u].capacityMeshNodeId}`,
+              ].join("\n"),
+            })
+          }
         }
       }
     }
@@ -359,7 +370,10 @@ export class CapacityPathingSolver extends BaseSolver {
     for (const node of this.nodes) {
       const nodeCosts = this.debug_lastNodeCostMap.get(node.capacityMeshNodeId)
       graphics.rects!.push({
-        ...createRectFromCapacityNode(node),
+        ...createRectFromCapacityNode(node, {
+          rectMargin: 0.025,
+          zOffset: 0.01,
+        }),
         label: [
           `${node.capacityMeshNodeId}`,
           `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node).toFixed(2)}`,
@@ -379,6 +393,7 @@ export class CapacityPathingSolver extends BaseSolver {
             graphics.points!.push({
               x: point.x,
               y: point.y,
+              label: [`pointsToConnect ${conn.connection.name}`].join("\n"),
             })
           }
         }
