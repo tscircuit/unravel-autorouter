@@ -20,90 +20,100 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
   nextBatchNodeIds: CapacityMeshNodeId[]
   batchHadModifications: boolean
 
+  hasComputedAdjacentNodeIds: boolean = false
+
   newNodes: CapacityMeshNode[]
   constructor(nodes: CapacityMeshNode[]) {
     super()
     this.nodeMap = new Map()
     this.MAX_ITERATIONS = 100_000
+    // TODO we probably don't need this map because we only care about
+    // nodes that need to be absorbed or processed
     for (const node of nodes) {
       this.nodeMap.set(node.capacityMeshNodeId, node)
     }
     this.newNodes = []
     this.absorbedNodeIds = new Set()
-    const nodeWithArea: Array<[CapacityMeshNode, number]> = []
+    const unprocessedNodesWithArea: Array<[CapacityMeshNode, number]> = []
     for (const node of nodes) {
       if (node.availableZ.length > 1) {
         this.newNodes.push(node)
         this.absorbedNodeIds.add(node.capacityMeshNodeId)
       } else {
-        nodeWithArea.push([node, node.width * node.height])
+        unprocessedNodesWithArea.push([node, node.width * node.height])
       }
     }
-    nodeWithArea.sort((a, b) => a[1] - b[1])
-    for (const [node, area] of nodeWithArea) {
-      const newNode = {
+    unprocessedNodesWithArea.sort((a, b) => a[1] - b[1])
+    for (const [node, area] of unprocessedNodesWithArea) {
+      const unprocessedNode = {
         ...node,
         center: { ...node.center },
       }
-      this.nodeMap.set(node.capacityMeshNodeId, newNode)
+      this.nodeMap.set(node.capacityMeshNodeId, unprocessedNode)
     }
-    const newNodes = Array.from(this.nodeMap.values())
-    this.currentBatchNodeIds = newNodes.map((n) => n.capacityMeshNodeId)
+    this.currentBatchNodeIds = unprocessedNodesWithArea.map(
+      ([node]) => node.capacityMeshNodeId,
+    )
     this.nextBatchNodeIds = []
     this.batchHadModifications = false
-    this.computeAdjacentNodeIdsForFirstBatch(newNodes)
   }
 
   computeAdjacentNodeIdsForFirstBatch(nodes: CapacityMeshNode[]) {
-    const nodeTree = new CapacityNodeTree(nodes)
+    console.time("computeAdjacentNodeIdsForFirstBatch")
+    console.time("nodeTreeConstruction")
+    const nodeTrees = [
+      new CapacityNodeTree(nodes.filter((n) => n.availableZ[0] === 0)),
+      new CapacityNodeTree(nodes.filter((n) => n.availableZ[0] === 1)),
+    ]
+    console.timeEnd("nodeTreeConstruction")
+    console.log("nodes.length", nodes.length)
     for (const node of nodes) {
       const adjacentNodes: CapacityMeshNode[] = []
+      const z = node.availableZ[0]
 
-      const nodesInArea = nodeTree.getNodesInArea(
+      const nodesInArea = nodeTrees[z].getNodesInArea(
         node.center.x,
         node.center.y,
-        10,
-        10,
+        node.width * 4,
+        node.height * 4,
       )
 
       for (const unprocessedNode of nodesInArea) {
-        if (unprocessedNode.availableZ[0] !== node.availableZ[0]) continue
         if (
           unprocessedNode._containsTarget &&
           unprocessedNode._targetConnectionName !== node._targetConnectionName
         )
           continue
-        if (this.absorbedNodeIds.has(unprocessedNode.capacityMeshNodeId))
-          continue
+        // if (this.absorbedNodeIds.has(unprocessedNode.capacityMeshNodeId))
+        //   continue
         if (unprocessedNode.capacityMeshNodeId === node.capacityMeshNodeId)
           continue
-        if (
-          !this.currentBatchNodeIds.includes(unprocessedNode.capacityMeshNodeId)
-        )
-          continue
+        if (!areNodesBordering(node, unprocessedNode)) continue
+
         adjacentNodes.push(unprocessedNode)
       }
 
       node._adjacentNodeIds = adjacentNodes.map((n) => n.capacityMeshNodeId)
     }
+    console.timeEnd("computeAdjacentNodeIdsForFirstBatch")
   }
 
-  getAdjacentSameLayerUnprocessedNodes1(rootNode: CapacityMeshNode) {
-    const adjacentNodes: CapacityMeshNode[] = []
-    for (const unprocessedNodeId of this.currentBatchNodeIds) {
-      const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
-      if (!areNodesBordering(rootNode, unprocessedNode)) continue
-      if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
-      if (
-        unprocessedNode._containsTarget &&
-        unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
-      )
-        continue
-      if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
-      adjacentNodes.push(unprocessedNode)
-    }
-    return adjacentNodes
-  }
+  // getAdjacentSameLayerUnprocessedNodes1(rootNode: CapacityMeshNode) {
+  //   const adjacentNodes: CapacityMeshNode[] = []
+  //   for (const unprocessedNodeId of this.currentBatchNodeIds) {
+  //     const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
+  //     if (!areNodesBordering(rootNode, unprocessedNode)) continue
+  //     if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
+  //     if (
+  //       unprocessedNode._containsTarget &&
+  //       unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
+  //     )
+  //       continue
+  //     if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
+  //     adjacentNodes.push(unprocessedNode)
+  //   }
+  //   return adjacentNodes
+  // }
 
   getAdjacentSameLayerUnprocessedNodes(rootNode: CapacityMeshNode) {
     return this.getAdjacentSameLayerUnprocessedNodes2(rootNode)
@@ -119,23 +129,8 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
 
     unprocessedAdjNodes.sort((a, b) => a.width * a.height - b.width * b.height)
 
-    // for (const unprocessedNodeId of rootNode._adjacentNodeIds ?? []) {
-    //   const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
     for (const unprocessedNode of unprocessedAdjNodes) {
-      // for (const unprocessedNodeId of this.currentBatchNodeIds) {
-      // const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
-      if (!areNodesBordering(rootNode, unprocessedNode)) continue
-      if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
-      if (
-        unprocessedNode._containsTarget &&
-        unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
-      )
-        continue
       if (this.absorbedNodeIds.has(unprocessedNode.capacityMeshNodeId)) continue
-      if (
-        !this.currentBatchNodeIds.includes(unprocessedNode.capacityMeshNodeId)
-      )
-        continue
       adjacentNodes.push(unprocessedNode)
     }
 
@@ -143,6 +138,12 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
   }
 
   _step() {
+    if (!this.hasComputedAdjacentNodeIds) {
+      this.computeAdjacentNodeIdsForFirstBatch(
+        this.currentBatchNodeIds.map((id) => this.nodeMap.get(id)!),
+      )
+      this.hasComputedAdjacentNodeIds = true
+    }
     let rootNodeId = this.currentBatchNodeIds.pop()
     while (rootNodeId && this.absorbedNodeIds.has(rootNodeId)) {
       rootNodeId = this.currentBatchNodeIds.pop()

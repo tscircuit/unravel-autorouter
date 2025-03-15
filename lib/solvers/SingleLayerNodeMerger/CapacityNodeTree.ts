@@ -4,7 +4,7 @@ export type BucketCoordinate = `${number}x${number}`
 
 export class CapacityNodeTree {
   buckets: Map<BucketCoordinate, CapacityMeshNode[]>
-  CELL_SIZE = 1
+  CELL_SIZE = 0.4
 
   constructor(public nodes: CapacityMeshNode[]) {
     this.buckets = new Map()
