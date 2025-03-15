@@ -1,0 +1,167 @@
+{
+  "nodeId": "cn16428",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn16428",
+    "center": {
+      "x": -103.671875,
+      "y": -15.859375
+    },
+    "width": 1.09375,
+    "height": 1.09375,
+    "layer": "top",
+    "availableZ": [
+      0,
+      1
+    ],
+    "_depth": 6,
+    "_parent": {
+      "capacityMeshNodeId": "cn16274",
+      "center": {
+        "x": -104.21875,
+        "y": -16.40625
+      },
+      "width": 2.1875,
+      "height": 2.1875,
+      "layer": "top",
+      "availableZ": [
+        0,
+        1
+      ],
+      "_depth": 5,
+      "_parent": {
+        "capacityMeshNodeId": "cn15101",
+        "center": {
+          "x": -105.3125,
+          "y": -15.3125
+        },
+        "width": 4.375,
+        "height": 4.375,
+        "layer": "top",
+        "availableZ": [
+          0,
+          1
+        ],
+        "_depth": 4,
+        "_parent": {
+          "capacityMeshNodeId": "cn13357",
+          "center": {
+            "x": -103.125,
+            "y": -13.125
+          },
+          "width": 8.75,
+          "height": 8.75,
+          "layer": "top",
+          "availableZ": [
+            0,
+            1
+          ],
+          "_depth": 3,
+          "_parent": {
+            "capacityMeshNodeId": "cn13356",
+            "center": {
+              "x": -98.75,
+              "y": -8.75
+            },
+            "width": 17.5,
+            "height": 17.5,
+            "layer": "top",
+            "availableZ": [
+              0,
+              1
+            ],
+            "_depth": 2,
+            "_parent": {
+              "capacityMeshNodeId": "cn2",
+              "center": {
+                "x": -107.5,
+                "y": -17.5
+              },
+              "width": 35,
+              "height": 35,
+              "layer": "top",
+              "availableZ": [
+                0,
+                1
+              ],
+              "_depth": 1,
+              "_parent": {
+                "capacityMeshNodeId": "cn0",
+                "center": {
+                  "x": -125,
+                  "y": 0
+                },
+                "width": 70,
+                "height": 70,
+                "layer": "top",
+                "availableZ": [
+                  0,
+                  1
+                ],
+                "_depth": 0,
+                "_containsTarget": true,
+                "_containsObstacle": true,
+                "_completelyInsideObstacle": false
+              },
+              "_containsObstacle": true,
+              "_targetConnectionName": "connectivity_net310",
+              "_containsTarget": true,
+              "_completelyInsideObstacle": false
+            },
+            "_containsObstacle": true,
+            "_targetConnectionName": "connectivity_net277",
+            "_containsTarget": true,
+            "_completelyInsideObstacle": false
+          },
+          "_containsObstacle": true,
+          "_targetConnectionName": "connectivity_net277",
+          "_containsTarget": true,
+          "_completelyInsideObstacle": false
+        },
+        "_containsObstacle": true,
+        "_targetConnectionName": "connectivity_net266",
+        "_containsTarget": true,
+        "_completelyInsideObstacle": false
+      },
+      "_containsObstacle": true,
+      "_targetConnectionName": "connectivity_net255",
+      "_containsTarget": true,
+      "_completelyInsideObstacle": false
+    },
+    "_containsObstacle": false
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn16428",
+    "portPoints": [
+      {
+        "x": -104.21875,
+        "y": -15.5859375,
+        "z": 0,
+        "connectionName": "connectivity_net266"
+      },
+      {
+        "x": -103.125,
+        "y": -15.762867647058822,
+        "z": 1,
+        "connectionName": "connectivity_net266"
+      },
+      {
+        "x": -103.125,
+        "y": -15.72265625,
+        "z": 0,
+        "connectionName": "connectivity_net277"
+      },
+      {
+        "x": -104.21875,
+        "y": -15.859375,
+        "z": 1,
+        "connectionName": "connectivity_net277"
+      }
+    ],
+    "center": {
+      "x": -103.671875,
+      "y": -15.859375
+    },
+    "width": 1.09375,
+    "height": 1.09375
+  }
+}

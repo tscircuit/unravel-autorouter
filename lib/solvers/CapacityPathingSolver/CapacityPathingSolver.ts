@@ -200,7 +200,10 @@ export class CapacityPathingSolver extends BaseSolver {
     return capacityPaths
   }
 
-  doesNodeHaveCapacityForTrace(node: CapacityMeshNode) {
+  doesNodeHaveCapacityForTrace(
+    node: CapacityMeshNode,
+    prevNode: CapacityMeshNode,
+  ) {
     const usedCapacity =
       this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
     const totalCapacity = this.getTotalCapacity(node)
@@ -213,7 +216,13 @@ export class CapacityPathingSolver extends BaseSolver {
       usedCapacity > 0
     )
       return false
-    return usedCapacity < totalCapacity
+
+    let additionalCapacityRequirement = 0
+    if (node.availableZ.length > 1 && prevNode.availableZ.length === 1) {
+      additionalCapacityRequirement += 0.5
+    }
+
+    return usedCapacity + additionalCapacityRequirement < totalCapacity
   }
 
   canTravelThroughObstacle(node: CapacityMeshNode, connectionName: string) {
@@ -297,7 +306,9 @@ export class CapacityPathingSolver extends BaseSolver {
       if (this.visitedNodes?.has(neighborNode.capacityMeshNodeId)) {
         continue
       }
-      if (!this.doesNodeHaveCapacityForTrace(neighborNode)) {
+      if (
+        !this.doesNodeHaveCapacityForTrace(neighborNode, currentCandidate.node)
+      ) {
         continue
       }
       const connectionName =
@@ -381,6 +392,7 @@ export class CapacityPathingSolver extends BaseSolver {
           `g: ${nodeCosts?.g !== undefined ? nodeCosts.g.toFixed(2) : "?"}`,
           `h: ${nodeCosts?.h !== undefined ? nodeCosts.h.toFixed(2) : "?"}`,
           `f: ${nodeCosts?.f !== undefined ? nodeCosts.f.toFixed(2) : "?"}`,
+          `z: ${node.availableZ.join(", ")}`,
         ].join("\n"),
       })
     }
