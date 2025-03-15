@@ -24,43 +24,67 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
    */
   getNodeCapacityPenalty(node: CapacityMeshNode): number {
     return 0.05
-    if (node.availableZ.length === 1) {
-      return 0
-    }
+    // const MAX_PENALTY = node.width + node.height
+    // const MIN_PENALTY = 0.05
 
-    const totalCapacity = this.getTotalCapacity(node)
-    const usedCapacity =
-      this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
-    const remainingCapacity = totalCapacity - usedCapacity
+    // const START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW = 0.4
 
-    const dist = this.activeCandidateStraightLineDistance!
+    // const totalCapacity = this.getTotalCapacity(node)
+    // const usedCapacity =
+    //   this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+    // const remainingCapacity = totalCapacity - usedCapacity
 
-    if (remainingCapacity <= 0) {
-      //  | Total Cap | Remaining Cap | Remaining Cap Ratio | PenaltySLD    |
-      //  | 1         | 0             | (-( 0) + 1) / 1     | 1^2  = 1      |
-      //  | 1         | -1            | (-(-1) + 1) / 1     | 2^2  = 4      |
-      //  | 1         | -2            | (-(-2) + 1) / 1     | 3^2  = 9      |
-      //  | 2         | 0             | (-( 0) + 1) / 2     | 0.5^2 = 0.25  |
-      //  | 2         | -1            | (-(-1) + 1) / 2     | 1^2 = 1       |
-      //  | 2         | -2            | (-(-2) + 1) / 2     | 2^2 = 4       |
-      //  | 2         | -3            | (-(-3) + 1) / 2     | 3^2 = 9       |
-      //  | 3         | 0             | (-( 0) + 1) / 3     | 0.333^2= 0.111|
-      //  | 3         | -1            | (-(-1) + 1) / 3     | 0.666^2= 0.444|
-      //  | 3         | -2            | (-(-2) + 1) / 3     | 1^2 = 1       |
-      //  | 3         | -3            | (-(-3) + 1) / 3     | 2^2 = 4       |
-      const penalty =
-        ((-remainingCapacity + 1) / totalCapacity) *
-        dist *
-        (this.NEGATIVE_CAPACITY_PENALTY_FACTOR / 4)
+    // if (remainingCapacity > START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW) {
+    //   return MIN_PENALTY
+    // }
 
-      return penalty ** 2
-    }
+    // const penalty =
+    //   (MAX_PENALTY - MIN_PENALTY) *
+    //     Math.max(
+    //       1,
+    //       (START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW - remainingCapacity) /
+    //         (MAX_PENALTY - MIN_PENALTY),
+    //     ) +
+    //   MIN_PENALTY
+
+    // return penalty
+    // const penalty =
+    //   (MAX_PENALTY - MIN_PENALTY) *
+    //   (remainingCapacity / START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW)
+
+    // return penalty
+    // if (node.availableZ.length === 1) {
+    //   return 0
+    // }
+
+    // const dist = this.activeCandidateStraightLineDistance!
+
+    // if (remainingCapacity <= 0) {
+    //   //  | Total Cap | Remaining Cap | Remaining Cap Ratio | PenaltySLD    |
+    //   //  | 1         | 0             | (-( 0) + 1) / 1     | 1^2  = 1      |
+    //   //  | 1         | -1            | (-(-1) + 1) / 1     | 2^2  = 4      |
+    //   //  | 1         | -2            | (-(-2) + 1) / 1     | 3^2  = 9      |
+    //   //  | 2         | 0             | (-( 0) + 1) / 2     | 0.5^2 = 0.25  |
+    //   //  | 2         | -1            | (-(-1) + 1) / 2     | 1^2 = 1       |
+    //   //  | 2         | -2            | (-(-2) + 1) / 2     | 2^2 = 4       |
+    //   //  | 2         | -3            | (-(-3) + 1) / 2     | 3^2 = 9       |
+    //   //  | 3         | 0             | (-( 0) + 1) / 3     | 0.333^2= 0.111|
+    //   //  | 3         | -1            | (-(-1) + 1) / 3     | 0.666^2= 0.444|
+    //   //  | 3         | -2            | (-(-2) + 1) / 3     | 1^2 = 1       |
+    //   //  | 3         | -3            | (-(-3) + 1) / 3     | 2^2 = 4       |
+    //   const penalty =
+    //     ((-remainingCapacity + 1) / totalCapacity) *
+    //     dist *
+    //     (this.NEGATIVE_CAPACITY_PENALTY_FACTOR / 4)
+
+    //   return penalty ** 2
+    // }
 
     // This node still has capacity, but penalize as we reduce the capacity
-    return (
-      ((1 / remainingCapacity) * dist * this.REDUCED_CAPACITY_PENALTY_FACTOR) /
-      8
-    )
+    // return (
+    //   ((1 / remainingCapacity) * dist * this.REDUCED_CAPACITY_PENALTY_FACTOR) /
+    //   8
+    // )
   }
 
   /**

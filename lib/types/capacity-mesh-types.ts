@@ -20,6 +20,7 @@ export interface CapacityMeshNode {
   _containsTarget?: boolean
   _targetConnectionName?: string
   _strawNode?: boolean
+  _strawParentCapacityMeshNodeId?: CapacityMeshNodeId
 
   _parent?: CapacityMeshNode
 }

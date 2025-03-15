@@ -5,16 +5,18 @@ export const createRectFromCapacityNode = (
   node: CapacityMeshNode,
   opts: {
     rectMargin?: number
+    zOffset?: number
   } = {},
 ): Rect => {
   const lowestZ = Math.min(...node.availableZ)
   return {
-    center: !opts.rectMargin
-      ? {
-          x: node.center.x + lowestZ * node.width * 0.05,
-          y: node.center.y - lowestZ * node.width * 0.05,
-        }
-      : node.center,
+    center:
+      !opts.rectMargin || opts.zOffset
+        ? {
+            x: node.center.x + lowestZ * node.width * (opts.zOffset ?? 0.05),
+            y: node.center.y - lowestZ * node.width * (opts.zOffset ?? 0.05),
+          }
+        : node.center,
     width: opts.rectMargin
       ? node.width - opts.rectMargin * 2
       : Math.max(node.width - 0.5, node.width * 0.8),

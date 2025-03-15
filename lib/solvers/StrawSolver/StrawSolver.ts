@@ -162,6 +162,7 @@ export class StrawSolver extends BaseSolver {
           availableZ: [...node.availableZ],
           _depth: node._depth,
           _strawNode: true,
+          _strawParentCapacityMeshNodeId: node.capacityMeshNodeId,
         })
       }
     } else {
@@ -182,6 +183,7 @@ export class StrawSolver extends BaseSolver {
           availableZ: [...node.availableZ],
           _depth: node._depth,
           _strawNode: true,
+          _strawParentCapacityMeshNodeId: node.capacityMeshNodeId,
         })
       }
     }
@@ -256,6 +258,7 @@ export class StrawSolver extends BaseSolver {
         fill: color,
         stroke: "rgba(0, 0, 0, 0.5)",
         label: `${node.capacityMeshNodeId}\nLayer: ${node.availableZ[0]}\n${node.width}x${node.height}`,
+        layer: `z${node.availableZ.join(",")}`,
       })
     }
 

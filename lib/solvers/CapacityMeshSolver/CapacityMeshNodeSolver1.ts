@@ -11,6 +11,7 @@ import { COLORS } from "../colors"
 import { isPointInRect } from "lib/utils/isPointInRect"
 import { doRectsOverlap } from "lib/utils/doRectsOverlap"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
+import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 
 interface CapacityMeshNodeSolverOptions {
   capacityDepth?: number
@@ -431,6 +432,8 @@ export class CapacityMeshNodeSolver extends BaseSolver {
           `availableZ: ${node.availableZ.join(",")}`,
           `target? ${node._containsTarget ?? false}`,
           `obs? ${node._containsObstacle ?? false}`,
+          `${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+          `capacity: ${getTunedTotalCapacity1(node).toFixed(2)}`,
         ].join("\n"),
       })
     }

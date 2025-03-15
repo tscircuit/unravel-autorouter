@@ -93,7 +93,7 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
         ],
         strokeColor: "rgba(255, 0, 0, 0.8)",
         strokeDash: this.inputRoute.route[i].z === 1 ? "5, 5" : undefined,
-        layer: this.inputRoute.route[i].z.toString(),
+        layer: `z${this.inputRoute.route[i].z.toString()}`,
       })
     }
 
@@ -108,7 +108,7 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
           strokeWidth: 0.15,
           strokeColor: "rgba(0, 255, 0, 0.8)",
           strokeDash: this.newRoute[i].z === 1 ? [0.4, 0.4] : undefined,
-          layer: this.newRoute[i].z.toString(),
+          layer: `z${this.newRoute[i].z.toString()}`,
         })
       }
       graphics.points.push({
@@ -116,7 +116,7 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
         y: this.newRoute[i].y,
         color: "rgba(0, 255, 0, 0.8)",
         label: `z: ${this.newRoute[i].z}`,
-        layer: this.newRoute[i].z.toString(),
+        layer: `z${this.newRoute[i].z.toString()}`,
       })
     }
 
@@ -158,7 +158,7 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
               : route.route[i].z === 1
                 ? "rgba(128, 0, 128, 0.5)" // inner layer (darker purple)
                 : "rgba(0, 0, 255, 0.5)", // bottom layer (blue)
-          layer: route.route[i].z.toString(),
+          layer: `z${route.route[i].z.toString()}`,
         })
       }
     }
