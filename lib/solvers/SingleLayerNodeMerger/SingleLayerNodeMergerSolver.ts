@@ -54,15 +54,15 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
   getAdjacentSameLayerUnprocessedNodes(rootNode: CapacityMeshNode) {
     const adjacentNodes: CapacityMeshNode[] = []
     for (const unprocessedNodeId of this.currentBatchNodeIds) {
-      if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
       const unprocessedNode = this.nodeMap.get(unprocessedNodeId)!
+      if (!areNodesBordering(rootNode, unprocessedNode)) continue
       if (unprocessedNode.availableZ[0] !== rootNode.availableZ[0]) continue
       if (
         unprocessedNode._containsTarget &&
         unprocessedNode._targetConnectionName !== rootNode._targetConnectionName
       )
         continue
-      if (!areNodesBordering(rootNode, unprocessedNode)) continue
+      if (this.absorbedNodeIds.has(unprocessedNodeId)) continue
       adjacentNodes.push(unprocessedNode)
     }
     return adjacentNodes
