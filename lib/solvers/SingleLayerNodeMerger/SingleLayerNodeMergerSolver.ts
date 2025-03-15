@@ -59,14 +59,10 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
   }
 
   computeAdjacentNodeIdsForFirstBatch(nodes: CapacityMeshNode[]) {
-    console.time("computeAdjacentNodeIdsForFirstBatch")
-    console.time("nodeTreeConstruction")
     const nodeTrees = [
       new CapacityNodeTree(nodes.filter((n) => n.availableZ[0] === 0)),
       new CapacityNodeTree(nodes.filter((n) => n.availableZ[0] === 1)),
     ]
-    console.timeEnd("nodeTreeConstruction")
-    console.log("nodes.length", nodes.length)
     for (const node of nodes) {
       const adjacentNodes: CapacityMeshNode[] = []
       const z = node.availableZ[0]
@@ -95,7 +91,6 @@ export class SingleLayerNodeMergerSolver extends BaseSolver {
 
       node._adjacentNodeIds = adjacentNodes.map((n) => n.capacityMeshNodeId)
     }
-    console.timeEnd("computeAdjacentNodeIdsForFirstBatch")
   }
 
   // getAdjacentSameLayerUnprocessedNodes1(rootNode: CapacityMeshNode) {
