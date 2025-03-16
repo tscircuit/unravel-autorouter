@@ -1,6 +1,7 @@
 import type { GraphicsObject } from "graphics-debug"
 import { combineVisualizations } from "../utils/combineVisualizations"
 import type {
+  CapacityMeshEdge,
   CapacityMeshNode,
   SimpleRouteJson,
   SimplifiedPcbTrace,
@@ -42,6 +43,7 @@ import {
   HighDensityIntraNodeRoute,
   HighDensityRoute,
 } from "lib/types/high-density-types"
+import { DeadEndSolver } from "./DeadEndSolver/DeadEndSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -94,6 +96,7 @@ export class CapacityMeshSolver extends BaseSolver {
   singleLayerNodeMerger?: SingleLayerNodeMergerSolver
   strawSolver?: StrawSolver
   multiSimplifiedPathSolver?: MultiSimplifiedPathSolver
+  deadEndSolver?: DeadEndSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -103,6 +106,7 @@ export class CapacityMeshSolver extends BaseSolver {
   connMap: ConnectivityMap
   srjWithPointPairs?: SimpleRouteJson
   capacityNodes: CapacityMeshNode[] | null = null
+  capacityEdges: CapacityMeshEdge[] | null = null
 
   pipelineDef = [
     definePipelineStep(
@@ -165,14 +169,31 @@ export class CapacityMeshSolver extends BaseSolver {
         },
       },
     ),
-    definePipelineStep("edgeSolver", CapacityMeshEdgeSolver, (cms) => [
-      cms.capacityNodes!,
-    ]),
+    definePipelineStep(
+      "edgeSolver",
+      CapacityMeshEdgeSolver, 
+      (cms) => [cms.capacityNodes!], 
+      {
+        onSolved: (cms) => {
+          cms.capacityEdges = cms.edgeSolver?.edges!
+        }
+      }
+    ),
+    definePipelineStep(
+      "deadEndSolver",
+      DeadEndSolver,
+      (cms) => [{ nodes: cms.capacityNodes!, edges: cms.capacityEdges! }],
+      {
+        onSolved: (cms) => {
+          // TODO: Make sure that the nodes and edges of dead ends are removed from the entire state
+        },
+      },
+    ),
     definePipelineStep("pathingSolver", CapacityPathingSolver5, (cms) => [
       {
         simpleRouteJson: cms.srjWithPointPairs!,
         nodes: cms.capacityNodes!,
-        edges: cms.edgeSolver?.edges || [],
+        edges: cms.capacityEdges || [],
         colorMap: cms.colorMap,
         hyperParameters: {
           MAX_CAPACITY_FACTOR: 1,
@@ -185,7 +206,7 @@ export class CapacityMeshSolver extends BaseSolver {
       (cms) => [
         {
           nodes: cms.capacityNodes!,
-          edges: cms.edgeSolver?.edges || [],
+          edges: cms.capacityEdges || [],
           capacityPaths: cms.pathingSolver?.getCapacityPaths() || [],
           colorMap: cms.colorMap,
         },
