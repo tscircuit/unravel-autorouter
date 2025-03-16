@@ -6,7 +6,7 @@ export class DeadEndSolver extends BaseSolver {
 
   private targetNodeIds: Set<string>
   private leaves: Set<string>
-  private adjacency: Map<string, Set<string>>
+  private adjacencyList: Map<string, Set<string>>
 
   constructor({
     nodes,
@@ -23,7 +23,7 @@ export class DeadEndSolver extends BaseSolver {
       nodes.filter((n) => n._containsTarget).map((n) => n.capacityMeshNodeId),
     )
 
-    this.adjacency = new Map(
+    this.adjacencyList = new Map(
       nodes.map(({ capacityMeshNodeId }) => [capacityMeshNodeId, new Set()]),
     )
 
@@ -31,14 +31,14 @@ export class DeadEndSolver extends BaseSolver {
     for (const {
       nodeIds: [u, v],
     } of edges) {
-      this.adjacency.get(u)!.add(v)
-      this.adjacency.get(v)!.add(u)
+      this.adjacencyList.get(u)!.add(v)
+      this.adjacencyList.get(v)!.add(u)
     }
 
     // Determine all nodes that have only a single link (leaves of a tree) and
     //  are not a target.
     this.leaves = new Set(
-      this.adjacency
+      this.adjacencyList
         .entries()
         .filter(([_, neighbours]) => neighbours.size === 1)
         .filter(([nodeId, _]) => !this.targetNodeIds.has(nodeId))
@@ -56,18 +56,21 @@ export class DeadEndSolver extends BaseSolver {
 
     for (const leaf of this.leaves) {
       // Get the single neighbor of the leaf node
-      const [neighbor] = this.adjacency.get(leaf)!
+      const [neighbor] = this.adjacencyList.get(leaf)!
 
-      const neighborsOfLeafNeighbor = this.adjacency.get(neighbor)!
+      const neighborsOfLeafNeighbor = this.adjacencyList.get(neighbor)!
 
       // Remove the leaf from the adjacency list of the neighbor of the leaf.
-      // Note that it is not required to remove the leaf from the adjacency map
+      // This is, by definition, the only entry in the adjacency map that links
+      // to the leaf. Hence, there is no other reference to the leaf and it will
+      // never be visited again.
       neighborsOfLeafNeighbor.delete(leaf)
 
       // Add the leaf to the list of removed ids
       this.removedNodeIds.add(neighbor)
 
-      // If neighbor becomes a leaf and is not a target, add it to the new leaves
+      // Check if the neighbour of the leaf has now become a leaf such that it can
+      // be removed in the next iteration.
       if (
         neighborsOfLeafNeighbor.size === 1 &&
         !this.targetNodeIds.has(neighbor)
