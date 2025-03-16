@@ -171,13 +171,13 @@ export class CapacityMeshSolver extends BaseSolver {
     ),
     definePipelineStep(
       "edgeSolver",
-      CapacityMeshEdgeSolver, 
-      (cms) => [cms.capacityNodes!], 
+      CapacityMeshEdgeSolver,
+      (cms) => [cms.capacityNodes!],
       {
         onSolved: (cms) => {
           cms.capacityEdges = cms.edgeSolver?.edges!
-        }
-      }
+        },
+      },
     ),
     definePipelineStep(
       "deadEndSolver",
