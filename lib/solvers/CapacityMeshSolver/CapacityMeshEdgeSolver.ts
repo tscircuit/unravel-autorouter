@@ -44,6 +44,12 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
       }
     }
 
+    this.handleTargetNodes()
+
+    this.solved = true
+  }
+
+  handleTargetNodes() {
     // If a target node is not connected to any other node, then it is "inside
     // an obstacle" (this is the case almost 100% of the time when we place
     // targets inside of PCB pads)
@@ -76,11 +82,9 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
         })
       }
     }
-
-    this.solved = true
   }
 
-  private doNodesHaveSharedLayer(
+  doNodesHaveSharedLayer(
     node1: CapacityMeshNode,
     node2: CapacityMeshNode,
   ): boolean {

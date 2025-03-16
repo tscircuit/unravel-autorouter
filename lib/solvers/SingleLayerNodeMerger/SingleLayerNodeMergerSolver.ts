@@ -3,7 +3,7 @@ import { BaseSolver } from "../BaseSolver"
 import { areNodesBordering } from "lib/utils/areNodesBordering"
 import { GraphicsObject } from "graphics-debug"
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode"
-import { CapacityNodeTree } from "./CapacityNodeTree"
+import { CapacityNodeTree } from "lib/data-structures/CapacityNodeTree"
 
 const EPSILON = 0.005
 
