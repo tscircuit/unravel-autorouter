@@ -123,11 +123,9 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       numEntryExitLayerChanges,
       numTransitionCrossings,
     } = getIntraNodeCrossingsFromSegments(
-      this.dedupedSegments.filter((seg) =>
-        this.segmentIdToNodeIds
-          .get(seg.nodePortSegmentId!)!
-          .includes(node.capacityMeshNodeId),
-      ),
+      this.nodeIdToSegmentIds
+        .get(node.capacityMeshNodeId)
+        ?.map((segId) => this.dedupedSegmentMap.get(segId)!) || [],
     )
 
     const probabilityOfFailure = calculateNodeProbabilityOfFailure(
