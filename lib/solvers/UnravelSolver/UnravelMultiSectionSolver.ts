@@ -25,6 +25,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
   dedupedSegments: SegmentWithAssignedPoints[]
   nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
   segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
+  nodeToSegmentPointMap: Map<CapacityMeshNodeId, SegmentPointId[]>
+  segmentToSegmentPointMap: Map<SegmentId, SegmentPointId[]>
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
 
@@ -95,10 +97,12 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       this.tunedNodeCapacityMap.set(nodeId, getTunedTotalCapacity1(node))
     }
 
-    this.segmentPointMap = createSegmentPointMap(
-      this.dedupedSegments,
-      this.segmentIdToNodeIds,
-    )
+    const { segmentPointMap, nodeToSegmentPointMap, segmentToSegmentPointMap } =
+      createSegmentPointMap(this.dedupedSegments, this.segmentIdToNodeIds)
+
+    this.segmentPointMap = segmentPointMap
+    this.nodeToSegmentPointMap = nodeToSegmentPointMap
+    this.segmentToSegmentPointMap = segmentToSegmentPointMap
 
     this.nodePfMap = this.computeInitialPfMap()
   }
@@ -175,6 +179,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         rootNodeId: highestPfNodeId,
         MUTABLE_HOPS: this.MUTABLE_HOPS,
         segmentPointMap: this.segmentPointMap,
+        nodeToSegmentPointMap: this.nodeToSegmentPointMap,
+        segmentToSegmentPointMap: this.segmentToSegmentPointMap,
       })
     }
 

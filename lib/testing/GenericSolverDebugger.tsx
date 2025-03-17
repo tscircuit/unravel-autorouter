@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { InteractiveGraphics } from "graphics-debug/react"
+import {
+  InteractiveGraphics,
+  InteractiveGraphicsCanvas,
+} from "graphics-debug/react"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 
@@ -17,6 +20,7 @@ export const GenericSolverDebugger = ({
   onSolverCompleted,
 }: GenericSolverDebuggerProps) => {
   const [mainSolver, setMainSolver] = useState<BaseSolver>(() => createSolver())
+  const [objectSelectionEnabled, setObjectSelectionEnabled] = useState(false)
   const [forcedUpdates, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
@@ -286,6 +290,12 @@ export const GenericSolverDebugger = ({
         >
           Reset
         </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() => setObjectSelectionEnabled(!objectSelectionEnabled)}
+        >
+          {objectSelectionEnabled ? "Disable" : "Enable"} Object Selection
+        </button>
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
@@ -329,7 +339,7 @@ export const GenericSolverDebugger = ({
           <div className="border p-2 rounded">
             Time to solve:{" "}
             <span className="font-bold">
-              {(mainSolver.timeToSolve / 1000).toFixed(2)}s
+              {(mainSolver.timeToSolve / 1000).toFixed(3)}s
             </span>
           </div>
         )}
@@ -363,7 +373,14 @@ export const GenericSolverDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        <InteractiveGraphics graphics={visualization} />
+        {objectSelectionEnabled ? (
+          <InteractiveGraphics graphics={visualization} />
+        ) : (
+          <InteractiveGraphicsCanvas
+            graphics={visualization}
+            showLabelsByDefault={false}
+          />
+        )}
       </div>
 
       <div className="mt-4 border-t pt-4">
