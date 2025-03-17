@@ -5,7 +5,8 @@ export class DeadEndSolver extends BaseSolver {
   public removedNodeIds: Set<string>
 
   private targetNodeIds: Set<string>
-  private leaves: Set<string>
+  private leaves: string[]
+  private leavesIndex: number
   private adjacencyList: Map<string, Set<string>>
 
   constructor({
@@ -16,6 +17,8 @@ export class DeadEndSolver extends BaseSolver {
     edges: CapacityMeshEdge[]
   }) {
     super()
+
+    this.MAX_ITERATIONS = nodes.length
 
     this.removedNodeIds = new Set()
 
@@ -37,48 +40,44 @@ export class DeadEndSolver extends BaseSolver {
 
     // Determine all nodes that have only a single link (leaves of a tree) and
     //  are not a target.
-    this.leaves = new Set(
-      this.adjacencyList
-        .entries()
-        .filter(([_, neighbours]) => neighbours.size === 1)
-        .filter(([nodeId, _]) => !this.targetNodeIds.has(nodeId))
-        .map(([nodeId, _]) => nodeId),
-    )
+    this.leavesIndex = 0
+    this.leaves = [...this.adjacencyList.entries()]
+      .filter(([_, neighbours]) => neighbours.size === 1)
+      .filter(([nodeId, _]) => !this.targetNodeIds.has(nodeId))
+      .map(([nodeId, _]) => nodeId)
   }
 
   _step() {
-    if (this.leaves.size === 0) {
+    if (this.leavesIndex === this.leaves.length) {
       this.solved = true
       return
     }
 
-    const newLeaves = new Set<string>()
+    const leaf = this.leaves[this.leavesIndex]
 
-    for (const leaf of this.leaves) {
-      // Get the single neighbor of the leaf node
-      const [neighbor] = this.adjacencyList.get(leaf)!
+    // Get the single neighbor of the leaf node
+    const [neighbor] = this.adjacencyList.get(leaf)!
 
-      const neighborsOfLeafNeighbor = this.adjacencyList.get(neighbor)!
+    const neighborsOfLeafNeighbor = this.adjacencyList.get(neighbor)!
 
-      // Remove the leaf from the adjacency list of the neighbor of the leaf.
-      // This is, by definition, the only entry in the adjacency map that links
-      // to the leaf. Hence, there is no other reference to the leaf and it will
-      // never be visited again.
-      neighborsOfLeafNeighbor.delete(leaf)
+    // Remove the leaf from the adjacency list of the neighbor of the leaf.
+    // This is, by definition, the only entry in the adjacency map that links
+    // to the leaf. Hence, there is no other reference to the leaf and it will
+    // never be visited again.
+    neighborsOfLeafNeighbor.delete(leaf)
 
-      // Add the leaf to the list of removed ids
-      this.removedNodeIds.add(neighbor)
+    // Add the leaf to the list of removed ids
+    this.removedNodeIds.add(neighbor)
 
-      // Check if the neighbour of the leaf has now become a leaf such that it can
-      // be removed in the next iteration.
-      if (
-        neighborsOfLeafNeighbor.size === 1 &&
-        !this.targetNodeIds.has(neighbor)
-      ) {
-        newLeaves.add(neighbor)
-      }
+    // Check if the neighbour of the leaf has now become a leaf such that it can
+    // be removed in a future iteration.
+    if (
+      neighborsOfLeafNeighbor.size === 1 &&
+      !this.targetNodeIds.has(neighbor)
+    ) {
+      this.leaves.push(neighbor)
     }
 
-    this.leaves = newLeaves
+    this.leavesIndex += 1
   }
 }
