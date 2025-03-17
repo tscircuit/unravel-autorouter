@@ -67,7 +67,7 @@ export class DeadEndSolver extends BaseSolver {
     neighborsOfLeafNeighbor.delete(leaf)
 
     // Add the leaf to the list of removed ids
-    this.removedNodeIds.add(neighbor)
+    this.removedNodeIds.add(leaf)
 
     // Check if the neighbour of the leaf has now become a leaf such that it can
     // be removed in a future iteration.
@@ -79,5 +79,9 @@ export class DeadEndSolver extends BaseSolver {
     }
 
     this.leavesIndex += 1
+
+    if (this.leavesIndex === this.leaves.length) {
+      this.solved = true
+    }
   }
 }
