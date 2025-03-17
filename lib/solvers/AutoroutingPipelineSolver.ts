@@ -186,7 +186,14 @@ export class CapacityMeshSolver extends BaseSolver {
       (cms) => [{ nodes: cms.capacityNodes!, edges: cms.capacityEdges! }],
       {
         onSolved: (cms) => {
-          // TODO: Make sure that the nodes and edges of dead ends are removed from the entire state
+          const removedNodeIds = cms.deadEndSolver?.removedNodeIds!
+
+          cms.capacityNodes = cms.capacityNodes!.filter(
+            (n) => !removedNodeIds.has(n.capacityMeshNodeId),
+          )
+          cms.capacityEdges = cms.capacityEdges!.filter((e) =>
+            e.nodeIds.every((nodeId) => !removedNodeIds.has(nodeId)),
+          )
         },
       },
     ),
