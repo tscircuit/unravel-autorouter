@@ -275,6 +275,13 @@ export const AutoroutingPipelineDebugger = ({
             {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
           </span>
         </div>
+        <div className="border p-2 rounded">
+          Trace Count:{" "}
+          <span className="font-bold">
+            {solver.srjWithPointPairs?.connections.length ??
+              `${solver.srj.connections.length} (*)`}
+          </span>
+        </div>
         {solver.activeSubSolver && (
           <div className="border p-2 rounded">
             Active Stage:{" "}
@@ -299,6 +306,7 @@ export const AutoroutingPipelineDebugger = ({
               if (!object.label?.includes("cn")) return
               setDialogObject(object)
             }}
+            objectLimit={20e3}
           />
         ) : (
           <InteractiveGraphicsCanvas
