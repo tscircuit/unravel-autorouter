@@ -12,6 +12,8 @@ import { isPointInRect } from "lib/utils/isPointInRect"
 import { doRectsOverlap } from "lib/utils/doRectsOverlap"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
+import { ObstacleTree } from "lib/data-structures/ObstacleTree"
+import { TargetTree } from "lib/data-structures/TargetTree"
 
 interface CapacityMeshNodeSolverOptions {
   capacityDepth?: number
@@ -20,6 +22,12 @@ interface CapacityMeshNodeSolverOptions {
 interface Target {
   x: number
   y: number
+  bounds: {
+    minX: number
+    minY: number
+    maxX: number
+    maxY: number
+  }
   connectionName: string
   availableZ: number[]
 }
@@ -36,6 +44,8 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   MAX_DEPTH = 4
 
   targets: Target[]
+  targetTree: TargetTree
+  obstacleTree: ObstacleTree
 
   constructor(
     public srj: SimpleRouteJson,
@@ -81,13 +91,50 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     ]
     this.finishedNodes = []
     this.nodeToXYOverlappingObstaclesMap = new Map()
-    this.targets = this.srj.connections.flatMap((c) =>
-      c.pointsToConnect.map((p) => ({
-        ...p,
-        connectionName: c.name,
-        availableZ: p.layer === "top" ? [0] : [1],
-      })),
-    )
+    this.obstacleTree = new ObstacleTree(this.srj.obstacles)
+    this.targets = this.computeTargets()
+    this.targetTree = new TargetTree(this.targets)
+  }
+
+  computeTargets(): Target[] {
+    const targets: Target[] = []
+    for (const conn of this.srj.connections) {
+      for (const ptc of conn.pointsToConnect) {
+        const obstacles = this.obstacleTree
+          .getNodesInArea(ptc.x, ptc.y, 0.01, 0.01)
+          .filter((o) =>
+            o.zLayers!.some((z) => (ptc.layer === "top" ? z === 0 : z === 1)),
+          )
+
+        let bounds: {
+          minX: number
+          minY: number
+          maxX: number
+          maxY: number
+        } = {
+          minX: ptc.x - 0.005,
+          minY: ptc.y - 0.005,
+          maxX: ptc.x + 0.005,
+          maxY: ptc.y + 0.005,
+        }
+        if (obstacles.length > 0) {
+          bounds = {
+            minX: Math.min(...obstacles.map((o) => o.center.x - o.width / 2)),
+            minY: Math.min(...obstacles.map((o) => o.center.y - o.height / 2)),
+            maxX: Math.max(...obstacles.map((o) => o.center.x + o.width / 2)),
+            maxY: Math.max(...obstacles.map((o) => o.center.y + o.height / 2)),
+          }
+        }
+        const target = {
+          ...ptc,
+          connectionName: conn.name,
+          availableZ: ptc.layer === "top" ? [0] : [1],
+          bounds,
+        }
+        targets.push(target)
+      }
+    }
+    return targets
   }
 
   _nextNodeCounter = 0
@@ -100,26 +147,23 @@ export class CapacityMeshNodeSolver extends BaseSolver {
   }
 
   getTargetIfNodeContainsTarget(node: CapacityMeshNode): Target | null {
-    const overlappingObstacles = this.getXYOverlappingObstacles(node)
-    for (const target of this.targets) {
-      // if (target.layer !== node.layer) continue
-      if (!target.availableZ.some((z) => node.availableZ.includes(z))) continue
-
-      const targetObstacle = overlappingObstacles.find((o) =>
-        isPointInRect(target, o),
-      )
-
-      if (targetObstacle) {
-        if (doRectsOverlap(node, targetObstacle)) {
-          return target
-        }
-      }
-
+    const nearbyTargets =
+      node.width > this.targetTree.CELL_SIZE * 4
+        ? this.targets
+        : this.targetTree.getTargetsInArea(
+            node.center.x,
+            node.center.y,
+            node.width,
+            node.height,
+          )
+    for (const target of nearbyTargets) {
       if (
-        target.x >= node.center.x - node.width / 2 &&
-        target.x <= node.center.x + node.width / 2 &&
-        target.y >= node.center.y - node.height / 2 &&
-        target.y <= node.center.y + node.height / 2
+        // Check if the node and target bounds overlap
+        target.bounds.minX <= node.center.x + node.width / 2 &&
+        target.bounds.maxX >= node.center.x - node.width / 2 &&
+        target.bounds.minY <= node.center.y + node.height / 2 &&
+        target.bounds.maxY >= node.center.y - node.height / 2 &&
+        target.availableZ.some((z) => node.availableZ.includes(z))
       ) {
         return target
       }
