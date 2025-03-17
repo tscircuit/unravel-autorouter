@@ -21956,9 +21956,7 @@
     "obstacles": [
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 24.13
@@ -21971,15 +21969,11 @@
           "source_trace_4",
           "source_trace_7"
         ],
-        "zLayers": [
-          0
-        ]
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 21.59
@@ -21992,87 +21986,59 @@
           "source_trace_13",
           "source_trace_16"
         ],
-        "zLayers": [
-          0
-        ]
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 19.049999999999997
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_2"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_2"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 16.509999999999998
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_3"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_3"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 13.969999999999999
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_4"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_4"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 11.43
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_5"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_5"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 8.889999999999999
@@ -22085,123 +22051,83 @@
           "source_trace_17",
           "source_trace_26"
         ],
-        "zLayers": [
-          0
-        ]
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 6.349999999999998
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_7"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_7"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 3.8099999999999987
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_8"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_8"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": 1.2699999999999996
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_9"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_9"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -1.2699999999999996
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_10"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_10"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -3.8100000000000023
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_11"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_11"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -6.350000000000001
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_12"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_12"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -8.890000000000004
@@ -22214,141 +22140,95 @@
           "source_trace_22",
           "source_trace_25"
         ],
-        "zLayers": [
-          0
-        ]
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -11.430000000000003
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_14"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_14"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -13.970000000000002
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_15"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_15"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -16.51
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_16"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_16"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -19.05
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_17"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_17"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -21.59
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_18"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_18"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -39.39,
           "y": -24.13
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_19"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_19"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -24.13
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_20"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_20"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -21.59
@@ -22361,51 +22241,35 @@
           "source_trace_14",
           "source_trace_23"
         ],
-        "zLayers": [
-          0
-        ]
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -19.049999999999997
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_22"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_22"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -16.509999999999998
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_23"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_23"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -13.969999999999999
@@ -22418,972 +22282,623 @@
           "source_trace_11",
           "source_trace_20"
         ],
-        "zLayers": [
-          0
-        ]
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -11.43
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_25"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_25"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -8.889999999999999
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_26"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_26"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -6.349999999999998
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_27"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_27"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -3.8099999999999987
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_28"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_28"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": -1.2699999999999996
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_29"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_29"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 1.2699999999999996
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_30"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_30"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 3.8100000000000023
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_31"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_31"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 6.350000000000001
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_32"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_32"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 8.890000000000004
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_33"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_33"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 11.430000000000003
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_34"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_34"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 13.970000000000002
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_35"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_35"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 16.51
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_36"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_36"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 19.05
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_37"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_37"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 21.59
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_38"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_38"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "top"
-        ],
+        "layers": ["top"],
         "center": {
           "x": -20.61,
           "y": 24.13
         },
         "width": 3.8,
         "height": 2.28,
-        "connectedTo": [
-          "pcb_smtpad_39"
-        ],
-        "zLayers": [
-          0
-        ]
+        "connectedTo": ["pcb_smtpad_39"],
+        "zLayers": [0]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 4.2250959999999615,
           "y": -20.319999999999983
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_40",
-          "source_trace_2"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_40", "source_trace_2"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 17.674904000000037,
           "y": -17.78000000000002
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_41",
-          "source_trace_0"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_41", "source_trace_0"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 12.12259100000001,
           "y": -32.05
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_42",
-          "source_trace_0"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_42", "source_trace_0"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 9.777408999999988,
           "y": -32.05
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_43",
-          "source_trace_1"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_43", "source_trace_1"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 23.275095999999962,
           "y": -20.319999999999983
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_44",
-          "source_trace_5"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_44", "source_trace_5"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 36.72490400000004,
           "y": -17.78000000000002
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_45",
-          "source_trace_3"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_45", "source_trace_3"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 31.17259100000001,
           "y": -32.05
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_46",
-          "source_trace_3"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_46", "source_trace_3"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 28.82740899999999,
           "y": -32.05
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_47",
-          "source_trace_4"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_47", "source_trace_4"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 42.32509599999996,
           "y": -20.319999999999983
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_48",
-          "source_trace_8"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_48", "source_trace_8"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 55.774904000000035,
           "y": -17.78000000000002
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_49",
-          "source_trace_6"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_49", "source_trace_6"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 50.22259100000001,
           "y": -32.05
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_50",
-          "source_trace_6"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_50", "source_trace_6"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 47.877408999999986,
           "y": -32.05
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_51",
-          "source_trace_7"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_51", "source_trace_7"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 4.2250959999999615,
           "y": -1.2699999999999818
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_52",
-          "source_trace_11"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_52", "source_trace_11"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 17.674904000000037,
           "y": 1.2699999999999818
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_53",
-          "source_trace_9"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_53", "source_trace_9"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 12.12259100000001,
           "y": -13
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_54",
-          "source_trace_9"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_54", "source_trace_9"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 9.777408999999988,
           "y": -13
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_55",
-          "source_trace_10"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_55", "source_trace_10"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 23.275095999999962,
           "y": -1.2699999999999818
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_56",
-          "source_trace_14"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_56", "source_trace_14"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 36.72490400000004,
           "y": 1.2699999999999818
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_57",
-          "source_trace_12"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_57", "source_trace_12"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 31.17259100000001,
           "y": -13
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_58",
-          "source_trace_12"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_58", "source_trace_12"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 28.82740899999999,
           "y": -13
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_59",
-          "source_trace_13"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_59", "source_trace_13"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 42.32509599999996,
           "y": -1.2699999999999818
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_60",
-          "source_trace_17"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_60", "source_trace_17"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 55.774904000000035,
           "y": 1.2699999999999818
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_61",
-          "source_trace_15"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_61", "source_trace_15"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 50.22259100000001,
           "y": -13
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_62",
-          "source_trace_15"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_62", "source_trace_15"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 47.877408999999986,
           "y": -13
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_63",
-          "source_trace_16"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_63", "source_trace_16"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 4.2250959999999615,
           "y": 17.78000000000002
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_64",
-          "source_trace_20"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_64", "source_trace_20"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 17.674904000000037,
           "y": 20.319999999999983
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_65",
-          "source_trace_18"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_65", "source_trace_18"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 12.12259100000001,
           "y": 6.050000000000001
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_66",
-          "source_trace_18"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_66", "source_trace_18"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 9.777408999999988,
           "y": 6.050000000000001
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_67",
-          "source_trace_19"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_67", "source_trace_19"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 23.275095999999962,
           "y": 17.78000000000002
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_68",
-          "source_trace_23"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_68", "source_trace_23"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 36.72490400000004,
           "y": 20.319999999999983
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_69",
-          "source_trace_21"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_69", "source_trace_21"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 31.17259100000001,
           "y": 6.050000000000001
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_70",
-          "source_trace_21"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_70", "source_trace_21"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 28.82740899999999,
           "y": 6.050000000000001
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_71",
-          "source_trace_22"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_71", "source_trace_22"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 42.32509599999996,
           "y": 17.78000000000002
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_72",
-          "source_trace_26"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_72", "source_trace_26"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 55.774904000000035,
           "y": 20.319999999999983
         },
         "width": 2.8999941999999996,
         "height": 2.4999949999999997,
-        "connectedTo": [
-          "pcb_smtpad_73",
-          "source_trace_24"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_73", "source_trace_24"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 50.22259100000001,
           "y": 6.050000000000001
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_74",
-          "source_trace_24"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_74", "source_trace_24"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "bottom"
-        ],
+        "layers": ["bottom"],
         "center": {
           "x": 47.877408999999986,
           "y": 6.050000000000001
         },
         "width": 0.9999979999999999,
         "height": 0.7500112,
-        "connectedTo": [
-          "pcb_smtpad_75",
-          "source_trace_25"
-        ],
-        "zLayers": [
-          1
-        ]
+        "connectedTo": ["pcb_smtpad_75", "source_trace_25"],
+        "zLayers": [1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 7.775000000000045,
           "y": -20.319999999999983
@@ -23391,21 +22906,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 14.124999999999954,
           "y": -17.779999999999905
@@ -23413,21 +22918,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 11.58499999999999,
           "y": -22.684998799999967
@@ -23435,21 +22930,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 26.825000000000045,
           "y": -20.319999999999983
@@ -23457,21 +22942,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 33.174999999999955,
           "y": -17.779999999999905
@@ -23479,21 +22954,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 30.63499999999999,
           "y": -22.684998799999967
@@ -23501,21 +22966,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 45.87500000000004,
           "y": -20.319999999999983
@@ -23523,21 +22978,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 52.22499999999995,
           "y": -17.779999999999905
@@ -23545,21 +22990,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 49.68499999999999,
           "y": -22.684998799999967
@@ -23567,21 +23002,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 7.775000000000045,
           "y": -1.2699999999999818
@@ -23589,21 +23014,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 14.124999999999954,
           "y": 1.2700000000000955
@@ -23611,21 +23026,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 11.58499999999999,
           "y": -3.6349987999999667
@@ -23633,21 +23038,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 26.825000000000045,
           "y": -1.2699999999999818
@@ -23655,21 +23050,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 33.174999999999955,
           "y": 1.2700000000000955
@@ -23677,21 +23062,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 30.63499999999999,
           "y": -3.6349987999999667
@@ -23699,21 +23074,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 45.87500000000004,
           "y": -1.2699999999999818
@@ -23721,21 +23086,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 52.22499999999995,
           "y": 1.2700000000000955
@@ -23743,21 +23098,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 49.68499999999999,
           "y": -3.6349987999999667
@@ -23765,21 +23110,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 7.775000000000045,
           "y": 17.78000000000002
@@ -23787,21 +23122,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 14.124999999999954,
           "y": 20.320000000000096
@@ -23809,21 +23134,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 11.58499999999999,
           "y": 15.415001200000034
@@ -23831,21 +23146,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 26.825000000000045,
           "y": 17.78000000000002
@@ -23853,21 +23158,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 33.174999999999955,
           "y": 20.320000000000096
@@ -23875,21 +23170,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 30.63499999999999,
           "y": 15.415001200000034
@@ -23897,21 +23182,11 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 45.87500000000004,
           "y": 17.78000000000002
@@ -23919,21 +23194,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 52.22499999999995,
           "y": 20.320000000000096
@@ -23941,21 +23206,11 @@
         "width": 2.9999939999999996,
         "height": 2.9999939999999996,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       },
       {
         "type": "rect",
-        "layers": [
-          "top",
-          "inner1",
-          "inner2",
-          "bottom"
-        ],
+        "layers": ["top", "inner1", "inner2", "bottom"],
         "center": {
           "x": 49.68499999999999,
           "y": 15.415001200000034
@@ -23963,12 +23218,7 @@
         "width": 4.1999916,
         "height": 4.1999916,
         "connectedTo": [],
-        "zLayers": [
-          0,
-          1,
-          2,
-          1
-        ]
+        "zLayers": [0, 1, 2, 1]
       }
     ],
     "connMap": {
@@ -24234,108 +23484,40 @@
           "pcb_smtpad_41",
           "pcb_smtpad_42"
         ],
-        "connectivity_net27": [
-          "pcb_smtpad_2"
-        ],
-        "connectivity_net28": [
-          "pcb_smtpad_3"
-        ],
-        "connectivity_net29": [
-          "pcb_smtpad_4"
-        ],
-        "connectivity_net30": [
-          "pcb_smtpad_5"
-        ],
-        "connectivity_net31": [
-          "pcb_smtpad_7"
-        ],
-        "connectivity_net32": [
-          "pcb_smtpad_8"
-        ],
-        "connectivity_net33": [
-          "pcb_smtpad_9"
-        ],
-        "connectivity_net34": [
-          "pcb_smtpad_10"
-        ],
-        "connectivity_net35": [
-          "pcb_smtpad_11"
-        ],
-        "connectivity_net36": [
-          "pcb_smtpad_12"
-        ],
-        "connectivity_net37": [
-          "pcb_smtpad_14"
-        ],
-        "connectivity_net38": [
-          "pcb_smtpad_15"
-        ],
-        "connectivity_net39": [
-          "pcb_smtpad_16"
-        ],
-        "connectivity_net40": [
-          "pcb_smtpad_17"
-        ],
-        "connectivity_net41": [
-          "pcb_smtpad_18"
-        ],
-        "connectivity_net42": [
-          "pcb_smtpad_19"
-        ],
-        "connectivity_net43": [
-          "pcb_smtpad_20"
-        ],
-        "connectivity_net44": [
-          "pcb_smtpad_22"
-        ],
-        "connectivity_net45": [
-          "pcb_smtpad_23"
-        ],
-        "connectivity_net46": [
-          "pcb_smtpad_25"
-        ],
-        "connectivity_net47": [
-          "pcb_smtpad_26"
-        ],
-        "connectivity_net48": [
-          "pcb_smtpad_27"
-        ],
-        "connectivity_net49": [
-          "pcb_smtpad_28"
-        ],
-        "connectivity_net50": [
-          "pcb_smtpad_29"
-        ],
-        "connectivity_net51": [
-          "pcb_smtpad_30"
-        ],
-        "connectivity_net52": [
-          "pcb_smtpad_31"
-        ],
-        "connectivity_net53": [
-          "pcb_smtpad_32"
-        ],
-        "connectivity_net54": [
-          "pcb_smtpad_33"
-        ],
-        "connectivity_net55": [
-          "pcb_smtpad_34"
-        ],
-        "connectivity_net56": [
-          "pcb_smtpad_35"
-        ],
-        "connectivity_net57": [
-          "pcb_smtpad_36"
-        ],
-        "connectivity_net58": [
-          "pcb_smtpad_37"
-        ],
-        "connectivity_net59": [
-          "pcb_smtpad_38"
-        ],
-        "connectivity_net60": [
-          "pcb_smtpad_39"
-        ],
+        "connectivity_net27": ["pcb_smtpad_2"],
+        "connectivity_net28": ["pcb_smtpad_3"],
+        "connectivity_net29": ["pcb_smtpad_4"],
+        "connectivity_net30": ["pcb_smtpad_5"],
+        "connectivity_net31": ["pcb_smtpad_7"],
+        "connectivity_net32": ["pcb_smtpad_8"],
+        "connectivity_net33": ["pcb_smtpad_9"],
+        "connectivity_net34": ["pcb_smtpad_10"],
+        "connectivity_net35": ["pcb_smtpad_11"],
+        "connectivity_net36": ["pcb_smtpad_12"],
+        "connectivity_net37": ["pcb_smtpad_14"],
+        "connectivity_net38": ["pcb_smtpad_15"],
+        "connectivity_net39": ["pcb_smtpad_16"],
+        "connectivity_net40": ["pcb_smtpad_17"],
+        "connectivity_net41": ["pcb_smtpad_18"],
+        "connectivity_net42": ["pcb_smtpad_19"],
+        "connectivity_net43": ["pcb_smtpad_20"],
+        "connectivity_net44": ["pcb_smtpad_22"],
+        "connectivity_net45": ["pcb_smtpad_23"],
+        "connectivity_net46": ["pcb_smtpad_25"],
+        "connectivity_net47": ["pcb_smtpad_26"],
+        "connectivity_net48": ["pcb_smtpad_27"],
+        "connectivity_net49": ["pcb_smtpad_28"],
+        "connectivity_net50": ["pcb_smtpad_29"],
+        "connectivity_net51": ["pcb_smtpad_30"],
+        "connectivity_net52": ["pcb_smtpad_31"],
+        "connectivity_net53": ["pcb_smtpad_32"],
+        "connectivity_net54": ["pcb_smtpad_33"],
+        "connectivity_net55": ["pcb_smtpad_34"],
+        "connectivity_net56": ["pcb_smtpad_35"],
+        "connectivity_net57": ["pcb_smtpad_36"],
+        "connectivity_net58": ["pcb_smtpad_37"],
+        "connectivity_net59": ["pcb_smtpad_38"],
+        "connectivity_net60": ["pcb_smtpad_39"],
         "connectivity_net61": [],
         "connectivity_net62": [],
         "connectivity_net63": [],

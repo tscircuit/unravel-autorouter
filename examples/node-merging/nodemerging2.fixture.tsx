@@ -92,7 +92,10 @@ export default () => {
                 }}
               />
               <Tooltip
-                formatter={(value) => [`${value.toFixed(2)}s`, "Duration"]}
+                formatter={(value) => [
+                  `${(value as any).toFixed(2)}s`,
+                  "Duration",
+                ]}
               />
               <Legend />
               <Line
