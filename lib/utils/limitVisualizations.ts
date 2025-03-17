@@ -2,7 +2,7 @@ import type { GraphicsObject } from "graphics-debug"
 
 export const limitVisualizations = (
   graphicsObject: GraphicsObject,
-  objectLimit = 1000,
+  objectLimit = 10000,
 ): GraphicsObject => {
   // Count total objects
   const totalObjects =
@@ -17,13 +17,14 @@ export const limitVisualizations = (
   }
 
   // Calculate skip factor (percentage of objects to skip)
-  const skipFactor = Math.ceil(
-    ((totalObjects - objectLimit) / totalObjects) * 100,
-  )
+  // totalObjects objectLimit skipFactor
+  // 1            1000        -999 / 1 = -999
+  // 10e3         1000        9000 / 10e3 = 0.9
+  const skipFactor = (totalObjects - objectLimit) / totalObjects
 
   // Filter function that keeps objects based on skipFactor
   const filterBySkipFactor = (_: any, index: number) => {
-    return (index * 100) % skipFactor !== 0
+    return (index * 37717) % 1000 > skipFactor * 1000
   }
 
   // Create new graphics object with reduced items
