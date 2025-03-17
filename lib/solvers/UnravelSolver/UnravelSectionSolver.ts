@@ -74,7 +74,6 @@ export class UnravelSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
   MAX_CANDIDATES = 500
-  candidateHashToIssuesCache: Map<string, UnravelIssue[]>
 
   selectedCandidateIndex: number | "best" | "original" | null = null
 
@@ -107,7 +106,6 @@ export class UnravelSectionSolver extends BaseSolver {
         this.dedupedSegmentMap.set(segment.nodePortSegmentId!, segment)
       }
     }
-    this.candidateHashToIssuesCache = new Map()
     this.nodeIdToSegmentIds = params.nodeIdToSegmentIds
     this.segmentIdToNodeIds = params.segmentIdToNodeIds
     this.rootNodeId = params.rootNodeId
@@ -514,10 +512,10 @@ export class UnravelSectionSolver extends BaseSolver {
     return cost
   }
 
-  getNeighborByApplyingOperation(
+  getUnexploredNeighborByApplyingOperation(
     currentCandidate: UnravelCandidate,
     operation: UnravelOperation,
-  ): UnravelCandidate {
+  ): UnravelCandidate | null {
     const pointModifications = new Map<
       SegmentPointId,
       { x?: number; y?: number; z?: number }
@@ -532,17 +530,17 @@ export class UnravelSectionSolver extends BaseSolver {
 
     const candidateHash = createPointModificationsHash(pointModifications)
 
-    let issues: UnravelIssue[]
-    if (!this.candidateHashToIssuesCache.has(candidateHash)) {
-      issues = getIssuesInSection(
-        this.unravelSection,
-        this.nodeMap,
-        pointModifications,
-      )
-      this.candidateHashToIssuesCache.set(candidateHash, issues)
-    } else {
-      issues = this.candidateHashToIssuesCache.get(candidateHash)!
+    if (
+      this.queuedOrExploredCandidatePointModificationHashes.has(candidateHash)
+    ) {
+      return null
     }
+
+    const issues: UnravelIssue[] = getIssuesInSection(
+      this.unravelSection,
+      this.nodeMap,
+      pointModifications,
+    )
 
     const operationsPerformed = currentCandidate.operationsPerformed + 1
 
@@ -584,8 +582,15 @@ export class UnravelSectionSolver extends BaseSolver {
 
     const operations = this.getNeighborOperationsForCandidate(candidate)
     for (const operation of operations) {
-      const neighbor = this.getNeighborByApplyingOperation(candidate, operation)
+      const neighbor = this.getUnexploredNeighborByApplyingOperation(
+        candidate,
+        operation,
+      )
+      if (!neighbor) continue
       neighbors.push(neighbor)
+      this.queuedOrExploredCandidatePointModificationHashes.add(
+        neighbor.candidateHash,
+      )
     }
 
     return neighbors
