@@ -18,6 +18,7 @@ export interface CapacityMeshNode {
   _completelyInsideObstacle?: boolean
   _containsObstacle?: boolean
   _containsTarget?: boolean
+  _targetIndex?: number
   _targetConnectionName?: string
   _strawNode?: boolean
   _strawParentCapacityMeshNodeId?: CapacityMeshNodeId

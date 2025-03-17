@@ -1,27 +1,10 @@
-import type { GraphicsObject } from "graphics-debug"
-import { BaseSolver } from "../BaseSolver"
-import type {
-  CapacityMeshEdge,
-  CapacityMeshNode,
-  CapacityMeshNodeId,
-  Obstacle,
-  SimpleRouteJson,
-} from "../../types"
-import { COLORS } from "../colors"
-import { isPointInRect } from "lib/utils/isPointInRect"
 import { doRectsOverlap } from "lib/utils/doRectsOverlap"
-import { CapacityMeshNodeSolver } from "./CapacityMeshNodeSolver1"
-import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
+import { isPointInRect } from "lib/utils/isPointInRect"
+import type { CapacityMeshNode, SimpleRouteJson } from "../../types"
+import { CapacityMeshNodeSolver, Target } from "./CapacityMeshNodeSolver1"
 
 interface CapacityMeshNodeSolverOptions {
   capacityDepth?: number
-}
-
-interface Target {
-  x: number
-  y: number
-  connectionName: string
-  availableZ: number[]
 }
 
 export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeSolver {
@@ -51,6 +34,7 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       node.center.y + node.height / 2 > this.srj.bounds.maxY
     )
   }
+
   createChildNodeAtPosition(
     parent: CapacityMeshNode,
     opts: {
@@ -81,6 +65,7 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
     const target = this.getTargetIfNodeContainsTarget(childNode)
 
     if (target) {
+      childNode._targetIndex = target.index
       childNode._targetConnectionName = target.connectionName
       childNode._containsTarget = true
     }

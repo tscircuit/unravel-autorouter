@@ -1,7 +1,6 @@
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
 import type {
-  CapacityMeshEdge,
   CapacityMeshNode,
   CapacityMeshNodeId,
   Obstacle,
@@ -17,11 +16,12 @@ interface CapacityMeshNodeSolverOptions {
   capacityDepth?: number
 }
 
-interface Target {
+export interface Target {
   x: number
   y: number
   connectionName: string
   availableZ: number[]
+  index: number
 }
 
 export class CapacityMeshNodeSolver extends BaseSolver {
@@ -81,13 +81,17 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     ]
     this.finishedNodes = []
     this.nodeToXYOverlappingObstaclesMap = new Map()
-    this.targets = this.srj.connections.flatMap((c) =>
-      c.pointsToConnect.map((p) => ({
-        ...p,
-        connectionName: c.name,
-        availableZ: p.layer === "top" ? [0] : [1],
-      })),
-    )
+    this.targets = this.srj.connections
+      .flatMap((c) =>
+        c.pointsToConnect.map((p) => ({
+          ...p,
+          connectionName: c.name,
+          availableZ: p.layer === "top" ? [0] : [1],
+        })),
+      )
+      .map((p, index) => {
+        return { ...p, index }
+      })
   }
 
   _nextNodeCounter = 0
@@ -101,7 +105,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
   getTargetIfNodeContainsTarget(node: CapacityMeshNode): Target | null {
     const overlappingObstacles = this.getXYOverlappingObstacles(node)
-    for (const target of this.targets) {
+    for (const target of this.targets.slice(node._parent?._targetIndex ?? 0)) {
       // if (target.layer !== node.layer) continue
       if (!target.availableZ.some((z) => node.availableZ.includes(z))) continue
 
