@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from "react"
-import { InteractiveGraphics } from "graphics-debug/react"
+import {
+  InteractiveGraphics,
+  InteractiveGraphicsCanvas,
+} from "graphics-debug/react"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
@@ -24,8 +27,6 @@ export const AutoroutingPipelineDebugger = ({
     createSolver(srj),
   )
   const [canSelectObjects, setCanSelectObjects] = useState(false)
-  const [shouldLimitVisualizations, setShouldLimitVisualizations] =
-    useState(false)
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
@@ -179,16 +180,12 @@ export const AutoroutingPipelineDebugger = ({
   const visualization = useMemo(() => {
     try {
       const ogVisualization = solver?.visualize() || { points: [], lines: [] }
-      if (shouldLimitVisualizations) {
-        return limitVisualizations(ogVisualization, 5e3)
-      } else {
-        return ogVisualization
-      }
+      return ogVisualization
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations, shouldLimitVisualizations])
+  }, [solver, solver.iterations])
 
   return (
     <div className="p-4">
@@ -251,15 +248,6 @@ export const AutoroutingPipelineDebugger = ({
         >
           {canSelectObjects ? "Disable" : "Enable"} Object Selection
         </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() =>
-            setShouldLimitVisualizations(!shouldLimitVisualizations)
-          }
-        >
-          {shouldLimitVisualizations ? "Disable" : "Enable"} Visualization
-          Limiting
-        </button>
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
@@ -303,14 +291,21 @@ export const AutoroutingPipelineDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        <InteractiveGraphics
-          graphics={visualization}
-          onObjectClicked={({ object }) => {
-            if (!canSelectObjects) return
-            if (!object.label?.includes("cn")) return
-            setDialogObject(object)
-          }}
-        />
+        {canSelectObjects ? (
+          <InteractiveGraphics
+            graphics={visualization}
+            onObjectClicked={({ object }) => {
+              if (!canSelectObjects) return
+              if (!object.label?.includes("cn")) return
+              setDialogObject(object)
+            }}
+          />
+        ) : (
+          <InteractiveGraphicsCanvas
+            graphics={visualization}
+            showLabelsByDefault={false}
+          />
+        )}
       </div>
 
       {dialogObject && (
