@@ -162,20 +162,18 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     // Second pass: set neighboring segment point ids
-    for (let i = 0; i < segmentPoints.length; i++) {
-      const A = segmentPoints[i]
-      for (let j = i + 1; j < segmentPoints.length; j++) {
-        const B = segmentPoints[j]
-        if (B.segmentPointId === A.segmentPointId) continue
-        if (B.segmentId === A.segmentId) continue
-        if (B.connectionName !== A.connectionName) continue
-        // If the points share the same capacity node, and share the same
-        // connection name, then they're neighbors
-        if (
-          A.capacityMeshNodeIds.some((nId) =>
-            B.capacityMeshNodeIds.includes(nId),
-          )
-        ) {
+    for (const [nodeId, segmentPoints] of segmentPointsInNode.entries()) {
+      for (let i = 0; i < segmentPoints.length; i++) {
+        const A = segmentPointMap.get(segmentPoints[i])!
+        for (let j = i + 1; j < segmentPoints.length; j++) {
+          const B = segmentPointMap.get(segmentPoints[j])!
+
+          if (B.segmentPointId === A.segmentPointId) continue
+          if (B.segmentId === A.segmentId) continue
+          if (B.connectionName !== A.connectionName) continue
+          if (B.directlyConnectedSegmentPointIds.includes(A.segmentPointId))
+            continue
+
           A.directlyConnectedSegmentPointIds.push(B.segmentPointId)
           B.directlyConnectedSegmentPointIds.push(A.segmentPointId)
         }
