@@ -30,6 +30,7 @@ export const AutoroutingPipelineDebugger = ({
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [solveTime, setSolveTime] = useState<number | null>(null)
   const [dialogObject, setDialogObject] = useState<Rect | null>(null)
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
@@ -110,8 +111,10 @@ export const AutoroutingPipelineDebugger = ({
   // Solve completely
   const handleSolveCompletely = () => {
     if (!solver.solved && !solver.failed) {
+      const startTime = performance.now() / 1000
       solver.solve()
-      setForceUpdate((prev) => prev + 1)
+      const endTime = performance.now() / 1000
+      setSolveTime(endTime - startTime)
     }
   }
 
@@ -282,14 +285,18 @@ export const AutoroutingPipelineDebugger = ({
               `${solver.srj.connections.length} (*)`}
           </span>
         </div>
-        {solver.activeSubSolver && (
+        {solveTime !== null && (
           <div className="border p-2 rounded">
-            Active Stage:{" "}
-            <span className="font-bold">
-              {solver.activeSubSolver.constructor.name}
-            </span>
+            Time to Solve:{" "}
+            <span className="font-bold">{solveTime.toFixed(3)}s</span>
           </div>
         )}
+        <div className="border p-2 rounded">
+          Active Stage:{" "}
+          <span className="font-bold">
+            {solver.activeSubSolver?.constructor.name ?? "None"}
+          </span>
+        </div>
         {solver.error && (
           <div className="border p-2 rounded bg-red-100">
             Error: <span className="font-bold">{solver.error}</span>
