@@ -15,7 +15,7 @@ const createSolver = (srj: SimpleRouteJson) => {
   return new CapacityMeshSolver(srj)
 }
 
-export const CapacityMeshPipelineDebugger = ({
+export const AutoroutingPipelineDebugger = ({
   srj,
   animationSpeed = 10,
 }: CapacityMeshPipelineDebuggerProps) => {

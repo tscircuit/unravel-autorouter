@@ -1,4 +1,4 @@
-import { CapacityMeshPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
+import { AutoroutingPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
 import { SimpleRouteJson } from "lib/types"
 
 const simpleRouteJson: SimpleRouteJson = {
@@ -29,5 +29,5 @@ const simpleRouteJson: SimpleRouteJson = {
 }
 
 export default () => {
-  return <CapacityMeshPipelineDebugger srj={simpleRouteJson} />
+  return <AutoroutingPipelineDebugger srj={simpleRouteJson} />
 }

@@ -1,6 +1,6 @@
-import { CapacityMeshPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
+import { AutoroutingPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
 import boardWithTopAndBottom from "examples/assets/boardwithtopandbottom.json"
 
 export default () => {
-  return <CapacityMeshPipelineDebugger srj={boardWithTopAndBottom as any} />
+  return <AutoroutingPipelineDebugger srj={boardWithTopAndBottom as any} />
 }

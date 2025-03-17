@@ -1,10 +1,10 @@
-import { CapacityMeshPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
+import { AutoroutingPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
 import keyboard3 from "examples/assets/keyboard3.json"
 import type { SimpleRouteJson } from "lib/types"
 
 export default () => {
   return (
-    <CapacityMeshPipelineDebugger
+    <AutoroutingPipelineDebugger
       srj={keyboard3 as unknown as SimpleRouteJson}
       animationSpeed={10}
     />
