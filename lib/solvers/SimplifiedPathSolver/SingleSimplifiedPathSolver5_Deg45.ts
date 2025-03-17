@@ -30,9 +30,15 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private totalPathLength: number = 0
   private headDistanceAlongPath: number = 0
   private tailDistanceAlongPath: number = 0
-  private stepSize: number = 0.25 // Default step size, can be adjusted
+  private minStepSize: number = 0.25 // Default step size, can be adjusted
   private lastValidPath: Point[] | null = null // Store the current valid path
   private lastValidPathHeadDistance: number = 0
+
+  /** Amount the step size is reduced when the step isn't possible */
+  STEP_SIZE_REDUCTION_FACTOR = 0.25
+  maxStepSize = 4
+  currentStepSize = this.maxStepSize
+  lastHeadMoveDistance = 0
 
   cachedValidPathSegments: Set<string>
 
@@ -40,7 +46,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   filteredObstaclePathSegments: Array<[Point, Point]> = []
   filteredVias: Array<{ x: number; y: number; diameter: number }> = []
 
-  segmentTree: SegmentTree
+  segmentTree!: SegmentTree
 
   OBSTACLE_MARGIN = 0.15
 
@@ -228,7 +234,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     return {
       x: segment.start.x + factor * (segment.end.x - segment.start.x),
       y: segment.start.y + factor * (segment.end.y - segment.start.y),
-      z: segment.start.z, // Z doesn't interpolate - use the segment's start z value
+      z: factor < 0.5 ? segment.start.z : segment.end.z, // Z doesn't interpolate - use the segment's start z value
     }
   }
 
@@ -401,6 +407,26 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       }
       this.newRoute.push(path[i])
     }
+    this.currentStepSize = this.maxStepSize
+  }
+
+  moveHead(distance: number) {
+    this.lastHeadMoveDistance = distance
+    this.headDistanceAlongPath = Math.min(
+      this.headDistanceAlongPath + distance,
+      this.totalPathLength,
+    )
+  }
+
+  stepBackAndReduceStepSize() {
+    this.headDistanceAlongPath = Math.max(
+      this.tailDistanceAlongPath,
+      this.headDistanceAlongPath - this.lastHeadMoveDistance,
+    )
+    this.currentStepSize = Math.max(
+      this.minStepSize,
+      this.currentStepSize * this.STEP_SIZE_REDUCTION_FACTOR,
+    )
   }
 
   _step() {
@@ -448,10 +474,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     }
 
     // Increment head distance but don't go past the end of the path
-    this.headDistanceAlongPath = Math.min(
-      this.headDistanceAlongPath + this.stepSize,
-      this.totalPathLength,
-    )
+    this.moveHead(this.currentStepSize)
 
     // Get the points between tail and head distances
     const tailPoint = this.getPointAtDistance(this.tailDistanceAlongPath)
@@ -483,19 +506,27 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       }
     }
 
+    if (
+      layerChangeBtwHeadAndTail &&
+      this.lastHeadMoveDistance > this.minStepSize
+    ) {
+      this.stepBackAndReduceStepSize()
+      return
+    }
+
     // If there's a layer change, handle it
     if (layerChangeBtwHeadAndTail && layerChangeAtDistance > 0) {
+      const pointBeforeChange = this.getPointAtDistance(layerChangeAtDistance)
+
       if (this.lastValidPath) {
-        this.addPathToResult(this.lastValidPath!)
+        this.addPathToResult(this.lastValidPath)
+        // do we need to add the pointBeforeChange here?
         this.lastValidPath = null
       }
 
-      // Get points before and after layer change
-      const pointBeforeChange = this.getPointAtDistance(layerChangeAtDistance)
-      const pointAfterChange =
-        this.inputRoute.route[
-          this.getNearestIndexForDistance(layerChangeAtDistance) + 1
-        ]
+      const indexAfterLayerChange =
+        this.getNearestIndexForDistance(layerChangeAtDistance) + 1
+      const pointAfterChange = this.inputRoute.route[indexAfterLayerChange]
 
       // Add a via at the layer change point
       this.newVias.push({
@@ -505,14 +536,12 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
       // Add the point after change
       this.newRoute.push(pointAfterChange)
+      this.currentStepSize = this.maxStepSize
 
-      const nextTailIndex =
-        this.getNearestIndexForDistance(layerChangeAtDistance) + 1
-
-      if (this.pathSegments[nextTailIndex]) {
+      if (this.pathSegments[indexAfterLayerChange]) {
         // Update tail to the layer change point
         this.tailDistanceAlongPath =
-          this.pathSegments[nextTailIndex].startDistance
+          this.pathSegments[indexAfterLayerChange].startDistance
         this.headDistanceAlongPath = this.tailDistanceAlongPath
       } else {
         console.error("Creating via at end, this is probably not right")
@@ -525,10 +554,15 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     // Try to find a valid 45-degree path from tail to head
     const path45 = this.find45DegreePath(tailPoint, headPoint)
 
+    if (!path45 && this.lastHeadMoveDistance > this.minStepSize) {
+      this.stepBackAndReduceStepSize()
+      return
+    }
+
     if (!path45 && !this.lastValidPath) {
       // Move tail and head forward by stepSize
-      this.tailDistanceAlongPath += this.stepSize
-      this.headDistanceAlongPath += this.stepSize
+      this.tailDistanceAlongPath += this.minStepSize
+      this.moveHead(this.minStepSize)
       return
     }
 
@@ -544,12 +578,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       this.addPathToResult(this.lastValidPath)
       this.lastValidPath = null
       this.tailDistanceAlongPath = this.lastValidPathHeadDistance
+      this.moveHead(this.minStepSize)
     }
-
-    this.headDistanceAlongPath = Math.min(
-      this.headDistanceAlongPath + this.stepSize,
-      this.totalPathLength,
-    )
   }
 
   visualize(): GraphicsObject {
@@ -571,6 +601,16 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       y: headPoint.y,
       color: "orange",
       label: ["Head", `z: ${headPoint.z}`].join("\n"),
+    })
+
+    const tentativeHead = this.getPointAtDistance(
+      this.headDistanceAlongPath + this.currentStepSize,
+    )
+    graphics.points.push({
+      x: tentativeHead.x,
+      y: tentativeHead.y,
+      color: "red",
+      label: ["Tentative Head", `z: ${tentativeHead.z}`].join("\n"),
     })
 
     // Add visualization of the path segments
