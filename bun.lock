@@ -5,6 +5,7 @@
       "name": "capacity-node-autorouter",
       "devDependencies": {
         "@biomejs/biome": "^1.9.4",
+        "@datastructures-js/priority-queue": "^6.3.2",
         "@react-hook/resize-observer": "^2.0.2",
         "@tscircuit/core": "^0.0.337",
         "@tscircuit/math-utils": "^0.0.10",
@@ -93,6 +94,10 @@
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@1.9.4", "", { "os": "win32", "cpu": "x64" }, "sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA=="],
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
+
+    "@datastructures-js/heap": ["@datastructures-js/heap@4.3.3", "", {}, "sha512-UcUu/DLh/aM4W3C8zZfwxxm6/6FIZUlm3mcAXuNOCa6Aj4iizNvNXQyb8DjZQH2jKSQbMRyNlngP6TPimuGjpQ=="],
+
+    "@datastructures-js/priority-queue": ["@datastructures-js/priority-queue@6.3.2", "", { "dependencies": { "@datastructures-js/heap": "^4.3.3" } }, "sha512-hPmWlbmYRegOkZsWJuOzZw+BYcrOJ9B5xwy8Sz/QtEtLUPHtJbX9OpPpCB+KQPgOVb1QonqFqiddVDud/i5afw=="],
 
     "@edge-runtime/format": ["@edge-runtime/format@2.2.1", "", {}, "sha512-JQTRVuiusQLNNLe2W9tnzBlV/GvSVcozLl4XZHk5swnRZ/v6jp8TqR8P7sqmJsQqblDZ3EztcWmLDbhRje/+8g=="],
 

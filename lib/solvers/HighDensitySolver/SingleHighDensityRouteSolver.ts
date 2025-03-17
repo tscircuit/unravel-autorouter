@@ -8,6 +8,7 @@ import {
 import type { GraphicsObject } from "graphics-debug"
 import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { MinPriorityQueue } from "@datastructures-js/priority-queue"
 
 export type FutureConnection = {
   connectionName: string
@@ -49,7 +50,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
   exploredNodes: Set<string>
 
-  candidates: Node[]
+  candidates: MinPriorityQueue<Node>
 
   connectionName: string
   solvedPath: HighDensityIntraNodeRoute | null = null
@@ -103,16 +104,15 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.obstacleMargin = opts.obstacleMargin ?? 0.2
     this.layerCount = opts.layerCount ?? 2
     this.exploredNodes = new Set()
-    this.candidates = [
-      {
-        ...opts.A,
-        z: opts.A.z ?? 0,
-        g: 0,
-        h: 0,
-        f: 0,
-        parent: null,
-      },
-    ]
+    this.candidates = new MinPriorityQueue((e) => e.f)
+    this.candidates.enqueue({
+      ...opts.A,
+      z: opts.A.z ?? 0,
+      g: 0,
+      h: 0,
+      f: 0,
+      parent: null,
+    })
     this.straightLineDistance = distance(this.A, this.B)
     this.futureConnections = opts.futureConnections ?? []
     this.MAX_ITERATIONS = 5000
@@ -411,22 +411,24 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   }
 
   _step() {
-    this.candidates.sort((a, b) => b.f - a.f)
     let currentNode = this.candidates.pop()
+    let currentNodeKey = currentNode ? this.getNodeKey(currentNode) : undefined
 
     while (
       currentNode &&
-      this.exploredNodes.has(this.getNodeKey(currentNode))
+      currentNodeKey &&
+      this.exploredNodes.has(currentNodeKey)
     ) {
       currentNode = this.candidates.pop()
+      currentNodeKey = currentNode ? this.getNodeKey(currentNode) : undefined
     }
 
-    if (!currentNode) {
+    if (!currentNode || !currentNodeKey) {
       this.failed = true
       return
     }
-    this.exploredNodes.add(this.getNodeKey(currentNode))
-    this.debug_exploredNodesOrdered.push(this.getNodeKey(currentNode))
+    this.exploredNodes.add(currentNodeKey)
+    this.debug_exploredNodesOrdered.push(currentNodeKey)
 
     const goalDist = distance(currentNode, this.B)
 
