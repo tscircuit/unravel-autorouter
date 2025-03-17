@@ -26,8 +26,13 @@ export class SegmentTree {
     this.buckets = new Map()
     for (const segment of segments) {
       const bounds = getSegmentBounds(segment)
-      for (let x = bounds.minX; x <= bounds.maxX; x += this.CELL_SIZE) {
-        for (let y = bounds.minY; y <= bounds.maxY; y += this.CELL_SIZE) {
+      const bucketMinX =
+        Math.floor(bounds.minX / this.CELL_SIZE) * this.CELL_SIZE
+      const bucketMinY =
+        Math.floor(bounds.minY / this.CELL_SIZE) * this.CELL_SIZE
+
+      for (let x = bucketMinX; x <= bounds.maxX; x += this.CELL_SIZE) {
+        for (let y = bucketMinY; y <= bounds.maxY; y += this.CELL_SIZE) {
           const bucketKey = this.getBucketKey(x, y)
           const bucket = this.buckets.get(bucketKey)
           if (!bucket) {
@@ -53,12 +58,15 @@ export class SegmentTree {
   getSegmentsThatCouldIntersect(A: Point, B: Point) {
     const segments: SegmentWithId[] = []
     const alreadyAddedSegments = new Set<string>()
-    const minX = Math.min(A.x, B.x) - this.CELL_SIZE
-    const minY = Math.min(A.y, B.y) - this.CELL_SIZE
-    const maxX = Math.max(A.x, B.x) + this.CELL_SIZE
-    const maxY = Math.max(A.y, B.y) + this.CELL_SIZE
-    for (let x = minX; x <= maxX; x += this.CELL_SIZE) {
-      for (let y = minY; y <= maxY; y += this.CELL_SIZE) {
+    const minX = Math.min(A.x, B.x)
+    const minY = Math.min(A.y, B.y)
+    const maxX = Math.max(A.x, B.x)
+    const maxY = Math.max(A.y, B.y)
+
+    const bucketMinX = Math.floor(minX / this.CELL_SIZE) * this.CELL_SIZE
+    const bucketMinY = Math.floor(minY / this.CELL_SIZE) * this.CELL_SIZE
+    for (let x = bucketMinX; x <= maxX; x += this.CELL_SIZE) {
+      for (let y = bucketMinY; y <= maxY; y += this.CELL_SIZE) {
         const bucketKey = this.getBucketKey(x, y)
         const bucket = this.buckets.get(bucketKey) || []
         for (const segment of bucket) {
