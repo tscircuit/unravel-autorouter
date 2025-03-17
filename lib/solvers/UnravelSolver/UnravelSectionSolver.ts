@@ -71,6 +71,7 @@ export class UnravelSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
   MAX_CANDIDATES = 500
+  candidateHashToIssuesCache: Map<string, UnravelIssue[]>
 
   selectedCandidateIndex: number | "best" | "original" | null = null
 
@@ -101,6 +102,7 @@ export class UnravelSectionSolver extends BaseSolver {
         this.dedupedSegmentMap.set(segment.nodePortSegmentId!, segment)
       }
     }
+    this.candidateHashToIssuesCache = new Map()
     this.nodeIdToSegmentIds = params.nodeIdToSegmentIds
     this.segmentIdToNodeIds = params.segmentIdToNodeIds
     this.rootNodeId = params.rootNodeId
@@ -513,11 +515,19 @@ export class UnravelSectionSolver extends BaseSolver {
         this.getPointInCandidate(currentCandidate, segmentPointId),
     )
 
-    const issues = getIssuesInSection(
-      this.unravelSection,
-      this.nodeMap,
-      pointModifications,
-    )
+    const candidateHash = createPointModificationsHash(pointModifications)
+
+    let issues: UnravelIssue[]
+    if (!this.candidateHashToIssuesCache.has(candidateHash)) {
+      issues = getIssuesInSection(
+        this.unravelSection,
+        this.nodeMap,
+        pointModifications,
+      )
+      this.candidateHashToIssuesCache.set(candidateHash, issues)
+    } else {
+      issues = this.candidateHashToIssuesCache.get(candidateHash)!
+    }
 
     const operationsPerformed = currentCandidate.operationsPerformed + 1
 
@@ -534,7 +544,7 @@ export class UnravelSectionSolver extends BaseSolver {
       h: 0,
       f: g,
       pointModifications,
-      candidateHash: createPointModificationsHash(pointModifications),
+      candidateHash,
 
       // TODO PERFORMANCE allow disabling this
       // candidateFullHash: createFullPointModificationsHash(
