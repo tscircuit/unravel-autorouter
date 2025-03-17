@@ -1,7 +1,7 @@
-import { CapacityMeshPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
+import { AutoroutingPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
 import { SimpleRouteJson } from "lib/types"
 import simpleRouteJson from "examples/assets/e2e2.json"
 
 export default () => (
-  <CapacityMeshPipelineDebugger srj={simpleRouteJson as SimpleRouteJson} />
+  <AutoroutingPipelineDebugger srj={simpleRouteJson as SimpleRouteJson} />
 )

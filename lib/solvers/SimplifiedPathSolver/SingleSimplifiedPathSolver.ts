@@ -39,7 +39,7 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
     this.connMap = params.connMap
     this.colorMap = params.colorMap
 
-    this.newRoute = []
+    this.newRoute = [this.inputRoute.route[0]]
     this.newVias = []
   }
 
