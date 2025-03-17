@@ -9,6 +9,7 @@ import { GraphicsObject } from "graphics-debug"
 import { SingleSimplifiedPathSolver } from "./SingleSimplifiedPathSolver"
 import { calculate45DegreePaths } from "lib/utils/calculate45DegreePaths"
 import { minimumDistanceBetweenSegments } from "lib/utils/minimumDistanceBetweenSegments"
+import { SegmentTree } from "lib/data-structures/SegmentTree"
 
 interface Point {
   x: number
@@ -33,7 +34,13 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   private lastValidPath: Point[] | null = null // Store the current valid path
   private lastValidPathHeadDistance: number = 0
 
+  cachedValidPathSegments: Set<string>
+
   filteredObstacles: Obstacle[] = []
+  filteredObstaclePathSegments: Array<[Point, Point]> = []
+  filteredVias: Array<{ x: number; y: number; diameter: number }> = []
+
+  segmentTree: SegmentTree
 
   OBSTACLE_MARGIN = 0.15
 
@@ -44,6 +51,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
   ) {
     super(params)
 
+    this.cachedValidPathSegments = new Set()
+
     // Handle empty or single-point routes
     if (this.inputRoute.route.length <= 1) {
       this.newRoute = [...this.inputRoute.route]
@@ -51,12 +60,116 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       return
     }
 
-    this.filteredObstacles = this.obstacles.filter(
-      (obstacle) =>
-        !obstacle.connectedTo.some((id) =>
-          this.connMap.areIdsConnected(this.inputRoute.connectionName, id),
-        ),
+    const bounds = this.inputRoute.route.reduce(
+      (acc, point) => {
+        acc.minX = Math.min(acc.minX, point.x)
+        acc.maxX = Math.max(acc.maxX, point.x)
+        acc.minY = Math.min(acc.minY, point.y)
+        acc.maxY = Math.max(acc.maxY, point.y)
+        return acc
+      },
+      { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity },
     )
+
+    this.filteredObstacles = this.obstacles
+      .filter(
+        (obstacle) =>
+          !obstacle.connectedTo.some((id) =>
+            this.connMap.areIdsConnected(this.inputRoute.connectionName, id),
+          ),
+      )
+      .filter((obstacle) => {
+        if (
+          obstacle.connectedTo.some((obsId) =>
+            this.connMap.areIdsConnected(this.inputRoute.connectionName, obsId),
+          )
+        ) {
+          return false
+        }
+        const obstacleMinX =
+          obstacle.center.x - obstacle.width / 2 - this.OBSTACLE_MARGIN
+        const obstacleMaxX =
+          obstacle.center.x + obstacle.width / 2 + this.OBSTACLE_MARGIN
+        const obstacleMinY =
+          obstacle.center.y - obstacle.height / 2 - this.OBSTACLE_MARGIN
+        const obstacleMaxY =
+          obstacle.center.y + obstacle.height / 2 + this.OBSTACLE_MARGIN
+
+        // Check if the obstacle overlaps with the route's bounding box
+        // Only keep obstacles that overlap with the route's bounds
+        return (
+          obstacleMinX <= bounds.maxX &&
+          obstacleMaxX >= bounds.minX &&
+          obstacleMinY <= bounds.maxY &&
+          obstacleMaxY >= bounds.minY
+        )
+      })
+
+    this.filteredObstaclePathSegments = this.otherHdRoutes.flatMap(
+      (hdRoute) => {
+        if (
+          this.connMap.areIdsConnected(
+            this.inputRoute.connectionName,
+            hdRoute.connectionName,
+          )
+        ) {
+          return []
+        }
+        const route = hdRoute.route
+        const segments: Array<[Point, Point]> = []
+        for (let i = 0; i < route.length - 1; i++) {
+          const start = route[i]
+          const end = route[i + 1]
+
+          const minX = Math.min(start.x, end.x)
+          const maxX = Math.max(start.x, end.x)
+          const minY = Math.min(start.y, end.y)
+          const maxY = Math.max(start.y, end.y)
+
+          if (
+            minX <= bounds.maxX &&
+            maxX >= bounds.minX &&
+            minY <= bounds.maxY &&
+            maxY >= bounds.minY
+          ) {
+            segments.push([start, end])
+          }
+        }
+
+        return segments
+      },
+    )
+    this.segmentTree = new SegmentTree(this.filteredObstaclePathSegments)
+
+    this.filteredVias = this.otherHdRoutes.flatMap((hdRoute) => {
+      if (
+        this.connMap.areIdsConnected(
+          this.inputRoute.connectionName,
+          hdRoute.connectionName,
+        )
+      ) {
+        return []
+      }
+
+      const vias = hdRoute.vias
+      const filteredVias: Array<{ x: number; y: number; diameter: number }> = []
+      for (const via of vias) {
+        const minX = via.x - hdRoute.viaDiameter / 2
+        const maxX = via.x + hdRoute.viaDiameter / 2
+        const minY = via.y - hdRoute.viaDiameter / 2
+        const maxY = via.y + hdRoute.viaDiameter / 2
+
+        if (
+          minX <= bounds.maxX &&
+          maxX >= bounds.minX &&
+          minY <= bounds.maxY &&
+          maxY >= bounds.minY
+        ) {
+          filteredVias.push({ ...via, diameter: hdRoute.viaDiameter })
+        }
+      }
+      return filteredVias
+    })
 
     // Compute path segments and total length
     this.computePathSegments()
@@ -189,42 +302,30 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     }
 
     // Check if the segment intersects with any other route
-    for (const route of this.otherHdRoutes) {
-      if (
-        this.connMap.areIdsConnected(
-          this.inputRoute.connectionName,
-          route.connectionName,
-        )
-      ) {
-        continue
-      }
-      for (let j = 0; j < route.route.length - 1; j++) {
-        const routeStart = route.route[j]
-        const routeEnd = route.route[j + 1]
-
-        // Only check intersection if we're on the same layer
-        if (routeStart.z === start.z && routeEnd.z === start.z) {
-          if (
-            minimumDistanceBetweenSegments(
-              { x: start.x, y: start.y },
-              { x: end.x, y: end.y },
-              { x: routeStart.x, y: routeStart.y },
-              { x: routeEnd.x, y: routeEnd.y },
-            ) < this.OBSTACLE_MARGIN
-          ) {
-            return false
-          }
-        }
-      }
-
-      // Check if route is too close to any vias
-      for (const via of route.vias) {
+    const segmentsThatCouldIntersect =
+      this.segmentTree.getSegmentsThatCouldIntersect(start, end)
+    for (const [otherSegA, otherSegB] of segmentsThatCouldIntersect) {
+      // Only check intersection if we're on the same layer
+      if (otherSegA.z === start.z && otherSegB.z === start.z) {
         if (
-          pointToSegmentDistance(via, start, end) <
-          this.OBSTACLE_MARGIN + route.viaDiameter / 2
+          minimumDistanceBetweenSegments(
+            { x: start.x, y: start.y },
+            { x: end.x, y: end.y },
+            { x: otherSegA.x, y: otherSegA.y },
+            { x: otherSegB.x, y: otherSegB.y },
+          ) < this.OBSTACLE_MARGIN
         ) {
           return false
         }
+      }
+    }
+
+    for (const via of this.filteredVias) {
+      if (
+        pointToSegmentDistance(via, start, end) <
+        this.OBSTACLE_MARGIN + via.diameter / 2
+      ) {
+        return false
       }
     }
 
