@@ -372,6 +372,7 @@ export class CapacityMeshSolver extends BaseSolver {
     const singleLayerNodeMergerViz = this.singleLayerNodeMerger?.visualize()
     const strawSolverViz = this.strawSolver?.visualize()
     const edgeViz = this.edgeSolver?.visualize()
+    const deadEndViz = this.deadEndSolver?.visualize()
     const pathingViz = this.pathingSolver?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
     const segmentToPointViz = this.segmentToPointSolver?.visualize()
@@ -429,6 +430,7 @@ export class CapacityMeshSolver extends BaseSolver {
       singleLayerNodeMergerViz,
       strawSolverViz,
       edgeViz,
+      deadEndViz,
       pathingViz,
       edgeToPortSegmentViz,
       segmentToPointViz,

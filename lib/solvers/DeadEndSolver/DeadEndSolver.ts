@@ -1,5 +1,6 @@
 import { CapacityMeshEdge, CapacityMeshNode } from "lib/types"
 import { BaseSolver } from "../BaseSolver"
+import { GraphicsObject } from "graphics-debug"
 
 export class DeadEndSolver extends BaseSolver {
   public removedNodeIds: Set<string>
@@ -8,6 +9,10 @@ export class DeadEndSolver extends BaseSolver {
   private leaves: string[]
   private leavesIndex: number
   private adjacencyList: Map<string, Set<string>>
+
+  // Store the nodes and edges just for visualization purposes
+  private nodes: CapacityMeshNode[]
+  private edges: CapacityMeshEdge[]
 
   constructor({
     nodes,
@@ -19,6 +24,9 @@ export class DeadEndSolver extends BaseSolver {
     super()
 
     this.MAX_ITERATIONS = nodes.length
+
+    this.nodes = nodes
+    this.edges = edges
 
     this.removedNodeIds = new Set()
 
@@ -83,5 +91,42 @@ export class DeadEndSolver extends BaseSolver {
     if (this.leavesIndex === this.leaves.length) {
       this.solved = true
     }
+  }
+
+  visualize(): GraphicsObject {
+    const graphics: GraphicsObject = {
+      lines: [],
+      points: [],
+      rects: [],
+      circles: [],
+    }
+
+    for (const edge of this.edges) {
+      if (!edge.nodeIds.some((nodeId) => this.removedNodeIds.has(nodeId))) {
+        continue
+      }
+
+      const [node1, node2] = edge.nodeIds.map((nodeId) => {
+        return this.nodes.find((node) => node.capacityMeshNodeId === nodeId)
+      })
+
+      if (node1?.center && node2?.center) {
+        const lowestZ1 = Math.min(...node1.availableZ)
+        const lowestZ2 = Math.min(...node2.availableZ)
+        const nodeCenter1Adj = {
+          x: node1.center.x + lowestZ1 * node1.width * 0.05,
+          y: node1.center.y - lowestZ1 * node1.width * 0.05,
+        }
+        const nodeCenter2Adj = {
+          x: node2.center.x + lowestZ2 * node2.width * 0.05,
+          y: node2.center.y - lowestZ2 * node2.width * 0.05,
+        }
+        graphics.lines!.push({
+          strokeColor: "black",
+          points: [nodeCenter1Adj, nodeCenter2Adj],
+        })
+      }
+    }
+    return graphics
   }
 }
