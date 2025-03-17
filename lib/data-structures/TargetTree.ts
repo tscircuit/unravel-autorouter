@@ -21,12 +21,14 @@ export class TargetTree {
     this.buckets = new Map()
     for (let i = 0; i < targets.length; i++) {
       const target = targets[i]
-      const targetMinX = target.bounds.minX
-      const targetMinY = target.bounds.minY
+      const targetBucketMinX =
+        Math.floor(target.bounds.minX / this.CELL_SIZE) * this.CELL_SIZE
+      const targetBucketMinY =
+        Math.floor(target.bounds.minY / this.CELL_SIZE) * this.CELL_SIZE
       const targetMaxX = target.bounds.maxX
       const targetMaxY = target.bounds.maxY
-      for (let x = targetMinX; x <= targetMaxX; x += this.CELL_SIZE) {
-        for (let y = targetMinY; y <= targetMaxY; y += this.CELL_SIZE) {
+      for (let x = targetBucketMinX; x <= targetMaxX; x += this.CELL_SIZE) {
+        for (let y = targetBucketMinY; y <= targetMaxY; y += this.CELL_SIZE) {
           const bucketKey = this.getBucketKey(x, y)
           const bucket = this.buckets.get(bucketKey)
           if (!bucket) {
@@ -51,8 +53,10 @@ export class TargetTree {
   ): Target[] {
     const targets: Target[] = []
     const alreadyAddedTargets = new Set<number>()
-    const minX = centerX - width / 2
-    const minY = centerY - height / 2
+    const minX =
+      Math.floor((centerX - width / 2) / this.CELL_SIZE) * this.CELL_SIZE
+    const minY =
+      Math.floor((centerY - height / 2) / this.CELL_SIZE) * this.CELL_SIZE
     const maxX = centerX + width / 2
     const maxY = centerY + height / 2
     for (let x = minX; x <= maxX; x += this.CELL_SIZE) {
