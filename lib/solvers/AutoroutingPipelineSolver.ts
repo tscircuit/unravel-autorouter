@@ -42,6 +42,7 @@ import {
   HighDensityIntraNodeRoute,
   HighDensityRoute,
 } from "lib/types/high-density-types"
+import { CapacityMeshEdgeSolver2_NodeTreeOptimization } from "./CapacityMeshSolver/CapacityMeshEdgeSolver2_NodeTreeOptimization"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -165,9 +166,11 @@ export class CapacityMeshSolver extends BaseSolver {
         },
       },
     ),
-    definePipelineStep("edgeSolver", CapacityMeshEdgeSolver, (cms) => [
-      cms.capacityNodes!,
-    ]),
+    definePipelineStep(
+      "edgeSolver",
+      CapacityMeshEdgeSolver2_NodeTreeOptimization,
+      (cms) => [cms.capacityNodes!],
+    ),
     definePipelineStep("pathingSolver", CapacityPathingSolver5, (cms) => [
       {
         simpleRouteJson: cms.srjWithPointPairs!,

@@ -1,5 +1,5 @@
 import { RootCircuit, SimpleRouteJson } from "@tscircuit/core"
-import { CapacityMeshPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
+import { AutoroutingPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
 import { useMemo, useState } from "react"
 import { Fragment } from "react/jsx-runtime"
 import { CapacityMeshAutorouterCoreBinding } from "tests/fixtures/CapacityMeshAutorouterCoreBinding"
@@ -51,5 +51,5 @@ const getSimpleRouteJsonFromTscircuit = () => {
 export default () => {
   const simpleRouteJson = useMemo(getSimpleRouteJsonFromTscircuit, [])
 
-  return <CapacityMeshPipelineDebugger srj={simpleRouteJson as any} />
+  return <AutoroutingPipelineDebugger srj={simpleRouteJson as any} />
 }

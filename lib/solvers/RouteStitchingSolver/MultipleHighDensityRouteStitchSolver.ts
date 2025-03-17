@@ -36,6 +36,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
         z: mapLayerNameToZ(c.pointsToConnect[1].layer, opts.layerCount),
       },
     }))
+    this.MAX_ITERATIONS = 100e3
   }
 
   _step() {

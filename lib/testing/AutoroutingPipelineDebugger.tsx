@@ -5,6 +5,7 @@ import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
 import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
 import { GraphicsObject, Rect } from "graphics-debug"
+import { limitVisualizations } from "lib/utils/limitVisualizations"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -15,7 +16,7 @@ const createSolver = (srj: SimpleRouteJson) => {
   return new CapacityMeshSolver(srj)
 }
 
-export const CapacityMeshPipelineDebugger = ({
+export const AutoroutingPipelineDebugger = ({
   srj,
   animationSpeed = 10,
 }: CapacityMeshPipelineDebuggerProps) => {
@@ -23,6 +24,8 @@ export const CapacityMeshPipelineDebugger = ({
     createSolver(srj),
   )
   const [canSelectObjects, setCanSelectObjects] = useState(false)
+  const [shouldLimitVisualizations, setShouldLimitVisualizations] =
+    useState(false)
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
@@ -31,8 +34,8 @@ export const CapacityMeshPipelineDebugger = ({
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
   )
 
-  const speedLevels = [1, 2, 5, 10, 100]
-  const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
+  const speedLevels = [1, 2, 5, 10, 100, 500]
+  const speedLabels = ["1x", "2x", "5x", "10x", "100x", "500x"]
 
   // Reset solver
   const resetSolver = () => {
@@ -175,12 +178,17 @@ export const CapacityMeshPipelineDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
-      return solver?.visualize() || { points: [], lines: [] }
+      const ogVisualization = solver?.visualize() || { points: [], lines: [] }
+      if (shouldLimitVisualizations) {
+        return limitVisualizations(ogVisualization, 5e3)
+      } else {
+        return ogVisualization
+      }
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations])
+  }, [solver, solver.iterations, shouldLimitVisualizations])
 
   return (
     <div className="p-4">
@@ -242,6 +250,15 @@ export const CapacityMeshPipelineDebugger = ({
           onClick={() => setCanSelectObjects(!canSelectObjects)}
         >
           {canSelectObjects ? "Disable" : "Enable"} Object Selection
+        </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() =>
+            setShouldLimitVisualizations(!shouldLimitVisualizations)
+          }
+        >
+          {shouldLimitVisualizations ? "Disable" : "Enable"} Visualization
+          Limiting
         </button>
       </div>
 
