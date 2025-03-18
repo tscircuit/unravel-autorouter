@@ -1,0 +1,148 @@
+{
+  "nodeId": "cn43229",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn43229",
+    "center": {
+      "x": -135,
+      "y": 5
+    },
+    "width": 10,
+    "height": 10,
+    "layer": "top",
+    "availableZ": [
+      0,
+      1
+    ],
+    "_depth": 5,
+    "_parent": {
+      "capacityMeshNodeId": "cn41522",
+      "center": {
+        "x": -130,
+        "y": 10
+      },
+      "width": 20,
+      "height": 20,
+      "layer": "top",
+      "availableZ": [
+        0,
+        1
+      ],
+      "_depth": 4,
+      "_parent": {
+        "capacityMeshNodeId": "cn34629",
+        "center": {
+          "x": -140,
+          "y": 20
+        },
+        "width": 40,
+        "height": 40,
+        "layer": "top",
+        "availableZ": [
+          0,
+          1
+        ],
+        "_depth": 3,
+        "_parent": {
+          "capacityMeshNodeId": "cn22421",
+          "center": {
+            "x": -120,
+            "y": 40
+          },
+          "width": 80,
+          "height": 80,
+          "layer": "top",
+          "availableZ": [
+            0,
+            1
+          ],
+          "_depth": 2,
+          "_parent": {
+            "capacityMeshNodeId": "cn3",
+            "center": {
+              "x": -80,
+              "y": 80
+            },
+            "width": 160,
+            "height": 160,
+            "layer": "top",
+            "availableZ": [
+              0,
+              1
+            ],
+            "_depth": 1,
+            "_parent": {
+              "capacityMeshNodeId": "cn0",
+              "center": {
+                "x": 0,
+                "y": 0
+              },
+              "width": 320,
+              "height": 320,
+              "layer": "top",
+              "availableZ": [
+                0,
+                1
+              ],
+              "_depth": 0,
+              "_containsTarget": true,
+              "_containsObstacle": true,
+              "_completelyInsideObstacle": false
+            },
+            "_containsObstacle": true,
+            "_targetConnectionName": "connectivity_net4094",
+            "_containsTarget": true,
+            "_completelyInsideObstacle": false
+          },
+          "_containsObstacle": true,
+          "_targetConnectionName": "connectivity_net4094",
+          "_containsTarget": true,
+          "_completelyInsideObstacle": false
+        },
+        "_containsObstacle": true,
+        "_targetConnectionName": "connectivity_net4094",
+        "_containsTarget": true,
+        "_completelyInsideObstacle": false
+      },
+      "_containsObstacle": true,
+      "_targetConnectionName": "connectivity_net4094",
+      "_containsTarget": true,
+      "_completelyInsideObstacle": false
+    },
+    "_containsObstacle": false
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn43229",
+    "portPoints": [
+      {
+        "x": -136.66666666666666,
+        "y": 10,
+        "z": 0,
+        "connectionName": "connectivity_net6"
+      },
+      {
+        "x": -133.33333333333334,
+        "y": 10,
+        "z": 0,
+        "connectionName": "connectivity_net9"
+      },
+      {
+        "x": -140,
+        "y": 1.6666666666666665,
+        "z": 0,
+        "connectionName": "connectivity_net6"
+      },
+      {
+        "x": -140,
+        "y": 3.333333333333333,
+        "z": 0,
+        "connectionName": "connectivity_net9"
+      }
+    ],
+    "center": {
+      "x": -135,
+      "y": 5
+    },
+    "width": 10,
+    "height": 10
+  }
+}

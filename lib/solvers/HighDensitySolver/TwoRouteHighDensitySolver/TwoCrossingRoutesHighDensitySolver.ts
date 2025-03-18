@@ -31,8 +31,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   layerCount: number = 2
 
   debugViaPositions: {
-    viaA: Point
-    viaB: Point
+    via1: Point
+    via2: Point
   }[]
 
   // Solution state
@@ -156,8 +156,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     routeA: Route,
     routeB: Route,
   ): {
-    viaA: Point
-    viaB: Point
+    via1: Point
+    via2: Point
   } | null {
     // Define outer box as the bounds where all points lie
     const outerBox = {
@@ -306,9 +306,19 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       }
     }
 
+    let via1 = { x: optimalPair[0].x, y: optimalPair[0].y }
+    let via2 = { x: optimalPair[1].x, y: optimalPair[1].y }
+
+    const via1DistToStart = distance(via1, routeA.startPort)
+    const via2DistToStart = distance(via2, routeA.startPort)
+
+    if (via2DistToStart < via1DistToStart) {
+      ;[via1, via2] = [via2, via1]
+    }
+
     return {
-      viaA: { x: optimalPair[0].x, y: optimalPair[0].y },
-      viaB: { x: optimalPair[1].x, y: optimalPair[1].y },
+      via1,
+      via2,
     }
   }
 
@@ -322,13 +332,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     via2: Point,
     connectionName: string,
   ): HighDensityIntraNodeRoute {
-    const via1DistToStart = distance(via1, start)
-    const via2DistToStart = distance(via1, end)
-
-    if (via2DistToStart < via1DistToStart) {
-      ;[via1, via2] = [via2, via1]
-    }
-
     const middleZ = start.z === 0 ? 1 : 0
 
     // Create the route path with layer transitions
@@ -361,10 +364,10 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       return false
     }
 
-    const { viaA, viaB } = this.optimizeViaPositions(viaPositions)
+    const { via1, via2 } = this.optimizeViaPositions(viaPositions)
 
     // if (
-    //   distance(viaA, viaB) <
+    //   distance(via1, via2) <
     //   this.viaDiameter + this.traceThickness + this.obstacleMargin * 2
     // ) {
     //   return false
@@ -374,14 +377,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const routeASolution = this.createRoute(
       routeA.startPort,
       routeA.endPort,
-      viaA,
-      viaB,
+      via1,
+      via2,
       routeA.connectionName,
     )
 
     // Calculate orthogonal line through the middle segment of route A
-    const midSegmentStart = { x: viaA.x, y: viaA.y, z: 1 }
-    const midSegmentEnd = { x: viaB.x, y: viaB.y, z: 1 }
+    const midSegmentStart = { x: via1.x, y: via1.y, z: 1 }
+    const midSegmentEnd = { x: via2.x, y: via2.y, z: 1 }
 
     // Calculate the orthogonal points for route B
     const orthogonalPoints =
@@ -390,13 +393,16 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         routeB.endPort,
         midSegmentStart,
         midSegmentEnd,
-        routeASolution.route,
+        routeA.startPort,
+        routeA.endPort,
       ) ??
       this.calculateConservativeOrthogonalRoutePoints(
         routeB.startPort,
         routeB.endPort,
         midSegmentStart,
         midSegmentEnd,
+        routeA.startPort,
+        routeA.endPort,
       )
 
     // Create route for B that navigates around the vias
@@ -412,18 +418,18 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     return true
   }
 
-  private optimizeViaPositions(viaPositions: { viaA: Point; viaB: Point }): {
-    viaA: Point
-    viaB: Point
+  private optimizeViaPositions(viaPositions: { via1: Point; via2: Point }): {
+    via1: Point
+    via2: Point
   } {
-    const { viaA, viaB } = viaPositions
+    const { via1, via2 } = viaPositions
 
     // Calculate the minimum required distance between vias
     const minRequiredDistance =
       (this.viaDiameter + this.traceThickness + this.obstacleMargin) * 2
 
     // Calculate current distance between vias
-    const currentDistance = distance(viaA, viaB)
+    const currentDistance = distance(via1, via2)
 
     // If vias are already closer than or equal to the minimum required distance, return as is
     if (currentDistance <= minRequiredDistance) {
@@ -431,8 +437,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     // Calculate the direction vector from viaA to viaB
-    const dirX = viaB.x - viaA.x
-    const dirY = viaB.y - viaA.y
+    const dirX = via2.x - via1.x
+    const dirY = via2.y - via1.y
 
     // Normalize the direction vector
     const dirLength = Math.sqrt(dirX * dirX + dirY * dirY)
@@ -440,26 +446,26 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const normDirY = dirY / dirLength
 
     // Calculate the midpoint of the current vias
-    const midpointX = (viaA.x + viaB.x) / 2
-    const midpointY = (viaA.y + viaB.y) / 2
+    const midpointX = (via1.x + via2.x) / 2
+    const midpointY = (via1.y + via2.y) / 2
 
     // Calculate new positions that are minRequiredDistance apart
     // Move each via half the distance towards the midpoint
     const moveDistance = (currentDistance - minRequiredDistance) / 2
 
-    const newViaA = {
-      x: viaA.x + normDirX * moveDistance,
-      y: viaA.y + normDirY * moveDistance,
+    const newVia1 = {
+      x: via1.x + normDirX * moveDistance,
+      y: via1.y + normDirY * moveDistance,
     }
 
-    const newViaB = {
-      x: viaB.x - normDirX * moveDistance,
-      y: viaB.y - normDirY * moveDistance,
+    const newVia2 = {
+      x: via2.x - normDirX * moveDistance,
+      y: via2.y - normDirY * moveDistance,
     }
 
     return {
-      viaA: newViaA,
-      viaB: newViaB,
+      via1: newVia1,
+      via2: newVia2,
     }
   }
 
@@ -469,9 +475,11 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   private calculateConservativeOrthogonalRoutePoints(
     start: Point,
     end: Point,
-    midSegmentStart: Point,
-    midSegmentEnd: Point,
-  ): Point[] {
+    via1: Point,
+    via2: Point,
+    otherRouteStart: Point,
+    otherRouteEnd: Point,
+  ): Point[] | null {
     // Define the inner edge box which is obstacleMargin away from outer box
     const outerBox = {
       width: this.bounds.maxX - this.bounds.minX,
@@ -489,8 +497,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Calculate the orthogonal line to the mid segment
     // First get the direction vector of mid segment
-    const midSegmentDX = midSegmentEnd.x - midSegmentStart.x
-    const midSegmentDY = midSegmentEnd.y - midSegmentStart.y
+    const midSegmentDX = via2.x - via1.x
+    const midSegmentDY = via2.y - via1.y
 
     // Calculate orthogonal vector (rotate by 90 degrees)
     const orthDX = -midSegmentDY
@@ -502,8 +510,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const normOrthDY = orthDY / orthLength
 
     // Calculate the midpoint of the mid segment
-    const midpointX = (midSegmentStart.x + midSegmentEnd.x) / 2
-    const midpointY = (midSegmentStart.y + midSegmentEnd.y) / 2
+    const midpointX = (via1.x + via2.x) / 2
+    const midpointY = (via1.y + via2.y) / 2
 
     // Calculate the orthogonal line that passes through the midpoint
     // Line equation: (x, y) = (midpointX, midpointY) + t * (normOrthDX, normOrthDY)
@@ -581,8 +589,15 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     })
 
     // Choose the closest intersection to the start and the closest to the end
-    const middlePoint1 = sortedIntersections[0]
-    const middlePoint2 = sortedIntersections[intersections.length - 1]
+    let middlePoint1 = sortedIntersections[0]
+    let middlePoint2 = sortedIntersections[intersections.length - 1]
+
+    if (
+      doSegmentsIntersect(start, middlePoint1, otherRouteStart, via1) ||
+      doSegmentsIntersect(end, middlePoint2, otherRouteEnd, via2)
+    ) {
+      ;[middlePoint1, middlePoint2] = [middlePoint2, middlePoint1]
+    }
 
     // Create the route with 4 points
     return [
@@ -596,21 +611,22 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   private calculateShortestOrthogonalRoutePoints(
     start: Point,
     end: Point,
-    midSegmentStart: Point,
-    midSegmentEnd: Point,
-    otherRoute: Point[],
+    via1: Point,
+    via2: Point,
+    otherRouteStart: Point,
+    otherRouteEnd: Point,
   ): Point[] | null {
     const midSegmentCenter = {
-      x: (midSegmentStart.x + midSegmentEnd.x) / 2,
-      y: (midSegmentStart.y + midSegmentEnd.y) / 2,
+      x: (via1.x + via2.x) / 2,
+      y: (via1.y + via2.y) / 2,
     }
 
     const midSegmentDirection = {
-      x: midSegmentEnd.x - midSegmentStart.x,
-      y: midSegmentEnd.y - midSegmentStart.y,
+      x: via2.x - via1.x,
+      y: via2.y - via1.y,
     }
 
-    const midSegmentLength = distance(midSegmentStart, midSegmentEnd)
+    const midSegmentLength = distance(via1, via2)
     const normOrthDX = midSegmentDirection.y / midSegmentLength
     const normOrthDY = midSegmentDirection.x / midSegmentLength
 
@@ -636,6 +652,23 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     // Make sure we're not too close to the other route, or the mid segment
     // start or end (which has vias)
     // TODO - i haven't done this because we need a good test case/fixture -seve
+
+    if (
+      doSegmentsIntersect(start, orthogonalPoint1, otherRouteStart, via1) ||
+      doSegmentsIntersect(end, orthogonalPoint2, otherRouteEnd, via2)
+    ) {
+      ;[orthogonalPoint1, orthogonalPoint2] = [
+        orthogonalPoint2,
+        orthogonalPoint1,
+      ]
+    }
+
+    if (
+      doSegmentsIntersect(start, orthogonalPoint2, otherRouteStart, via1) ||
+      doSegmentsIntersect(end, orthogonalPoint1, otherRouteEnd, via2)
+    ) {
+      return null
+    }
 
     return [
       { x: start.x, y: start.y, z: start.z ?? 0 },
@@ -770,14 +803,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Draw debug via positions (even if solution failed)
     for (let i = 0; i < this.debugViaPositions.length; i++) {
-      const { viaA, viaB } = this.debugViaPositions[i]
+      const { via1, via2 } = this.debugViaPositions[i]
 
       // Draw computed vias (using different colors for different attempts)
       const colors = ["rgba(255, 165, 0, 0.7)", "rgba(128, 0, 128, 0.7)"] // orange, purple
       const color = colors[i % colors.length]
 
       graphics.circles!.push({
-        center: viaA,
+        center: via1,
         radius: this.viaDiameter / 2,
         fill: color,
         stroke: "rgba(0, 0, 0, 0.5)",
@@ -785,7 +818,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       })
 
       graphics.circles!.push({
-        center: viaB,
+        center: via2,
         radius: this.viaDiameter / 2,
         fill: color,
         stroke: "rgba(0, 0, 0, 0.5)",
@@ -795,7 +828,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       // Draw safety margins around vias
       const safetyMargin = this.viaDiameter / 2 + this.obstacleMargin
       graphics.circles!.push({
-        center: viaA,
+        center: via1,
         radius: safetyMargin,
         stroke: color,
         fill: "rgba(0, 0, 0, 0)",
@@ -803,7 +836,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       })
 
       graphics.circles!.push({
-        center: viaB,
+        center: via2,
         radius: safetyMargin,
         stroke: color,
         fill: "rgba(0, 0, 0, 0)",
@@ -814,8 +847,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       graphics.lines!.push({
         points: [
           this.routes[i % 2].startPort,
-          viaA,
-          viaB,
+          via1,
+          via2,
           this.routes[i % 2].endPort,
         ],
         strokeColor: `${color.substring(0, color.lastIndexOf(","))}, 0.3)`,
@@ -825,15 +858,18 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     // Draw solved routes if available
-    for (const route of this.solvedRoutes) {
+    for (let si = 0; si < this.solvedRoutes.length; si++) {
+      const route = this.solvedRoutes[si]
+      const routeColor =
+        si % 2 === 0 ? "rgba(0, 255, 0, 0.75)" : "rgba(255, 0, 255, 0.75)"
       for (let i = 0; i < route.route.length - 1; i++) {
         const pointA = route.route[i]
         const pointB = route.route[i + 1]
 
         graphics.lines!.push({
           points: [pointA, pointB],
-          strokeColor:
-            pointA.z === 0 ? "rgba(0, 255, 0, 0.75)" : "rgba(0, 0, 255, 0.75)",
+          strokeColor: routeColor,
+          strokeDash: pointA.z === 1 ? [0.2, 0.2] : undefined,
           strokeWidth: route.traceThickness,
           label: `${route.connectionName} z=${pointA.z}`,
         })
@@ -844,14 +880,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         graphics.circles!.push({
           center: via,
           radius: this.viaDiameter / 2,
-          fill: "rgba(0, 255, 0, 0.8)",
+          fill: "rgba(0, 0, 255, 0.8)",
           stroke: "black",
           label: "Solved Via",
         })
         graphics.circles!.push({
           center: via,
           radius: this.viaDiameter / 2 + this.obstacleMargin,
-          fill: "rgba(0, 255, 0, 0.3)",
+          fill: "rgba(0, 0, 255, 0.3)",
           stroke: "black",
           label: "Via Margin",
         })
