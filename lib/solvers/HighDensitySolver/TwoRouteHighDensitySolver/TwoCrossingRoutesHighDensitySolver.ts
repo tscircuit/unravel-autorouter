@@ -69,11 +69,22 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     const [routeA, routeB] = this.routes
-    if (routeA.startPort.z !== routeA.endPort.z) {
+    const routeAStartsAndEndsOnSameLayer =
+      routeA.startPort.z === routeA.endPort.z
+    if (!routeAStartsAndEndsOnSameLayer) {
       this.failed = true
       return
     }
-    if (routeB.startPort.z !== routeB.endPort.z) {
+
+    const routeBStartsAndEndsOnSameLayer =
+      routeB.startPort.z === routeB.endPort.z
+    if (!routeBStartsAndEndsOnSameLayer) {
+      this.failed = true
+      return
+    }
+
+    const routesAreSameLayer = routeA.startPort.z === routeB.startPort.z
+    if (!routesAreSameLayer) {
       this.failed = true
       return
     }
@@ -352,6 +363,13 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     const { viaA, viaB } = this.optimizeViaPositions(viaPositions)
 
+    // if (
+    //   distance(viaA, viaB) <
+    //   this.viaDiameter + this.traceThickness + this.obstacleMargin * 2
+    // ) {
+    //   return false
+    // }
+
     // Create route for A that goes over B using vias
     const routeASolution = this.createRoute(
       routeA.startPort,
@@ -391,61 +409,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     this.solvedRoutes.push(routeASolution, routeBSolution)
-    return true
-  }
-
-  /**
-   * Try to solve with routeB going over and routeA staying on layer 0
-   */
-  private trySolveBOverA(routeA: Route, routeB: Route): boolean {
-    const viaPositions = this.calculateViaPositions(routeB, routeA)
-    if (viaPositions) {
-      this.debugViaPositions.push(viaPositions)
-    } else {
-      return false
-    }
-
-    const { viaA, viaB } = this.optimizeViaPositions(viaPositions)
-
-    // Create route for B that goes over A using vias
-    const routeBSolution = this.createRoute(
-      routeB.startPort,
-      routeB.endPort,
-      viaA,
-      viaB,
-      routeB.connectionName,
-    )
-
-    // Calculate orthogonal line through the middle segment of route B
-    const midSegmentStart = { x: viaA.x, y: viaA.y, z: 1 }
-    const midSegmentEnd = { x: viaB.x, y: viaB.y, z: 1 }
-
-    // Calculate the orthogonal points for route A
-    const orthogonalPoints =
-      this.calculateShortestOrthogonalRoutePoints(
-        routeA.startPort,
-        routeA.endPort,
-        midSegmentStart,
-        midSegmentEnd,
-        routeBSolution.route,
-      ) ??
-      this.calculateConservativeOrthogonalRoutePoints(
-        routeA.startPort,
-        routeA.endPort,
-        midSegmentStart,
-        midSegmentEnd,
-      )
-
-    // Create route for A that navigates around the vias
-    const routeASolution: HighDensityIntraNodeRoute = {
-      connectionName: routeA.connectionName,
-      route: orthogonalPoints as any,
-      traceThickness: this.traceThickness,
-      viaDiameter: this.viaDiameter,
-      vias: [],
-    }
-
-    this.solvedRoutes.push(routeBSolution, routeASolution)
     return true
   }
 
@@ -747,7 +710,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     // If that fails, try having route B go over route A
-    if (this.trySolveBOverA(routeA, routeB)) {
+    if (this.trySolveAOverB(routeB, routeA)) {
       this.solved = true
       return
     }

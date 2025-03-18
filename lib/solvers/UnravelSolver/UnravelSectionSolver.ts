@@ -588,9 +588,6 @@ export class UnravelSectionSolver extends BaseSolver {
       )
       if (!neighbor) continue
       neighbors.push(neighbor)
-      this.queuedOrExploredCandidatePointModificationHashes.add(
-        neighbor.candidateHash,
-      )
     }
 
     return neighbors
