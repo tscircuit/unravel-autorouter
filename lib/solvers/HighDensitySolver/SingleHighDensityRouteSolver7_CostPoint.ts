@@ -1,8 +1,6 @@
 import { distance } from "@tscircuit/math-utils"
-import {
-  SingleHighDensityRouteSolver,
-  type Node,
-} from "./SingleHighDensityRouteSolver"
+import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
+import { Node } from "lib/data-structures/SingleRouteCandidatePriorityQueue"
 
 export class SingleHighDensityRouteSolver7_CostPoint extends SingleHighDensityRouteSolver {
   FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR = 2

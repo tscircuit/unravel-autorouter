@@ -1,8 +1,6 @@
 import { distance } from "@tscircuit/math-utils"
-import {
-  SingleHighDensityRouteSolver,
-  type Node,
-} from "./SingleHighDensityRouteSolver"
+import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
+import { Node } from "lib/data-structures/SingleRouteCandidatePriorityQueue"
 
 export class SingleHighDensityRouteSolver2_CenterAttraction extends SingleHighDensityRouteSolver {
   CENTER_PENALTY_SCALE_H = 0.4

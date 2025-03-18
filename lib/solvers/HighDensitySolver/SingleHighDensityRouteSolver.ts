@@ -8,23 +8,14 @@ import {
 import type { GraphicsObject } from "graphics-debug"
 import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
-import { MinPriorityQueue } from "@datastructures-js/priority-queue"
+import {
+  Node,
+  SingleRouteCandidatePriorityQueue,
+} from "lib/data-structures/SingleRouteCandidatePriorityQueue"
 
 export type FutureConnection = {
   connectionName: string
   points: { x: number; y: number }[]
-}
-
-export type Node = {
-  x: number
-  y: number
-  z: number
-
-  g: number
-  h: number
-  f: number
-
-  parent: Node | null
 }
 
 export class SingleHighDensityRouteSolver extends BaseSolver {
@@ -50,7 +41,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
   exploredNodes: Set<string>
 
-  candidates: MinPriorityQueue<Node>
+  candidates: SingleRouteCandidatePriorityQueue
 
   connectionName: string
   solvedPath: HighDensityIntraNodeRoute | null = null
@@ -104,15 +95,16 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.obstacleMargin = opts.obstacleMargin ?? 0.2
     this.layerCount = opts.layerCount ?? 2
     this.exploredNodes = new Set()
-    this.candidates = new MinPriorityQueue((e) => e.f)
-    this.candidates.enqueue({
-      ...opts.A,
-      z: opts.A.z ?? 0,
-      g: 0,
-      h: 0,
-      f: 0,
-      parent: null,
-    })
+    this.candidates = new SingleRouteCandidatePriorityQueue([
+      {
+        ...opts.A,
+        z: opts.A.z ?? 0,
+        g: 0,
+        h: 0,
+        f: 0,
+        parent: null,
+      },
+    ])
     this.straightLineDistance = distance(this.A, this.B)
     this.futureConnections = opts.futureConnections ?? []
     this.MAX_ITERATIONS = 5000
@@ -411,7 +403,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   }
 
   _step() {
-    let currentNode = this.candidates.pop()
+    let currentNode = this.candidates.dequeue()
     let currentNodeKey = currentNode ? this.getNodeKey(currentNode) : undefined
 
     while (
@@ -419,7 +411,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       currentNodeKey &&
       this.exploredNodes.has(currentNodeKey)
     ) {
-      currentNode = this.candidates.pop()
+      currentNode = this.candidates.dequeue()
       currentNodeKey = currentNode ? this.getNodeKey(currentNode) : undefined
     }
 
@@ -445,7 +437,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
     const neighbors = this.getNeighbors(currentNode)
     for (const neighbor of neighbors) {
-      this.candidates.push(neighbor)
+      this.candidates.enqueue(neighbor)
     }
   }
 
