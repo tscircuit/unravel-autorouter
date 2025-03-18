@@ -395,15 +395,11 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     via2: Point,
     connectionName: string,
   ): HighDensityIntraNodeRoute {
-    // Set the z-layers for the vias
-    const viaPoint1 = {
-      x: via1.x,
-      y: via1.y,
-    }
+    const via1DistToStart = distance(via1, start)
+    const via2DistToStart = distance(via1, end)
 
-    const viaPoint2 = {
-      x: via2.x,
-      y: via2.y,
+    if (via2DistToStart < via1DistToStart) {
+      ;[via1, via2] = [via2, via1]
     }
 
     // Create the route path with layer transitions
@@ -421,7 +417,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       route,
       traceThickness: this.traceThickness,
       viaDiameter: this.viaDiameter,
-      vias: [viaPoint1, viaPoint2],
+      vias: [via1, via2],
     }
   }
 
