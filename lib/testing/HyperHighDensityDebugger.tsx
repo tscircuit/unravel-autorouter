@@ -60,7 +60,7 @@ export const HyperHighDensityDebugger = ({
   } else if (focusedSolver.failed) {
     graphics = combineVisualizations(
       focusedSolver.visualize(),
-      focusedSolver.failedSubSolvers[0].visualize(),
+      focusedSolver.failedSubSolvers?.[0]?.visualize()!,
     )
   } else {
     graphics = focusedSolver.visualize()
@@ -131,7 +131,7 @@ export const HyperHighDensityDebugger = ({
                   {supervisedSolver.solver?.activeSolver?.progress?.toFixed(3)}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {supervisedSolver.solver.unsolvedConnections.length}
+                  {supervisedSolver.solver?.unsolvedConnections?.length}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
                   {supervisedSolver.solver.solvedRoutes.length}

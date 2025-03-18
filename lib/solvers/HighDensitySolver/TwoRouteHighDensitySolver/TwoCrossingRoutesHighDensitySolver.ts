@@ -98,17 +98,16 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
    * Calculate the bounding box of the node
    */
   private calculateBounds() {
-    const allPoints = this.routes.flatMap((route) => [
-      route.startPort,
-      route.endPort,
-    ])
-
-    const minX = Math.min(...allPoints.map((p) => p.x))
-    const maxX = Math.max(...allPoints.map((p) => p.x))
-    const minY = Math.min(...allPoints.map((p) => p.y))
-    const maxY = Math.max(...allPoints.map((p) => p.y))
-
-    return { minX, maxX, minY, maxY }
+    return {
+      minX:
+        this.nodeWithPortPoints.center.x - this.nodeWithPortPoints.width / 2,
+      maxX:
+        this.nodeWithPortPoints.center.x + this.nodeWithPortPoints.width / 2,
+      minY:
+        this.nodeWithPortPoints.center.y - this.nodeWithPortPoints.height / 2,
+      maxY:
+        this.nodeWithPortPoints.center.y + this.nodeWithPortPoints.height / 2,
+    }
   }
 
   /**
@@ -449,17 +448,22 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       routeA.connectionName,
     )
 
-    // Create route for B that stays on the base layer
+    // Calculate orthogonal line through the middle segment of route A
+    const midSegmentStart = { x: viaA.x, y: viaA.y, z: 1 }
+    const midSegmentEnd = { x: viaB.x, y: viaB.y, z: 1 }
+
+    // Calculate the orthogonal points for route B
+    const orthogonalPoints = this.calculateOrthogonalRoutePoints(
+      routeB.startPort,
+      routeB.endPort,
+      midSegmentStart,
+      midSegmentEnd,
+    )
+
+    // Create route for B that navigates around the vias
     const routeBSolution: HighDensityIntraNodeRoute = {
       connectionName: routeB.connectionName,
-      route: [
-        {
-          x: routeB.startPort.x,
-          y: routeB.startPort.y,
-          z: routeB.startPort.z ?? 0,
-        },
-        { x: routeB.endPort.x, y: routeB.endPort.y, z: routeB.endPort.z ?? 0 },
-      ],
+      route: orthogonalPoints,
       traceThickness: this.traceThickness,
       viaDiameter: this.viaDiameter,
       vias: [],
@@ -491,24 +495,159 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       routeB.connectionName,
     )
 
-    // Create route for A that stays on the base layer
+    // Calculate orthogonal line through the middle segment of route B
+    const midSegmentStart = { x: viaA.x, y: viaA.y, z: 1 }
+    const midSegmentEnd = { x: viaB.x, y: viaB.y, z: 1 }
+
+    // Calculate the orthogonal points for route A
+    const orthogonalPoints = this.calculateOrthogonalRoutePoints(
+      routeA.startPort,
+      routeA.endPort,
+      midSegmentStart,
+      midSegmentEnd,
+    )
+
+    // Create route for A that navigates around the vias
     const routeASolution: HighDensityIntraNodeRoute = {
       connectionName: routeA.connectionName,
-      route: [
-        {
-          x: routeA.startPort.x,
-          y: routeA.startPort.y,
-          z: routeA.startPort.z ?? 0,
-        },
-        { x: routeA.endPort.x, y: routeA.endPort.y, z: routeA.endPort.z ?? 0 },
-      ],
+      route: orthogonalPoints,
       traceThickness: this.traceThickness,
       viaDiameter: this.viaDiameter,
       vias: [],
     }
 
-    this.solvedRoutes.push(routeASolution, routeBSolution)
+    this.solvedRoutes.push(routeBSolution, routeASolution)
     return true
+  }
+
+  /**
+   * Calculate the orthogonal route points for the second route
+   */
+  private calculateOrthogonalRoutePoints(
+    start: Point,
+    end: Point,
+    midSegmentStart: Point,
+    midSegmentEnd: Point,
+  ): Point[] {
+    // Define the inner edge box which is obstacleMargin away from outer box
+    const outerBox = {
+      width: this.bounds.maxX - this.bounds.minX,
+      height: this.bounds.maxY - this.bounds.minY,
+      x: this.bounds.minX,
+      y: this.bounds.minY,
+    }
+
+    const innerEdgeBox = {
+      width: outerBox.width - 2 * this.obstacleMargin - this.traceThickness,
+      height: outerBox.height - 2 * this.obstacleMargin - this.traceThickness,
+      x: outerBox.x + this.obstacleMargin + this.traceThickness / 2,
+      y: outerBox.y + this.obstacleMargin + this.traceThickness / 2,
+    }
+
+    // Calculate the orthogonal line to the mid segment
+    // First get the direction vector of mid segment
+    const midSegmentDX = midSegmentEnd.x - midSegmentStart.x
+    const midSegmentDY = midSegmentEnd.y - midSegmentStart.y
+
+    // Calculate orthogonal vector (rotate by 90 degrees)
+    const orthDX = -midSegmentDY
+    const orthDY = midSegmentDX
+
+    // Normalize the orthogonal vector
+    const orthLength = Math.sqrt(orthDX * orthDX + orthDY * orthDY)
+    const normOrthDX = orthDX / orthLength
+    const normOrthDY = orthDY / orthLength
+
+    // Calculate the midpoint of the mid segment
+    const midpointX = (midSegmentStart.x + midSegmentEnd.x) / 2
+    const midpointY = (midSegmentStart.y + midSegmentEnd.y) / 2
+
+    // Calculate the orthogonal line that passes through the midpoint
+    // Line equation: (x, y) = (midpointX, midpointY) + t * (normOrthDX, normOrthDY)
+
+    // Function to calculate intersections with the innerEdgeBox
+    const calculateIntersections = (): Point[] => {
+      const intersections: Point[] = []
+
+      // Check intersection with left edge
+      const leftT = (innerEdgeBox.x - midpointX) / normOrthDX
+      const leftY = midpointY + leftT * normOrthDY
+      if (
+        leftY >= innerEdgeBox.y &&
+        leftY <= innerEdgeBox.y + innerEdgeBox.height
+      ) {
+        intersections.push({ x: innerEdgeBox.x, y: leftY })
+      }
+
+      // Check intersection with right edge
+      const rightT =
+        (innerEdgeBox.x + innerEdgeBox.width - midpointX) / normOrthDX
+      const rightY = midpointY + rightT * normOrthDY
+      if (
+        rightY >= innerEdgeBox.y &&
+        rightY <= innerEdgeBox.y + innerEdgeBox.height
+      ) {
+        intersections.push({
+          x: innerEdgeBox.x + innerEdgeBox.width,
+          y: rightY,
+        })
+      }
+
+      // Check intersection with top edge
+      const topT = (innerEdgeBox.y - midpointY) / normOrthDY
+      const topX = midpointX + topT * normOrthDX
+      if (
+        topX >= innerEdgeBox.x &&
+        topX <= innerEdgeBox.x + innerEdgeBox.width
+      ) {
+        intersections.push({ x: topX, y: innerEdgeBox.y })
+      }
+
+      // Check intersection with bottom edge
+      const bottomT =
+        (innerEdgeBox.y + innerEdgeBox.height - midpointY) / normOrthDY
+      const bottomX = midpointX + bottomT * normOrthDX
+      if (
+        bottomX >= innerEdgeBox.x &&
+        bottomX <= innerEdgeBox.x + innerEdgeBox.width
+      ) {
+        intersections.push({
+          x: bottomX,
+          y: innerEdgeBox.y + innerEdgeBox.height,
+        })
+      }
+
+      return intersections
+    }
+
+    const intersections = calculateIntersections()
+
+    // If we don't have at least 2 intersections, return direct route
+    if (intersections.length < 2) {
+      return [
+        { x: start.x, y: start.y, z: start.z ?? 0 },
+        { x: end.x, y: end.y, z: end.z ?? 0 },
+      ]
+    }
+
+    // Sort intersections by distance from start point
+    const sortedIntersections = [...intersections].sort((a, b) => {
+      const distA = distance(a, start)
+      const distB = distance(b, start)
+      return distA - distB
+    })
+
+    // Choose the closest intersection to the start and the closest to the end
+    const middlePoint1 = sortedIntersections[0]
+    const middlePoint2 = sortedIntersections[intersections.length - 1]
+
+    // Create the route with 4 points
+    return [
+      { x: start.x, y: start.y, z: start.z ?? 0 },
+      { x: middlePoint1.x, y: middlePoint1.y, z: start.z ?? 0 },
+      { x: middlePoint2.x, y: middlePoint2.y, z: start.z ?? 0 },
+      { x: end.x, y: end.y, z: end.z ?? 0 },
+    ]
   }
 
   /**
