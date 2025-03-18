@@ -128,9 +128,11 @@ export const HyperHighDensityDebugger = ({
                   {supervisedSolver.solver.progress?.toFixed(3)}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {/* @ts-ignore */}
                   {supervisedSolver.solver?.activeSolver?.progress?.toFixed(3)}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {/* @ts-ignore */}
                   {supervisedSolver.solver?.unsolvedConnections?.length}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
