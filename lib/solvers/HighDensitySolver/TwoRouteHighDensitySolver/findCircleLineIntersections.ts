@@ -80,4 +80,30 @@ export const findCircleLineIntersections = (
     }
     return []
   }
+
+  // Two intersections
+  const x_1 = (-B + Math.sqrt(discriminant)) / (2 * A)
+  const x_2 = (-B - Math.sqrt(discriminant)) / (2 * A)
+  const y_1 = m * x_1 + b
+  const y_2 = m * x_2 + b
+
+  const points: Point[] = []
+  if (
+    x_1 >= Math.min(x1, x2) &&
+    x_1 <= Math.max(x1, x2) &&
+    y_1 >= Math.min(y1, y2) &&
+    y_1 <= Math.max(y1, y2)
+  ) {
+    points.push({ x: x_1, y: y_1 })
+  }
+  if (
+    x_2 >= Math.min(x1, x2) &&
+    x_2 <= Math.max(x1, x2) &&
+    y_2 >= Math.min(y1, y2) &&
+    y_2 <= Math.max(y1, y2)
+  ) {
+    points.push({ x: x_2, y: y_2 })
+  }
+
+  return points
 }

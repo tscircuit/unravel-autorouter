@@ -27,6 +27,11 @@ export const GenericSolverDebugger = ({
   const [selectedSolverKey, setSelectedSolverKey] = useState<"main" | number>(
     "main",
   )
+  const [renderer, setRenderer] = useState<"canvas" | "vector">(
+    window.localStorage.getItem("lastRenderer") === "vector"
+      ? "vector"
+      : "canvas",
+  )
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
   )
@@ -296,6 +301,18 @@ export const GenericSolverDebugger = ({
         >
           {objectSelectionEnabled ? "Disable" : "Enable"} Object Selection
         </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() => {
+            setRenderer(renderer === "canvas" ? "vector" : "canvas")
+            window.localStorage.setItem(
+              "lastRenderer",
+              renderer === "canvas" ? "vector" : "canvas",
+            )
+          }}
+        >
+          Switch to {renderer === "canvas" ? "Vector" : "Canvas"} Renderer
+        </button>
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
@@ -373,7 +390,7 @@ export const GenericSolverDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        {objectSelectionEnabled ? (
+        {objectSelectionEnabled || renderer === "vector" ? (
           <InteractiveGraphics graphics={visualization} />
         ) : (
           <InteractiveGraphicsCanvas

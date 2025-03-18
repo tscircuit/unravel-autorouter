@@ -366,12 +366,20 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const midSegmentEnd = { x: viaB.x, y: viaB.y, z: 1 }
 
     // Calculate the orthogonal points for route B
-    const orthogonalPoints = this.calculateOrthogonalRoutePoints(
-      routeB.startPort,
-      routeB.endPort,
-      midSegmentStart,
-      midSegmentEnd,
-    )
+    const orthogonalPoints =
+      this.calculateShortestOrthogonalRoutePoints(
+        routeB.startPort,
+        routeB.endPort,
+        midSegmentStart,
+        midSegmentEnd,
+        routeASolution.route,
+      ) ??
+      this.calculateConservativeOrthogonalRoutePoints(
+        routeB.startPort,
+        routeB.endPort,
+        midSegmentStart,
+        midSegmentEnd,
+      )
 
     // Create route for B that navigates around the vias
     const routeBSolution: HighDensityIntraNodeRoute = {
@@ -413,12 +421,20 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const midSegmentEnd = { x: viaB.x, y: viaB.y, z: 1 }
 
     // Calculate the orthogonal points for route A
-    const orthogonalPoints = this.calculateOrthogonalRoutePoints(
-      routeA.startPort,
-      routeA.endPort,
-      midSegmentStart,
-      midSegmentEnd,
-    )
+    const orthogonalPoints =
+      this.calculateShortestOrthogonalRoutePoints(
+        routeA.startPort,
+        routeA.endPort,
+        midSegmentStart,
+        midSegmentEnd,
+        routeBSolution.route,
+      ) ??
+      this.calculateConservativeOrthogonalRoutePoints(
+        routeA.startPort,
+        routeA.endPort,
+        midSegmentStart,
+        midSegmentEnd,
+      )
 
     // Create route for A that navigates around the vias
     const routeASolution: HighDensityIntraNodeRoute = {
@@ -437,7 +453,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     viaA: Point
     viaB: Point
   } {
-    return { viaA: viaPositions.viaA, viaB: viaPositions.viaB }
     const { viaA, viaB } = viaPositions
 
     // Calculate the minimum required distance between vias
@@ -488,7 +503,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   /**
    * Calculate the orthogonal route points for the second route
    */
-  private calculateOrthogonalRoutePoints(
+  private calculateConservativeOrthogonalRoutePoints(
     start: Point,
     end: Point,
     midSegmentStart: Point,
@@ -611,6 +626,58 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       { x: start.x, y: start.y, z: start.z ?? 0 },
       { x: middlePoint1.x, y: middlePoint1.y, z: start.z ?? 0 },
       { x: middlePoint2.x, y: middlePoint2.y, z: start.z ?? 0 },
+      { x: end.x, y: end.y, z: end.z ?? 0 },
+    ]
+  }
+
+  private calculateShortestOrthogonalRoutePoints(
+    start: Point,
+    end: Point,
+    midSegmentStart: Point,
+    midSegmentEnd: Point,
+    otherRoute: Point[],
+  ): Point[] | null {
+    const midSegmentCenter = {
+      x: (midSegmentStart.x + midSegmentEnd.x) / 2,
+      y: (midSegmentStart.y + midSegmentEnd.y) / 2,
+    }
+
+    const midSegmentDirection = {
+      x: midSegmentEnd.x - midSegmentStart.x,
+      y: midSegmentEnd.y - midSegmentStart.y,
+    }
+
+    const midSegmentLength = distance(midSegmentStart, midSegmentEnd)
+    const normOrthDX = midSegmentDirection.y / midSegmentLength
+    const normOrthDY = midSegmentDirection.x / midSegmentLength
+
+    // Travel orthogonal to the mid segment by the length of the mid segment to
+    // get two points
+    let orthogonalPoint1 = {
+      x: midSegmentCenter.x + (midSegmentLength / 2) * normOrthDY,
+      y: midSegmentCenter.y - (midSegmentLength / 2) * normOrthDX,
+    }
+
+    let orthogonalPoint2 = {
+      x: midSegmentCenter.x - (midSegmentLength / 2) * normOrthDY,
+      y: midSegmentCenter.y + (midSegmentLength / 2) * normOrthDX,
+    }
+
+    if (distance(orthogonalPoint2, start) < distance(orthogonalPoint1, start)) {
+      ;[orthogonalPoint1, orthogonalPoint2] = [
+        orthogonalPoint2,
+        orthogonalPoint1,
+      ]
+    }
+
+    // Make sure we're not too close to the other route, or the mid segment
+    // start or end (which has vias)
+    // TODO - i haven't done this because we need a good test case/fixture -seve
+
+    return [
+      { x: start.x, y: start.y, z: start.z ?? 0 },
+      { x: orthogonalPoint1.x, y: orthogonalPoint1.y, z: start.z ?? 0 },
+      { x: orthogonalPoint2.x, y: orthogonalPoint2.y, z: start.z ?? 0 },
       { x: end.x, y: end.y, z: end.z ?? 0 },
     ]
   }
