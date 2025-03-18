@@ -9,6 +9,7 @@ import {
   doSegmentsIntersect,
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
+import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
@@ -60,6 +61,23 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Calculate bounds
     this.bounds = this.calculateBounds()
+
+    if (this.routes.length !== 2) {
+      this.failed = true
+      return
+    }
+
+    const [routeA, routeB] = this.routes
+    if (routeA.startPort.z !== routeA.endPort.z) {
+      this.failed = true
+      return
+    }
+    if (routeB.startPort.z !== routeB.endPort.z) {
+      this.failed = true
+      return
+    }
+
+    // TODO check to make sure the lines cross
   }
 
   /**
@@ -402,12 +420,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       ;[via1, via2] = [via2, via1]
     }
 
+    const middleZ = start.z === 0 ? 1 : 0
+
     // Create the route path with layer transitions
     const route = [
       { x: start.x, y: start.y, z: start.z ?? 0 },
       { x: via1.x, y: via1.y, z: start.z ?? 0 },
-      { x: via1.x, y: via1.y, z: 1 }, // Via transition to layer 1
-      { x: via2.x, y: via2.y, z: 1 }, // Stay on layer 1
+      { x: via1.x, y: via1.y, z: middleZ }, // Via transition to layer 1
+      { x: via2.x, y: via2.y, z: middleZ }, // Stay on layer 1
       { x: via2.x, y: via2.y, z: end.z ?? 0 }, // Via transition back
       { x: end.x, y: end.y, z: end.z ?? 0 },
     ]
