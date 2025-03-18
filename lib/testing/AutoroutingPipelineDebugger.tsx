@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from "react"
-import { InteractiveGraphics } from "graphics-debug/react"
+import {
+  InteractiveGraphics,
+  InteractiveGraphicsCanvas,
+} from "graphics-debug/react"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
@@ -24,11 +27,10 @@ export const AutoroutingPipelineDebugger = ({
     createSolver(srj),
   )
   const [canSelectObjects, setCanSelectObjects] = useState(false)
-  const [shouldLimitVisualizations, setShouldLimitVisualizations] =
-    useState(false)
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [solveTime, setSolveTime] = useState<number | null>(null)
   const [dialogObject, setDialogObject] = useState<Rect | null>(null)
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
@@ -109,8 +111,10 @@ export const AutoroutingPipelineDebugger = ({
   // Solve completely
   const handleSolveCompletely = () => {
     if (!solver.solved && !solver.failed) {
+      const startTime = performance.now() / 1000
       solver.solve()
-      setForceUpdate((prev) => prev + 1)
+      const endTime = performance.now() / 1000
+      setSolveTime(endTime - startTime)
     }
   }
 
@@ -179,16 +183,12 @@ export const AutoroutingPipelineDebugger = ({
   const visualization = useMemo(() => {
     try {
       const ogVisualization = solver?.visualize() || { points: [], lines: [] }
-      if (shouldLimitVisualizations) {
-        return limitVisualizations(ogVisualization, 5e3)
-      } else {
-        return ogVisualization
-      }
+      return ogVisualization
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations, shouldLimitVisualizations])
+  }, [solver, solver.iterations])
 
   return (
     <div className="p-4">
@@ -251,15 +251,6 @@ export const AutoroutingPipelineDebugger = ({
         >
           {canSelectObjects ? "Disable" : "Enable"} Object Selection
         </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() =>
-            setShouldLimitVisualizations(!shouldLimitVisualizations)
-          }
-        >
-          {shouldLimitVisualizations ? "Disable" : "Enable"} Visualization
-          Limiting
-        </button>
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
@@ -287,14 +278,25 @@ export const AutoroutingPipelineDebugger = ({
             {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
           </span>
         </div>
-        {solver.activeSubSolver && (
+        <div className="border p-2 rounded">
+          Trace Count:{" "}
+          <span className="font-bold">
+            {solver.srjWithPointPairs?.connections.length ??
+              `${solver.srj.connections.length} (*)`}
+          </span>
+        </div>
+        {solveTime !== null && (
           <div className="border p-2 rounded">
-            Active Stage:{" "}
-            <span className="font-bold">
-              {solver.activeSubSolver.constructor.name}
-            </span>
+            Time to Solve:{" "}
+            <span className="font-bold">{solveTime.toFixed(3)}s</span>
           </div>
         )}
+        <div className="border p-2 rounded">
+          Active Stage:{" "}
+          <span className="font-bold">
+            {solver.activeSubSolver?.constructor.name ?? "None"}
+          </span>
+        </div>
         {solver.error && (
           <div className="border p-2 rounded bg-red-100">
             Error: <span className="font-bold">{solver.error}</span>
@@ -303,14 +305,22 @@ export const AutoroutingPipelineDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        <InteractiveGraphics
-          graphics={visualization}
-          onObjectClicked={({ object }) => {
-            if (!canSelectObjects) return
-            if (!object.label?.includes("cn")) return
-            setDialogObject(object)
-          }}
-        />
+        {canSelectObjects ? (
+          <InteractiveGraphics
+            graphics={visualization}
+            onObjectClicked={({ object }) => {
+              if (!canSelectObjects) return
+              if (!object.label?.includes("cn")) return
+              setDialogObject(object)
+            }}
+            objectLimit={20e3}
+          />
+        ) : (
+          <InteractiveGraphicsCanvas
+            graphics={visualization}
+            showLabelsByDefault={false}
+          />
+        )}
       </div>
 
       {dialogObject && (

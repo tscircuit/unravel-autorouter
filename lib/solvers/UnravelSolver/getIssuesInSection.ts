@@ -28,19 +28,14 @@ export const getIssuesInSection = (
   const issues: UnravelIssue[] = []
 
   const points: Map<SegmentPointId, { x: number; y: number; z: number }> =
-    new Map()
-  for (const nodeId of section.allNodeIds) {
-    for (const segmentPointId of section.segmentPointsInNode.get(nodeId)!) {
-      if (!points.has(segmentPointId)) {
-        const ogPoint = section.segmentPointMap.get(segmentPointId)!
-        const modPoint = pointModifications.get(segmentPointId)
-        points.set(segmentPointId, {
-          x: modPoint?.x ?? ogPoint.x,
-          y: modPoint?.y ?? ogPoint.y,
-          z: modPoint?.z ?? ogPoint.z,
-        })
-      }
-    }
+    new Map(section.originalPointMap)
+  for (const [segmentPointId, modPoint] of pointModifications.entries()) {
+    const ogPoint = points.get(segmentPointId)!
+    points.set(segmentPointId, {
+      x: modPoint.x ?? ogPoint.x,
+      y: modPoint.y ?? ogPoint.y,
+      z: modPoint.z ?? ogPoint.z,
+    })
   }
 
   for (const nodeId of section.allNodeIds) {

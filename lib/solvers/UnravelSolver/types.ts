@@ -73,6 +73,7 @@ export interface UnravelSection {
   >
   segmentPointsInNode: Map<CapacityMeshNodeId, SegmentPointId[]>
   segmentPointsInSegment: Map<SegmentId, SegmentPointId[]>
+  originalPointMap: Map<SegmentPointId, { x: number; y: number; z: number }>
 }
 
 export interface UnravelChangeLayerOperation {
