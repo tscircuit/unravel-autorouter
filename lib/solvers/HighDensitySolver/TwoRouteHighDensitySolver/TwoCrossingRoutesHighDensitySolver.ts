@@ -446,7 +446,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
    */
   private trySolveAOverB(routeA: Route, routeB: Route): boolean {
     const viaPositions = this.calculateViaPositions(routeA, routeB)
-    console.log("viaPositions", viaPositions)
     if (viaPositions) {
       this.debugViaPositions.push(viaPositions)
     } else {
@@ -680,7 +679,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Check if routes are actually crossing
     if (!this.doRoutesCross(routeA, routeB)) {
-      console.log("Routes don't cross, creating simple direct connections")
       // Routes don't cross, create simple direct connections
       const routeASolution: HighDensityIntraNodeRoute = {
         connectionName: routeA.connectionName,
