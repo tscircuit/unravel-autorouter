@@ -105,6 +105,10 @@ export class IntraNodeRouteSolver extends BaseSolver {
     //   numTransitions,
     // } = getIntraNodeCrossings(this.nodeWithPortPoints)
 
+    // if (this.nodeWithPortPoints.portPoints.length === 4) {
+
+    // }
+
     // if (
     //   numSameLayerCrossings === 0 &&
     //   numTransitions === 0 &&
