@@ -59,12 +59,8 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
       return
     }
 
-    if (unsolvedRoute.hdRoutes.length === 0) {
-      console.warn(`No routes to stitch for ${unsolvedRoute.connectionName}`)
-      return
-    }
-
     this.activeSolver = new SingleHighDensityRouteStitchSolver({
+      connectionName: unsolvedRoute.connectionName,
       hdRoutes: unsolvedRoute.hdRoutes,
       start: unsolvedRoute.start,
       end: unsolvedRoute.end,
