@@ -8,8 +8,11 @@ import {
   SupervisedSolver,
 } from "../HyperParameterSupervisorSolver"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { TwoCrossingRoutesHighDensitySolver } from "../HighDensitySolver/TwoRouteHighDensitySolver/TwoCrossingRoutesHighDensitySolver"
 
-export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<IntraNodeRouteSolver> {
+export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
+  IntraNodeRouteSolver | TwoCrossingRoutesHighDensitySolver
+> {
   constructorParams: ConstructorParameters<typeof IntraNodeRouteSolver>[0]
   solvedRoutes: HighDensityIntraNodeRoute[] = []
   nodeWithPortPoints: NodeWithPortPoints
@@ -25,6 +28,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<I
 
   getCombinationDefs() {
     return [
+      ["closedFormTwoTraceSameLayer"],
       ["majorCombinations", "orderings6", "cellSizeFactor"],
       ["noVias"],
       ["orderings50"],
@@ -115,6 +119,14 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<I
           SHUFFLE_SEED: 100 + i,
         })),
       },
+      {
+        name: "closedFormTwoTraceSameLayer",
+        possibleValues: [
+          {
+            CLOSED_FORM_TWO_TRACE_SAME_LAYER: true,
+          },
+        ],
+      },
     ]
   }
 
@@ -129,6 +141,11 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<I
   }
 
   generateSolver(hyperParameters: any): IntraNodeRouteSolver {
+    if (hyperParameters.CLOSED_FORM_TWO_TRACE_SAME_LAYER) {
+      return new TwoCrossingRoutesHighDensitySolver({
+        nodeWithPortPoints: this.nodeWithPortPoints,
+      }) as any
+    }
     return new IntraNodeRouteSolver({
       ...this.constructorParams,
       hyperParameters,

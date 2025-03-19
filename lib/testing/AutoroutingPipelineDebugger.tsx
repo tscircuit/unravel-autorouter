@@ -26,6 +26,11 @@ export const AutoroutingPipelineDebugger = ({
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
     createSolver(srj),
   )
+  const [renderer, setRenderer] = useState<"canvas" | "vector">(
+    (window.localStorage.getItem("lastSelectedRenderer") as
+      | "canvas"
+      | "vector") ?? "vector",
+  )
   const [canSelectObjects, setCanSelectObjects] = useState(false)
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -251,6 +256,16 @@ export const AutoroutingPipelineDebugger = ({
         >
           {canSelectObjects ? "Disable" : "Enable"} Object Selection
         </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() => {
+            const newRenderer = renderer === "canvas" ? "vector" : "canvas"
+            setRenderer(newRenderer)
+            window.localStorage.setItem("lastSelectedRenderer", newRenderer)
+          }}
+        >
+          Switch to {renderer === "canvas" ? "Vector" : "Canvas"} Renderer
+        </button>
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
@@ -305,7 +320,7 @@ export const AutoroutingPipelineDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        {canSelectObjects ? (
+        {canSelectObjects || renderer === "vector" ? (
           <InteractiveGraphics
             graphics={visualization}
             onObjectClicked={({ object }) => {

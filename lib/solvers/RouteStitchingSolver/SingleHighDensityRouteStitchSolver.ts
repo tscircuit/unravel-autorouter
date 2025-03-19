@@ -10,6 +10,7 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
   end: { x: number; y: number; z: number }
 
   constructor(opts: {
+    connectionName?: string
     hdRoutes: HighDensityIntraNodeRoute[]
     start: { x: number; y: number; z: number }
     end: { x: number; y: number; z: number }
@@ -17,7 +18,7 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
     super()
     this.remainingHdRoutes = [...opts.hdRoutes]
     this.mergedHdRoute = {
-      connectionName: opts.hdRoutes[0].connectionName,
+      connectionName: opts.connectionName ?? opts.hdRoutes[0].connectionName,
       route: [
         {
           x: opts.start.x,
@@ -26,8 +27,8 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
         },
       ],
       vias: [],
-      viaDiameter: opts.hdRoutes[0].viaDiameter,
-      traceThickness: opts.hdRoutes[0].traceThickness,
+      viaDiameter: opts.hdRoutes?.[0]?.viaDiameter ?? 0.6,
+      traceThickness: opts.hdRoutes?.[0]?.traceThickness ?? 0.15,
     }
     this.start = opts.start
     this.end = opts.end

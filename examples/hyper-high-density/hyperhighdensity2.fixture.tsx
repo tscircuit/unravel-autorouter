@@ -260,10 +260,12 @@ export default () => {
                   {solver.solver.progress?.toFixed(3)}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {/* @ts-ignore */}
                   {solver.solver?.activeSolver?.progress?.toFixed(3)}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {solver.solver.unsolvedConnections.length}
+                  {/* @ts-ignore */}
+                  {solver.solver?.activeSolver?.unsolvedConnections.length}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
                   {solver.solver.solvedRoutes.length}

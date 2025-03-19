@@ -26,6 +26,7 @@ interface Target {
 
 export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeSolver {
   VIA_DIAMETER = 0.6
+  OBSTACLE_MARGIN = 0.1
 
   constructor(
     public srj: SimpleRouteJson,
@@ -192,7 +193,8 @@ export class CapacityMeshNodeSolver2_NodeUnderObstacle extends CapacityMeshNodeS
       const shouldBeZSubdivided =
         childNode.availableZ.length > 1 &&
         !shouldBeXYSubdivided &&
-        (childNode._containsObstacle || childNode.width < this.VIA_DIAMETER)
+        (childNode._containsObstacle ||
+          childNode.width < this.VIA_DIAMETER + this.OBSTACLE_MARGIN)
       if (shouldBeXYSubdivided) {
         unfinishedNewNodes.push(childNode)
       } else if (
