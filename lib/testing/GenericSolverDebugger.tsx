@@ -20,6 +20,7 @@ export const GenericSolverDebugger = ({
   onSolverCompleted,
 }: GenericSolverDebuggerProps) => {
   const [mainSolver, setMainSolver] = useState<BaseSolver>(() => createSolver())
+  const [previewMode, setPreviewMode] = useState(false)
   const [objectSelectionEnabled, setObjectSelectionEnabled] = useState(false)
   const [forcedUpdates, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -212,12 +213,15 @@ export const GenericSolverDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
+      if (previewMode) {
+        return selectedSolver?.preview() || { points: [], lines: [] }
+      }
       return selectedSolver?.visualize() || { points: [], lines: [] }
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [forcedUpdates, selectedSolver])
+  }, [forcedUpdates, selectedSolver, previewMode])
 
   // Generate solver options for dropdown
   const solverOptions = useMemo(() => {
@@ -410,6 +414,12 @@ export const GenericSolverDebugger = ({
           Max Iterations:{" "}
           <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
         </div>
+      </div>
+      <div>
+        <h3 className="font-bold mb-2">Advanced</h3>
+        <button onClick={() => setPreviewMode(!previewMode)}>
+          {previewMode ? "Disable" : "Enable"} Preview Mode
+        </button>
       </div>
     </div>
   )

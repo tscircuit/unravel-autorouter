@@ -26,6 +26,7 @@ export const AutoroutingPipelineDebugger = ({
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
     createSolver(srj),
   )
+  const [previewMode, setPreviewMode] = useState(false)
   const [renderer, setRenderer] = useState<"canvas" | "vector">(
     (window.localStorage.getItem("lastSelectedRenderer") as
       | "canvas"
@@ -187,13 +188,16 @@ export const AutoroutingPipelineDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
+      if (previewMode) {
+        return solver?.preview() || { points: [], lines: [] }
+      }
       const ogVisualization = solver?.visualize() || { points: [], lines: [] }
       return ogVisualization
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations])
+  }, [solver, solver.iterations, previewMode])
 
   return (
     <div className="p-4">
@@ -535,6 +539,12 @@ export const AutoroutingPipelineDebugger = ({
             })}
           </tbody>
         </table>
+      </div>
+      <div>
+        <h3 className="font-bold mt-8 mb-2">Advanced</h3>
+        <button onClick={() => setPreviewMode(!previewMode)}>
+          {previewMode ? "Disable" : "Enable"} Preview Mode
+        </button>
       </div>
     </div>
   )

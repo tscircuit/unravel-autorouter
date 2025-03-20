@@ -1,4 +1,4 @@
-import type { GraphicsObject } from "graphics-debug"
+import type { GraphicsObject, Line } from "graphics-debug"
 import { combineVisualizations } from "../utils/combineVisualizations"
 import type {
   CapacityMeshNode,
@@ -419,6 +419,55 @@ export class CapacityMeshSolver extends BaseSolver {
     ].filter(Boolean) as GraphicsObject[]
     // return visualizations[visualizations.length - 1]
     return combineVisualizations(...visualizations)
+  }
+
+  /**
+   * A lightweight version of the visualize method that can be used to stream
+   * progress
+   *
+   * We return the most relevant graphic for the stage:
+   * 1. netToPointPairs output
+   * 2. Capacity Planning Output
+   * 3. High Density Route Solver Output, max 200 lines
+   */
+  preview(): GraphicsObject {
+    if (this.highDensityRouteSolver) {
+      const lines: Line[] = []
+      for (let i = this.highDensityRouteSolver.routes.length - 1; i >= 0; i--) {
+        const route = this.highDensityRouteSolver.routes[i]
+        lines.push({
+          points: route.route.map((n) => ({
+            x: n.x,
+            y: n.y,
+          })),
+          strokeColor: this.colorMap[route.connectionName],
+        })
+        if (lines.length > 200) break
+      }
+      return { lines }
+    }
+
+    if (this.pathingSolver) {
+      const lines: Line[] = []
+      for (const connection of this.pathingSolver.connectionsWithNodes) {
+        if (!connection.path) continue
+        lines.push({
+          points: connection.path.map((n) => ({
+            x: n.center.x,
+            y: n.center.y,
+          })),
+          strokeColor: this.colorMap[connection.connection.name],
+        })
+      }
+      return { lines }
+    }
+
+    // This output is good as-is
+    if (this.netToPointPairsSolver) {
+      return this.netToPointPairsSolver?.visualize()
+    }
+
+    return {}
   }
 
   /**
