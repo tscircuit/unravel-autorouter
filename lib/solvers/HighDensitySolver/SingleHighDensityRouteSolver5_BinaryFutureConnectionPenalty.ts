@@ -1,8 +1,6 @@
 import { distance } from "@tscircuit/math-utils"
-import {
-  SingleHighDensityRouteSolver,
-  type Node,
-} from "./SingleHighDensityRouteSolver"
+import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
+import { Node } from "lib/data-structures/SingleRouteCandidatePriorityQueue"
 
 export class SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty extends SingleHighDensityRouteSolver {
   getClosestFutureConnectionPoint(node: Node) {
