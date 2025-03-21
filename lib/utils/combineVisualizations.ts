@@ -11,6 +11,7 @@ export const combineVisualizations = (
   }
 
   visualizations.forEach((viz, i) => {
+    if (!viz) return
     if (viz.lines) {
       combined.lines = [
         ...(combined.lines || []),
