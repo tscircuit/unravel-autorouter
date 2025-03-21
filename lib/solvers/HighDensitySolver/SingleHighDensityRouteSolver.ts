@@ -15,7 +15,7 @@ import {
 
 export type FutureConnection = {
   connectionName: string
-  points: { x: number; y: number }[]
+  points: { x: number; y: number; z: number }[]
 }
 
 export class SingleHighDensityRouteSolver extends BaseSolver {

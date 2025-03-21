@@ -7,6 +7,9 @@ export const getMinDistBetweenEnteringPoints = (node: NodeWithPortPoints) => {
   // Compare each point with every other point
   for (let i = 0; i < points.length; i++) {
     for (let j = i + 1; j < points.length; j++) {
+      if (points[i].z !== points[j].z) {
+        continue
+      }
       const p1 = points[i]
       const p2 = points[j]
 

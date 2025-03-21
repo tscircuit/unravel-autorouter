@@ -33,12 +33,17 @@ export class IntraNodeRouteSolver extends BaseSolver {
   hyperParameters: Partial<HighDensityHyperParameters>
   minDistBetweenEnteringPoints: number
 
-  activeSolver: SingleHighDensityRouteSolver | null = null
+  activeSubSolver: SingleHighDensityRouteSolver | null = null
   connMap?: ConnectivityMap
 
   // Legacy compat
   get failedSolvers() {
     return this.failedSubSolvers
+  }
+
+  // Legacy compat
+  get activeSolver() {
+    return this.activeSubSolver
   }
 
   constructor(params: {
@@ -135,21 +140,21 @@ export class IntraNodeRouteSolver extends BaseSolver {
 
   computeProgress() {
     return (
-      (this.solvedRoutes.length + (this.activeSolver?.progress || 0)) /
+      (this.solvedRoutes.length + (this.activeSubSolver?.progress || 0)) /
       this.totalConnections
     )
   }
 
   _step() {
-    if (this.activeSolver) {
-      this.activeSolver.step()
+    if (this.activeSubSolver) {
+      this.activeSubSolver.step()
       this.progress = this.computeProgress()
-      if (this.activeSolver.solved) {
-        this.solvedRoutes.push(this.activeSolver.solvedPath!)
-        this.activeSolver = null
-      } else if (this.activeSolver.failed) {
-        this.failedSubSolvers.push(this.activeSolver)
-        this.activeSolver = null
+      if (this.activeSubSolver.solved) {
+        this.solvedRoutes.push(this.activeSubSolver.solvedPath!)
+        this.activeSubSolver = null
+      } else if (this.activeSubSolver.failed) {
+        this.failedSubSolvers.push(this.activeSubSolver)
+        this.activeSubSolver = null
         this.error = this.failedSubSolvers.map((s) => s.error).join("\n")
         this.failed = true
       }
@@ -172,7 +177,7 @@ export class IntraNodeRouteSolver extends BaseSolver {
       }
     }
     const { connectionName, points } = unsolvedConnection
-    this.activeSolver =
+    this.activeSubSolver =
       new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
         connectionName,
         minDistBetweenEnteringPoints: this.minDistBetweenEnteringPoints,
