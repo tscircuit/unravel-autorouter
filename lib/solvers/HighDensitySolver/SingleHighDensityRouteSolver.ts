@@ -430,7 +430,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       currentNode.z === this.B.z,
     )
 
-    if (goalDist <= this.cellStep && currentNode.z === this.B.z) {
+    if (goalDist <= this.cellStep * Math.SQRT2 && currentNode.z === this.B.z) {
       this.solved = true
       this.setSolvedPath(currentNode)
     }
