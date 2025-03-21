@@ -9,10 +9,7 @@
     "width": 4.862056726562499,
     "height": 4.862056726562499,
     "layer": "top",
-    "availableZ": [
-      0,
-      1
-    ],
+    "availableZ": [0, 1],
     "_depth": 6,
     "_parent": {
       "capacityMeshNodeId": "cn153080",
@@ -23,10 +20,7 @@
       "width": 9.724113453124998,
       "height": 9.724113453124998,
       "layer": "top",
-      "availableZ": [
-        0,
-        1
-      ],
+      "availableZ": [0, 1],
       "_depth": 5,
       "_parent": {
         "capacityMeshNodeId": "cn153076",
@@ -37,10 +31,7 @@
         "width": 19.448226906249996,
         "height": 19.448226906249996,
         "layer": "top",
-        "availableZ": [
-          0,
-          1
-        ],
+        "availableZ": [0, 1],
         "_depth": 4,
         "_parent": {
           "capacityMeshNodeId": "cn153072",
@@ -51,10 +42,7 @@
           "width": 38.89645381249999,
           "height": 38.89645381249999,
           "layer": "top",
-          "availableZ": [
-            0,
-            1
-          ],
+          "availableZ": [0, 1],
           "_depth": 3,
           "_parent": {
             "capacityMeshNodeId": "cn137131",
@@ -65,10 +53,7 @@
             "width": 77.79290762499998,
             "height": 77.79290762499998,
             "layer": "top",
-            "availableZ": [
-              0,
-              1
-            ],
+            "availableZ": [0, 1],
             "_depth": 2,
             "_parent": {
               "capacityMeshNodeId": "cn1",
@@ -79,10 +64,7 @@
               "width": 155.58581524999997,
               "height": 155.58581524999997,
               "layer": "top",
-              "availableZ": [
-                0,
-                1
-              ],
+              "availableZ": [0, 1],
               "_depth": 1,
               "_parent": {
                 "capacityMeshNodeId": "cn0",
@@ -93,10 +75,7 @@
                 "width": 311.17163049999994,
                 "height": 311.17163049999994,
                 "layer": "top",
-                "availableZ": [
-                  0,
-                  1
-                ],
+                "availableZ": [0, 1],
                 "_depth": 0,
                 "_containsTarget": true,
                 "_containsObstacle": true,
