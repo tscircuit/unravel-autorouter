@@ -63,7 +63,10 @@ export const HyperHighDensityDebugger = ({
       focusedSolver.failedSubSolvers?.[0]?.visualize()!,
     )
   } else {
-    graphics = focusedSolver.visualize()
+    graphics = combineVisualizations(
+      focusedSolver.visualize(),
+      focusedSolver.activeSubSolver?.visualize()!,
+    )
   }
 
   return (
