@@ -29,13 +29,13 @@ export class ViaRemovalSolver extends BaseSolver {
 
     // Process one route at a time
     const route = this.routes.shift()!
-    
+
     // Get all other routes as obstacles
     const obstacles = [...this.processedRoutes, ...this.routes]
-    
+
     // Remove useless vias from the route
     const optimizedRoute = removeUselessVias(route, obstacles)
-    
+
     // Add to processed routes
     this.processedRoutes.push(optimizedRoute)
   }
@@ -49,13 +49,13 @@ export class ViaRemovalSolver extends BaseSolver {
     }
 
     const allRoutes = [...this.processedRoutes, ...this.routes]
-    
+
     for (const route of allRoutes) {
       // Merge segments based on z-coordinate
       const mergedSegments = mergeRouteSegments(
         route.route,
         route.connectionName,
-        this.colorMap[route.connectionName] || "#000000"
+        this.colorMap[route.connectionName] || "#000000",
       )
 
       // Add merged segments to graphics
@@ -89,4 +89,4 @@ export class ViaRemovalSolver extends BaseSolver {
   getOptimizedRoutes(): HighDensityRoute[] {
     return this.processedRoutes
   }
-} 
+}

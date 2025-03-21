@@ -247,16 +247,24 @@ export class CapacityMeshSolver extends BaseSolver {
         connMap: cms.connMap,
       },
     ]),
-    definePipelineStep("viaRemovalSolver", ViaRemovalSolver, (cms) => [{
-      routes: cms.highDensityRouteSolver?.routes ?? [],
-      colorMap: cms.colorMap,
-    }], {
-      onSolved: (cms) => {
-        if (cms.viaRemovalSolver) {
-          cms.highDensityRouteSolver!.routes = cms.viaRemovalSolver.getOptimizedRoutes()
-        }
-      }
-    }),
+    definePipelineStep(
+      "viaRemovalSolver",
+      ViaRemovalSolver,
+      (cms) => [
+        {
+          routes: cms.highDensityRouteSolver?.routes ?? [],
+          colorMap: cms.colorMap,
+        },
+      ],
+      {
+        onSolved: (cms) => {
+          if (cms.viaRemovalSolver) {
+            cms.highDensityRouteSolver!.routes =
+              cms.viaRemovalSolver.getOptimizedRoutes()
+          }
+        },
+      },
+    ),
     definePipelineStep(
       "highDensityStitchSolver",
       MultipleHighDensityRouteStitchSolver,

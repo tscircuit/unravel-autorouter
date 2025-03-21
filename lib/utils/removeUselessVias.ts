@@ -15,7 +15,7 @@ function pathIntersectsObstacles(
   end: Point3D,
   obstacleRoutes: HighDensityIntraNodeRoute[],
   traceThickness: number,
-  viaDiameter: number
+  viaDiameter: number,
 ): boolean {
   if (start.z !== end.z) return false
 
@@ -24,7 +24,7 @@ function pathIntersectsObstacles(
     for (let i = 0; i < route.route.length - 1; i++) {
       const routeStart = route.route[i]
       const routeEnd = route.route[i + 1]
-      
+
       // Only check segments on the same layer
       if (routeStart.z === routeEnd.z && routeStart.z === start.z) {
         if (doSegmentsIntersect(start, end, routeStart, routeEnd)) {
@@ -38,7 +38,7 @@ function pathIntersectsObstacles(
       const viaPoint = { ...via, z: start.z }
       const distToVia = Math.min(
         distance(start, viaPoint),
-        distance(end, viaPoint)
+        distance(end, viaPoint),
       )
       if (distToVia < (viaDiameter + traceThickness) / 2) {
         return true
@@ -56,11 +56,11 @@ function pathIntersectsObstacles(
  */
 export function removeUselessVias(
   route: HighDensityIntraNodeRoute,
-  obstacleRoutes: HighDensityIntraNodeRoute[]
+  obstacleRoutes: HighDensityIntraNodeRoute[],
 ): HighDensityIntraNodeRoute {
   const newRoute = { ...route }
   const points = [...route.route]
-  const vias = new Set(route.vias.map(v => `${v.x},${v.y}`))
+  const vias = new Set(route.vias.map((v) => `${v.x},${v.y}`))
   let modified = false
 
   // First pass: Remove redundant layer changes (case 1)
@@ -92,7 +92,7 @@ export function removeUselessVias(
         { ...end, z: start.z },
         obstacleRoutes,
         route.traceThickness,
-        route.viaDiameter
+        route.viaDiameter,
       )
 
       if (canRouteOnStartLayer) {
@@ -106,8 +106,8 @@ export function removeUselessVias(
 
   if (modified) {
     newRoute.route = points
-    newRoute.vias = route.vias.filter(v => vias.has(`${v.x},${v.y}`))
+    newRoute.vias = route.vias.filter((v) => vias.has(`${v.x},${v.y}`))
   }
 
   return newRoute
-} 
+}
