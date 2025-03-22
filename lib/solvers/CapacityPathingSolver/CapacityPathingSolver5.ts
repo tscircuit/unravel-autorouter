@@ -23,31 +23,32 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
    * Penalty you pay for using this node
    */
   getNodeCapacityPenalty(node: CapacityMeshNode): number {
-    return 0.05
-    // const MAX_PENALTY = node.width + node.height
-    // const MIN_PENALTY = 0.05
+    // return 0.05
 
-    // const START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW = 0.4
+    const MAX_PENALTY = node.width + node.height
+    const MIN_PENALTY = 0.05
 
-    // const totalCapacity = this.getTotalCapacity(node)
-    // const usedCapacity =
-    //   this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
-    // const remainingCapacity = totalCapacity - usedCapacity
+    const START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW = 2
 
-    // if (remainingCapacity > START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW) {
-    //   return MIN_PENALTY
-    // }
+    const totalCapacity = this.getTotalCapacity(node)
+    const usedCapacity =
+      this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+    const remainingCapacity = totalCapacity - usedCapacity
 
-    // const penalty =
-    //   (MAX_PENALTY - MIN_PENALTY) *
-    //     Math.max(
-    //       1,
-    //       (START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW - remainingCapacity) /
-    //         (MAX_PENALTY - MIN_PENALTY),
-    //     ) +
-    //   MIN_PENALTY
+    if (remainingCapacity > START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW) {
+      return MIN_PENALTY
+    }
 
-    // return penalty
+    const penalty =
+      (MAX_PENALTY - MIN_PENALTY) *
+        Math.max(
+          1,
+          (START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW - remainingCapacity) /
+            (MAX_PENALTY - MIN_PENALTY),
+        ) +
+      MIN_PENALTY
+
+    return penalty
     // const penalty =
     //   (MAX_PENALTY - MIN_PENALTY) *
     //   (remainingCapacity / START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW)
@@ -124,6 +125,9 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
     node: CapacityMeshNode,
     endGoal: CapacityMeshNode,
   ) {
-    return this.getDistanceBetweenNodes(node, endGoal)
+    return (
+      this.getDistanceBetweenNodes(node, endGoal) +
+      this.getNodeCapacityPenalty(node)
+    )
   }
 }

@@ -30,6 +30,7 @@ export const createRectFromCapacityNode = (
           "0": "rgba(0,200,200, 0.1)",
           "1": "rgba(0,0,200, 0.1)",
         }[node.availableZ.join(",")] ?? "rgba(0,200,200,0.1)"),
+    layer: `z${node.availableZ.join(",")}`,
     label: [
       node.capacityMeshNodeId,
       `availableZ: ${node.availableZ.join(",")}`,
