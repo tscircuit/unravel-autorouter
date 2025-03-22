@@ -388,49 +388,84 @@ export class UnravelSectionSolver extends BaseSolver {
       const Bmutable = this.unravelSection.mutableSegmentIds.has(B.segmentId)
       const Cmutable = this.unravelSection.mutableSegmentIds.has(C.segmentId)
       const Dmutable = this.unravelSection.mutableSegmentIds.has(D.segmentId)
+      
+      // Get availableZ for each segment
+      const aSegment = this.dedupedSegmentMap.get(A.segmentId)!
+      const bSegment = this.dedupedSegmentMap.get(B.segmentId)!
+      const cSegment = this.dedupedSegmentMap.get(C.segmentId)!
+      const dSegment = this.dedupedSegmentMap.get(D.segmentId)!
+      
+      // Function to check if a new Z level is available for all segments
+      const isNewZAvailableForAll = (segmentObjects: any[], newZ: number) => {
+        return segmentObjects.every(seg => seg.availableZ.includes(newZ));
+      };
+      
+      // Only propose layer changes if both segments can use the target layer
       if (Amutable && Bmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: A.z === 0 ? 1 : 0,
-          segmentPointIds: [APointId, BPointId],
-        })
+        const newZ = A.z === 0 ? 1 : 0;
+        if (isNewZAvailableForAll([aSegment, bSegment], newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [APointId, BPointId],
+          });
+        }
       }
+      
       if (Cmutable && Dmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: C.z === 0 ? 1 : 0,
-          segmentPointIds: [CPointId, DPointId],
-        })
+        const newZ = C.z === 0 ? 1 : 0;
+        if (isNewZAvailableForAll([cSegment, dSegment], newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [CPointId, DPointId],
+          });
+        }
       }
 
       // 3. CHANGE LAYER OF EACH POINT INDIVIDUALLY TO MAKE TRANSITION CROSSING
       if (Amutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: A.z === 0 ? 1 : 0,
-          segmentPointIds: [APointId],
-        })
+        const newZ = A.z === 0 ? 1 : 0;
+        if (aSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [APointId],
+          });
+        }
       }
+      
       if (Bmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: B.z === 0 ? 1 : 0,
-          segmentPointIds: [BPointId],
-        })
+        const newZ = B.z === 0 ? 1 : 0;
+        if (bSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [BPointId],
+          });
+        }
       }
+      
       if (Cmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: C.z === 0 ? 1 : 0,
-          segmentPointIds: [CPointId],
-        })
+        const newZ = C.z === 0 ? 1 : 0;
+        if (cSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [CPointId],
+          });
+        }
       }
+      
       if (Dmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: D.z === 0 ? 1 : 0,
-          segmentPointIds: [DPointId],
-        })
+        const newZ = D.z === 0 ? 1 : 0;
+        if (dSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [DPointId],
+          });
+        }
       }
     }
 
