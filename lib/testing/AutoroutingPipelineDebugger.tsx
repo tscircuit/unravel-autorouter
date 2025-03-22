@@ -9,6 +9,7 @@ import { SimpleRouteJson } from "lib/types"
 import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
 import { GraphicsObject, Rect } from "graphics-debug"
 import { limitVisualizations } from "lib/utils/limitVisualizations"
+import { getNodesNearNode } from "lib/solvers/UnravelSolver/getNodesNearNode"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -424,6 +425,42 @@ export const AutoroutingPipelineDebugger = ({
                     }}
                   >
                     Download High Density Node Input (NodeWithPortPoints)
+                  </button>
+                  <button
+                    className="mt-2 bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm"
+                    onClick={() => {
+                      const match = dialogObject.label!.match(/cn(\d+)/)
+                      const nodeId = `cn${parseInt(match![1], 10)}`
+                      const umss = solver.unravelMultiSectionSolver
+                      if (!umss) return
+                      const verboseInput = {
+                        dedupedSegments: umss.dedupedSegments,
+                        dedupedSegmentMap: umss.dedupedSegmentMap,
+                        nodeMap: umss.nodeMap,
+                        nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
+                        segmentIdToNodeIds: umss.segmentIdToNodeIds,
+                        colorMap: umss.colorMap,
+                        rootNodeId: nodeId,
+                        MUTABLE_HOPS: umss.MUTABLE_HOPS,
+                        segmentPointMap: umss.segmentPointMap,
+                        nodeToSegmentPointMap: umss.nodeToSegmentPointMap,
+                        segmentToSegmentPointMap: umss.segmentToSegmentPointMap,
+                      }
+
+                      const relevantNodeIds = new Set(
+                        getNodesNearNode({
+                          nodeId,
+                          nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
+                          segmentIdToNodeIds: umss.segmentIdToNodeIds,
+                          hops: 5,
+                        }),
+                      )
+
+                      // Remove anything not related to our relevant node ids
+                      // from the verbose input
+                    }}
+                  >
+                    Download Unravel Section Input
                   </button>
                 </div>
               )}
