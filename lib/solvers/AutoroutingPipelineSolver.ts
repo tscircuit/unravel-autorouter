@@ -53,9 +53,9 @@ type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
   solverClass: T
   getConstructorParams: (
-    instance: CapacityMeshSolver,
+    instance: AutoroutingPipelineSolver,
   ) => ConstructorParameters<T>
-  onSolved?: (instance: CapacityMeshSolver) => void
+  onSolved?: (instance: AutoroutingPipelineSolver) => void
 }
 
 function definePipelineStep<
@@ -64,11 +64,11 @@ function definePipelineStep<
   ) => BaseSolver,
   const P extends ConstructorParameters<T>,
 >(
-  solverName: keyof CapacityMeshSolver,
+  solverName: keyof AutoroutingPipelineSolver,
   solverClass: T,
-  getConstructorParams: (instance: CapacityMeshSolver) => P,
+  getConstructorParams: (instance: AutoroutingPipelineSolver) => P,
   opts: {
-    onSolved?: (instance: CapacityMeshSolver) => void
+    onSolved?: (instance: AutoroutingPipelineSolver) => void
   } = {},
 ): PipelineStep<T> {
   return {
@@ -79,7 +79,7 @@ function definePipelineStep<
   }
 }
 
-export class CapacityMeshSolver extends BaseSolver {
+export class AutoroutingPipelineSolver extends BaseSolver {
   netToPointPairsSolver?: NetToPointPairsSolver
   nodeSolver?: CapacityMeshNodeSolver
   nodeTargetMerger?: CapacityNodeTargetMerger
@@ -333,6 +333,12 @@ export class CapacityMeshSolver extends BaseSolver {
     this.startTimeOfPhase[pipelineStepDef.solverName] = performance.now()
   }
 
+  solveUntilPhase(phase: string) {
+    while (this.getCurrentPhase() !== phase) {
+      this.step()
+    }
+  }
+
   getCurrentPhase(): string {
     return this.pipelineDef[this.currentPipelineStepIndex]?.solverName ?? "none"
   }
@@ -532,3 +538,7 @@ export class CapacityMeshSolver extends BaseSolver {
     }
   }
 }
+
+/** @deprecated Use AutoroutingPipelineSolver instead */
+export const CapacityMeshSolver = AutoroutingPipelineSolver
+export type CapacityMeshSolver = AutoroutingPipelineSolver

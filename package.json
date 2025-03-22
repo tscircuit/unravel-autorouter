@@ -11,7 +11,8 @@
     "build": "tsup ./lib/index.ts --external @tscircuit/core --external circuit-to-svg --format esm --dts --sourcemap",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "vercel-build": "cosmos-export"
+    "vercel-build": "cosmos-export",
+    "repomix:lib": "repomix --ignore 'testing/**,**/TwoRouteHighDensitySolver/**,**/RouteStitchingSolver/**,solvers/CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer.ts' lib"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

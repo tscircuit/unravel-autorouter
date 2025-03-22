@@ -27,6 +27,7 @@ export class CapacityPathingSolver extends BaseSolver {
     connection: SimpleRouteConnection
     nodes: CapacityMeshNode[]
     path?: CapacityMeshNode[]
+    straightLineDistance: number
   }>
 
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number>
@@ -104,6 +105,7 @@ export class CapacityPathingSolver extends BaseSolver {
       connection: SimpleRouteConnection
       nodes: CapacityMeshNode[]
       pathFound: boolean
+      straightLineDistance: number
     }> = []
     const nodesWithTargets = this.nodes.filter((node) => node._containsTarget)
     const connectionNameToGoalNodeIds = new Map<string, CapacityMeshNodeId[]>()
@@ -138,8 +140,16 @@ export class CapacityPathingSolver extends BaseSolver {
         connection,
         nodes: nodesForConnection,
         pathFound: false,
+        straightLineDistance: distance(
+          nodesForConnection[0].center,
+          nodesForConnection[nodesForConnection.length - 1].center,
+        ),
       })
     }
+
+    connectionsWithNodes.sort(
+      (a, b) => a.straightLineDistance - b.straightLineDistance,
+    )
     return { connectionsWithNodes, connectionNameToGoalNodeIds }
   }
 

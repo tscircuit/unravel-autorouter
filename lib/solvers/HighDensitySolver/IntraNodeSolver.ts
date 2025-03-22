@@ -6,17 +6,11 @@ import type {
 import { BaseSolver } from "../BaseSolver"
 import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
 import { safeTransparentize } from "../colors"
-import { SingleHighDensityRouteSolver2_CenterAttraction } from "./SingleHighDensityRouteSolver2_CenterAttraction"
-import { SingleHighDensityRouteSolver3_RepelEndpoints } from "./SingleHighDensityRouteSolver3_RepellingEndpoints"
-import { SingleHighDensityRouteSolver4_RepelEdgeViaFuture } from "./SingleHighDensityRouteSolver4_RepelEdgeViaFuture"
-import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty"
 import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
 import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
-import { SingleHighDensityRouteSolver7_CostPoint } from "./SingleHighDensityRouteSolver7_CostPoint"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWithPortPoints"
-import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { getMinDistBetweenEnteringPoints } from "lib/utils/getMinDistBetweenEnteringPoints"
 
 export class IntraNodeRouteSolver extends BaseSolver {
