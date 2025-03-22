@@ -23,7 +23,7 @@ const createSolver = (srj: SimpleRouteJson) => {
 
 export const AutoroutingPipelineDebugger = ({
   srj,
-  animationSpeed = 10,
+  animationSpeed = 1,
 }: CapacityMeshPipelineDebuggerProps) => {
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
     createSolver(srj),
