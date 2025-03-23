@@ -9,6 +9,7 @@ import {
 } from "../HyperParameterSupervisorSolver"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { TwoCrossingRoutesHighDensitySolver } from "../HighDensitySolver/TwoRouteHighDensitySolver/TwoCrossingRoutesHighDensitySolver"
+import { SingleTransitionCrossingRouteSolver } from "../HighDensitySolver/TwoRouteHighDensitySolver/SingleTransitionCrossingRouteSolver"
 
 export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
   IntraNodeRouteSolver | TwoCrossingRoutesHighDensitySolver
@@ -28,7 +29,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
 
   getCombinationDefs() {
     return [
-      ["closedFormTwoTraceSameLayer"],
+      ["closedFormTwoTrace"],
       ["majorCombinations", "orderings6", "cellSizeFactor"],
       ["noVias"],
       ["orderings50"],
@@ -120,10 +121,13 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
         })),
       },
       {
-        name: "closedFormTwoTraceSameLayer",
+        name: "closedFormTwoTrace",
         possibleValues: [
           {
             CLOSED_FORM_TWO_TRACE_SAME_LAYER: true,
+          },
+          {
+            CLOSED_FORM_TWO_TRACE_TRANSITION_CROSSING: true,
           },
         ],
       },
@@ -143,6 +147,11 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
   generateSolver(hyperParameters: any): IntraNodeRouteSolver {
     if (hyperParameters.CLOSED_FORM_TWO_TRACE_SAME_LAYER) {
       return new TwoCrossingRoutesHighDensitySolver({
+        nodeWithPortPoints: this.nodeWithPortPoints,
+      }) as any
+    }
+    if (hyperParameters.CLOSED_FORM_TWO_TRACE_TRANSITION_CROSSING) {
+      return new SingleTransitionCrossingRouteSolver({
         nodeWithPortPoints: this.nodeWithPortPoints,
       }) as any
     }

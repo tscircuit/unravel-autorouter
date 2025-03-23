@@ -15,6 +15,7 @@ import { findCircleLineIntersections } from "./findCircleLineIntersections"
 import { findClosestPointToABCWithinBounds } from "lib/utils/findClosestPointToABCWithinBounds"
 import { calculatePerpendicularPointsAtDistance } from "lib/utils/calculatePointsAtDistance"
 import { snapToNearestBound } from "lib/utils/snapToNearestBound"
+import { findPointToGetAroundCircle } from "lib/utils/findPointToGetAroundCircle"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
@@ -151,8 +152,6 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const flatRouteZ = flatRoute.A.z
     const ntrP1 =
       transitionRoute.A.z !== flatRouteZ ? transitionRoute.A : transitionRoute.B
-    const ntrP2 =
-      transitionRoute.A.z !== flatRouteZ ? transitionRoute.B : transitionRoute.A
 
     // ntrP1 is always on the opposite layer as the flat route, the trace must always
     // weave between ntrP1 and the via
@@ -174,12 +173,6 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
         maxY: this.bounds.maxY - marginFromBorderWithTrace,
       },
     )
-
-    // console.log(ntrP1, flatRoute)
-    // return {
-    //   x: (ntrP1.x + flatRoute.A.x + flatRoute.B.x) / 3,
-    //   y: (ntrP1.y + flatRoute.A.y + flatRoute.B.y) / 3,
-    // }
   }
   /**
    * Create a single transition route with properly placed via
@@ -258,33 +251,38 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       minY: this.bounds.minY + this.obstacleMargin + this.traceThickness / 2,
     }
 
-    const perpPoints = calculatePerpendicularPointsAtDistance(
-      ntrP1,
-      via,
-      this.viaDiameter + this.traceThickness + this.obstacleMargin * 2,
-    )
-    let p1 = snapToNearestBound(perpPoints.A, traceBounds)
+    const minDistFromViaToTrace =
+      this.viaDiameter / 2 + this.traceThickness / 2 + this.obstacleMargin
     const p2 = middleWithMargin(
       via,
       this.viaDiameter,
       otherRouteStart.z !== flatStart.z ? otherRouteStart : otherRouteEnd,
       this.traceThickness,
     )
-    let p3 = snapToNearestBound(perpPoints.B, traceBounds)
+    const p1 = findPointToGetAroundCircle(flatStart, p2, {
+      center: { x: via.x, y: via.y },
+      radius: minDistFromViaToTrace,
+    }).E
+    const p3 = findPointToGetAroundCircle(p2, flatEnd, {
+      center: { x: via.x, y: via.y },
+      radius: minDistFromViaToTrace,
+    }).E
 
-    // Swap p1 and p3 so that p1 is closest to the flatStart
-    if (distance(p1, flatStart) > distance(p3, flatStart)) {
-      ;[p1, p3] = [p3, p1]
-    }
+    // Determine if we need p1 or if we can just go from flatStart to p2 without
+    // intersecting the via
+    const p1IsNeeded =
+      pointToSegmentDistance(via, flatStart, p2) < minDistFromViaToTrace
+    const p3IsNeeded =
+      pointToSegmentDistance(via, p2, flatEnd) < minDistFromViaToTrace
 
     // We need to navigate around the via
     return {
       connectionName: flatRouteConnectionName,
       route: [
         { x: flatStart.x, y: flatStart.y, z: flatStart.z ?? 0 },
-        { x: p1.x, y: p1.y, z: flatStart.z ?? 0 },
+        ...(p1IsNeeded ? [{ x: p1.x, y: p1.y, z: flatStart.z ?? 0 }] : []),
         { x: p2.x, y: p2.y, z: flatStart.z ?? 0 },
-        { x: p3.x, y: p3.y, z: flatStart.z ?? 0 },
+        ...(p3IsNeeded ? [{ x: p3.x, y: p3.y, z: flatStart.z ?? 0 }] : []),
         { x: flatEnd.x, y: flatEnd.y, z: flatEnd.z ?? 0 },
       ],
       traceThickness: this.traceThickness,
