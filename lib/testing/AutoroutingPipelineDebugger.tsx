@@ -194,7 +194,6 @@ export const AutoroutingPipelineDebugger = ({
         return solver?.preview() || { points: [], lines: [] }
       }
       const ogVisualization = solver?.visualize() || { points: [], lines: [] }
-      console.log({ ogVisualization })
       return ogVisualization
     } catch (error) {
       console.error("Visualization error:", error)

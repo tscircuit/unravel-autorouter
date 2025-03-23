@@ -63,7 +63,6 @@ function computeTangentPoint(
 
   // Check if tangent is possible
   if (CQLength < radius) {
-    console.error("Circle is too close to observation point to have a tangent")
     return observationPoint // Return observation point if no tangent is possible
   }
 
