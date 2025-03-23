@@ -769,6 +769,7 @@ export class UnravelSectionSolver extends BaseSolver {
         // Only process each connection once (when the current point's ID is less than the connected point's ID)
         if (segmentPointId < connectedPointId) {
           const connectedPoint = modifiedSegmentPoints.get(connectedPointId)!
+          if (!connectedPoint) continue
 
           // Determine line style based on layer (z) values
           const sameLayer = segmentPoint.z === connectedPoint.z

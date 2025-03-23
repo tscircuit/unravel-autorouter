@@ -9,6 +9,8 @@ import { SimpleRouteJson } from "lib/types"
 import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
 import { GraphicsObject, Rect } from "graphics-debug"
 import { limitVisualizations } from "lib/utils/limitVisualizations"
+import { getNodesNearNode } from "lib/solvers/UnravelSolver/getNodesNearNode"
+import { filterUnravelMultiSectionInput } from "./utils/filterUnravelMultiSectionInput"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -21,7 +23,7 @@ const createSolver = (srj: SimpleRouteJson) => {
 
 export const AutoroutingPipelineDebugger = ({
   srj,
-  animationSpeed = 10,
+  animationSpeed = 1,
 }: CapacityMeshPipelineDebuggerProps) => {
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
     createSolver(srj),
@@ -192,7 +194,6 @@ export const AutoroutingPipelineDebugger = ({
         return solver?.preview() || { points: [], lines: [] }
       }
       const ogVisualization = solver?.visualize() || { points: [], lines: [] }
-      console.log({ ogVisualization })
       return ogVisualization
     } catch (error) {
       console.error("Visualization error:", error)
@@ -360,7 +361,7 @@ export const AutoroutingPipelineDebugger = ({
             </div>
             <div>
               {dialogObject && (
-                <div className="mb-4">
+                <div className="mb-4 flex flex-col">
                   <pre className="bg-gray-100 p-3 rounded overflow-auto max-h-96 text-sm">
                     {dialogObject.label}
                   </pre>
@@ -424,6 +425,80 @@ export const AutoroutingPipelineDebugger = ({
                     }}
                   >
                     Download High Density Node Input (NodeWithPortPoints)
+                  </button>
+                  <button
+                    className="mt-2 bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm"
+                    onClick={() => {
+                      const match = dialogObject.label!.match(/cn(\d+)/)
+                      const nodeId = `cn${parseInt(match![1], 10)}`
+                      const umss = solver.unravelMultiSectionSolver
+                      if (!umss) return
+                      const verboseInput = {
+                        dedupedSegments: umss.dedupedSegments,
+                        dedupedSegmentMap: umss.dedupedSegmentMap,
+                        nodeMap: umss.nodeMap,
+                        nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
+                        segmentIdToNodeIds: umss.segmentIdToNodeIds,
+                        colorMap: umss.colorMap,
+                        rootNodeId: nodeId,
+                        MUTABLE_HOPS: umss.MUTABLE_HOPS,
+                        segmentPointMap: umss.segmentPointMap,
+                        nodeToSegmentPointMap: umss.nodeToSegmentPointMap,
+                        segmentToSegmentPointMap: umss.segmentToSegmentPointMap,
+                      }
+
+                      const relevantNodeIds = new Set(
+                        getNodesNearNode({
+                          nodeId,
+                          nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
+                          segmentIdToNodeIds: umss.segmentIdToNodeIds,
+                          hops: 5,
+                        }),
+                      )
+
+                      // Filter the verbose input to only include content related to relevant nodes
+                      const filteredVerboseInput =
+                        filterUnravelMultiSectionInput(
+                          verboseInput,
+                          relevantNodeIds,
+                        )
+
+                      // Create a JSON string with proper formatting
+                      const filteredInputJson = JSON.stringify(
+                        filteredVerboseInput,
+                        (key, value) => {
+                          // Convert Maps to objects for JSON serialization
+                          if (value instanceof Map) {
+                            return Object.fromEntries(value)
+                          }
+                          return value
+                        },
+                        2,
+                      )
+
+                      // Create a blob with the JSON data
+                      const blob = new Blob([filteredInputJson], {
+                        type: "application/json",
+                      })
+
+                      // Create a URL for the blob
+                      const url = URL.createObjectURL(blob)
+
+                      // Create a temporary anchor element
+                      const a = document.createElement("a")
+
+                      // Set the download filename
+                      a.download = `unravel_section_${nodeId}_input.json`
+                      a.href = url
+
+                      // Trigger the download
+                      a.click()
+
+                      // Clean up by revoking the URL
+                      URL.revokeObjectURL(url)
+                    }}
+                  >
+                    Download Unravel Section Input
                   </button>
                 </div>
               )}
