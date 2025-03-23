@@ -7,11 +7,14 @@ import {
   distance,
   pointToSegmentDistance,
   doSegmentsIntersect,
+  clamp,
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { findCircleLineIntersections } from "./findCircleLineIntersections"
 import { findClosestPointToABCWithinBounds } from "lib/utils/findClosestPointToABCWithinBounds"
+import { calculatePerpendicularPointsAtDistance } from "lib/utils/calculatePointsAtDistance"
+import { snapToNearestBound } from "lib/utils/snapToNearestBound"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
@@ -215,6 +218,8 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     otherRouteEnd: Point,
     flatRouteConnectionName: string,
   ): HighDensityIntraNodeRoute {
+    const ntrP1 =
+      otherRouteStart.z !== flatStart.z ? otherRouteStart : otherRouteEnd
     // We need to navigate around the via
 
     const middle = (a: Point, b: Point) => {
@@ -246,24 +251,31 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       return middle(effectiveA, effectiveB)
     }
 
-    const p1 = middleWithMargin(
-      flatStart,
-      this.traceThickness,
+    const traceBounds = {
+      maxX: this.bounds.maxX - this.obstacleMargin - this.traceThickness / 2,
+      maxY: this.bounds.maxY - this.obstacleMargin - this.traceThickness / 2,
+      minX: this.bounds.minX + this.obstacleMargin + this.traceThickness / 2,
+      minY: this.bounds.minY + this.obstacleMargin + this.traceThickness / 2,
+    }
+
+    const perpPoints = calculatePerpendicularPointsAtDistance(
+      ntrP1,
       via,
-      this.viaDiameter,
+      this.viaDiameter + this.traceThickness + this.obstacleMargin * 2,
     )
+    let p1 = snapToNearestBound(perpPoints.A, traceBounds)
     const p2 = middleWithMargin(
       via,
       this.viaDiameter,
       otherRouteStart.z !== flatStart.z ? otherRouteStart : otherRouteEnd,
       this.traceThickness,
     )
-    const p3 = middleWithMargin(
-      flatEnd,
-      this.traceThickness,
-      via,
-      this.viaDiameter,
-    )
+    let p3 = snapToNearestBound(perpPoints.B, traceBounds)
+
+    // Swap p1 and p3 so that p1 is closest to the flatStart
+    if (distance(p1, flatStart) > distance(p3, flatStart)) {
+      ;[p1, p3] = [p3, p1]
+    }
 
     // We need to navigate around the via
     return {
@@ -328,21 +340,9 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
   _step() {
     // Check if routes are actually crossing
     if (!this.doRoutesCross(this.routes[0], this.routes[1])) {
-      // Routes don't cross, create simple direct connections
-      const routeASolution = this.createFlatRoute(
-        this.routes[0].A,
-        this.routes[0].B,
-        this.routes[0].connectionName,
-      )
-
-      const routeBSolution = this.createFlatRoute(
-        this.routes[1].A,
-        this.routes[1].B,
-        this.routes[1].connectionName,
-      )
-
-      this.solvedRoutes.push(routeASolution, routeBSolution)
-      this.solved = true
+      this.failed = true
+      this.error =
+        "Can only solve routes that have a single transition crossing"
       return
     }
 
