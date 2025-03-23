@@ -11,11 +11,12 @@ import {
 import type { GraphicsObject } from "graphics-debug"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { findCircleLineIntersections } from "./findCircleLineIntersections"
+import { findClosestPointToABCWithinBounds } from "lib/utils/findClosestPointToABCWithinBounds"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
-  startPort: Point
-  endPort: Point
+  A: Point
+  B: Point
   connectionName: string
 }
 
@@ -70,8 +71,8 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const [routeA, routeB] = this.routes
 
     // Check if one route has a layer transition and the other doesn't
-    const routeAHasTransition = routeA.startPort.z !== routeA.endPort.z
-    const routeBHasTransition = routeB.startPort.z !== routeB.endPort.z
+    const routeAHasTransition = routeA.A.z !== routeA.B.z
+    const routeBHasTransition = routeB.A.z !== routeB.B.z
 
     // We need exactly one route with a transition
     if (
@@ -105,8 +106,8 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     for (const [connectionName, points] of connectionGroups.entries()) {
       if (points.length === 2) {
         routes.push({
-          startPort: { ...points[0], z: points[0].z ?? 0 },
-          endPort: { ...points[1], z: points[1].z ?? 0 },
+          A: { ...points[0], z: points[0].z ?? 0 },
+          B: { ...points[1], z: points[1].z ?? 0 },
           connectionName,
         })
       }
@@ -137,172 +138,46 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
   private doRoutesCross(routeA: Route, routeB: Route): boolean {
     // For this specific solver, we want to check if the 2D projections intersect
     // (ignoring z values)
-    return doSegmentsIntersect(
-      routeA.startPort,
-      routeA.endPort,
-      routeB.startPort,
-      routeB.endPort,
-    )
+    return doSegmentsIntersect(routeA.A, routeA.B, routeB.A, routeB.B)
   }
 
   private calculateViaPosition(
     transitionRoute: Route,
     flatRoute: Route,
   ): Point | null {
-    // Define outer box as the bounds where all points lie
-    const outerBox = {
-      width: this.bounds.maxX - this.bounds.minX,
-      height: this.bounds.maxY - this.bounds.minY,
-      x: this.bounds.minX,
-      y: this.bounds.minY,
-    }
+    const flatRouteZ = flatRoute.A.z
+    const ntrP1 =
+      transitionRoute.A.z !== flatRouteZ ? transitionRoute.A : transitionRoute.B
+    const ntrP2 =
+      transitionRoute.A.z !== flatRouteZ ? transitionRoute.B : transitionRoute.A
 
-    // Define inner box with padding of obstacleMargin
-    const innerBox = {
-      width: outerBox.width - 2 * this.obstacleMargin - this.viaDiameter,
-      height: outerBox.height - 2 * this.obstacleMargin - this.viaDiameter,
-      x: outerBox.x + this.obstacleMargin + this.viaDiameter / 2,
-      y: outerBox.y + this.obstacleMargin + this.viaDiameter / 2,
-    }
+    // ntrP1 is always on the opposite layer as the flat route, the trace must always
+    // weave between ntrP1 and the via
+    // The via must also be far enough from the flat route
+    const marginFromBorderWithTrace =
+      this.obstacleMargin * 2 + this.viaDiameter / 2 + this.traceThickness
+    const marginFromBorderWithoutTrace =
+      this.obstacleMargin + this.viaDiameter / 2
 
-    // Define the K1 parameter (minimum distance from flat route to via)
-    // We'll use viaDiameter + obstacleMargin as the minimum distance
-    const K1 = this.viaDiameter + this.obstacleMargin
-
-    // Get points from the flat route
-    const flatA = flatRoute.startPort
-    const flatB = flatRoute.endPort
-
-    // Get the inner box corners
-    const corners = [
-      { x: innerBox.x, y: innerBox.y }, // Top-left (0)
-      { x: innerBox.x + innerBox.width, y: innerBox.y }, // Top-right (1)
-      { x: innerBox.x + innerBox.width, y: innerBox.y + innerBox.height }, // Bottom-right (2)
-      { x: innerBox.x, y: innerBox.y + innerBox.height }, // Bottom-left (3)
-    ]
-
-    // Find all valid candidate points
-    const candidatePoints: Array<
-      Point & { type: string; index?: number; edge?: number }
-    > = []
-
-    // 1. Check which corners are valid (minimum distance K1 from flat route)
-    corners.forEach((corner, index) => {
-      if (pointToSegmentDistance(corner, flatA, flatB) >= K1) {
-        candidatePoints.push({ ...corner, type: "corner", index })
-      }
-    })
-
-    // 2. Find intersections of K1 distance from flat route with the inner box edges
-    // Define the 4 edges of the inner box
-    const edges = [
-      { p1: corners[0], p2: corners[1] }, // top
-      { p1: corners[1], p2: corners[2] }, // right
-      { p1: corners[2], p2: corners[3] }, // bottom
-      { p1: corners[3], p2: corners[0] }, // left
-    ]
-
-    // Find points on each edge that are at distance K1 from the flat route
-    // This is a simplification - in a complete solution we would need to
-    // calculate the equidistant line from the flat route and find
-    // its intersections with the inner box edges
-
-    // If we have fewer than 1 candidate point, relax the constraints
-    if (candidatePoints.length < 1) {
-      // Try with smaller K1
-      const relaxedK1 = K1 * 0.8 // Reduce by 20%
-      corners.forEach((corner, index) => {
-        if (
-          pointToSegmentDistance(corner, flatA, flatB) >= relaxedK1 &&
-          !candidatePoints.some((p) => p.x === corner.x && p.y === corner.y)
-        ) {
-          candidatePoints.push({ ...corner, type: "relaxed_corner", index })
-        }
-      })
-
-      // If still not enough, add corners sorted by distance from flat route
-      if (candidatePoints.length < 1) {
-        // Sort corners by their distance from flat route
-        const sortedCorners = [...corners].sort((a, b) => {
-          const aDist = pointToSegmentDistance(a, flatA, flatB)
-          const bDist = pointToSegmentDistance(b, flatA, flatB)
-          return bDist - aDist // Larger distances first
-        })
-
-        // Add corners not already in candidatePoints
-        for (const corner of sortedCorners) {
-          if (
-            !candidatePoints.some((p) => p.x === corner.x && p.y === corner.y)
-          ) {
-            candidatePoints.push({ ...corner, type: "forced_corner" })
-            if (candidatePoints.length >= 1) break
-          }
-        }
-      }
-    }
-
-    // If still no candidates, return null
-    if (candidatePoints.length < 1) {
-      return null
-    }
-
-    // Choose the candidate that's closest to the intersection point of the routes
-    // Find the intersection point
-    // This is a simplification - we'd need proper line intersection calculation
-    // for a complete solution
-    const intersection = this.findIntersectionPoint(
-      transitionRoute.startPort,
-      transitionRoute.endPort,
-      flatRoute.startPort,
-      flatRoute.endPort,
+    return findClosestPointToABCWithinBounds(
+      flatRoute.A,
+      flatRoute.B,
+      ntrP1,
+      marginFromBorderWithTrace,
+      {
+        minX: this.bounds.minX + marginFromBorderWithoutTrace,
+        minY: this.bounds.minY + marginFromBorderWithoutTrace,
+        maxX: this.bounds.maxX - marginFromBorderWithTrace,
+        maxY: this.bounds.maxY - marginFromBorderWithTrace,
+      },
     )
 
-    // Sort candidates by distance to intersection
-    const sortedCandidates = [...candidatePoints].sort((a, b) => {
-      const aDist = distance(a, intersection)
-      const bDist = distance(b, intersection)
-      return aDist - bDist // Smaller distances first
-    })
-
-    return sortedCandidates[0]
+    // console.log(ntrP1, flatRoute)
+    // return {
+    //   x: (ntrP1.x + flatRoute.A.x + flatRoute.B.x) / 3,
+    //   y: (ntrP1.y + flatRoute.A.y + flatRoute.B.y) / 3,
+    // }
   }
-
-  private findIntersectionPoint(
-    p1: Point,
-    p2: Point,
-    p3: Point,
-    p4: Point,
-  ): Point {
-    // Calculate the intersection of two line segments
-    // formula from https://en.wikipedia.org/wiki/Line–line_intersection
-    const x1 = p1.x,
-      y1 = p1.y
-    const x2 = p2.x,
-      y2 = p2.y
-    const x3 = p3.x,
-      y3 = p3.y
-    const x4 = p4.x,
-      y4 = p4.y
-
-    const denominator = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
-
-    // Check if lines are parallel
-    if (Math.abs(denominator) < 0.001) {
-      // Return midpoint as a fallback
-      return {
-        x: (x1 + x2 + x3 + x4) / 4,
-        y: (y1 + y2 + y3 + y4) / 4,
-      }
-    }
-
-    const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator
-
-    return {
-      x: x1 + ua * (x2 - x1),
-      y: y1 + ua * (y2 - y1),
-    }
-  }
-
   /**
    * Create a single transition route with properly placed via
    */
@@ -371,14 +246,24 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       return middle(effectiveA, effectiveB)
     }
 
-    const p1 = middleWithMargin(flatStart, 0.15, via, 0.6)
+    const p1 = middleWithMargin(
+      flatStart,
+      this.traceThickness,
+      via,
+      this.viaDiameter,
+    )
     const p2 = middleWithMargin(
       via,
-      0.6,
+      this.viaDiameter,
       otherRouteStart.z !== flatStart.z ? otherRouteStart : otherRouteEnd,
-      0.15,
+      this.traceThickness,
     )
-    const p3 = middleWithMargin(flatEnd, 0.15, via, 0.6)
+    const p3 = middleWithMargin(
+      flatEnd,
+      this.traceThickness,
+      via,
+      this.viaDiameter,
+    )
 
     // We need to navigate around the via
     return {
@@ -403,7 +288,7 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const [routeA, routeB] = this.routes
 
     // Determine which route has the transition
-    const routeAHasTransition = routeA.startPort.z !== routeA.endPort.z
+    const routeAHasTransition = routeA.A.z !== routeA.B.z
 
     const transitionRoute = routeAHasTransition ? routeA : routeB
     const flatRoute = routeAHasTransition ? routeB : routeA
@@ -417,19 +302,19 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
 
     // Create transition route with via
     const transitionRouteSolution = this.createTransitionRoute(
-      transitionRoute.startPort,
-      transitionRoute.endPort,
+      transitionRoute.A,
+      transitionRoute.B,
       viaPosition,
       transitionRoute.connectionName,
     )
 
     // Create flat route
     const flatRouteSolution = this.createFlatRoute(
-      flatRoute.startPort,
-      flatRoute.endPort,
+      flatRoute.A,
+      flatRoute.B,
       viaPosition,
-      transitionRoute.startPort,
-      transitionRoute.endPort,
+      transitionRoute.A,
+      transitionRoute.B,
       flatRoute.connectionName,
     )
 
@@ -445,14 +330,14 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     if (!this.doRoutesCross(this.routes[0], this.routes[1])) {
       // Routes don't cross, create simple direct connections
       const routeASolution = this.createFlatRoute(
-        this.routes[0].startPort,
-        this.routes[0].endPort,
+        this.routes[0].A,
+        this.routes[0].B,
         this.routes[0].connectionName,
       )
 
       const routeBSolution = this.createFlatRoute(
-        this.routes[1].startPort,
-        this.routes[1].endPort,
+        this.routes[1].A,
+        this.routes[1].B,
         this.routes[1].connectionName,
       )
 
@@ -499,22 +384,22 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     for (const route of this.routes) {
       // Draw endpoints
       graphics.points!.push({
-        x: route.startPort.x,
-        y: route.startPort.y,
-        label: `${route.connectionName} start (z=${route.startPort.z})`,
+        x: route.A.x,
+        y: route.A.y,
+        label: `${route.connectionName} start (z=${route.A.z})`,
         color: "orange",
       })
 
       graphics.points!.push({
-        x: route.endPort.x,
-        y: route.endPort.y,
-        label: `${route.connectionName} end (z=${route.endPort.z})`,
+        x: route.B.x,
+        y: route.B.y,
+        label: `${route.connectionName} end (z=${route.B.z})`,
         color: "orange",
       })
 
       // Draw direct connection line
       graphics.lines!.push({
-        points: [route.startPort, route.endPort],
+        points: [route.A, route.B],
         strokeColor: "rgba(255, 0, 0, 0.5)",
         label: `${route.connectionName} direct`,
       })
