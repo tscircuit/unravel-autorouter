@@ -27,6 +27,7 @@ export class CapacityPathingSolver extends BaseSolver {
     connection: SimpleRouteConnection
     nodes: CapacityMeshNode[]
     path?: CapacityMeshNode[]
+    straightLineDistance: number
   }>
 
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number>
@@ -104,6 +105,7 @@ export class CapacityPathingSolver extends BaseSolver {
       connection: SimpleRouteConnection
       nodes: CapacityMeshNode[]
       pathFound: boolean
+      straightLineDistance: number
     }> = []
     const nodesWithTargets = this.nodes.filter((node) => node._containsTarget)
     const connectionNameToGoalNodeIds = new Map<string, CapacityMeshNodeId[]>()
@@ -138,8 +140,16 @@ export class CapacityPathingSolver extends BaseSolver {
         connection,
         nodes: nodesForConnection,
         pathFound: false,
+        straightLineDistance: distance(
+          nodesForConnection[0].center,
+          nodesForConnection[nodesForConnection.length - 1].center,
+        ),
       })
     }
+
+    connectionsWithNodes.sort(
+      (a, b) => a.straightLineDistance - b.straightLineDistance,
+    )
     return { connectionsWithNodes, connectionNameToGoalNodeIds }
   }
 
@@ -282,6 +292,7 @@ export class CapacityPathingSolver extends BaseSolver {
       this.currentConnectionIndex++
       this.candidates = null
       this.visitedNodes = null
+      this.failed = true
       return
     }
     if (this.isConnectedToEndGoal(currentCandidate.node, end)) {
@@ -354,11 +365,14 @@ export class CapacityPathingSolver extends BaseSolver {
       for (let i = 0; i < this.connectionsWithNodes.length; i++) {
         const conn = this.connectionsWithNodes[i]
         if (conn.path && conn.path.length > 0) {
-          const pathPoints = conn.path.map(({ center: { x, y }, width }) => ({
-            // slight offset to allow viewing overlapping paths
-            x: x + ((i % 10) + (i % 19)) * (0.005 * width),
-            y: y + ((i % 10) + (i % 19)) * (0.005 * width),
-          }))
+          const pathPoints = conn.path.map(
+            ({ center: { x, y }, width, availableZ }) => ({
+              // slight offset to allow viewing overlapping paths
+              x: x + ((i % 10) + (i % 19)) * (0.005 * width),
+              y: y + ((i % 10) + (i % 19)) * (0.005 * width),
+              availableZ,
+            }),
+          )
           graphics.lines!.push({
             points: pathPoints,
             strokeColor: this.colorMap[conn.connection.name],
@@ -371,6 +385,7 @@ export class CapacityPathingSolver extends BaseSolver {
               label: [
                 `conn: ${conn.connection.name}`,
                 `node: ${conn.path[u].capacityMeshNodeId}`,
+                `z: ${point.availableZ.join(",")}`,
               ].join("\n"),
             })
           }

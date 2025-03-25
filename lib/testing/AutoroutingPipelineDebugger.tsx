@@ -1,11 +1,16 @@
 import { useState, useEffect, useMemo } from "react"
-import { InteractiveGraphics } from "graphics-debug/react"
+import {
+  InteractiveGraphics,
+  InteractiveGraphicsCanvas,
+} from "graphics-debug/react"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
 import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
 import { GraphicsObject, Rect } from "graphics-debug"
 import { limitVisualizations } from "lib/utils/limitVisualizations"
+import { getNodesNearNode } from "lib/solvers/UnravelSolver/getNodesNearNode"
+import { filterUnravelMultiSectionInput } from "./utils/filterUnravelMultiSectionInput"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -18,17 +23,22 @@ const createSolver = (srj: SimpleRouteJson) => {
 
 export const AutoroutingPipelineDebugger = ({
   srj,
-  animationSpeed = 10,
+  animationSpeed = 1,
 }: CapacityMeshPipelineDebuggerProps) => {
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
     createSolver(srj),
   )
+  const [previewMode, setPreviewMode] = useState(false)
+  const [renderer, setRenderer] = useState<"canvas" | "vector">(
+    (window.localStorage.getItem("lastSelectedRenderer") as
+      | "canvas"
+      | "vector") ?? "vector",
+  )
   const [canSelectObjects, setCanSelectObjects] = useState(false)
-  const [shouldLimitVisualizations, setShouldLimitVisualizations] =
-    useState(false)
   const [, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [solveTime, setSolveTime] = useState<number | null>(null)
   const [dialogObject, setDialogObject] = useState<Rect | null>(null)
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
@@ -109,8 +119,10 @@ export const AutoroutingPipelineDebugger = ({
   // Solve completely
   const handleSolveCompletely = () => {
     if (!solver.solved && !solver.failed) {
+      const startTime = performance.now() / 1000
       solver.solve()
-      setForceUpdate((prev) => prev + 1)
+      const endTime = performance.now() / 1000
+      setSolveTime(endTime - startTime)
     }
   }
 
@@ -178,17 +190,16 @@ export const AutoroutingPipelineDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
-      const ogVisualization = solver?.visualize() || { points: [], lines: [] }
-      if (shouldLimitVisualizations) {
-        return limitVisualizations(ogVisualization, 5e3)
-      } else {
-        return ogVisualization
+      if (previewMode) {
+        return solver?.preview() || { points: [], lines: [] }
       }
+      const ogVisualization = solver?.visualize() || { points: [], lines: [] }
+      return ogVisualization
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations, shouldLimitVisualizations])
+  }, [solver, solver.iterations, previewMode])
 
   return (
     <div className="p-4">
@@ -253,12 +264,13 @@ export const AutoroutingPipelineDebugger = ({
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() =>
-            setShouldLimitVisualizations(!shouldLimitVisualizations)
-          }
+          onClick={() => {
+            const newRenderer = renderer === "canvas" ? "vector" : "canvas"
+            setRenderer(newRenderer)
+            window.localStorage.setItem("lastSelectedRenderer", newRenderer)
+          }}
         >
-          {shouldLimitVisualizations ? "Disable" : "Enable"} Visualization
-          Limiting
+          Switch to {renderer === "canvas" ? "Vector" : "Canvas"} Renderer
         </button>
       </div>
 
@@ -287,14 +299,25 @@ export const AutoroutingPipelineDebugger = ({
             {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
           </span>
         </div>
-        {solver.activeSubSolver && (
+        <div className="border p-2 rounded">
+          Trace Count:{" "}
+          <span className="font-bold">
+            {solver.srjWithPointPairs?.connections.length ??
+              `${solver.srj.connections.length} (*)`}
+          </span>
+        </div>
+        {solveTime !== null && (
           <div className="border p-2 rounded">
-            Active Stage:{" "}
-            <span className="font-bold">
-              {solver.activeSubSolver.constructor.name}
-            </span>
+            Time to Solve:{" "}
+            <span className="font-bold">{solveTime.toFixed(3)}s</span>
           </div>
         )}
+        <div className="border p-2 rounded">
+          Active Stage:{" "}
+          <span className="font-bold">
+            {solver.activeSubSolver?.constructor.name ?? "None"}
+          </span>
+        </div>
         {solver.error && (
           <div className="border p-2 rounded bg-red-100">
             Error: <span className="font-bold">{solver.error}</span>
@@ -303,14 +326,22 @@ export const AutoroutingPipelineDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        <InteractiveGraphics
-          graphics={visualization}
-          onObjectClicked={({ object }) => {
-            if (!canSelectObjects) return
-            if (!object.label?.includes("cn")) return
-            setDialogObject(object)
-          }}
-        />
+        {canSelectObjects || renderer === "vector" ? (
+          <InteractiveGraphics
+            graphics={visualization}
+            onObjectClicked={({ object }) => {
+              if (!canSelectObjects) return
+              if (!object.label?.includes("cn")) return
+              setDialogObject(object)
+            }}
+            objectLimit={20e3}
+          />
+        ) : (
+          <InteractiveGraphicsCanvas
+            graphics={visualization}
+            showLabelsByDefault={false}
+          />
+        )}
       </div>
 
       {dialogObject && (
@@ -330,7 +361,7 @@ export const AutoroutingPipelineDebugger = ({
             </div>
             <div>
               {dialogObject && (
-                <div className="mb-4">
+                <div className="mb-4 flex flex-col">
                   <pre className="bg-gray-100 p-3 rounded overflow-auto max-h-96 text-sm">
                     {dialogObject.label}
                   </pre>
@@ -394,6 +425,80 @@ export const AutoroutingPipelineDebugger = ({
                     }}
                   >
                     Download High Density Node Input (NodeWithPortPoints)
+                  </button>
+                  <button
+                    className="mt-2 bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm"
+                    onClick={() => {
+                      const match = dialogObject.label!.match(/cn(\d+)/)
+                      const nodeId = `cn${parseInt(match![1], 10)}`
+                      const umss = solver.unravelMultiSectionSolver
+                      if (!umss) return
+                      const verboseInput = {
+                        dedupedSegments: umss.dedupedSegments,
+                        dedupedSegmentMap: umss.dedupedSegmentMap,
+                        nodeMap: umss.nodeMap,
+                        nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
+                        segmentIdToNodeIds: umss.segmentIdToNodeIds,
+                        colorMap: umss.colorMap,
+                        rootNodeId: nodeId,
+                        MUTABLE_HOPS: umss.MUTABLE_HOPS,
+                        segmentPointMap: umss.segmentPointMap,
+                        nodeToSegmentPointMap: umss.nodeToSegmentPointMap,
+                        segmentToSegmentPointMap: umss.segmentToSegmentPointMap,
+                      }
+
+                      const relevantNodeIds = new Set(
+                        getNodesNearNode({
+                          nodeId,
+                          nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
+                          segmentIdToNodeIds: umss.segmentIdToNodeIds,
+                          hops: 5,
+                        }),
+                      )
+
+                      // Filter the verbose input to only include content related to relevant nodes
+                      const filteredVerboseInput =
+                        filterUnravelMultiSectionInput(
+                          verboseInput,
+                          relevantNodeIds,
+                        )
+
+                      // Create a JSON string with proper formatting
+                      const filteredInputJson = JSON.stringify(
+                        filteredVerboseInput,
+                        (key, value) => {
+                          // Convert Maps to objects for JSON serialization
+                          if (value instanceof Map) {
+                            return Object.fromEntries(value)
+                          }
+                          return value
+                        },
+                        2,
+                      )
+
+                      // Create a blob with the JSON data
+                      const blob = new Blob([filteredInputJson], {
+                        type: "application/json",
+                      })
+
+                      // Create a URL for the blob
+                      const url = URL.createObjectURL(blob)
+
+                      // Create a temporary anchor element
+                      const a = document.createElement("a")
+
+                      // Set the download filename
+                      a.download = `unravel_section_${nodeId}_input.json`
+                      a.href = url
+
+                      // Trigger the download
+                      a.click()
+
+                      // Clean up by revoking the URL
+                      URL.revokeObjectURL(url)
+                    }}
+                  >
+                    Download Unravel Section Input
                   </button>
                 </div>
               )}
@@ -510,6 +615,12 @@ export const AutoroutingPipelineDebugger = ({
             })}
           </tbody>
         </table>
+      </div>
+      <div>
+        <h3 className="font-bold mt-8 mb-2">Advanced</h3>
+        <button onClick={() => setPreviewMode(!previewMode)}>
+          {previewMode ? "Disable" : "Enable"} Preview Mode
+        </button>
       </div>
     </div>
   )

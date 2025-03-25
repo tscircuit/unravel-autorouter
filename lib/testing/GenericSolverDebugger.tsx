@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { InteractiveGraphics } from "graphics-debug/react"
+import {
+  InteractiveGraphics,
+  InteractiveGraphicsCanvas,
+} from "graphics-debug/react"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 
@@ -17,11 +20,18 @@ export const GenericSolverDebugger = ({
   onSolverCompleted,
 }: GenericSolverDebuggerProps) => {
   const [mainSolver, setMainSolver] = useState<BaseSolver>(() => createSolver())
+  const [previewMode, setPreviewMode] = useState(false)
+  const [objectSelectionEnabled, setObjectSelectionEnabled] = useState(false)
   const [forcedUpdates, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
   const [selectedSolverKey, setSelectedSolverKey] = useState<"main" | number>(
     "main",
+  )
+  const [renderer, setRenderer] = useState<"canvas" | "vector">(
+    window.localStorage.getItem("lastRenderer") === "vector"
+      ? "vector"
+      : "canvas",
   )
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
@@ -203,12 +213,15 @@ export const GenericSolverDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
+      if (previewMode) {
+        return selectedSolver?.preview() || { points: [], lines: [] }
+      }
       return selectedSolver?.visualize() || { points: [], lines: [] }
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [forcedUpdates, selectedSolver])
+  }, [forcedUpdates, selectedSolver, previewMode])
 
   // Generate solver options for dropdown
   const solverOptions = useMemo(() => {
@@ -286,6 +299,24 @@ export const GenericSolverDebugger = ({
         >
           Reset
         </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() => setObjectSelectionEnabled(!objectSelectionEnabled)}
+        >
+          {objectSelectionEnabled ? "Disable" : "Enable"} Object Selection
+        </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() => {
+            setRenderer(renderer === "canvas" ? "vector" : "canvas")
+            window.localStorage.setItem(
+              "lastRenderer",
+              renderer === "canvas" ? "vector" : "canvas",
+            )
+          }}
+        >
+          Switch to {renderer === "canvas" ? "Vector" : "Canvas"} Renderer
+        </button>
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
@@ -329,7 +360,7 @@ export const GenericSolverDebugger = ({
           <div className="border p-2 rounded">
             Time to solve:{" "}
             <span className="font-bold">
-              {(mainSolver.timeToSolve / 1000).toFixed(2)}s
+              {(mainSolver.timeToSolve / 1000).toFixed(3)}s
             </span>
           </div>
         )}
@@ -363,7 +394,14 @@ export const GenericSolverDebugger = ({
       </div>
 
       <div className="border rounded-md p-4 mb-4">
-        <InteractiveGraphics graphics={visualization} />
+        {objectSelectionEnabled || renderer === "vector" ? (
+          <InteractiveGraphics graphics={visualization} />
+        ) : (
+          <InteractiveGraphicsCanvas
+            graphics={visualization}
+            showLabelsByDefault={false}
+          />
+        )}
       </div>
 
       <div className="mt-4 border-t pt-4">
@@ -376,6 +414,12 @@ export const GenericSolverDebugger = ({
           Max Iterations:{" "}
           <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
         </div>
+      </div>
+      <div>
+        <h3 className="font-bold mb-2">Advanced</h3>
+        <button onClick={() => setPreviewMode(!previewMode)}>
+          {previewMode ? "Disable" : "Enable"} Preview Mode
+        </button>
       </div>
     </div>
   )

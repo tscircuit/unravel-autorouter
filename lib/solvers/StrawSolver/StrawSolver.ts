@@ -205,10 +205,7 @@ export class StrawSolver extends BaseSolver {
     }
 
     // Skip nodes that are too small to subdivide
-    if (
-      rootNode.width < this.strawSize * 5 &&
-      rootNode.height < this.strawSize * 5
-    ) {
+    if (rootNode.width < this.strawSize && rootNode.height < this.strawSize) {
       this.skippedNodes.push(rootNode)
       return
     }

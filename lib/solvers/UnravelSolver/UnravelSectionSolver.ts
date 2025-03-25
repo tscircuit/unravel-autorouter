@@ -21,7 +21,10 @@ import { getIssuesInSection } from "./getIssuesInSection"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { getLogProbability } from "./getLogProbability"
 import { applyOperationToPointModifications } from "./applyOperationToPointModifications"
-import { createSegmentPointMap } from "./createSegmentPointMap"
+import {
+  createSegmentPointMap,
+  SegmentPointMapAndReverseMaps,
+} from "./createSegmentPointMap"
 
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
@@ -86,6 +89,8 @@ export class UnravelSectionSolver extends BaseSolver {
     nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
     segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
     segmentPointMap?: SegmentPointMap
+    nodeToSegmentPointMap?: Map<CapacityMeshNodeId, SegmentPointId[]>
+    segmentToSegmentPointMap?: Map<SegmentId, SegmentPointId[]>
   }) {
     super()
 
@@ -105,7 +110,11 @@ export class UnravelSectionSolver extends BaseSolver {
     this.segmentIdToNodeIds = params.segmentIdToNodeIds
     this.rootNodeId = params.rootNodeId
     this.colorMap = params.colorMap ?? {}
-    this.unravelSection = this.createUnravelSection(params.segmentPointMap)
+    this.unravelSection = this.createUnravelSection({
+      segmentPointMap: params.segmentPointMap!,
+      nodeToSegmentPointMap: params.nodeToSegmentPointMap!,
+      segmentToSegmentPointMap: params.segmentToSegmentPointMap!,
+    })
     this.tunedNodeCapacityMap = new Map()
     for (const nodeId of this.unravelSection.allNodeIds) {
       this.tunedNodeCapacityMap.set(
@@ -117,41 +126,49 @@ export class UnravelSectionSolver extends BaseSolver {
     this.candidates = [this.originalCandidate]
   }
 
-  createUnravelSection(segmentPointMap?: SegmentPointMap): UnravelSection {
+  createUnravelSection(
+    largeSpMaps?: SegmentPointMapAndReverseMaps,
+  ): UnravelSection {
     const mutableNodeIds = getNodesNearNode({
       nodeId: this.rootNodeId,
       nodeIdToSegmentIds: this.nodeIdToSegmentIds,
       segmentIdToNodeIds: this.segmentIdToNodeIds,
       hops: this.MUTABLE_HOPS,
     })
-    const allNodeIds = getNodesNearNode({
+    const allSectionNodeIds = getNodesNearNode({
       nodeId: this.rootNodeId,
       nodeIdToSegmentIds: this.nodeIdToSegmentIds,
       segmentIdToNodeIds: this.segmentIdToNodeIds,
       hops: this.MUTABLE_HOPS + 1,
     })
     const immutableNodeIds = Array.from(
-      new Set(allNodeIds).difference(new Set(mutableNodeIds)),
+      new Set(allSectionNodeIds).difference(new Set(mutableNodeIds)),
     )
 
-    if (!segmentPointMap) {
-      segmentPointMap = createSegmentPointMap(
+    if (!largeSpMaps?.segmentPointMap) {
+      largeSpMaps = createSegmentPointMap(
         this.dedupedSegments,
         this.segmentIdToNodeIds,
       )
     }
 
-    const segmentPoints = Array.from(segmentPointMap.values())
-
     const segmentPointsInNode = new Map<CapacityMeshNodeId, SegmentPointId[]>()
-    for (const segmentPoint of segmentPoints) {
-      for (const nodeId of segmentPoint.capacityMeshNodeIds) {
-        segmentPointsInNode.set(nodeId, [
-          ...(segmentPointsInNode.get(nodeId) ?? []),
-          segmentPoint.segmentPointId,
-        ])
+    for (const nodeId of allSectionNodeIds) {
+      segmentPointsInNode.set(
+        nodeId,
+        largeSpMaps.nodeToSegmentPointMap.get(nodeId)!,
+      )
+    }
+
+    const sectionPointMap = new Map<SegmentPointId, SegmentPoint>()
+    for (const nodeId of allSectionNodeIds) {
+      for (const segmentPointId of segmentPointsInNode.get(nodeId)!) {
+        const point = largeSpMaps.segmentPointMap.get(segmentPointId)!
+        sectionPointMap.set(segmentPointId, point)
       }
     }
+
+    const segmentPoints = Array.from(sectionPointMap.values())
 
     const segmentPointsInSegment = new Map<SegmentId, SegmentPointId[]>()
     for (const segmentPoint of segmentPoints) {
@@ -164,9 +181,9 @@ export class UnravelSectionSolver extends BaseSolver {
     // Second pass: set neighboring segment point ids
     for (const [nodeId, segmentPoints] of segmentPointsInNode.entries()) {
       for (let i = 0; i < segmentPoints.length; i++) {
-        const A = segmentPointMap.get(segmentPoints[i])!
+        const A = largeSpMaps.segmentPointMap.get(segmentPoints[i])!
         for (let j = i + 1; j < segmentPoints.length; j++) {
-          const B = segmentPointMap.get(segmentPoints[j])!
+          const B = largeSpMaps.segmentPointMap.get(segmentPoints[j])!
 
           if (B.segmentPointId === A.segmentPointId) continue
           if (B.segmentId === A.segmentId) continue
@@ -184,19 +201,16 @@ export class UnravelSectionSolver extends BaseSolver {
       CapacityMeshNodeId,
       Array<[SegmentPointId, SegmentPointId]>
     >()
-    for (const nodeId of allNodeIds) {
+    for (const nodeId of allSectionNodeIds) {
       segmentPairsInNode.set(nodeId, [])
     }
 
     for (const A of segmentPoints) {
       for (const nodeId of A.capacityMeshNodeIds) {
-        const otherSegmentPoints = segmentPointsInNode
-          .get(nodeId)!
-          .map((spId) => segmentPointMap.get(spId)!)
         const segmentPairs = segmentPairsInNode.get(nodeId)
         if (!segmentPairs) continue
         for (const BId of A.directlyConnectedSegmentPointIds) {
-          const B = segmentPointMap.get(BId)!
+          const B = largeSpMaps.segmentPointMap.get(BId)!
           if (B.segmentPointId === A.segmentPointId) continue
           if (!B.capacityMeshNodeIds.some((nId) => nId === nodeId)) continue
           if (
@@ -227,14 +241,15 @@ export class UnravelSectionSolver extends BaseSolver {
     }
 
     return {
-      allNodeIds,
+      allNodeIds: allSectionNodeIds,
       mutableNodeIds,
       immutableNodeIds,
       mutableSegmentIds,
       segmentPairsInNode,
-      segmentPointMap,
+      segmentPointMap: sectionPointMap,
       segmentPointsInNode,
       segmentPointsInSegment,
+      originalPointMap: sectionPointMap,
     }
   }
 
@@ -373,49 +388,84 @@ export class UnravelSectionSolver extends BaseSolver {
       const Bmutable = this.unravelSection.mutableSegmentIds.has(B.segmentId)
       const Cmutable = this.unravelSection.mutableSegmentIds.has(C.segmentId)
       const Dmutable = this.unravelSection.mutableSegmentIds.has(D.segmentId)
-      if (Amutable && Bmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: A.z === 0 ? 1 : 0,
-          segmentPointIds: [APointId, BPointId],
-        })
+
+      // Get availableZ for each segment
+      const aSegment = this.dedupedSegmentMap.get(A.segmentId)!
+      const bSegment = this.dedupedSegmentMap.get(B.segmentId)!
+      const cSegment = this.dedupedSegmentMap.get(C.segmentId)!
+      const dSegment = this.dedupedSegmentMap.get(D.segmentId)!
+
+      // Function to check if a new Z level is available for all segments
+      const isNewZAvailableForAll = (segmentObjects: any[], newZ: number) => {
+        return segmentObjects.every((seg) => seg.availableZ.includes(newZ))
       }
+
+      // Only propose layer changes if both segments can use the target layer
+      if (Amutable && Bmutable) {
+        const newZ = A.z === 0 ? 1 : 0
+        if (isNewZAvailableForAll([aSegment, bSegment], newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [APointId, BPointId],
+          })
+        }
+      }
+
       if (Cmutable && Dmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: C.z === 0 ? 1 : 0,
-          segmentPointIds: [CPointId, DPointId],
-        })
+        const newZ = C.z === 0 ? 1 : 0
+        if (isNewZAvailableForAll([cSegment, dSegment], newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [CPointId, DPointId],
+          })
+        }
       }
 
       // 3. CHANGE LAYER OF EACH POINT INDIVIDUALLY TO MAKE TRANSITION CROSSING
       if (Amutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: A.z === 0 ? 1 : 0,
-          segmentPointIds: [APointId],
-        })
+        const newZ = A.z === 0 ? 1 : 0
+        if (aSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [APointId],
+          })
+        }
       }
+
       if (Bmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: B.z === 0 ? 1 : 0,
-          segmentPointIds: [BPointId],
-        })
+        const newZ = B.z === 0 ? 1 : 0
+        if (bSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [BPointId],
+          })
+        }
       }
+
       if (Cmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: C.z === 0 ? 1 : 0,
-          segmentPointIds: [CPointId],
-        })
+        const newZ = C.z === 0 ? 1 : 0
+        if (cSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [CPointId],
+          })
+        }
       }
+
       if (Dmutable) {
-        operations.push({
-          type: "change_layer",
-          newZ: D.z === 0 ? 1 : 0,
-          segmentPointIds: [DPointId],
-        })
+        const newZ = D.z === 0 ? 1 : 0
+        if (dSegment.availableZ.includes(newZ)) {
+          operations.push({
+            type: "change_layer",
+            newZ,
+            segmentPointIds: [DPointId],
+          })
+        }
       }
     }
 
@@ -497,10 +547,10 @@ export class UnravelSectionSolver extends BaseSolver {
     return cost
   }
 
-  getNeighborByApplyingOperation(
+  getUnexploredNeighborByApplyingOperation(
     currentCandidate: UnravelCandidate,
     operation: UnravelOperation,
-  ): UnravelCandidate {
+  ): UnravelCandidate | null {
     const pointModifications = new Map<
       SegmentPointId,
       { x?: number; y?: number; z?: number }
@@ -513,7 +563,15 @@ export class UnravelSectionSolver extends BaseSolver {
         this.getPointInCandidate(currentCandidate, segmentPointId),
     )
 
-    const issues = getIssuesInSection(
+    const candidateHash = createPointModificationsHash(pointModifications)
+
+    if (
+      this.queuedOrExploredCandidatePointModificationHashes.has(candidateHash)
+    ) {
+      return null
+    }
+
+    const issues: UnravelIssue[] = getIssuesInSection(
       this.unravelSection,
       this.nodeMap,
       pointModifications,
@@ -534,7 +592,7 @@ export class UnravelSectionSolver extends BaseSolver {
       h: 0,
       f: g,
       pointModifications,
-      candidateHash: createPointModificationsHash(pointModifications),
+      candidateHash,
 
       // TODO PERFORMANCE allow disabling this
       // candidateFullHash: createFullPointModificationsHash(
@@ -559,7 +617,11 @@ export class UnravelSectionSolver extends BaseSolver {
 
     const operations = this.getNeighborOperationsForCandidate(candidate)
     for (const operation of operations) {
-      const neighbor = this.getNeighborByApplyingOperation(candidate, operation)
+      const neighbor = this.getUnexploredNeighborByApplyingOperation(
+        candidate,
+        operation,
+      )
+      if (!neighbor) continue
       neighbors.push(neighbor)
     }
 
@@ -707,6 +769,7 @@ export class UnravelSectionSolver extends BaseSolver {
         // Only process each connection once (when the current point's ID is less than the connected point's ID)
         if (segmentPointId < connectedPointId) {
           const connectedPoint = modifiedSegmentPoints.get(connectedPointId)!
+          if (!connectedPoint) continue
 
           // Determine line style based on layer (z) values
           const sameLayer = segmentPoint.z === connectedPoint.z

@@ -50,4 +50,17 @@ export class BaseSolver {
       circles: [],
     }
   }
+
+  /**
+   * A lightweight version of the visualize method that can be used to stream
+   * progress
+   */
+  preview(): GraphicsObject {
+    return {
+      lines: [],
+      points: [],
+      rects: [],
+      circles: [],
+    }
+  }
 }

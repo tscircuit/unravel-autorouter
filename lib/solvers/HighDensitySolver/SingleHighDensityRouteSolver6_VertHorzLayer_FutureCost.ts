@@ -1,8 +1,6 @@
 import { distance } from "@tscircuit/math-utils"
-import {
-  SingleHighDensityRouteSolver,
-  type Node,
-} from "./SingleHighDensityRouteSolver"
+import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
+import { Node } from "lib/data-structures/SingleRouteCandidatePriorityQueue"
 
 export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends SingleHighDensityRouteSolver {
   FUTURE_CONNECTION_PROX_TRACE_PENALTY_FACTOR = 2
@@ -33,7 +31,9 @@ export class SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost extends Sing
 
     for (const futureConnection of this.futureConnections) {
       for (const point of futureConnection.points) {
-        const dist = distance(node, point)
+        const dist =
+          distance(node, point) +
+          (node.z !== point.z ? this.viaPenaltyDistance : 0)
         if (dist < minDist) {
           minDist = dist
           closestPoint = point

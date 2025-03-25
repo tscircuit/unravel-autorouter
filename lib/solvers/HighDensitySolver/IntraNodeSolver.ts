@@ -6,17 +6,11 @@ import type {
 import { BaseSolver } from "../BaseSolver"
 import { SingleHighDensityRouteSolver } from "./SingleHighDensityRouteSolver"
 import { safeTransparentize } from "../colors"
-import { SingleHighDensityRouteSolver2_CenterAttraction } from "./SingleHighDensityRouteSolver2_CenterAttraction"
-import { SingleHighDensityRouteSolver3_RepelEndpoints } from "./SingleHighDensityRouteSolver3_RepellingEndpoints"
-import { SingleHighDensityRouteSolver4_RepelEdgeViaFuture } from "./SingleHighDensityRouteSolver4_RepelEdgeViaFuture"
-import { SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty } from "./SingleHighDensityRouteSolver5_BinaryFutureConnectionPenalty"
 import { SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost } from "./SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost"
 import { HighDensityHyperParameters } from "./HighDensityHyperParameters"
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
-import { SingleHighDensityRouteSolver7_CostPoint } from "./SingleHighDensityRouteSolver7_CostPoint"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWithPortPoints"
-import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { getMinDistBetweenEnteringPoints } from "lib/utils/getMinDistBetweenEnteringPoints"
 
 export class IntraNodeRouteSolver extends BaseSolver {
@@ -33,12 +27,17 @@ export class IntraNodeRouteSolver extends BaseSolver {
   hyperParameters: Partial<HighDensityHyperParameters>
   minDistBetweenEnteringPoints: number
 
-  activeSolver: SingleHighDensityRouteSolver | null = null
+  activeSubSolver: SingleHighDensityRouteSolver | null = null
   connMap?: ConnectivityMap
 
   // Legacy compat
   get failedSolvers() {
     return this.failedSubSolvers
+  }
+
+  // Legacy compat
+  get activeSolver() {
+    return this.activeSubSolver
   }
 
   constructor(params: {
@@ -105,6 +104,10 @@ export class IntraNodeRouteSolver extends BaseSolver {
     //   numTransitions,
     // } = getIntraNodeCrossings(this.nodeWithPortPoints)
 
+    // if (this.nodeWithPortPoints.portPoints.length === 4) {
+
+    // }
+
     // if (
     //   numSameLayerCrossings === 0 &&
     //   numTransitions === 0 &&
@@ -131,21 +134,21 @@ export class IntraNodeRouteSolver extends BaseSolver {
 
   computeProgress() {
     return (
-      (this.solvedRoutes.length + (this.activeSolver?.progress || 0)) /
+      (this.solvedRoutes.length + (this.activeSubSolver?.progress || 0)) /
       this.totalConnections
     )
   }
 
   _step() {
-    if (this.activeSolver) {
-      this.activeSolver.step()
+    if (this.activeSubSolver) {
+      this.activeSubSolver.step()
       this.progress = this.computeProgress()
-      if (this.activeSolver.solved) {
-        this.solvedRoutes.push(this.activeSolver.solvedPath!)
-        this.activeSolver = null
-      } else if (this.activeSolver.failed) {
-        this.failedSubSolvers.push(this.activeSolver)
-        this.activeSolver = null
+      if (this.activeSubSolver.solved) {
+        this.solvedRoutes.push(this.activeSubSolver.solvedPath!)
+        this.activeSubSolver = null
+      } else if (this.activeSubSolver.failed) {
+        this.failedSubSolvers.push(this.activeSubSolver)
+        this.activeSubSolver = null
         this.error = this.failedSubSolvers.map((s) => s.error).join("\n")
         this.failed = true
       }
@@ -168,7 +171,7 @@ export class IntraNodeRouteSolver extends BaseSolver {
       }
     }
     const { connectionName, points } = unsolvedConnection
-    this.activeSolver =
+    this.activeSubSolver =
       new SingleHighDensityRouteSolver6_VertHorzLayer_FutureCost({
         connectionName,
         minDistBetweenEnteringPoints: this.minDistBetweenEnteringPoints,

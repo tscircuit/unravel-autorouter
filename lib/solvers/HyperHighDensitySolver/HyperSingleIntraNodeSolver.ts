@@ -8,8 +8,12 @@ import {
   SupervisedSolver,
 } from "../HyperParameterSupervisorSolver"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { TwoCrossingRoutesHighDensitySolver } from "../HighDensitySolver/TwoRouteHighDensitySolver/TwoCrossingRoutesHighDensitySolver"
+import { SingleTransitionCrossingRouteSolver } from "../HighDensitySolver/TwoRouteHighDensitySolver/SingleTransitionCrossingRouteSolver"
 
-export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<IntraNodeRouteSolver> {
+export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
+  IntraNodeRouteSolver | TwoCrossingRoutesHighDensitySolver
+> {
   constructorParams: ConstructorParameters<typeof IntraNodeRouteSolver>[0]
   solvedRoutes: HighDensityIntraNodeRoute[] = []
   nodeWithPortPoints: NodeWithPortPoints
@@ -25,6 +29,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<I
 
   getCombinationDefs() {
     return [
+      ["closedFormTwoTrace"],
       ["majorCombinations", "orderings6", "cellSizeFactor"],
       ["noVias"],
       ["orderings50"],
@@ -115,6 +120,17 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<I
           SHUFFLE_SEED: 100 + i,
         })),
       },
+      {
+        name: "closedFormTwoTrace",
+        possibleValues: [
+          {
+            CLOSED_FORM_TWO_TRACE_SAME_LAYER: true,
+          },
+          {
+            CLOSED_FORM_TWO_TRACE_TRANSITION_CROSSING: true,
+          },
+        ],
+      },
     ]
   }
 
@@ -129,6 +145,16 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<I
   }
 
   generateSolver(hyperParameters: any): IntraNodeRouteSolver {
+    if (hyperParameters.CLOSED_FORM_TWO_TRACE_SAME_LAYER) {
+      return new TwoCrossingRoutesHighDensitySolver({
+        nodeWithPortPoints: this.nodeWithPortPoints,
+      }) as any
+    }
+    if (hyperParameters.CLOSED_FORM_TWO_TRACE_TRANSITION_CROSSING) {
+      return new SingleTransitionCrossingRouteSolver({
+        nodeWithPortPoints: this.nodeWithPortPoints,
+      }) as any
+    }
     return new IntraNodeRouteSolver({
       ...this.constructorParams,
       hyperParameters,

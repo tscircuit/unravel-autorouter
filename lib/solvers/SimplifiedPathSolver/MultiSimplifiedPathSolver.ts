@@ -1,7 +1,6 @@
 import { HighDensityIntraNodeRoute } from "lib/types/high-density-types"
 import { BaseSolver } from "../BaseSolver"
 import { Obstacle } from "lib/types"
-import { SingleSimplifiedPathSolver2 } from "./SingleSimplifiedPathSolver2"
 import { GraphicsObject } from "graphics-debug"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SingleSimplifiedPathSolver5 } from "./SingleSimplifiedPathSolver5_Deg45"

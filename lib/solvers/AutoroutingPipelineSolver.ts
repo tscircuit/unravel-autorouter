@@ -1,4 +1,4 @@
-import type { GraphicsObject } from "graphics-debug"
+import type { GraphicsObject, Line } from "graphics-debug"
 import { combineVisualizations } from "../utils/combineVisualizations"
 import type {
   CapacityMeshEdge,
@@ -55,9 +55,9 @@ type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
   solverClass: T
   getConstructorParams: (
-    instance: CapacityMeshSolver,
+    instance: AutoroutingPipelineSolver,
   ) => ConstructorParameters<T>
-  onSolved?: (instance: CapacityMeshSolver) => void
+  onSolved?: (instance: AutoroutingPipelineSolver) => void
 }
 
 function definePipelineStep<
@@ -66,11 +66,11 @@ function definePipelineStep<
   ) => BaseSolver,
   const P extends ConstructorParameters<T>,
 >(
-  solverName: keyof CapacityMeshSolver,
+  solverName: keyof AutoroutingPipelineSolver,
   solverClass: T,
-  getConstructorParams: (instance: CapacityMeshSolver) => P,
+  getConstructorParams: (instance: AutoroutingPipelineSolver) => P,
   opts: {
-    onSolved?: (instance: CapacityMeshSolver) => void
+    onSolved?: (instance: AutoroutingPipelineSolver) => void
   } = {},
 ): PipelineStep<T> {
   return {
@@ -81,7 +81,7 @@ function definePipelineStep<
   }
 }
 
-export class CapacityMeshSolver extends BaseSolver {
+export class AutoroutingPipelineSolver extends BaseSolver {
   netToPointPairsSolver?: NetToPointPairsSolver
   nodeSolver?: CapacityMeshNodeSolver
   nodeTargetMerger?: CapacityNodeTargetMerger
@@ -359,6 +359,12 @@ export class CapacityMeshSolver extends BaseSolver {
     this.startTimeOfPhase[pipelineStepDef.solverName] = performance.now()
   }
 
+  solveUntilPhase(phase: string) {
+    while (this.getCurrentPhase() !== phase) {
+      this.step()
+    }
+  }
+
   getCurrentPhase(): string {
     return this.pipelineDef[this.currentPipelineStepIndex]?.solverName ?? "none"
   }
@@ -450,6 +456,55 @@ export class CapacityMeshSolver extends BaseSolver {
   }
 
   /**
+   * A lightweight version of the visualize method that can be used to stream
+   * progress
+   *
+   * We return the most relevant graphic for the stage:
+   * 1. netToPointPairs output
+   * 2. Capacity Planning Output
+   * 3. High Density Route Solver Output, max 200 lines
+   */
+  preview(): GraphicsObject {
+    if (this.highDensityRouteSolver) {
+      const lines: Line[] = []
+      for (let i = this.highDensityRouteSolver.routes.length - 1; i >= 0; i--) {
+        const route = this.highDensityRouteSolver.routes[i]
+        lines.push({
+          points: route.route.map((n) => ({
+            x: n.x,
+            y: n.y,
+          })),
+          strokeColor: this.colorMap[route.connectionName],
+        })
+        if (lines.length > 200) break
+      }
+      return { lines }
+    }
+
+    if (this.pathingSolver) {
+      const lines: Line[] = []
+      for (const connection of this.pathingSolver.connectionsWithNodes) {
+        if (!connection.path) continue
+        lines.push({
+          points: connection.path.map((n) => ({
+            x: n.center.x,
+            y: n.center.y,
+          })),
+          strokeColor: this.colorMap[connection.connection.name],
+        })
+      }
+      return { lines }
+    }
+
+    // This output is good as-is
+    if (this.netToPointPairsSolver) {
+      return this.netToPointPairsSolver?.visualize()
+    }
+
+    return {}
+  }
+
+  /**
    * Get original connection name from connection name with MST suffix
    * @param mstConnectionName The MST-suffixed connection name (e.g. "connection1_mst0")
    * @returns The original connection name (e.g. "connection1")
@@ -511,3 +566,7 @@ export class CapacityMeshSolver extends BaseSolver {
     }
   }
 }
+
+/** @deprecated Use AutoroutingPipelineSolver instead */
+export const CapacityMeshSolver = AutoroutingPipelineSolver
+export type CapacityMeshSolver = AutoroutingPipelineSolver
