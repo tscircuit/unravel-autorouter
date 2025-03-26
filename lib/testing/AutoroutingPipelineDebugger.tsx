@@ -184,24 +184,30 @@ export const AutoroutingPipelineDebugger = ({
   // Run DRC checks on the current routes
   const handleRunDrcChecks = () => {
     try {
-      let circuitJson
+      // Get the SRJ with point pairs from the NetToPointPairsSolver
+      const srjWithPointPairs =
+        solver.netToPointPairsSolver?.getNewSimpleRouteJson() ||
+        solver.srjWithPointPairs
+
+      if (!srjWithPointPairs) {
+        alert(
+          "No connection information available. Wait until the NetToPointPairsSolver completes.",
+        )
+        return
+      }
+
+      let routes: any[]
 
       // Check if we have simplified routes (output format)
       if (
         solver.solved &&
         solver.multiSimplifiedPathSolver?.simplifiedHdRoutes
       ) {
-        circuitJson = convertToCircuitJson(
-          solver.getOutputSimpleRouteJson(),
-          solver.srj.minTraceWidth,
-        )
+        routes = solver.getOutputSimplifiedPcbTraces()
       }
       // Otherwise, use the high-density routes if available
       else if (solver.highDensityRouteSolver?.routes.length) {
-        circuitJson = convertToCircuitJson(
-          solver.highDensityRouteSolver.routes,
-          solver.srj.minTraceWidth,
-        )
+        routes = solver.highDensityRouteSolver.routes
       }
       // Neither available, show error
       else {
@@ -210,6 +216,13 @@ export const AutoroutingPipelineDebugger = ({
         )
         return
       }
+
+      // Convert to circuit-json format with both connection information and routes
+      const circuitJson = convertToCircuitJson(
+        srjWithPointPairs,
+        routes,
+        solver.srj.minTraceWidth,
+      )
 
       // Run the DRC check for trace overlaps
       const errors = checkEachPcbTraceNonOverlapping(circuitJson)
@@ -244,12 +257,26 @@ export const AutoroutingPipelineDebugger = ({
                   y: (error.center?.y ?? 0) - 0.5,
                 },
                 {
-                  x: (error.center?.x ?? 0) + 0.5,
-                  y: (error.center?.y ?? 0) + 0.5,
+                  x: (error.center?.x ?? 0) - 0.4,
+                  y: (error.center?.y ?? 0) - 0.4,
                 },
               ],
               strokeColor: "red",
-              strokeWidth: 0.15,
+              strokeWidth: 0.05,
+            },
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) + 0.5,
+                  y: (error.center?.y ?? 0) + 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) + 0.4,
+                  y: (error.center?.y ?? 0) + 0.4,
+                },
+              ],
+              strokeColor: "red",
+              strokeWidth: 0.05,
             },
             {
               points: [
@@ -258,12 +285,26 @@ export const AutoroutingPipelineDebugger = ({
                   y: (error.center?.y ?? 0) + 0.5,
                 },
                 {
-                  x: (error.center?.x ?? 0) + 0.5,
-                  y: (error.center?.y ?? 0) - 0.5,
+                  x: (error.center?.x ?? 0) - 0.4,
+                  y: (error.center?.y ?? 0) + 0.4,
                 },
               ],
               strokeColor: "red",
-              strokeWidth: 0.15,
+              strokeWidth: 0.05,
+            },
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) + 0.5,
+                  y: (error.center?.y ?? 0) - 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) + 0.4,
+                  y: (error.center?.y ?? 0) - 0.4,
+                },
+              ],
+              strokeColor: "red",
+              strokeWidth: 0.05,
             },
           ]),
         }
