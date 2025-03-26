@@ -303,15 +303,6 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       radius: minDistFromViaToTrace,
     }).E
 
-    console.log({
-      A: p2,
-      C: flatEnd,
-      ...findPointToGetAroundCircle(p2, flatEnd, {
-        center: { x: via.x, y: via.y },
-        radius: minDistFromViaToTrace,
-      }),
-    })
-
     // Determine if we need p1 or if we can just go from flatStart to p2 without
     // intersecting the via
     const p1IsNeeded =
