@@ -6,6 +6,8 @@ interface Point {
 /**
  * Finds the optimal position that is closest to the average of points A, B, and C,
  * while maintaining a minimum distance of radius from each point and staying within bounds.
+ *
+ * https://claude.ai/artifacts/b61d2619-0d39-45e7-b02b-ebdcb645f07e
  */
 export function findClosestPointToABCWithinBounds(
   A: Point,

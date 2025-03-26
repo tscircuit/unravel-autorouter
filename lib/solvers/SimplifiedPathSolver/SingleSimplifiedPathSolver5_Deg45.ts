@@ -10,6 +10,11 @@ import { SingleSimplifiedPathSolver } from "./SingleSimplifiedPathSolver"
 import { calculate45DegreePaths } from "lib/utils/calculate45DegreePaths"
 import { minimumDistanceBetweenSegments } from "lib/utils/minimumDistanceBetweenSegments"
 import { SegmentTree } from "lib/data-structures/SegmentTree"
+import {
+  segmentToBoxMinDistance,
+  computeDistanceBetweenBoxes,
+  segmentToBoundsMinDistance,
+} from "@tscircuit/math-utils"
 
 interface Point {
   x: number
@@ -48,7 +53,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
   segmentTree!: SegmentTree
 
-  OBSTACLE_MARGIN = 0.15
+  OBSTACLE_MARGIN = 0.1
+  TRACE_THICKNESS = 0.15
 
   TAIL_JUMP_RATIO: number = 0.8
 
@@ -76,6 +82,14 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       },
       { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity },
     )
+    const boundsBox = {
+      center: {
+        x: (bounds.minX + bounds.maxX) / 2,
+        y: (bounds.minY + bounds.maxY) / 2,
+      },
+      width: bounds.maxX - bounds.minX,
+      height: bounds.maxY - bounds.minY,
+    }
 
     this.filteredObstacles = this.obstacles
       .filter(
@@ -92,23 +106,14 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
         ) {
           return false
         }
-        const obstacleMinX =
-          obstacle.center.x - obstacle.width / 2 - this.OBSTACLE_MARGIN
-        const obstacleMaxX =
-          obstacle.center.x + obstacle.width / 2 + this.OBSTACLE_MARGIN
-        const obstacleMinY =
-          obstacle.center.y - obstacle.height / 2 - this.OBSTACLE_MARGIN
-        const obstacleMaxY =
-          obstacle.center.y + obstacle.height / 2 + this.OBSTACLE_MARGIN
 
-        // Check if the obstacle overlaps with the route's bounding box
-        // Only keep obstacles that overlap with the route's bounds
-        return (
-          obstacleMinX <= bounds.maxX &&
-          obstacleMaxX >= bounds.minX &&
-          obstacleMinY <= bounds.maxY &&
-          obstacleMaxY >= bounds.minY
-        )
+        const { distance } = computeDistanceBetweenBoxes(boundsBox, obstacle)
+
+        if (distance < this.OBSTACLE_MARGIN + 0.5) {
+          return true
+        }
+
+        return false
       })
 
     this.filteredObstaclePathSegments = this.otherHdRoutes.flatMap(
@@ -266,43 +271,10 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
         continue
       }
 
-      // Simple bounding box check first
-      const obstacleLeft =
-        obstacle.center.x - obstacle.width / 2 - this.OBSTACLE_MARGIN
-      const obstacleRight =
-        obstacle.center.x + obstacle.width / 2 + this.OBSTACLE_MARGIN
-      const obstacleTop =
-        obstacle.center.y - obstacle.height / 2 - this.OBSTACLE_MARGIN
-      const obstacleBottom =
-        obstacle.center.y + obstacle.height / 2 + this.OBSTACLE_MARGIN
+      const distToObstacle = segmentToBoxMinDistance(start, end, obstacle)
 
       // Check if the line might intersect with this obstacle's borders
-      if (
-        doSegmentsIntersect(
-          { x: start.x, y: start.y },
-          { x: end.x, y: end.y },
-          { x: obstacleLeft, y: obstacleTop },
-          { x: obstacleRight, y: obstacleTop },
-        ) ||
-        doSegmentsIntersect(
-          { x: start.x, y: start.y },
-          { x: end.x, y: end.y },
-          { x: obstacleRight, y: obstacleTop },
-          { x: obstacleRight, y: obstacleBottom },
-        ) ||
-        doSegmentsIntersect(
-          { x: start.x, y: start.y },
-          { x: end.x, y: end.y },
-          { x: obstacleRight, y: obstacleBottom },
-          { x: obstacleLeft, y: obstacleBottom },
-        ) ||
-        doSegmentsIntersect(
-          { x: start.x, y: start.y },
-          { x: end.x, y: end.y },
-          { x: obstacleLeft, y: obstacleBottom },
-          { x: obstacleLeft, y: obstacleTop },
-        )
-      ) {
+      if (distToObstacle < this.OBSTACLE_MARGIN + this.TRACE_THICKNESS / 2) {
         return false
       }
     }
@@ -310,17 +282,16 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     // Check if the segment intersects with any other route
     const segmentsThatCouldIntersect =
       this.segmentTree.getSegmentsThatCouldIntersect(start, end)
-    for (const [otherSegA, otherSegB] of segmentsThatCouldIntersect) {
+    for (const [otherSegA, otherSegB, segId] of segmentsThatCouldIntersect) {
       // Only check intersection if we're on the same layer
       if (otherSegA.z === start.z && otherSegB.z === start.z) {
-        if (
-          minimumDistanceBetweenSegments(
-            { x: start.x, y: start.y },
-            { x: end.x, y: end.y },
-            { x: otherSegA.x, y: otherSegA.y },
-            { x: otherSegB.x, y: otherSegB.y },
-          ) < this.OBSTACLE_MARGIN
-        ) {
+        const distBetweenSegments = minimumDistanceBetweenSegments(
+          { x: start.x, y: start.y },
+          { x: end.x, y: end.y },
+          { x: otherSegA.x, y: otherSegA.y },
+          { x: otherSegB.x, y: otherSegB.y },
+        )
+        if (distBetweenSegments < this.OBSTACLE_MARGIN + this.TRACE_THICKNESS) {
           return false
         }
       }
@@ -329,7 +300,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     for (const via of this.filteredVias) {
       if (
         pointToSegmentDistance(via, start, end) <
-        this.OBSTACLE_MARGIN + via.diameter / 2
+        this.OBSTACLE_MARGIN + via.diameter / 2 + this.TRACE_THICKNESS / 2
       ) {
         return false
       }
