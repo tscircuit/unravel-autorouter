@@ -7,10 +7,13 @@ import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
 import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
-import { GraphicsObject, Rect } from "graphics-debug"
+import { GraphicsObject, Line, Point, Rect } from "graphics-debug"
 import { limitVisualizations } from "lib/utils/limitVisualizations"
 import { getNodesNearNode } from "lib/solvers/UnravelSolver/getNodesNearNode"
 import { filterUnravelMultiSectionInput } from "./utils/filterUnravelMultiSectionInput"
+import { convertToCircuitJson } from "./utils/convertToCircuitJson"
+import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
+import { addVisualizationToLastStep } from "lib/utils/addVisualizationToLastStep"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -43,6 +46,8 @@ export const AutoroutingPipelineDebugger = ({
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
   )
+  const [drcErrors, setDrcErrors] = useState<GraphicsObject | null>(null)
+  const [drcErrorCount, setDrcErrorCount] = useState<number>(0)
 
   const speedLevels = [1, 2, 5, 10, 100, 500]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x", "500x"]
@@ -50,6 +55,8 @@ export const AutoroutingPipelineDebugger = ({
   // Reset solver
   const resetSolver = () => {
     setSolver(createSolver(srj))
+    setDrcErrors(null) // Clear DRC errors when resetting
+    setDrcErrorCount(0)
   }
 
   // Animation effect
@@ -174,6 +181,109 @@ export const AutoroutingPipelineDebugger = ({
     setForceUpdate((prev) => prev + 1)
   }
 
+  // Run DRC checks on the current routes
+  const handleRunDrcChecks = () => {
+    try {
+      let circuitJson
+
+      // Check if we have simplified routes (output format)
+      if (
+        solver.solved &&
+        solver.multiSimplifiedPathSolver?.simplifiedHdRoutes
+      ) {
+        circuitJson = convertToCircuitJson(
+          solver.getOutputSimpleRouteJson(),
+          solver.srj.minTraceWidth,
+        )
+      }
+      // Otherwise, use the high-density routes if available
+      else if (solver.highDensityRouteSolver?.routes.length) {
+        circuitJson = convertToCircuitJson(
+          solver.highDensityRouteSolver.routes,
+          solver.srj.minTraceWidth,
+        )
+      }
+      // Neither available, show error
+      else {
+        alert(
+          "No routes available yet. Complete routing first or proceed to high-density routing stage.",
+        )
+        return
+      }
+
+      // Run the DRC check for trace overlaps
+      const errors = checkEachPcbTraceNonOverlapping(circuitJson)
+
+      // Convert errors to graphics objects for visualization
+      if (errors.length > 0) {
+        const errorGraphics: GraphicsObject = {
+          circles: errors.map((error) => ({
+            center: {
+              x: error.center?.x ?? 0,
+              y: error.center?.y ?? 0,
+            },
+            radius: 0.75,
+            fill: "rgba(255, 0, 0, 0.3)",
+            stroke: "red",
+            strokeWidth: 0.1,
+            label: error.message,
+          })),
+          points: errors.map((error) => ({
+            x: error.center?.x ?? 0,
+            y: error.center?.y ?? 0,
+            color: "red",
+            size: 10,
+            label: error.message,
+          })),
+          // Cross markers at error points for better visibility
+          lines: errors.flatMap((error) => [
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) - 0.5,
+                  y: (error.center?.y ?? 0) - 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) + 0.5,
+                  y: (error.center?.y ?? 0) + 0.5,
+                },
+              ],
+              strokeColor: "red",
+              strokeWidth: 0.15,
+            },
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) - 0.5,
+                  y: (error.center?.y ?? 0) + 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) + 0.5,
+                  y: (error.center?.y ?? 0) - 0.5,
+                },
+              ],
+              strokeColor: "red",
+              strokeWidth: 0.15,
+            },
+          ]),
+        }
+
+        setDrcErrors(errorGraphics)
+        setDrcErrorCount(errors.length)
+        alert(`Found ${errors.length} DRC errors. See the highlighted areas.`)
+      } else {
+        setDrcErrors(null)
+        setDrcErrorCount(0)
+        alert("No DRC errors found! All traces are properly spaced.")
+      }
+    } catch (error) {
+      console.error("DRC check error:", error)
+      alert(
+        `Error running DRC checks: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
+
   // Increase animation speed
   const increaseSpeed = () => {
     setSpeedLevel((prev) => Math.min(prev + 1, speedLevels.length - 1))
@@ -190,16 +300,24 @@ export const AutoroutingPipelineDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
+      let baseVisualization
       if (previewMode) {
-        return solver?.preview() || { points: [], lines: [] }
+        baseVisualization = solver?.preview() || { points: [], lines: [] }
+      } else {
+        baseVisualization = solver?.visualize() || { points: [], lines: [] }
       }
-      const ogVisualization = solver?.visualize() || { points: [], lines: [] }
-      return ogVisualization
+
+      // If we have DRC errors, combine them with the base visualization
+      if (drcErrors) {
+        return addVisualizationToLastStep(baseVisualization, drcErrors)
+      }
+
+      return baseVisualization
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations, previewMode])
+  }, [solver, solver.iterations, previewMode, drcErrors])
 
   return (
     <div className="p-4">
@@ -272,6 +390,24 @@ export const AutoroutingPipelineDebugger = ({
         >
           Switch to {renderer === "canvas" ? "Vector" : "Canvas"} Renderer
         </button>
+        {drcErrors ? (
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100 bg-red-50"
+            onClick={() => {
+              setDrcErrors(null)
+              setDrcErrorCount(0)
+            }}
+          >
+            Clear DRC Errors ({drcErrorCount})
+          </button>
+        ) : (
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100 bg-blue-50"
+            onClick={handleRunDrcChecks}
+          >
+            Run DRC Checks
+          </button>
+        )}
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums">
