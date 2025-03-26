@@ -261,9 +261,9 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       const green = Math.floor(255 * (1 - pf))
       const color = `rgb(${red}, ${green}, 0)`
 
-      // if ((this.attemptsToFixNode.get(nodeId) ?? 0) === 0 && pf === 0) {
-      //   continue
-      // }
+      if ((this.attemptsToFixNode.get(nodeId) ?? 0) === 0 && pf === 0) {
+        continue
+      }
 
       graphics.rects.push({
         center: node.center,
