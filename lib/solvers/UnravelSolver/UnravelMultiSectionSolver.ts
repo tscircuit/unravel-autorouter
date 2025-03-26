@@ -19,6 +19,7 @@ import {
 } from "./types"
 import { createSegmentPointMap } from "./createSegmentPointMap"
 import { getIntraNodeCrossingsFromSegmentPoints } from "lib/utils/getIntraNodeCrossingsFromSegmentPoints"
+import { getNodesNearNode } from "./getNodesNearNode"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
@@ -127,7 +128,6 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       (this.nodeToSegmentPointMap.get(node.capacityMeshNodeId) ?? []).map(
         (segPointId) => this.segmentPointMap.get(segPointId)!,
       ),
-      node.capacityMeshNodeId === "cn125246",
     )
 
     const probabilityOfFailure = calculateNodeProbabilityOfFailure(
@@ -136,18 +136,6 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       numEntryExitLayerChanges,
       numTransitionCrossings,
     )
-
-    if (node.capacityMeshNodeId === "cn125246") {
-      console.log({
-        numSameLayerCrossings,
-        numEntryExitLayerChanges,
-        numTransitionCrossings,
-        segmentPoints: (
-          this.nodeToSegmentPointMap.get(node.capacityMeshNodeId) ?? []
-        ).map((segPointId) => this.segmentPointMap.get(segPointId)!),
-        probabilityOfFailure,
-      })
-    }
 
     return probabilityOfFailure
   }
@@ -225,14 +213,20 @@ export class UnravelMultiSectionSolver extends BaseSolver {
           segmentPoint.z = pointModification.z ?? segmentPoint.z
         }
 
+        // HACK: This is time consuming but there is a bug where sometimes the
+        // UnravelSectionSolver accidentally mutates immutable nodes, so we
+        // need to go to even more neighbors to be sure we have the updated
+        // Pf values. If that bug gets fixed, you can use this.activeSolver.section.allNodeIds
+        const possiblyImpactedNodeIds = getNodesNearNode({
+          hops: this.activeSolver.MUTABLE_HOPS + 2,
+          nodeId: this.activeSolver.rootNodeId,
+          nodeIdToSegmentIds: this.nodeIdToSegmentIds,
+          segmentIdToNodeIds: this.segmentIdToNodeIds,
+        })
+
         // Update node failure probabilities
-        // for (const nodeId of this.activeSolver.unravelSection.allNodeIds) {
-        for (const nodeId of this.nodeMap.keys()) {
-          if (nodeId === "cn125246") {
-            console.log({
-              nodePf: this.computeNodePf(this.nodeMap.get(nodeId)!),
-            })
-          }
+        for (const nodeId of possiblyImpactedNodeIds) {
+          // for (const nodeId of this.nodeMap.keys()) {
           this.nodePfMap.set(
             nodeId,
             this.computeNodePf(this.nodeMap.get(nodeId)!),
