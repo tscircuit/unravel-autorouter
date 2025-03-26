@@ -33,6 +33,10 @@ export class BaseSolver {
 
   _step() {}
 
+  getConstructorParams() {
+    throw new Error("getConstructorParams not implemented")
+  }
+
   solve() {
     const startTime = Date.now()
     while (!this.solved && !this.failed) {

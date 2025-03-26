@@ -43,6 +43,16 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
     this.newVias = []
   }
 
+  getConstructorParams() {
+    return {
+      inputRoute: this.inputRoute,
+      otherHdRoutes: this.otherHdRoutes,
+      obstacles: this.obstacles,
+      connMap: this.connMap.netMap,
+      colorMap: this.colorMap,
+    }
+  }
+
   get simplifiedRoute(): HighDensityIntraNodeRoute {
     return {
       connectionName: this.inputRoute.connectionName,

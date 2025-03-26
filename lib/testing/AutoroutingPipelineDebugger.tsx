@@ -338,10 +338,15 @@ export const AutoroutingPipelineDebugger = ({
     setSpeedLevel((prev) => Math.max(prev - 1, 0))
   }
 
+  let deepestActiveSubSolver = solver.activeSubSolver
+  while (deepestActiveSubSolver?.activeSubSolver) {
+    deepestActiveSubSolver = deepestActiveSubSolver.activeSubSolver
+  }
+
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
-      let baseVisualization
+      let baseVisualization: GraphicsObject
       if (previewMode) {
         baseVisualization = solver?.preview() || { points: [], lines: [] }
       } else {
@@ -793,10 +798,35 @@ export const AutoroutingPipelineDebugger = ({
           </tbody>
         </table>
       </div>
-      <div>
-        <h3 className="font-bold mt-8 mb-2">Advanced</h3>
+      <h3 className="font-bold mt-8 mb-2">Advanced</h3>
+      <div className="flex gap-2">
         <button onClick={() => setPreviewMode(!previewMode)}>
           {previewMode ? "Disable" : "Enable"} Preview Mode
+        </button>
+        <button
+          onClick={() => {
+            if (!deepestActiveSubSolver) {
+              window.alert("No active sub solver found")
+              return
+            }
+            let params: any
+            try {
+              params = deepestActiveSubSolver.getConstructorParams()
+            } catch (e: any) {
+              window.alert(`Unable to get constructor params: ${e.toString()}`)
+            }
+            const paramsJson = JSON.stringify(params, null, 2)
+            const blob = new Blob([paramsJson], { type: "application/json" })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = `${deepestActiveSubSolver.constructor.name}_input.json`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
+        >
+          Download Active Sub Solver Input (
+          {deepestActiveSubSolver?.constructor?.name})
         </button>
       </div>
     </div>
