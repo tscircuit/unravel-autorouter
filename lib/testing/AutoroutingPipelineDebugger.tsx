@@ -321,7 +321,7 @@ export const AutoroutingPipelineDebugger = ({
 
   return (
     <div className="p-4">
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 text-xs">
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleStep}
@@ -410,12 +410,12 @@ export const AutoroutingPipelineDebugger = ({
         )}
       </div>
 
-      <div className="flex gap-4 mb-4 tabular-nums">
+      <div className="flex gap-4 mb-4 tabular-nums text-xs">
         <div className="border p-2 rounded flex items-center">
           Iterations:{" "}
           <span className="font-bold ml-1">{solver.iterations}</span>
           <button
-            className="ml-2 border rounded-md px-2 py-1 text-sm hover:bg-gray-100"
+            className="ml-2 rounded-md px-2 py-0 hover:bg-gray-100"
             onClick={handleGoToIteration}
             disabled={solver.solved || solver.failed}
             title={
