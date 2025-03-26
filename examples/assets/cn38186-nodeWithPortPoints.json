@@ -1,0 +1,148 @@
+{
+  "nodeId": "cn38186",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn38186",
+    "center": {
+      "x": 21.18108484218758,
+      "y": 0.5712279046874942
+    },
+    "width": 9.724113453124998,
+    "height": 9.724113453124998,
+    "layer": "top",
+    "availableZ": [
+      0,
+      1
+    ],
+    "_depth": 5,
+    "_parent": {
+      "capacityMeshNodeId": "cn31489",
+      "center": {
+        "x": 16.31902811562508,
+        "y": -4.290828821875005
+      },
+      "width": 19.448226906249996,
+      "height": 19.448226906249996,
+      "layer": "top",
+      "availableZ": [
+        0,
+        1
+      ],
+      "_depth": 4,
+      "_parent": {
+        "capacityMeshNodeId": "cn22258",
+        "center": {
+          "x": 26.043141568750077,
+          "y": 5.433284631249993
+        },
+        "width": 38.89645381249999,
+        "height": 38.89645381249999,
+        "layer": "top",
+        "availableZ": [
+          0,
+          1
+        ],
+        "_depth": 3,
+        "_parent": {
+          "capacityMeshNodeId": "cn5",
+          "center": {
+            "x": 6.594914662500081,
+            "y": 24.88151153749999
+          },
+          "width": 77.79290762499998,
+          "height": 77.79290762499998,
+          "layer": "top",
+          "availableZ": [
+            0,
+            1
+          ],
+          "_depth": 2,
+          "_parent": {
+            "capacityMeshNodeId": "cn4",
+            "center": {
+              "x": 45.49136847500007,
+              "y": 63.77796534999998
+            },
+            "width": 155.58581524999997,
+            "height": 155.58581524999997,
+            "layer": "top",
+            "availableZ": [
+              0,
+              1
+            ],
+            "_depth": 1,
+            "_parent": {
+              "capacityMeshNodeId": "cn0",
+              "center": {
+                "x": -32.30153914999991,
+                "y": -14.014942275000003
+              },
+              "width": 311.17163049999994,
+              "height": 311.17163049999994,
+              "layer": "top",
+              "availableZ": [
+                0,
+                1
+              ],
+              "_depth": 0,
+              "_containsTarget": true,
+              "_containsObstacle": true,
+              "_completelyInsideObstacle": false
+            },
+            "_containsObstacle": true,
+            "_targetConnectionName": "source_net_15_mst0",
+            "_containsTarget": true,
+            "_completelyInsideObstacle": false
+          },
+          "_containsObstacle": true,
+          "_targetConnectionName": "source_net_15_mst0",
+          "_containsTarget": true,
+          "_completelyInsideObstacle": false
+        },
+        "_containsObstacle": true,
+        "_targetConnectionName": "source_net_15_mst1",
+        "_containsTarget": true,
+        "_completelyInsideObstacle": false
+      },
+      "_containsObstacle": true,
+      "_targetConnectionName": "source_net_9_mst0",
+      "_containsTarget": true,
+      "_completelyInsideObstacle": false
+    },
+    "_containsObstacle": false
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn38186",
+    "portPoints": [
+      {
+        "x": 19.965570660546955,
+        "y": 5.433284631249993,
+        "z": 1,
+        "connectionName": "source_net_10_mst0"
+      },
+      {
+        "x": 22.396599023828205,
+        "y": -4.290828821875004,
+        "z": 0,
+        "connectionName": "source_net_10_mst0"
+      },
+      {
+        "x": 16.31902811562508,
+        "y": -3.07531464023438,
+        "z": 1,
+        "connectionName": "source_net_15_mst1"
+      },
+      {
+        "x": 24.827627387109455,
+        "y": -4.290828821875004,
+        "z": 0,
+        "connectionName": "source_net_15_mst1"
+      }
+    ],
+    "center": {
+      "x": 21.18108484218758,
+      "y": 0.5712279046874942
+    },
+    "width": 9.724113453124998,
+    "height": 9.724113453124998
+  }
+}

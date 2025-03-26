@@ -128,13 +128,29 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
             y: isVertical ? 0 : offsetAmount,
           }
           const trueSegmentCenter = {
-            x: (segment.start.x + segment.end.x) / 2 + offset.x,
-            y: (segment.start.y + segment.end.y) / 2 + offset.y,
+            x: (segment.start.x + segment.end.x) / 2,
+            y: (segment.start.y + segment.end.y) / 2,
           }
+          const segmentCenter = {
+            x: (trueSegmentCenter.x * 6 + node.center.x) / 7 + offset.x,
+            y: (trueSegmentCenter.y * 6 + node.center.y) / 7 + offset.y,
+          }
+          graphics.points!.push({
+            x: segmentCenter.x,
+            y: segmentCenter.y,
+            label: `${nodeId}: ${segment.connectionNames.join(", ")}\navailableZ: ${segment.availableZ.join(",")}`,
+          })
+          graphics.lines!.push({
+            points: [segment.start, segment.end],
+            strokeColor: safeTransparentize(
+              this.colorMap[segment.connectionNames[i]],
+              0.6,
+            ),
+          })
           graphics.rects!.push({
             center: {
-              x: (trueSegmentCenter.x * 6 + node.center.x) / 7,
-              y: (trueSegmentCenter.y * 6 + node.center.y) / 7,
+              x: (segmentCenter.x * 6 + node.center.x) / 7,
+              y: (segmentCenter.y * 6 + node.center.y) / 7,
             },
             width: isVertical
               ? THICKNESS

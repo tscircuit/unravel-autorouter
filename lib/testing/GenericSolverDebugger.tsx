@@ -210,6 +210,11 @@ export const GenericSolverDebugger = ({
     setSpeedLevel((prev) => Math.max(prev - 1, 0))
   }
 
+  let deepestActiveSubSolver = mainSolver.activeSubSolver
+  while (deepestActiveSubSolver?.activeSubSolver) {
+    deepestActiveSubSolver = deepestActiveSubSolver.activeSubSolver
+  }
+
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
@@ -417,9 +422,48 @@ export const GenericSolverDebugger = ({
       </div>
       <div>
         <h3 className="font-bold mb-2">Advanced</h3>
-        <button onClick={() => setPreviewMode(!previewMode)}>
-          {previewMode ? "Disable" : "Enable"} Preview Mode
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setPreviewMode(!previewMode)}>
+            {previewMode ? "Disable" : "Enable"} Preview Mode
+          </button>
+          {mainSolver.activeSubSolver && (
+            <button
+              className="border rounded-md p-2 hover:bg-gray-100"
+              onClick={() => {
+                if (!deepestActiveSubSolver) {
+                  window.alert("No active sub solver found")
+                  return
+                }
+
+                let params
+                try {
+                  params = deepestActiveSubSolver.getConstructorParams()
+                } catch (e: any) {
+                  window.alert(
+                    `Unable to get constructor params: ${e.toString()}`,
+                  )
+                  return
+                }
+
+                const paramsJson = JSON.stringify(params, null, 2)
+                const blob = new Blob([paramsJson], {
+                  type: "application/json",
+                })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement("a")
+                a.download = `${deepestActiveSubSolver.constructor.name}_input.json`
+                a.href = url
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+              }}
+            >
+              Download Active Sub Solver Input (
+              {deepestActiveSubSolver?.constructor?.name})
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
