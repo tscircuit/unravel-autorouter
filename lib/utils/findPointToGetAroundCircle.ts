@@ -12,6 +12,9 @@ interface Circle {
  * Finds the tangent points and their intersection for the shortest path from C to A
  * that touches the circle Q at points B and D.
  *
+ * E is the point where you're guaranteed to be able to get around the circle
+ * without intersecting it if you travel from A to E to C
+ *
  * @param A First observation point
  * @param C Second observation point
  * @param Q Circle definition with center and radius
@@ -28,13 +31,85 @@ export function findPointToGetAroundCircle(
   // Compute point D (tangent from A to circle Q)
   const D = computeTangentPoint(A, C, Q.center, Q.radius)
 
-  // Compute point E (intersection of CB and AD)
-  const E = computeIntersection(
-    { x: C.x, y: C.y },
-    { x: B.x, y: B.y },
-    { x: A.x, y: A.y },
-    { x: D.x, y: D.y },
-  )
+  // Check if B and D are valid (not too close to C and A respectively)
+  const distBC = distance(B, C)
+  const distAD = distance(A, D)
+  const minDistThreshold = 1e-6
+
+  const BIsValid = distBC > minDistThreshold
+  const DIsValid = distAD > minDistThreshold
+
+  // Compute point E using a robust approach
+  let E: Point
+
+  if (!BIsValid || !DIsValid) {
+    // Fallback: Use the midpoint between A and C but ensure it's outside the circle
+    const midAC = {
+      x: (A.x + C.x) / 2,
+      y: (A.y + C.y) / 2,
+    }
+
+    const distFromCenter = distance(midAC, Q.center)
+    if (distFromCenter < Q.radius * 1.1) {
+      // Too close to circle, move away from center
+      const dirFromCenter = {
+        x: (midAC.x - Q.center.x) / distFromCenter,
+        y: (midAC.y - Q.center.y) / distFromCenter,
+      }
+
+      E = {
+        x: Q.center.x + dirFromCenter.x * Q.radius * 1.2,
+        y: Q.center.y + dirFromCenter.y * Q.radius * 1.2,
+      }
+    } else {
+      // Midpoint is far enough from circle
+      E = midAC
+    }
+  } else {
+    // B and D are valid, use midpoint between B and D as a robust solution
+    E = {
+      x: (B.x + D.x) / 2,
+      y: (B.y + D.y) / 2,
+    }
+
+    // Check if the midpoint is a reasonable solution
+    const distBE = distance(B, E)
+    const distDE = distance(D, E)
+
+    if (Math.abs(distBE - distDE) > Math.min(distBE, distDE) * 0.5) {
+      // The midpoint is significantly closer to one point than the other
+      // Use a weighted average instead
+      const distAB = distance(A, B)
+      const distCD = distance(C, D)
+      const totalDist = distAB + distCD
+
+      if (totalDist > minDistThreshold) {
+        // Weight based on distances from A to B and C to D
+        const weightB = distCD / totalDist
+        const weightD = distAB / totalDist
+
+        E = {
+          x: B.x * weightB + D.x * weightD,
+          y: B.y * weightB + D.y * weightD,
+        }
+      }
+    }
+
+    // Final safety check: make sure E is outside the circle
+    const distEToCenter = distance(E, Q.center)
+    if (distEToCenter < Q.radius * 1.05) {
+      // E is too close to the circle, adjust it
+      const dirFromCenter = {
+        x: (E.x - Q.center.x) / distEToCenter,
+        y: (E.y - Q.center.y) / distEToCenter,
+      }
+
+      E = {
+        x: Q.center.x + dirFromCenter.x * Q.radius * 1.2,
+        y: Q.center.y + dirFromCenter.y * Q.radius * 1.2,
+      }
+    }
+  }
 
   return { B, D, E }
 }
@@ -61,9 +136,38 @@ function computeTangentPoint(
   ]
   const CQLength = Math.sqrt(CQ[0] * CQ[0] + CQ[1] * CQ[1])
 
-  // Check if tangent is possible
-  if (CQLength < radius) {
-    return observationPoint // Return observation point if no tangent is possible
+  // Check if tangent is possible (point is inside or on the circle)
+  if (CQLength <= radius) {
+    // Instead of returning the observation point, find a point on the circle
+    // in the direction away from the circle center
+    if (CQLength < 1e-8) {
+      // If observation point is at circle center, move in direction of reference point
+      const refVec = [
+        referencePoint.x - observationPoint.x,
+        referencePoint.y - observationPoint.y,
+      ]
+      const refLength = Math.sqrt(refVec[0] * refVec[0] + refVec[1] * refVec[1])
+
+      if (refLength < 1e-8) {
+        // If reference point is also at circle center, use arbitrary direction
+        return {
+          x: circleCenter.x + radius,
+          y: circleCenter.y,
+        }
+      }
+
+      return {
+        x: circleCenter.x + (refVec[0] / refLength) * radius,
+        y: circleCenter.y + (refVec[1] / refLength) * radius,
+      }
+    }
+
+    // Move away from circle center along the same line
+    const CQUnit = [CQ[0] / CQLength, CQ[1] / CQLength]
+    return {
+      x: circleCenter.x - CQUnit[0] * radius,
+      y: circleCenter.y - CQUnit[1] * radius,
+    }
   }
 
   // Vector from observation point to reference point (to determine which side of the circle)
@@ -105,44 +209,10 @@ function computeTangentPoint(
 }
 
 /**
- * Computes the intersection point of two lines defined by points (p1,p2) and (p3,p4)
- *
- * @param p1 First point on first line
- * @param p2 Second point on first line
- * @param p3 First point on second line
- * @param p4 Second point on second line
- * @returns The intersection point
+ * Helper function to calculate the Euclidean distance between two points
  */
-function computeIntersection(
-  p1: Point,
-  p2: Point,
-  p3: Point,
-  p4: Point,
-): Point {
-  // Line 1 represented as a1x + b1y = c1
-  const a1 = p2.y - p1.y
-  const b1 = p1.x - p2.x
-  const c1 = a1 * p1.x + b1 * p1.y
-
-  // Line 2 represented as a2x + b2y = c2
-  const a2 = p4.y - p3.y
-  const b2 = p3.x - p4.x
-  const c2 = a2 * p3.x + b2 * p3.y
-
-  // Determinant
-  const det = a1 * b2 - a2 * b1
-
-  if (Math.abs(det) < 1e-8) {
-    // Lines are parallel, return midpoint between p1 and p3 as fallback
-    return {
-      x: (p1.x + p3.x) / 2,
-      y: (p1.y + p3.y) / 2,
-    }
-  }
-
-  // Calculate intersection point
-  const x = (b2 * c1 - b1 * c2) / det
-  const y = (a1 * c2 - a2 * c1) / det
-
-  return { x, y }
+function distance(p1: Point, p2: Point): number {
+  const dx = p2.x - p1.x
+  const dy = p2.y - p1.y
+  return Math.sqrt(dx * dx + dy * dy)
 }
