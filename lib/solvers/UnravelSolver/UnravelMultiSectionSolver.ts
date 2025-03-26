@@ -18,6 +18,7 @@ import {
   SegmentPointMap,
 } from "./types"
 import { createSegmentPointMap } from "./createSegmentPointMap"
+import { getIntraNodeCrossingsFromSegmentPoints } from "lib/utils/getIntraNodeCrossingsFromSegmentPoints"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
@@ -122,10 +123,11 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       numSameLayerCrossings,
       numEntryExitLayerChanges,
       numTransitionCrossings,
-    } = getIntraNodeCrossingsFromSegments(
-      this.nodeIdToSegmentIds
-        .get(node.capacityMeshNodeId)
-        ?.map((segId) => this.dedupedSegmentMap.get(segId)!) || [],
+    } = getIntraNodeCrossingsFromSegmentPoints(
+      (this.nodeToSegmentPointMap.get(node.capacityMeshNodeId) ?? []).map(
+        (segPointId) => this.segmentPointMap.get(segPointId)!,
+      ),
+      node.capacityMeshNodeId === "cn125246",
     )
 
     const probabilityOfFailure = calculateNodeProbabilityOfFailure(
@@ -134,6 +136,18 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       numEntryExitLayerChanges,
       numTransitionCrossings,
     )
+
+    if (node.capacityMeshNodeId === "cn125246") {
+      console.log({
+        numSameLayerCrossings,
+        numEntryExitLayerChanges,
+        numTransitionCrossings,
+        segmentPoints: (
+          this.nodeToSegmentPointMap.get(node.capacityMeshNodeId) ?? []
+        ).map((segPointId) => this.segmentPointMap.get(segPointId)!),
+        probabilityOfFailure,
+      })
+    }
 
     return probabilityOfFailure
   }
@@ -210,14 +224,20 @@ export class UnravelMultiSectionSolver extends BaseSolver {
           segmentPoint.y = pointModification.y ?? segmentPoint.y
           segmentPoint.z = pointModification.z ?? segmentPoint.z
         }
-      }
 
-      // Update node failure probabilities
-      for (const nodeId of this.activeSolver.unravelSection.allNodeIds) {
-        this.nodePfMap.set(
-          nodeId,
-          this.computeNodePf(this.nodeMap.get(nodeId)!),
-        )
+        // Update node failure probabilities
+        // for (const nodeId of this.activeSolver.unravelSection.allNodeIds) {
+        for (const nodeId of this.nodeMap.keys()) {
+          if (nodeId === "cn125246") {
+            console.log({
+              nodePf: this.computeNodePf(this.nodeMap.get(nodeId)!),
+            })
+          }
+          this.nodePfMap.set(
+            nodeId,
+            this.computeNodePf(this.nodeMap.get(nodeId)!),
+          )
+        }
       }
 
       this.activeSolver = null
@@ -247,9 +267,9 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       const green = Math.floor(255 * (1 - pf))
       const color = `rgb(${red}, ${green}, 0)`
 
-      if ((this.attemptsToFixNode.get(nodeId) ?? 0) === 0 && pf === 0) {
-        continue
-      }
+      // if ((this.attemptsToFixNode.get(nodeId) ?? 0) === 0 && pf === 0) {
+      //   continue
+      // }
 
       graphics.rects.push({
         center: node.center,
