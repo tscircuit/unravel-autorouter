@@ -53,7 +53,8 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
 
   segmentTree!: SegmentTree
 
-  OBSTACLE_MARGIN = 0.15
+  OBSTACLE_MARGIN = 0.1
+  TRACE_THICKNESS = 0.15
 
   TAIL_JUMP_RATIO: number = 0.8
 
@@ -273,7 +274,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       const distToObstacle = segmentToBoxMinDistance(start, end, obstacle)
 
       // Check if the line might intersect with this obstacle's borders
-      if (distToObstacle < this.OBSTACLE_MARGIN) {
+      if (distToObstacle < this.OBSTACLE_MARGIN + this.TRACE_THICKNESS / 2) {
         return false
       }
     }
@@ -281,17 +282,16 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     // Check if the segment intersects with any other route
     const segmentsThatCouldIntersect =
       this.segmentTree.getSegmentsThatCouldIntersect(start, end)
-    for (const [otherSegA, otherSegB] of segmentsThatCouldIntersect) {
+    for (const [otherSegA, otherSegB, segId] of segmentsThatCouldIntersect) {
       // Only check intersection if we're on the same layer
       if (otherSegA.z === start.z && otherSegB.z === start.z) {
-        if (
-          minimumDistanceBetweenSegments(
-            { x: start.x, y: start.y },
-            { x: end.x, y: end.y },
-            { x: otherSegA.x, y: otherSegA.y },
-            { x: otherSegB.x, y: otherSegB.y },
-          ) < this.OBSTACLE_MARGIN
-        ) {
+        const distBetweenSegments = minimumDistanceBetweenSegments(
+          { x: start.x, y: start.y },
+          { x: end.x, y: end.y },
+          { x: otherSegA.x, y: otherSegA.y },
+          { x: otherSegB.x, y: otherSegB.y },
+        )
+        if (distBetweenSegments < this.OBSTACLE_MARGIN + this.TRACE_THICKNESS) {
           return false
         }
       }
@@ -300,7 +300,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     for (const via of this.filteredVias) {
       if (
         pointToSegmentDistance(via, start, end) <
-        this.OBSTACLE_MARGIN + via.diameter / 2
+        this.OBSTACLE_MARGIN + via.diameter / 2 + this.TRACE_THICKNESS / 2
       ) {
         return false
       }
