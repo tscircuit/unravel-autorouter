@@ -21,6 +21,7 @@ export type BucketCoordinate = `${number}x${number}`
 export class SegmentTree {
   buckets: Map<BucketCoordinate, SegmentWithId[]>
   CELL_SIZE = 0.4
+  SEGMENT_MARGIN = 0.2
 
   constructor(public segments: Segment[]) {
     this.buckets = new Map()
@@ -58,13 +59,14 @@ export class SegmentTree {
   getSegmentsThatCouldIntersect(A: Point, B: Point) {
     const segments: SegmentWithId[] = []
     const alreadyAddedSegments = new Set<string>()
-    const minX = Math.min(A.x, B.x)
-    const minY = Math.min(A.y, B.y)
-    const maxX = Math.max(A.x, B.x)
-    const maxY = Math.max(A.y, B.y)
+    const minX = Math.min(A.x, B.x) - this.SEGMENT_MARGIN
+    const minY = Math.min(A.y, B.y) - this.SEGMENT_MARGIN
+    const maxX = Math.max(A.x, B.x) + this.SEGMENT_MARGIN
+    const maxY = Math.max(A.y, B.y) + this.SEGMENT_MARGIN
 
     const bucketMinX = Math.floor(minX / this.CELL_SIZE) * this.CELL_SIZE
     const bucketMinY = Math.floor(minY / this.CELL_SIZE) * this.CELL_SIZE
+
     for (let x = bucketMinX; x <= maxX; x += this.CELL_SIZE) {
       for (let y = bucketMinY; y <= maxY; y += this.CELL_SIZE) {
         const bucketKey = this.getBucketKey(x, y)
