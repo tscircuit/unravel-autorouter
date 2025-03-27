@@ -1,5 +1,5 @@
-import type { AnyCircuitElement, PcbTrace } from "circuit-json"
-import { SimplifiedPcbTrace, SimpleRouteJson } from "lib/types"
+import type { AnyCircuitElement, PcbTrace, PcbVia } from "circuit-json"
+import { SimpleRouteJson, SimplifiedPcbTrace } from "lib/types"
 import { HighDensityRoute } from "lib/types/high-density-types"
 import { LayerName, mapZToLayerName } from "lib/utils/mapZToLayerName"
 
@@ -152,15 +152,92 @@ function createPcbPorts(srj: SimpleRouteJson): AnyCircuitElement[] {
 }
 
 /**
+ * Extract vias from routes and convert them to pcb_via objects
+ * @param routes The routes to extract vias from
+ * @param minViaDiameter Default diameter for vias
+ * @returns An array of PcbVia elements
+ */
+function extractViasFromRoutes(
+  routes: SimplifiedPcbTrace[] | HighDensityRoute[],
+  minViaDiameter = 0.6,
+): PcbVia[] {
+  const vias: PcbVia[] = []
+  const viaLocations = new Set<string>() // Track unique via locations
+
+  if (routes.length > 0) {
+    if ("type" in routes[0] && routes[0].type === "pcb_trace") {
+      // Extract vias from SimplifiedPcbTraces
+      ;(routes as SimplifiedPcbTrace[]).forEach((trace) => {
+        trace.route.forEach((segment) => {
+          if (segment.route_type === "via") {
+            const locationKey = `${segment.x},${segment.y},${segment.from_layer},${segment.to_layer}`
+            if (!viaLocations.has(locationKey)) {
+              vias.push({
+                type: "pcb_via",
+                pcb_via_id: `via_${vias.length}`,
+                x: segment.x,
+                y: segment.y,
+                from_layer: segment.from_layer as LayerName,
+                to_layer: segment.to_layer as LayerName,
+                diameter: minViaDiameter,
+                drill_diameter: minViaDiameter * 0.5,
+              })
+              viaLocations.add(locationKey)
+            }
+          }
+        })
+      })
+    } else {
+      // Extract vias from HighDensityRoutes by looking for layer changes
+      ;(routes as HighDensityRoute[]).forEach((route) => {
+        for (let i = 1; i < route.route.length; i++) {
+          const prevPoint = route.route[i - 1]
+          const currPoint = route.route[i]
+
+          // If z-coordinate changes, we have a via
+          if (
+            prevPoint.z !== currPoint.z &&
+            Math.abs(prevPoint.x - currPoint.x) < 0.01 &&
+            Math.abs(prevPoint.y - currPoint.y) < 0.01
+          ) {
+            const fromLayer = mapZToLayerName(prevPoint.z, 2)
+            const toLayer = mapZToLayerName(currPoint.z, 2)
+            const locationKey = `${currPoint.x},${currPoint.y},${fromLayer},${toLayer}`
+
+            if (!viaLocations.has(locationKey)) {
+              vias.push({
+                type: "pcb_via",
+                pcb_via_id: `via_${vias.length}`,
+                x: currPoint.x,
+                y: currPoint.y,
+                from_layer: fromLayer,
+                to_layer: toLayer,
+                diameter: minViaDiameter,
+                drill_diameter: minViaDiameter * 0.5,
+              })
+              viaLocations.add(locationKey)
+            }
+          }
+        }
+      })
+    }
+  }
+
+  return vias
+}
+
+/**
  * Convert the autorouter output to circuit-json format
  * @param srjWithPointPairs The SimpleRouteJson created by the NetToPointPairsSolver
  * @param routes The SimplifiedPcbTraces or HighDensityRoutes to convert
  * @param minTraceWidth Default width for traces if not specified
+ * @param minViaDiameter Default diameter for vias if not specified
  */
 export function convertToCircuitJson(
   srjWithPointPairs: SimpleRouteJson,
   routes: SimplifiedPcbTrace[] | HighDensityRoute[],
   minTraceWidth = 0.1,
+  minViaDiameter = 0.6,
 ): AnyCircuitElement[] {
   // Start with empty circuit JSON
   const circuitJson: AnyCircuitElement[] = []
@@ -170,6 +247,9 @@ export function convertToCircuitJson(
 
   // Add PCB ports for connection points
   circuitJson.push(...createPcbPorts(srjWithPointPairs))
+
+  // Extract and add vias as independent pcb_via elements
+  circuitJson.push(...extractViasFromRoutes(routes, minViaDiameter))
 
   // Build a map of connection names to simplify lookups
   const connectionMap = new Map<string, string>()
