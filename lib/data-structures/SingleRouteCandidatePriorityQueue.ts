@@ -77,6 +77,13 @@ export class SingleRouteCandidatePriorityQueue {
     return item
   }
 
+  peek(): Node | null {
+    if (this.heap.length === 0) {
+      return null
+    }
+    return this.heap[0]
+  }
+
   enqueue(item: Node) {
     this.heap.push(item)
     this.heapifyUp()

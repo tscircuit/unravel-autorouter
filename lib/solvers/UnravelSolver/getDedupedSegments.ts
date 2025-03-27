@@ -12,13 +12,13 @@ export const getDedupedSegments = (
   assignedSegments: NodePortSegment[],
 ): SegmentWithAssignedPoints[] => {
   const dedupedSegments: SegmentWithAssignedPoints[] = []
-  type SegKey = `${number}-${number}-${number}-${number}`
+  type SegKey = `${number}-${number}-${number}-${number}-${string}`
   const dedupedSegPointMap: Map<SegKey, NodePortSegment> = new Map()
   let highestSegmentId = -1
 
   for (const seg of assignedSegments) {
-    // Check if there's another segment with the same start and end
-    const segKey: SegKey = `${seg.start.x}-${seg.start.y}-${seg.end.x}-${seg.end.y}`
+    // Check if there's another segment with the same start and end and availableZ
+    const segKey: SegKey = `${seg.start.x}-${seg.start.y}-${seg.end.x}-${seg.end.y}-${seg.availableZ.join(",")}`
     const existingSeg = dedupedSegPointMap.get(segKey)
 
     if (!existingSeg) {

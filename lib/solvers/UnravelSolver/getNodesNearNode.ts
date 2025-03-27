@@ -9,21 +9,32 @@ export function getNodesNearNode(params: {
   const { nodeId, nodeIdToSegmentIds, segmentIdToNodeIds, hops } = params
 
   if (hops === 0) return [nodeId]
-  const segments = nodeIdToSegmentIds.get(nodeId)!
-  const nodes = new Set<CapacityMeshNodeId>()
-  for (const segmentId of segments) {
-    const adjacentNodeIds = segmentIdToNodeIds.get(segmentId)!
-    for (const adjacentNodeId of adjacentNodeIds) {
-      const ancestors = getNodesNearNode({
-        nodeId: adjacentNodeId,
-        nodeIdToSegmentIds,
-        segmentIdToNodeIds,
-        hops: hops - 1,
-      })
-      for (const ancestor of ancestors) {
-        nodes.add(ancestor)
+
+  const visitedNodes = new Set<CapacityMeshNodeId>([nodeId])
+  const exploreQueue: Array<{
+    nodeId: CapacityMeshNodeId
+    remainingHops: number
+  }> = [{ nodeId: nodeId, remainingHops: hops }]
+
+  while (exploreQueue.length > 0) {
+    const { nodeId: node, remainingHops } = exploreQueue.shift()!
+
+    if (remainingHops === 0) continue
+
+    const segments = nodeIdToSegmentIds.get(node) || []
+    for (const segmentId of segments) {
+      const adjacentNodeIds = segmentIdToNodeIds.get(segmentId) || []
+      for (const adjacentNodeId of adjacentNodeIds) {
+        if (!visitedNodes.has(adjacentNodeId)) {
+          visitedNodes.add(adjacentNodeId)
+          exploreQueue.push({
+            nodeId: adjacentNodeId,
+            remainingHops: remainingHops - 1,
+          })
+        }
       }
     }
   }
-  return Array.from(nodes)
+
+  return Array.from(visitedNodes)
 }
