@@ -135,7 +135,14 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         g: 0,
         h: 0,
         f: 0,
-        parent: null,
+        parent: {
+          ...opts.A,
+          z: opts.A.z ?? 0,
+          g: 0,
+          h: 0,
+          f: 0,
+          parent: null,
+        },
       },
     ])
   }

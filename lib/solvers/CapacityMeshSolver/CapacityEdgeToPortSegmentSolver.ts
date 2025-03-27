@@ -52,6 +52,22 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
       ...new Set(capacityPaths.flatMap((path) => path.nodeIds)),
     ]
     this.nodePortSegments = new Map()
+
+    // Verify input Z data for specific nodes
+    const cn62169 = this.nodeMap.get("cn62169")
+    const cn68544_straw7 = this.nodeMap.get("cn68544_straw7")
+
+    if (cn62169) {
+      console.log("cn62169 availableZ:", cn62169.availableZ)
+    } else {
+      console.log("cn62169 not found in nodeMap")
+    }
+
+    if (cn68544_straw7) {
+      console.log("cn68544_straw7 availableZ:", cn68544_straw7.availableZ)
+    } else {
+      console.log("cn68544_straw7 not found in nodeMap")
+    }
   }
 
   step() {
@@ -87,6 +103,20 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
         const mutuallyAvailableZ = adjNode.availableZ.filter((z) =>
           node.availableZ.includes(z),
         )
+
+        // Debug intersection for specific nodes
+        if (
+          nodeId === "cn62169" ||
+          adjNodeId === "cn62169" ||
+          nodeId === "cn68544_straw7" ||
+          adjNodeId === "cn68544_straw7"
+        ) {
+          console.log(`Debug Z intersection: ${nodeId} <-> ${adjNodeId}`)
+          console.log(`  ${nodeId} availableZ:`, node.availableZ)
+          console.log(`  ${adjNodeId} availableZ:`, adjNode.availableZ)
+          console.log(`  mutuallyAvailableZ:`, mutuallyAvailableZ)
+          console.log(`  Connection name: ${path.connectionName}`)
+        }
 
         if (mutuallyAvailableZ.length === 0) continue
 
@@ -207,27 +237,83 @@ function findOverlappingSegment(
   }
 }
 
+const EPSILON = 1e-9 // Adjust threshold as needed
+
+function coordsAreEqual(
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+): boolean {
+  return Math.abs(p1.x - p2.x) < EPSILON && Math.abs(p1.y - p2.y) < EPSILON
+}
+
+// Helper to compare availableZ arrays (order matters for equality check here)
+function availableZAreEqual(zA1: number[], zA2: number[]): boolean {
+  if (zA1.length !== zA2.length) {
+    return false
+  }
+  // Assuming they are sorted or order matters for distinction
+  for (let i = 0; i < zA1.length; i++) {
+    if (zA1[i] !== zA2[i]) {
+      return false
+    }
+  }
+  return true
+}
+
 /**
- * Given a list of segments on a node, merge segments that are overlapping
+ * Given a list of segments on a node, merge segments that are geometrically
+ * identical (same start/end points, potentially swapped) AND share the exact
+ * same availableZ list. Combines only their connection names.
  */
 function combineSegments(segments: NodePortSegment[]): NodePortSegment[] {
   const mergedSegments: NodePortSegment[] = []
-  const remainingSegments = [...segments]
+  // Create copies to avoid modifying the original array during iteration
+  // Sort availableZ consistently within each segment copy first
+  const remainingSegments = segments.map((s) => ({
+    ...s,
+    connectionNames: [...s.connectionNames],
+    availableZ: [...s.availableZ].sort((a, b) => a - b), // Ensure Z is sorted for comparison
+  }))
+
   while (remainingSegments.length > 0) {
     const segmentUnderTest = remainingSegments.pop()!
-    const overlappingMergedSegment = mergedSegments.find((segment) => {
-      return (
-        segment.start.x === segmentUnderTest.start.x &&
-        segment.start.y === segmentUnderTest.start.y &&
-        segment.end.x === segmentUnderTest.end.x &&
-        segment.end.y === segmentUnderTest.end.y
+    let foundMatch = false
+
+    for (let i = 0; i < mergedSegments.length; i++) {
+      const mergedSegment = mergedSegments[i]
+
+      // Check 1: Geometric match (allowing for start/end swap)
+      const geometryMatch =
+        (coordsAreEqual(mergedSegment.start, segmentUnderTest.start) &&
+          coordsAreEqual(mergedSegment.end, segmentUnderTest.end)) ||
+        (coordsAreEqual(mergedSegment.start, segmentUnderTest.end) &&
+          coordsAreEqual(mergedSegment.end, segmentUnderTest.start))
+
+      // Check 2: availableZ match
+      const zMatch = availableZAreEqual(
+        mergedSegment.availableZ,
+        segmentUnderTest.availableZ,
       )
-    })
-    if (overlappingMergedSegment) {
-      overlappingMergedSegment.connectionNames.push(
-        ...segmentUnderTest.connectionNames,
-      )
-    } else {
+
+      if (geometryMatch && zMatch) {
+        // --- Merge Logic ---
+        // Combine connection names (ensuring uniqueness)
+        const currentConnections = new Set(mergedSegment.connectionNames)
+        segmentUnderTest.connectionNames.forEach((cn) =>
+          currentConnections.add(cn),
+        )
+        mergedSegment.connectionNames = Array.from(currentConnections)
+
+        // DO NOT merge availableZ - they must be identical to reach here.
+
+        foundMatch = true
+        break // Found a match for segmentUnderTest, move to next remaining
+      }
+    }
+
+    if (!foundMatch) {
+      // If no suitable match was found (different geometry OR different availableZ),
+      // add the segmentUnderTest as a new distinct merged segment.
       mergedSegments.push(segmentUnderTest)
     }
   }
