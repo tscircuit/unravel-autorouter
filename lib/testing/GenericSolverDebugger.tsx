@@ -25,6 +25,8 @@ export const GenericSolverDebugger = ({
   const [forcedUpdates, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [showDeepestVisualization, setShowDeepestVisualization] =
+    useState(false)
   const [selectedSolverKey, setSelectedSolverKey] = useState<"main" | number>(
     "main",
   )
@@ -218,6 +220,12 @@ export const GenericSolverDebugger = ({
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
+      if (showDeepestVisualization && deepestActiveSubSolver) {
+        return previewMode
+          ? deepestActiveSubSolver.preview() || { points: [], lines: [] }
+          : deepestActiveSubSolver.visualize() || { points: [], lines: [] }
+      }
+
       if (previewMode) {
         return selectedSolver?.preview() || { points: [], lines: [] }
       }
@@ -226,7 +234,13 @@ export const GenericSolverDebugger = ({
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [forcedUpdates, selectedSolver, previewMode])
+  }, [
+    forcedUpdates,
+    selectedSolver,
+    previewMode,
+    showDeepestVisualization,
+    deepestActiveSubSolver,
+  ])
 
   // Generate solver options for dropdown
   const solverOptions = useMemo(() => {
@@ -341,7 +355,7 @@ export const GenericSolverDebugger = ({
             Go to Iteration
           </button>
         </div>
-        <div className="border p-2 rounded">
+        <div className="border p-2 rounded flex items-center">
           Status:{" "}
           <span
             className={`font-bold ${mainSolver.solved ? "text-green-600" : mainSolver.failed ? "text-red-600" : "text-blue-600"}`}
@@ -352,6 +366,18 @@ export const GenericSolverDebugger = ({
                 ? "Failed"
                 : "No Errors"}
           </span>
+        </div>
+        <div className="ml-2 flex items-center">
+          <input
+            type="checkbox"
+            id="showDeepestVisualization"
+            className="mr-1"
+            checked={showDeepestVisualization}
+            onChange={(e) => setShowDeepestVisualization(e.target.checked)}
+          />
+          <label htmlFor="showDeepestVisualization" className="text-sm">
+            Deep Viz
+          </label>
         </div>
         {mainSolver.activeSubSolver && (
           <div className="border p-2 rounded">

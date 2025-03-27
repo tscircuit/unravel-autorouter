@@ -95,16 +95,6 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     this.obstacleMargin = opts.obstacleMargin ?? 0.2
     this.layerCount = opts.layerCount ?? 2
     this.exploredNodes = new Set()
-    this.candidates = new SingleRouteCandidatePriorityQueue([
-      {
-        ...opts.A,
-        z: opts.A.z ?? 0,
-        g: 0,
-        h: 0,
-        f: 0,
-        parent: null,
-      },
-    ])
     this.straightLineDistance = distance(this.A, this.B)
     this.futureConnections = opts.futureConnections ?? []
     this.MAX_ITERATIONS = 5000
@@ -135,6 +125,19 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
     ) {
       this.handleSimpleCases()
     }
+
+    this.candidates = new SingleRouteCandidatePriorityQueue([
+      {
+        ...opts.A,
+        x: Math.floor(opts.A.x / this.cellStep) * this.cellStep,
+        y: Math.floor(opts.A.y / this.cellStep) * this.cellStep,
+        z: opts.A.z ?? 0,
+        g: 0,
+        h: 0,
+        f: 0,
+        parent: null,
+      },
+    ])
   }
 
   handleSimpleCases() {
@@ -543,6 +546,21 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         width: this.cellStep * 0.9,
         height: this.cellStep * 0.9,
         label: `Explored (z=${z})`,
+      })
+    }
+
+    // Visualize the next node to be explored
+    if (this.candidates.peek()) {
+      const nextNode = this.candidates.peek()!
+      graphics.rects!.push({
+        center: {
+          x: nextNode.x + (nextNode.z * this.cellStep) / 20,
+          y: nextNode.y + (nextNode.z * this.cellStep) / 20,
+        },
+        fill: "rgba(0, 255, 0, 0.8)",
+        width: this.cellStep * 0.9,
+        height: this.cellStep * 0.9,
+        label: `Next (z=${nextNode.z})`,
       })
     }
 
