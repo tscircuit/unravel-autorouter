@@ -20,7 +20,11 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
           x: point.x,
           y: point.y,
           color: colorMap[connection.name]!,
-          layer: mapZToLayerName(point.z, layerCount),
+          layer:
+            point.layer ??
+            ("z" in point
+              ? mapZToLayerName(point.z as number, layerCount)
+              : "top"),
           label: `${connection.name} (${point.layer})`,
         })
       }
