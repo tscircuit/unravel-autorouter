@@ -173,6 +173,16 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
       }
     }
 
+    if ("filteredObstaclePathSegments" in this) {
+      const filteredObstaclePathSegments = this
+        .filteredObstaclePathSegments as Array<[Point, Point]>
+      for (const [start, end] of filteredObstaclePathSegments) {
+        graphics.lines.push({
+          points: [start, end],
+        })
+      }
+    }
+
     return graphics
   }
 }

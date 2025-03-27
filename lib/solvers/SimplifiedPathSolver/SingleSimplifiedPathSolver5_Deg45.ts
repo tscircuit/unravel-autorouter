@@ -126,6 +126,7 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
         ) {
           return []
         }
+
         const route = hdRoute.route
         const segments: Array<[Point, Point]> = []
         for (let i = 0; i < route.length - 1; i++) {
