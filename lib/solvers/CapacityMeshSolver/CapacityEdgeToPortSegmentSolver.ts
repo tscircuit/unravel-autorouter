@@ -118,27 +118,32 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
       const node = this.nodeMap.get(nodeId)!
       segments.forEach((segment) => {
         const isVertical = segment.start.x === segment.end.x
-        const THICKNESS = 0.1 / segment.connectionNames.length
+        const THICKNESS = 0.05
         for (let i = 0; i < segment.connectionNames.length; i++) {
-          const offsetAmount =
-            (i / (segment.connectionNames.length - 1 + 0.000001) - 0.5) *
-            THICKNESS
           const offset = {
-            x: isVertical ? offsetAmount : 0,
-            y: isVertical ? 0 : offsetAmount,
+            x: 0.05 * Math.max(...segment.availableZ),
+            y: 0.05 * Math.max(...segment.availableZ),
           }
           const trueSegmentCenter = {
             x: (segment.start.x + segment.end.x) / 2,
             y: (segment.start.y + segment.end.y) / 2,
           }
           const segmentCenter = {
-            x: (trueSegmentCenter.x * 6 + node.center.x) / 7 + offset.x,
-            y: (trueSegmentCenter.y * 6 + node.center.y) / 7 + offset.y,
+            x: trueSegmentCenter.x + offset.x,
+            y: trueSegmentCenter.y + offset.y,
+          }
+          if (offset.x > 0) {
+            // small dashed line to show the true center
+            graphics.lines!.push({
+              points: [trueSegmentCenter, segmentCenter],
+              strokeColor: "rgba(0, 0, 0, 0.25)",
+              strokeDash: "5 5",
+            })
           }
           graphics.points!.push({
             x: segmentCenter.x,
             y: segmentCenter.y,
-            label: `${nodeId}: ${segment.connectionNames.join(", ")}\navailableZ: ${segment.availableZ.join(",")}`,
+            label: `${nodeId}: ${segment.connectionNames.join(", ")}\navailableZ: ${segment.availableZ.join(",")}\nnodePortSegmentId: ${segment.nodePortSegmentId!}`,
           })
           graphics.lines!.push({
             points: [segment.start, segment.end],
@@ -146,23 +151,6 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
               this.colorMap[segment.connectionNames[i]],
               0.6,
             ),
-          })
-          graphics.rects!.push({
-            center: {
-              x: (segmentCenter.x * 6 + node.center.x) / 7,
-              y: (segmentCenter.y * 6 + node.center.y) / 7,
-            },
-            width: isVertical
-              ? THICKNESS
-              : Math.abs(segment.end.x - segment.start.x),
-            height: isVertical
-              ? Math.abs(segment.end.y - segment.start.y)
-              : THICKNESS,
-            fill: safeTransparentize(
-              this.colorMap[segment.connectionNames[i]],
-              0.6,
-            ),
-            label: `${nodeId}: ${segment.connectionNames.join(", ")}\navailableZ: ${segment.availableZ.join(",")}`,
           })
         }
       })
