@@ -52,22 +52,6 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
       ...new Set(capacityPaths.flatMap((path) => path.nodeIds)),
     ]
     this.nodePortSegments = new Map()
-
-    // Verify input Z data for specific nodes
-    const cn62169 = this.nodeMap.get("cn62169")
-    const cn68544_straw7 = this.nodeMap.get("cn68544_straw7")
-
-    if (cn62169) {
-      console.log("cn62169 availableZ:", cn62169.availableZ)
-    } else {
-      console.log("cn62169 not found in nodeMap")
-    }
-
-    if (cn68544_straw7) {
-      console.log("cn68544_straw7 availableZ:", cn68544_straw7.availableZ)
-    } else {
-      console.log("cn68544_straw7 not found in nodeMap")
-    }
   }
 
   step() {
@@ -103,20 +87,6 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
         const mutuallyAvailableZ = adjNode.availableZ.filter((z) =>
           node.availableZ.includes(z),
         )
-
-        // Debug intersection for specific nodes
-        if (
-          nodeId === "cn62169" ||
-          adjNodeId === "cn62169" ||
-          nodeId === "cn68544_straw7" ||
-          adjNodeId === "cn68544_straw7"
-        ) {
-          console.log(`Debug Z intersection: ${nodeId} <-> ${adjNodeId}`)
-          console.log(`  ${nodeId} availableZ:`, node.availableZ)
-          console.log(`  ${adjNodeId} availableZ:`, adjNode.availableZ)
-          console.log(`  mutuallyAvailableZ:`, mutuallyAvailableZ)
-          console.log(`  Connection name: ${path.connectionName}`)
-        }
 
         if (mutuallyAvailableZ.length === 0) continue
 
