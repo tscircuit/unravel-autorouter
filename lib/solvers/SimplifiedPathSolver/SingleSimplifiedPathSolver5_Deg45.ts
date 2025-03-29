@@ -491,40 +491,89 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
     }
 
     // If there's a layer change, handle it
+    // Inside the _step method, within the layer change handling block:
     if (layerChangeBtwHeadAndTail && layerChangeAtDistance > 0) {
-      const pointBeforeChange = this.getPointAtDistance(layerChangeAtDistance)
-
-      if (this.lastValidPath) {
-        this.addPathToResult(this.lastValidPath)
-        // do we need to add the pointBeforeChange here?
-        this.lastValidPath = null
-      }
-
+      // Get the point *after* the layer change from the original route.
+      // This point's XY coordinates define the via location.
       const indexAfterLayerChange =
         this.getNearestIndexForDistance(layerChangeAtDistance) + 1
       const pointAfterChange = this.inputRoute.route[indexAfterLayerChange]
+      const viaLocation = { x: pointAfterChange.x, y: pointAfterChange.y }
 
-      // Add a via at the layer change point
-      this.newVias.push({
-        x: pointAfterChange.x,
-        y: pointAfterChange.y,
+      // 1. Add the last valid path found *before* the layer change.
+      if (this.lastValidPath) {
+        this.addPathToResult(this.lastValidPath)
+        this.lastValidPath = null // Clear it after adding
+      }
+
+      // 2. Ensure the route connects *exactly* to the via location on the *previous* layer.
+      const lastPointInNewRoute = this.newRoute[this.newRoute.length - 1]
+      if (
+        lastPointInNewRoute.x !== viaLocation.x ||
+        lastPointInNewRoute.y !== viaLocation.y
+      ) {
+        // Add a point explicitly connecting to the via XY on the layer we are *leaving*.
+        this.newRoute.push({
+          x: viaLocation.x,
+          y: viaLocation.y,
+          z: lastPointInNewRoute.z, // Use the Z of the layer we are leaving
+        })
+      }
+      // If the last point was already at the via location, its Z is correct, so we don't need an else.
+
+      // 3. Add the via itself.
+      this.newVias.push(viaLocation)
+
+      // 4. Add the point *after* the layer change, starting the segment on the *new* layer.
+      // Ensure this point also uses the precise via location and the *new* Z coordinate.
+      this.newRoute.push({
+        x: viaLocation.x,
+        y: viaLocation.y,
+        z: pointAfterChange.z, // Use the Z of the layer we are entering
       })
 
-      // Add the point after change
-      this.newRoute.push(pointAfterChange)
+      // 5. Reset state for the next segment.
       this.currentStepSize = this.maxStepSize
 
-      if (this.pathSegments[indexAfterLayerChange]) {
-        // Update tail to the layer change point
+      // Update tail to the start of the segment *after* the layer change point
+      const segmentIndexAfterChange = this.pathSegments.findIndex(
+        (seg) => seg.start === pointAfterChange,
+      )
+
+      if (segmentIndexAfterChange !== -1) {
         this.tailDistanceAlongPath =
-          this.pathSegments[indexAfterLayerChange].startDistance
-        this.headDistanceAlongPath = this.tailDistanceAlongPath
+          this.pathSegments[segmentIndexAfterChange].startDistance
+        this.headDistanceAlongPath = this.tailDistanceAlongPath // Reset head to tail
+        this.lastValidPath = null // Ensure lastValidPath is clear
+        this.lastValidPathHeadDistance = this.tailDistanceAlongPath
+      } else if (indexAfterLayerChange < this.inputRoute.route.length) {
+        // Fallback if the exact segment wasn't found but index is valid
+        // This might happen due to floating point comparisons if getPointAtDistance was used previously
+        console.warn(
+          "Fallback used for tailDistanceAlongPath after layer change",
+        )
+        const segment = this.pathSegments.find(
+          (seg) => seg.start === this.inputRoute.route[indexAfterLayerChange],
+        )
+        if (segment) {
+          this.tailDistanceAlongPath = segment.startDistance
+          this.headDistanceAlongPath = this.tailDistanceAlongPath
+          this.lastValidPath = null
+          this.lastValidPathHeadDistance = this.tailDistanceAlongPath
+        } else {
+          console.error(
+            "Could not find segment start after layer change, path might be incomplete.",
+          )
+          this.solved = true // Prevent infinite loop
+        }
       } else {
-        console.error("Creating via at end, this is probably not right")
+        // Layer change occurred at the very last point/segment.
+        console.warn("Layer change occurred at the end of the path.")
+        // The last point on the new layer is already added. We are done.
         this.solved = true
-        return
       }
-      return
+
+      return // End the step after handling the layer change
     }
 
     // Try to find a valid 45-degree path from tail to head
