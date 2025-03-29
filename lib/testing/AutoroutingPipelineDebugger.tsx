@@ -833,6 +833,26 @@ export const AutoroutingPipelineDebugger = ({
           Download Active Sub Solver Input (
           {deepestActiveSubSolver?.constructor?.name})
         </button>
+        <button
+          onClick={() => {
+            const circuitJson = convertToCircuitJson(
+              solver.srjWithPointPairs!,
+              solver.getOutputSimplifiedPcbTraces(),
+              solver.srj.minTraceWidth,
+            )
+            const blob = new Blob([JSON.stringify(circuitJson, null, 2)], {
+              type: "application/json",
+            })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = "circuit.json"
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
+        >
+          Download Circuit Json
+        </button>
       </div>
     </div>
   )
