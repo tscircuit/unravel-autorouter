@@ -8,9 +8,7 @@
   "obstacles": [
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 2.5,
         "y": 0
@@ -31,9 +29,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": 3.5,
         "y": 0
@@ -50,9 +46,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -3.5,
         "y": 0
@@ -73,9 +67,7 @@
     },
     {
       "type": "rect",
-      "layers": [
-        "top"
-      ],
+      "layers": ["top"],
       "center": {
         "x": -2.5,
         "y": 0
