@@ -48,10 +48,6 @@ function convertHdRouteToCircuitJson(
   connectionName: string,
   width = 0.1,
 ): PcbTrace {
-  // Try to identify port connections at start and end points
-  const firstPoint = hdRoute.route[0]
-  const lastPoint = hdRoute.route[hdRoute.route.length - 1]
-
   return {
     type: "pcb_trace",
     pcb_trace_id: id,
@@ -175,12 +171,12 @@ function extractViasFromRoutes(
               vias.push({
                 type: "pcb_via",
                 pcb_via_id: `via_${vias.length}`,
+                pcb_trace_id: trace.pcb_trace_id,
                 x: segment.x,
                 y: segment.y,
-                from_layer: segment.from_layer as LayerName,
-                to_layer: segment.to_layer as LayerName,
-                diameter: minViaDiameter,
-                drill_diameter: minViaDiameter * 0.5,
+                outer_diameter: minViaDiameter,
+                hole_diameter: minViaDiameter * 0.5,
+                layers: [segment.from_layer, segment.to_layer] as LayerName[],
               })
               viaLocations.add(locationKey)
             }
@@ -210,10 +206,9 @@ function extractViasFromRoutes(
                 pcb_via_id: `via_${vias.length}`,
                 x: currPoint.x,
                 y: currPoint.y,
-                from_layer: fromLayer,
-                to_layer: toLayer,
-                diameter: minViaDiameter,
-                drill_diameter: minViaDiameter * 0.5,
+                outer_diameter: minViaDiameter,
+                hole_diameter: minViaDiameter * 0.5,
+                layers: [fromLayer, toLayer] as LayerName[],
               })
               viaLocations.add(locationKey)
             }

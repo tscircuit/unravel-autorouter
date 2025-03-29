@@ -166,10 +166,14 @@ export class SingleSimplifiedPathSolver5 extends SingleSimplifiedPathSolver {
       const vias = hdRoute.vias
       const filteredVias: Array<{ x: number; y: number; diameter: number }> = []
       for (const via of vias) {
-        const minX = via.x - hdRoute.viaDiameter / 2
-        const maxX = via.x + hdRoute.viaDiameter / 2
-        const minY = via.y - hdRoute.viaDiameter / 2
-        const maxY = via.y + hdRoute.viaDiameter / 2
+        const margin =
+          this.OBSTACLE_MARGIN +
+          this.TRACE_THICKNESS / 2 +
+          hdRoute.viaDiameter / 2
+        const minX = via.x - margin
+        const maxX = via.x + margin
+        const minY = via.y - margin
+        const maxY = via.y + margin
 
         if (
           minX <= bounds.maxX &&
