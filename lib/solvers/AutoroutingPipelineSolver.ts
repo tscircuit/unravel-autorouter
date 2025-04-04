@@ -43,6 +43,7 @@ import {
   HighDensityRoute,
 } from "lib/types/high-density-types"
 import { CapacityMeshEdgeSolver2_NodeTreeOptimization } from "./CapacityMeshSolver/CapacityMeshEdgeSolver2_NodeTreeOptimization"
+import { UselessViaRemovalSolver } from "./UselessViaRemovalSolver/UselessViaRemovalSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -95,6 +96,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   singleLayerNodeMerger?: SingleLayerNodeMergerSolver
   strawSolver?: StrawSolver
   multiSimplifiedPathSolver?: MultiSimplifiedPathSolver
+  uselessViaRemovalSolver?: UselessViaRemovalSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -245,6 +247,24 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         connMap: cms.connMap,
       },
     ]),
+    definePipelineStep(
+      "uselessViaRemovalSolver",
+      UselessViaRemovalSolver,
+      (cms) => [
+        {
+          routes: cms.highDensityRouteSolver?.routes ?? [],
+          colorMap: cms.colorMap,
+        },
+      ],
+      {
+        onSolved: (cms) => {
+          if (cms.uselessViaRemovalSolver) {
+            cms.highDensityRouteSolver!.routes =
+              cms.uselessViaRemovalSolver.getOptimizedRoutes()
+          }
+        },
+      },
+    ),
     definePipelineStep(
       "highDensityStitchSolver",
       MultipleHighDensityRouteStitchSolver,
