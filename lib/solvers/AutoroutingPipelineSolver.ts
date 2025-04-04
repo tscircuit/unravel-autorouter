@@ -276,7 +276,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       (cms) => [
         {
           unsimplifiedHdRoutes:
-            cms.uselessViaRemovalSolver?.getHdRoutesWithoutUselessVias() ||
+            cms.uselessViaRemovalSolver?.getOptimizedHdRoutes() ||
             cms.highDensityStitchSolver!.mergedHdRoutes,
           obstacles: cms.srj.obstacles,
           connMap: cms.connMap,

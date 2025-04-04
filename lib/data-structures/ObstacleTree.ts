@@ -2,7 +2,7 @@ import { Obstacle } from "lib/types"
 
 export type BucketCoordinate = `${number}x${number}`
 
-export class ObstacleTree {
+export class ObstacleSpatialHashIndex {
   buckets: Map<BucketCoordinate, [Obstacle, number][]>
   CELL_SIZE = 0.4
 
@@ -59,3 +59,5 @@ export class ObstacleTree {
     return obstacles
   }
 }
+
+export const ObstacleTree = ObstacleSpatialHashIndex
