@@ -118,35 +118,39 @@ export class CapacityEdgeToPortSegmentSolver extends BaseSolver {
       const node = this.nodeMap.get(nodeId)!
       segments.forEach((segment) => {
         const isVertical = segment.start.x === segment.end.x
-        const THICKNESS = 0.1 / segment.connectionNames.length
+        const THICKNESS = 0.05
         for (let i = 0; i < segment.connectionNames.length; i++) {
-          const offsetAmount =
-            (i / (segment.connectionNames.length - 1 + 0.000001) - 0.5) *
-            THICKNESS
           const offset = {
-            x: isVertical ? offsetAmount : 0,
-            y: isVertical ? 0 : offsetAmount,
+            x: 0.05 * Math.max(...segment.availableZ),
+            y: 0.05 * Math.max(...segment.availableZ),
           }
           const trueSegmentCenter = {
-            x: (segment.start.x + segment.end.x) / 2 + offset.x,
-            y: (segment.start.y + segment.end.y) / 2 + offset.y,
+            x: (segment.start.x + segment.end.x) / 2,
+            y: (segment.start.y + segment.end.y) / 2,
           }
-          graphics.rects!.push({
-            center: {
-              x: (trueSegmentCenter.x * 6 + node.center.x) / 7,
-              y: (trueSegmentCenter.y * 6 + node.center.y) / 7,
-            },
-            width: isVertical
-              ? THICKNESS
-              : Math.abs(segment.end.x - segment.start.x),
-            height: isVertical
-              ? Math.abs(segment.end.y - segment.start.y)
-              : THICKNESS,
-            fill: safeTransparentize(
+          const segmentCenter = {
+            x: trueSegmentCenter.x + offset.x,
+            y: trueSegmentCenter.y + offset.y,
+          }
+          if (offset.x > 0) {
+            // small dashed line to show the true center
+            graphics.lines!.push({
+              points: [trueSegmentCenter, segmentCenter],
+              strokeColor: "rgba(0, 0, 0, 0.25)",
+              strokeDash: "5 5",
+            })
+          }
+          graphics.points!.push({
+            x: segmentCenter.x,
+            y: segmentCenter.y,
+            label: `${nodeId}: ${segment.connectionNames.join(", ")}\navailableZ: ${segment.availableZ.join(",")}\nnodePortSegmentId: ${segment.nodePortSegmentId!}`,
+          })
+          graphics.lines!.push({
+            points: [segment.start, segment.end],
+            strokeColor: safeTransparentize(
               this.colorMap[segment.connectionNames[i]],
               0.6,
             ),
-            label: `${nodeId}: ${segment.connectionNames.join(", ")}\navailableZ: ${segment.availableZ.join(",")}`,
           })
         }
       })
@@ -203,27 +207,83 @@ function findOverlappingSegment(
   }
 }
 
+const EPSILON = 1e-9 // Adjust threshold as needed
+
+function coordsAreEqual(
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+): boolean {
+  return Math.abs(p1.x - p2.x) < EPSILON && Math.abs(p1.y - p2.y) < EPSILON
+}
+
+// Helper to compare availableZ arrays (order matters for equality check here)
+function availableZAreEqual(zA1: number[], zA2: number[]): boolean {
+  if (zA1.length !== zA2.length) {
+    return false
+  }
+  // Assuming they are sorted or order matters for distinction
+  for (let i = 0; i < zA1.length; i++) {
+    if (zA1[i] !== zA2[i]) {
+      return false
+    }
+  }
+  return true
+}
+
 /**
- * Given a list of segments on a node, merge segments that are overlapping
+ * Given a list of segments on a node, merge segments that are geometrically
+ * identical (same start/end points, potentially swapped) AND share the exact
+ * same availableZ list. Combines only their connection names.
  */
 function combineSegments(segments: NodePortSegment[]): NodePortSegment[] {
   const mergedSegments: NodePortSegment[] = []
-  const remainingSegments = [...segments]
+  // Create copies to avoid modifying the original array during iteration
+  // Sort availableZ consistently within each segment copy first
+  const remainingSegments = segments.map((s) => ({
+    ...s,
+    connectionNames: [...s.connectionNames],
+    availableZ: [...s.availableZ].sort((a, b) => a - b), // Ensure Z is sorted for comparison
+  }))
+
   while (remainingSegments.length > 0) {
     const segmentUnderTest = remainingSegments.pop()!
-    const overlappingMergedSegment = mergedSegments.find((segment) => {
-      return (
-        segment.start.x === segmentUnderTest.start.x &&
-        segment.start.y === segmentUnderTest.start.y &&
-        segment.end.x === segmentUnderTest.end.x &&
-        segment.end.y === segmentUnderTest.end.y
+    let foundMatch = false
+
+    for (let i = 0; i < mergedSegments.length; i++) {
+      const mergedSegment = mergedSegments[i]
+
+      // Check 1: Geometric match (allowing for start/end swap)
+      const geometryMatch =
+        (coordsAreEqual(mergedSegment.start, segmentUnderTest.start) &&
+          coordsAreEqual(mergedSegment.end, segmentUnderTest.end)) ||
+        (coordsAreEqual(mergedSegment.start, segmentUnderTest.end) &&
+          coordsAreEqual(mergedSegment.end, segmentUnderTest.start))
+
+      // Check 2: availableZ match
+      const zMatch = availableZAreEqual(
+        mergedSegment.availableZ,
+        segmentUnderTest.availableZ,
       )
-    })
-    if (overlappingMergedSegment) {
-      overlappingMergedSegment.connectionNames.push(
-        ...segmentUnderTest.connectionNames,
-      )
-    } else {
+
+      if (geometryMatch && zMatch) {
+        // --- Merge Logic ---
+        // Combine connection names (ensuring uniqueness)
+        const currentConnections = new Set(mergedSegment.connectionNames)
+        segmentUnderTest.connectionNames.forEach((cn) =>
+          currentConnections.add(cn),
+        )
+        mergedSegment.connectionNames = Array.from(currentConnections)
+
+        // DO NOT merge availableZ - they must be identical to reach here.
+
+        foundMatch = true
+        break // Found a match for segmentUnderTest, move to next remaining
+      }
+    }
+
+    if (!foundMatch) {
+      // If no suitable match was found (different geometry OR different availableZ),
+      // add the segmentUnderTest as a new distinct merged segment.
       mergedSegments.push(segmentUnderTest)
     }
   }

@@ -181,3 +181,5 @@ dist
 repomix-output.txt
 *.diff.png
 cosmos-export
+.yalc
+yalc.lock

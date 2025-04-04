@@ -173,25 +173,58 @@ export class CapacitySegmentToPointSolver extends BaseSolver {
    * Return a GraphicsObject that visualizes the segments with assigned points.
    */
   visualize(): GraphicsObject {
-    const graphics = {
-      points: this.solvedSegments.flatMap((seg) =>
-        seg.assignedPoints.map((ap) => ({
-          x: ap.point.x,
-          y: ap.point.y,
-          label: [
-            `${seg.capacityMeshNodeId}-${ap.connectionName}`,
-            `z: ${seg.availableZ.join(",")}`,
-          ].join("\n"),
-          color: this.colorMap[ap.connectionName],
-          step: 4,
-        })),
-      ),
+    const graphics: Required<GraphicsObject> = {
+      points: [],
       lines: this.solvedSegments.map((seg) => ({
         points: [seg.start, seg.end],
         step: 4,
       })),
       rects: [],
       circles: [],
+      coordinateSystem: "cartesian",
+      title: "Capacity Segment to Point Solver",
+    }
+
+    // Add points for each assigned point on solved segments
+    for (let i = 0; i < this.solvedSegments.length; i++) {
+      const seg = this.solvedSegments[i]
+      for (let j = 0; j < seg.assignedPoints.length; j++) {
+        const ap = seg.assignedPoints[j]
+
+        // Calculate the true position and the offset position (if z != 0)
+        const truePoint = {
+          x: ap.point.x,
+          y: ap.point.y,
+        }
+
+        const offsetPoint = {
+          x: ap.point.x + ap.point.z * 0.05,
+          y: ap.point.y + ap.point.z * 0.05,
+        }
+
+        // Add a dashed line to show the true position if there's an offset
+        if (ap.point.z !== 0) {
+          graphics.lines.push({
+            points: [truePoint, offsetPoint],
+            strokeColor: "rgba(0, 0, 0, 0.25)",
+            strokeDash: "5 5",
+            step: 4,
+          })
+        }
+
+        // Add the point with label
+        graphics.points.push({
+          x: offsetPoint.x,
+          y: offsetPoint.y,
+          label: [
+            `${seg.capacityMeshNodeId}-${ap.connectionName}`,
+            `z: ${seg.availableZ.join(",")}`,
+            `nodePortSegmentId: ${seg.nodePortSegmentId}`,
+          ].join("\n"),
+          color: this.colorMap[ap.connectionName],
+          step: 4,
+        })
+      }
     }
 
     // Add a dashed line connecting the assignment points with the same

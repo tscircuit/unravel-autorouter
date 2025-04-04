@@ -16,6 +16,7 @@ import { findClosestPointToABCWithinBounds } from "lib/utils/findClosestPointToA
 import { calculatePerpendicularPointsAtDistance } from "lib/utils/calculatePointsAtDistance"
 import { snapToNearestBound } from "lib/utils/snapToNearestBound"
 import { findPointToGetAroundCircle } from "lib/utils/findPointToGetAroundCircle"
+import { calculateTraversalPercentages } from "./calculateSideTraversal"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
@@ -161,17 +162,51 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const marginFromBorderWithoutTrace =
       this.obstacleMargin + this.viaDiameter / 2
 
+    const A = flatRoute.A
+    const B = ntrP1
+    const C = flatRoute.B
+
+    const sideTraversal = calculateTraversalPercentages(A, B, C, this.bounds)
+
+    const viaBounds = {
+      minX:
+        this.bounds.minX +
+        (sideTraversal.left > 0.5
+          ? marginFromBorderWithTrace
+          : marginFromBorderWithoutTrace),
+      minY:
+        this.bounds.minY +
+        (sideTraversal.bottom > 0.5
+          ? marginFromBorderWithTrace
+          : marginFromBorderWithoutTrace),
+      maxX:
+        this.bounds.maxX -
+        (sideTraversal.right > 0.5
+          ? marginFromBorderWithTrace
+          : marginFromBorderWithoutTrace),
+      maxY:
+        this.bounds.maxY -
+        (sideTraversal.top > 0.5
+          ? marginFromBorderWithTrace
+          : marginFromBorderWithoutTrace),
+    }
+
+    if (viaBounds.maxY < viaBounds.minY) {
+      viaBounds.minY = (viaBounds.minY + viaBounds.maxY) / 2
+      viaBounds.maxY = viaBounds.minY
+    }
+
+    if (viaBounds.maxX < viaBounds.minX) {
+      viaBounds.minX = (viaBounds.minX + viaBounds.maxX) / 2
+      viaBounds.maxX = viaBounds.minX
+    }
+
     return findClosestPointToABCWithinBounds(
-      flatRoute.A,
-      flatRoute.B,
-      ntrP1,
+      A,
+      B,
+      C,
       marginFromBorderWithTrace,
-      {
-        minX: this.bounds.minX + marginFromBorderWithoutTrace,
-        minY: this.bounds.minY + marginFromBorderWithoutTrace,
-        maxX: this.bounds.maxX - marginFromBorderWithTrace,
-        maxY: this.bounds.maxY - marginFromBorderWithTrace,
-      },
+      viaBounds,
     )
   }
   /**

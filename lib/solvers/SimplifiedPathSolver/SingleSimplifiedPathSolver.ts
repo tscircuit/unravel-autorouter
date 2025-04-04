@@ -43,6 +43,16 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
     this.newVias = []
   }
 
+  getConstructorParams() {
+    return {
+      inputRoute: this.inputRoute,
+      otherHdRoutes: this.otherHdRoutes,
+      obstacles: this.obstacles,
+      connMap: this.connMap.netMap,
+      colorMap: this.colorMap,
+    }
+  }
+
   get simplifiedRoute(): HighDensityIntraNodeRoute {
     return {
       connectionName: this.inputRoute.connectionName,
@@ -159,6 +169,16 @@ export class SingleSimplifiedPathSolver extends BaseSolver {
                 ? "rgba(128, 0, 128, 0.5)" // inner layer (darker purple)
                 : "rgba(0, 0, 255, 0.5)", // bottom layer (blue)
           layer: `z${route.route[i].z.toString()}`,
+        })
+      }
+    }
+
+    if ("filteredObstaclePathSegments" in this) {
+      const filteredObstaclePathSegments = this
+        .filteredObstaclePathSegments as Array<[Point, Point]>
+      for (const [start, end] of filteredObstaclePathSegments) {
+        graphics.lines.push({
+          points: [start, end],
         })
       }
     }

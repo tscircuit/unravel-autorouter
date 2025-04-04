@@ -7,10 +7,13 @@ import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
 import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
-import { GraphicsObject, Rect } from "graphics-debug"
+import { GraphicsObject, Line, Point, Rect } from "graphics-debug"
 import { limitVisualizations } from "lib/utils/limitVisualizations"
 import { getNodesNearNode } from "lib/solvers/UnravelSolver/getNodesNearNode"
 import { filterUnravelMultiSectionInput } from "./utils/filterUnravelMultiSectionInput"
+import { convertToCircuitJson } from "./utils/convertToCircuitJson"
+import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
+import { addVisualizationToLastStep } from "lib/utils/addVisualizationToLastStep"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -43,6 +46,8 @@ export const AutoroutingPipelineDebugger = ({
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
   )
+  const [drcErrors, setDrcErrors] = useState<GraphicsObject | null>(null)
+  const [drcErrorCount, setDrcErrorCount] = useState<number>(0)
 
   const speedLevels = [1, 2, 5, 10, 100, 500]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x", "500x"]
@@ -50,6 +55,8 @@ export const AutoroutingPipelineDebugger = ({
   // Reset solver
   const resetSolver = () => {
     setSolver(createSolver(srj))
+    setDrcErrors(null) // Clear DRC errors when resetting
+    setDrcErrorCount(0)
   }
 
   // Animation effect
@@ -174,6 +181,155 @@ export const AutoroutingPipelineDebugger = ({
     setForceUpdate((prev) => prev + 1)
   }
 
+  // Run DRC checks on the current routes
+  const handleRunDrcChecks = () => {
+    try {
+      // Get the SRJ with point pairs from the NetToPointPairsSolver
+      const srjWithPointPairs =
+        solver.netToPointPairsSolver?.getNewSimpleRouteJson() ||
+        solver.srjWithPointPairs
+
+      if (!srjWithPointPairs) {
+        alert(
+          "No connection information available. Wait until the NetToPointPairsSolver completes.",
+        )
+        return
+      }
+
+      let routes: any[]
+
+      // Check if we have simplified routes (output format)
+      if (
+        solver.solved &&
+        solver.multiSimplifiedPathSolver?.simplifiedHdRoutes
+      ) {
+        routes = solver.getOutputSimplifiedPcbTraces()
+      }
+      // Otherwise, use the high-density routes if available
+      else if (solver.highDensityRouteSolver?.routes.length) {
+        routes = solver.highDensityRouteSolver.routes
+      }
+      // Neither available, show error
+      else {
+        alert(
+          "No routes available yet. Complete routing first or proceed to high-density routing stage.",
+        )
+        return
+      }
+
+      // Convert to circuit-json format with both connection information and routes
+      const circuitJson = convertToCircuitJson(
+        srjWithPointPairs,
+        routes,
+        solver.srj.minTraceWidth,
+      )
+
+      // Run the DRC check for trace overlaps
+      const errors = checkEachPcbTraceNonOverlapping(circuitJson)
+
+      // Convert errors to graphics objects for visualization
+      if (errors.length > 0) {
+        const errorGraphics: GraphicsObject = {
+          circles: errors.map((error) => ({
+            center: {
+              x: error.center?.x ?? 0,
+              y: error.center?.y ?? 0,
+            },
+            radius: 0.75,
+            fill: "rgba(255, 0, 0, 0.3)",
+            layer: "drc",
+            stroke: "red",
+            strokeWidth: 0.1,
+            label: error.message,
+          })),
+          points: errors.map((error) => ({
+            x: error.center?.x ?? 0,
+            y: error.center?.y ?? 0,
+            color: "red",
+            size: 10,
+            layer: "drc",
+            label: error.message,
+          })),
+          // Cross markers at error points for better visibility
+          lines: errors.flatMap((error) => [
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) - 0.5,
+                  y: (error.center?.y ?? 0) - 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) - 0.4,
+                  y: (error.center?.y ?? 0) - 0.4,
+                },
+              ],
+              layer: "drc",
+              strokeColor: "red",
+              strokeWidth: 0.05,
+            },
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) + 0.5,
+                  y: (error.center?.y ?? 0) + 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) + 0.4,
+                  y: (error.center?.y ?? 0) + 0.4,
+                },
+              ],
+              layer: "drc",
+              strokeColor: "red",
+              strokeWidth: 0.05,
+            },
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) - 0.5,
+                  y: (error.center?.y ?? 0) + 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) - 0.4,
+                  y: (error.center?.y ?? 0) + 0.4,
+                },
+              ],
+              strokeColor: "red",
+              strokeWidth: 0.05,
+            },
+            {
+              points: [
+                {
+                  x: (error.center?.x ?? 0) + 0.5,
+                  y: (error.center?.y ?? 0) - 0.5,
+                },
+                {
+                  x: (error.center?.x ?? 0) + 0.4,
+                  y: (error.center?.y ?? 0) - 0.4,
+                },
+              ],
+              layer: "drc",
+              strokeColor: "red",
+              strokeWidth: 0.05,
+            },
+          ]),
+        }
+
+        setDrcErrors(errorGraphics)
+        setDrcErrorCount(errors.length)
+        alert(`Found ${errors.length} DRC errors. See the highlighted areas.`)
+      } else {
+        setDrcErrors(null)
+        setDrcErrorCount(0)
+        alert("No DRC errors found! All traces are properly spaced.")
+      }
+    } catch (error) {
+      console.error("DRC check error:", error)
+      alert(
+        `Error running DRC checks: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
+
   // Increase animation speed
   const increaseSpeed = () => {
     setSpeedLevel((prev) => Math.min(prev + 1, speedLevels.length - 1))
@@ -187,23 +343,36 @@ export const AutoroutingPipelineDebugger = ({
     setSpeedLevel((prev) => Math.max(prev - 1, 0))
   }
 
+  let deepestActiveSubSolver = solver.activeSubSolver
+  while (deepestActiveSubSolver?.activeSubSolver) {
+    deepestActiveSubSolver = deepestActiveSubSolver.activeSubSolver
+  }
+
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
+      let baseVisualization: GraphicsObject
       if (previewMode) {
-        return solver?.preview() || { points: [], lines: [] }
+        baseVisualization = solver?.preview() || { points: [], lines: [] }
+      } else {
+        baseVisualization = solver?.visualize() || { points: [], lines: [] }
       }
-      const ogVisualization = solver?.visualize() || { points: [], lines: [] }
-      return ogVisualization
+
+      // If we have DRC errors, combine them with the base visualization
+      if (drcErrors) {
+        return addVisualizationToLastStep(baseVisualization, drcErrors)
+      }
+
+      return baseVisualization
     } catch (error) {
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations, previewMode])
+  }, [solver, solver.iterations, previewMode, drcErrors])
 
   return (
     <div className="p-4">
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 text-xs">
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleStep}
@@ -272,14 +441,32 @@ export const AutoroutingPipelineDebugger = ({
         >
           Switch to {renderer === "canvas" ? "Vector" : "Canvas"} Renderer
         </button>
+        {drcErrors ? (
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100 bg-red-50"
+            onClick={() => {
+              setDrcErrors(null)
+              setDrcErrorCount(0)
+            }}
+          >
+            Clear DRC Errors ({drcErrorCount})
+          </button>
+        ) : (
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100 bg-blue-50"
+            onClick={handleRunDrcChecks}
+          >
+            Run DRC Checks
+          </button>
+        )}
       </div>
 
-      <div className="flex gap-4 mb-4 tabular-nums">
+      <div className="flex gap-4 mb-4 tabular-nums text-xs">
         <div className="border p-2 rounded flex items-center">
           Iterations:{" "}
           <span className="font-bold ml-1">{solver.iterations}</span>
           <button
-            className="ml-2 border rounded-md px-2 py-1 text-sm hover:bg-gray-100"
+            className="ml-2 rounded-md px-2 py-0 hover:bg-gray-100"
             onClick={handleGoToIteration}
             disabled={solver.solved || solver.failed}
             title={
@@ -616,10 +803,55 @@ export const AutoroutingPipelineDebugger = ({
           </tbody>
         </table>
       </div>
-      <div>
-        <h3 className="font-bold mt-8 mb-2">Advanced</h3>
+      <h3 className="font-bold mt-8 mb-2">Advanced</h3>
+      <div className="flex gap-2">
         <button onClick={() => setPreviewMode(!previewMode)}>
           {previewMode ? "Disable" : "Enable"} Preview Mode
+        </button>
+        <button
+          onClick={() => {
+            if (!deepestActiveSubSolver) {
+              window.alert("No active sub solver found")
+              return
+            }
+            let params: any
+            try {
+              params = deepestActiveSubSolver.getConstructorParams()
+            } catch (e: any) {
+              window.alert(`Unable to get constructor params: ${e.toString()}`)
+            }
+            const paramsJson = JSON.stringify(params, null, 2)
+            const blob = new Blob([paramsJson], { type: "application/json" })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = `${deepestActiveSubSolver.constructor.name}_input.json`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
+        >
+          Download Active Sub Solver Input (
+          {deepestActiveSubSolver?.constructor?.name})
+        </button>
+        <button
+          onClick={() => {
+            const circuitJson = convertToCircuitJson(
+              solver.srjWithPointPairs!,
+              solver.getOutputSimplifiedPcbTraces(),
+              solver.srj.minTraceWidth,
+            )
+            const blob = new Blob([JSON.stringify(circuitJson, null, 2)], {
+              type: "application/json",
+            })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = "circuit.json"
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
+        >
+          Download Circuit Json
         </button>
       </div>
     </div>

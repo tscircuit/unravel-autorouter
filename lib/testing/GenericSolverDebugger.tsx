@@ -25,6 +25,8 @@ export const GenericSolverDebugger = ({
   const [forcedUpdates, setForceUpdate] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [speedLevel, setSpeedLevel] = useState(0)
+  const [showDeepestVisualization, setShowDeepestVisualization] =
+    useState(false)
   const [selectedSolverKey, setSelectedSolverKey] = useState<"main" | number>(
     "main",
   )
@@ -210,9 +212,20 @@ export const GenericSolverDebugger = ({
     setSpeedLevel((prev) => Math.max(prev - 1, 0))
   }
 
+  let deepestActiveSubSolver = mainSolver.activeSubSolver
+  while (deepestActiveSubSolver?.activeSubSolver) {
+    deepestActiveSubSolver = deepestActiveSubSolver.activeSubSolver
+  }
+
   // Safely get visualization
   const visualization = useMemo(() => {
     try {
+      if (showDeepestVisualization && deepestActiveSubSolver) {
+        return previewMode
+          ? deepestActiveSubSolver.preview() || { points: [], lines: [] }
+          : deepestActiveSubSolver.visualize() || { points: [], lines: [] }
+      }
+
       if (previewMode) {
         return selectedSolver?.preview() || { points: [], lines: [] }
       }
@@ -221,7 +234,13 @@ export const GenericSolverDebugger = ({
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [forcedUpdates, selectedSolver, previewMode])
+  }, [
+    forcedUpdates,
+    selectedSolver,
+    previewMode,
+    showDeepestVisualization,
+    deepestActiveSubSolver,
+  ])
 
   // Generate solver options for dropdown
   const solverOptions = useMemo(() => {
@@ -336,7 +355,7 @@ export const GenericSolverDebugger = ({
             Go to Iteration
           </button>
         </div>
-        <div className="border p-2 rounded">
+        <div className="border p-2 rounded flex items-center">
           Status:{" "}
           <span
             className={`font-bold ${mainSolver.solved ? "text-green-600" : mainSolver.failed ? "text-red-600" : "text-blue-600"}`}
@@ -347,6 +366,18 @@ export const GenericSolverDebugger = ({
                 ? "Failed"
                 : "No Errors"}
           </span>
+        </div>
+        <div className="ml-2 flex items-center">
+          <input
+            type="checkbox"
+            id="showDeepestVisualization"
+            className="mr-1"
+            checked={showDeepestVisualization}
+            onChange={(e) => setShowDeepestVisualization(e.target.checked)}
+          />
+          <label htmlFor="showDeepestVisualization" className="text-sm">
+            Deep Viz
+          </label>
         </div>
         {mainSolver.activeSubSolver && (
           <div className="border p-2 rounded">
@@ -417,9 +448,48 @@ export const GenericSolverDebugger = ({
       </div>
       <div>
         <h3 className="font-bold mb-2">Advanced</h3>
-        <button onClick={() => setPreviewMode(!previewMode)}>
-          {previewMode ? "Disable" : "Enable"} Preview Mode
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setPreviewMode(!previewMode)}>
+            {previewMode ? "Disable" : "Enable"} Preview Mode
+          </button>
+          {mainSolver.activeSubSolver && (
+            <button
+              className="border rounded-md p-2 hover:bg-gray-100"
+              onClick={() => {
+                if (!deepestActiveSubSolver) {
+                  window.alert("No active sub solver found")
+                  return
+                }
+
+                let params
+                try {
+                  params = deepestActiveSubSolver.getConstructorParams()
+                } catch (e: any) {
+                  window.alert(
+                    `Unable to get constructor params: ${e.toString()}`,
+                  )
+                  return
+                }
+
+                const paramsJson = JSON.stringify(params, null, 2)
+                const blob = new Blob([paramsJson], {
+                  type: "application/json",
+                })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement("a")
+                a.download = `${deepestActiveSubSolver.constructor.name}_input.json`
+                a.href = url
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+              }}
+            >
+              Download Active Sub Solver Input (
+              {deepestActiveSubSolver?.constructor?.name})
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
