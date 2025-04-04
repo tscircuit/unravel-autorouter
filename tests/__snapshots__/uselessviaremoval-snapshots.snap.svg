@@ -1,0 +1,32 @@
+
+  <svg width="420" height="200" xmlns="http://www.w3.org/2000/svg">
+    <text x="75" y="15" font-family="Arial" font-size="12">Before Optimization</text>
+    <text x="285" y="15" font-family="Arial" font-size="12">After Optimization</text>
+    <g transform="translate(10,20)"><svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="#f0f0f0" />
+  <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#e0e0e0" stroke-width="0.5" />
+  </pattern>
+  <rect width="200" height="200" fill="url(#grid)" />
+  <path d="M 10 10 L 50 50" stroke="#ff0000" stroke-width="5" fill="none"  />
+  <path d="M 50 50 L 90 90" stroke="rgba(255,0,0,0.25)" stroke-width="5" fill="none" stroke-dasharray="10, 5" />
+  <path d="M 10 90 L 50 50" stroke="#0000ff" stroke-width="5" fill="none"  />
+  <path d="M 50 50 L 90 10" stroke="rgba(0,0,255,0.25)" stroke-width="5" fill="none" stroke-dasharray="10, 5" />
+  <circle cx="50" cy="50" r="4" fill="#ff0000" stroke="black" stroke-width="0.5" />
+  <circle cx="50" cy="50" r="4" fill="#0000ff" stroke="black" stroke-width="0.5" />
+</svg></g>
+    <g transform="translate(220,20)"><svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="#f0f0f0" />
+  <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#e0e0e0" stroke-width="0.5" />
+  </pattern>
+  <rect width="200" height="200" fill="url(#grid)" />
+  <path d="M 10 10 L 50 50" stroke="#ff0000" stroke-width="5" fill="none"  />
+  <path d="M 50 50 L 90 90" stroke="rgba(255,0,0,0.25)" stroke-width="5" fill="none" stroke-dasharray="10, 5" />
+  <path d="M 10 90 L 50 50" stroke="#0000ff" stroke-width="5" fill="none"  />
+  <path d="M 50 50 L 90 10" stroke="rgba(0,0,255,0.25)" stroke-width="5" fill="none" stroke-dasharray="10, 5" />
+  <circle cx="50" cy="50" r="4" fill="#ff0000" stroke="black" stroke-width="0.5" />
+  <circle cx="50" cy="50" r="4" fill="#0000ff" stroke="black" stroke-width="0.5" />
+</svg></g>
+  </svg>
+  
