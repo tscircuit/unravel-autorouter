@@ -5,12 +5,13 @@ import {
   HighDensityRouteSpatialIndex,
 } from "lib/data-structures/HighDensityRouteSpatialIndex"
 import { segmentToBoxMinDistance } from "@tscircuit/math-utils"
+import { GraphicsObject } from "graphics-debug"
 
 interface RouteSection {
   startIndex: number
   endIndex: number
   z: number
-  pointsInSegment: HighDensityRoute["route"]
+  points: HighDensityRoute["route"]
 }
 
 export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
@@ -48,11 +49,11 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
       startIndex: 0,
       endIndex: -1,
       z: routePoints[0].z,
-      pointsInSegment: [routePoints[0]],
+      points: [routePoints[0]],
     }
     for (let i = 1; i < routePoints.length; i++) {
       if (routePoints[i].z === currentSection.z) {
-        currentSection.pointsInSegment.push(routePoints[i])
+        currentSection.points.push(routePoints[i])
       } else {
         currentSection.endIndex = i - 1
         routeSections.push(currentSection)
@@ -60,7 +61,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
           startIndex: i,
           endIndex: -1,
           z: routePoints[i].z,
-          pointsInSegment: [routePoints[i]],
+          points: [routePoints[i]],
         }
       }
     }
@@ -99,12 +100,10 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
 
     if (this.canSectionMoveToLayer({ currentSection, targetZ })) {
       currentSection.z = targetZ
-      currentSection.pointsInSegment = currentSection.pointsInSegment.map(
-        (p) => ({
-          ...p,
-          z: targetZ,
-        }),
-      )
+      currentSection.points = currentSection.points.map((p) => ({
+        ...p,
+        z: targetZ,
+      }))
       this.currentSectionIndex += 2
       return
     }
@@ -121,9 +120,9 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
     targetZ: number
   }): boolean {
     // Evaluate if the section layer can be changed without hitting anything
-    for (let i = 0; i < currentSection.pointsInSegment.length - 1; i++) {
-      const A = { ...currentSection.pointsInSegment[i], z: targetZ }
-      const B = { ...currentSection.pointsInSegment[i + 1], z: targetZ }
+    for (let i = 0; i < currentSection.points.length - 1; i++) {
+      const A = { ...currentSection.points[i], z: targetZ }
+      const B = { ...currentSection.points[i + 1], z: targetZ }
 
       const conflictingRoutes = this.hdRouteSHI.getConflictingRoutesForSegment(
         A,
@@ -174,9 +173,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
   getOptimizedHdRoute(): HighDensityRoute {
     // TODO reconstruct the route from segments, we will need to recompute the
     // vias
-    const route = this.routeSections.flatMap(
-      (section) => section.pointsInSegment,
-    )
+    const route = this.routeSections.flatMap((section) => section.points)
     const vias: HighDensityRoute["vias"] = []
     for (let i = 0; i < route.length - 1; i++) {
       if (route[i].z !== route[i + 1].z) {
@@ -193,5 +190,33 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
       vias,
       viaDiameter: this.unsimplifiedRoute.viaDiameter,
     }
+  }
+  visualize(): GraphicsObject {
+    const graphics: Required<GraphicsObject> = {
+      circles: [],
+      lines: [],
+      points: [],
+      rects: [],
+      coordinateSystem: "cartesian",
+      title: "Single Route Useless Via Removal Solver",
+    }
+
+    // Draw the sections, draw the active section in orange
+
+    for (let i = 0; i < this.routeSections.length; i++) {
+      const section = this.routeSections[i]
+      graphics.lines.push({
+        points: section.points,
+        strokeWidth: this.TRACE_THICKNESS,
+        strokeColor:
+          i === this.currentSectionIndex
+            ? "orange"
+            : section.z === 0
+              ? "red"
+              : "blue",
+      })
+    }
+
+    return graphics
   }
 }

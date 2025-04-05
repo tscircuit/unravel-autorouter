@@ -114,6 +114,12 @@ export class UselessViaRemovalSolver extends BaseSolver {
       }
     }
 
+    if (this.activeSubSolver) {
+      visualization.lines.push(
+        ...(this.activeSubSolver.visualize().lines ?? []),
+      )
+    }
+
     return visualization
   }
 }
