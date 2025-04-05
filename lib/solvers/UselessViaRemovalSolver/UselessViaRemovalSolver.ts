@@ -6,6 +6,7 @@ import { Obstacle } from "lib/types"
 import { GraphicsObject } from "graphics-debug"
 import { mapZToLayerName } from "lib/utils/mapZToLayerName"
 import { HighDensityRouteSpatialIndex } from "lib/data-structures/HighDensityRouteSpatialIndex"
+import { SingleRouteUselessViaRemovalSolver } from "./SingleRouteUselessViaRemovalSolver"
 
 export interface UselessViaRemovalSolverInput {
   unsimplifiedHdRoutes: HighDensityRoute[]
@@ -18,6 +19,8 @@ export class UselessViaRemovalSolver extends BaseSolver {
   unsimplifiedHdRoutes: HighDensityRoute[]
   optimizedHdRoutes: HighDensityRoute[]
   unprocessedRoutes: HighDensityRoute[]
+
+  activeSubSolver?: SingleRouteUselessViaRemovalSolver | null | undefined = null
 
   obstacleSHI: ObstacleSpatialHashIndex | null = null
   hdRouteSHI: HighDensityRouteSpatialIndex | null = null
@@ -35,7 +38,29 @@ export class UselessViaRemovalSolver extends BaseSolver {
   }
 
   _step() {
-    // ...
+    if (this.activeSubSolver) {
+      this.activeSubSolver.step()
+      if (this.activeSubSolver.solved) {
+        this.optimizedHdRoutes.push(this.activeSubSolver.getOptimizedHdRoute())
+        this.activeSubSolver = null
+      } else if (this.activeSubSolver.failed || this.activeSubSolver.error) {
+        this.error = this.activeSubSolver.error
+        this.failed = true
+      }
+      return
+    }
+
+    const unprocessedRoute = this.unprocessedRoutes.shift()
+    if (!unprocessedRoute) {
+      this.solved = true
+      return
+    }
+
+    this.activeSubSolver = new SingleRouteUselessViaRemovalSolver({
+      hdRouteSHI: this.hdRouteSHI!,
+      obstacleSHI: this.obstacleSHI!,
+      unsimplifiedRoute: unprocessedRoute,
+    })
   }
 
   getOptimizedHdRoutes(): HighDensityRoute[] | null {
