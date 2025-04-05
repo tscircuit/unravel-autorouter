@@ -64,7 +64,7 @@ export class UselessViaRemovalSolver extends BaseSolver {
   }
 
   getOptimizedHdRoutes(): HighDensityRoute[] | null {
-    return null
+    return this.optimizedHdRoutes
   }
 
   visualize(): GraphicsObject {
@@ -96,7 +96,7 @@ export class UselessViaRemovalSolver extends BaseSolver {
               { x: current.x, y: current.y },
               { x: next.x, y: next.y },
             ],
-            strokeColor: color,
+            strokeColor: current.z === 0 ? "red" : "blue",
             strokeWidth: route.traceThickness,
             label: `${route.connectionName} (z=${current.z})`,
           })
