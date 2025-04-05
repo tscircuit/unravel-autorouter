@@ -6,8 +6,8 @@
 - Start development server: `bun run start`
 - Run tests: `bun test`
 - Run specific test: `bun test tests/svg.test.ts`
-- Format code: `bunx @biomejs/biome format --write .`
-- Lint code: `bunx @biomejs/biome format .`
+
+> Don't format or lint the code.
 
 ## Code Style Guidelines
 
