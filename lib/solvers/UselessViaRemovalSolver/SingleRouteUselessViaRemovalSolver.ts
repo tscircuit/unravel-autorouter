@@ -55,6 +55,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
         currentSection.pointsInSegment.push(routePoints[i])
       } else {
         currentSection.endIndex = i - 1
+        routeSections.push(currentSection)
         currentSection = {
           startIndex: i,
           endIndex: -1,
@@ -63,20 +64,28 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
         }
       }
     }
+    currentSection.endIndex = routePoints.length - 1
+    routeSections.push(currentSection)
 
     return routeSections
   }
 
   _step() {
     // We skip the first/last segment (since it's connected to the destination)
-    if (this.currentSectionIndex === this.routeSections.length - 1) {
+    if (this.currentSectionIndex >= this.routeSections.length - 1) {
       this.solved = true
       return
     }
 
-    const prevSection = this.routeSections[this.currentSectionIndex]
+    const prevSection = this.routeSections[this.currentSectionIndex - 1]
     const currentSection = this.routeSections[this.currentSectionIndex]
-    const nextSection = this.routeSections[this.currentSectionIndex]
+    const nextSection = this.routeSections[this.currentSectionIndex + 1]
+    // console.log({
+    //   routeSections: this.routeSections,
+    //   prevSection,
+    //   currentSection,
+    //   nextSection,
+    // })
 
     if (prevSection.z !== nextSection.z) {
       // We only remove vias where there is a middle section that can be
