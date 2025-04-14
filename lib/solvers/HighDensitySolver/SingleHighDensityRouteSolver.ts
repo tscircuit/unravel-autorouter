@@ -456,7 +456,17 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       currentNode.z === this.B.z,
     )
 
-    if (goalDist <= this.cellStep * Math.SQRT2 && currentNode.z === this.B.z) {
+    if (
+      goalDist <= this.cellStep * Math.SQRT2 &&
+      currentNode.z === this.B.z &&
+      // Make sure the last segment doesn't intersect an obstacle
+      !this.doesPathToParentIntersectObstacle({
+        ...currentNode,
+        parent: currentNode,
+        x: this.B.x,
+        y: this.B.y,
+      })
+    ) {
       this.solved = true
       this.setSolvedPath(currentNode)
     }
