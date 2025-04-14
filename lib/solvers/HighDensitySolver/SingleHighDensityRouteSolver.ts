@@ -58,6 +58,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
 
   debugEnabled = true
 
+  initialNodeGridOffset: { x: number; y: number }
+
   constructor(opts: {
     connectionName: string
     obstacleRoutes: HighDensityIntraNodeRoute[]
@@ -126,11 +128,22 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       this.handleSimpleCases()
     }
 
+    const initialNodePosition = {
+      x: Math.round(opts.A.x / (this.cellStep / 2)) * (this.cellStep / 2),
+      y: Math.round(opts.A.y / (this.cellStep / 2)) * (this.cellStep / 2),
+    }
+    this.initialNodeGridOffset = {
+      x:
+        initialNodePosition.x -
+        Math.round(opts.A.x / this.cellStep) * this.cellStep,
+      y:
+        initialNodePosition.y -
+        Math.round(opts.A.y / this.cellStep) * this.cellStep,
+    }
     this.candidates = new SingleRouteCandidatePriorityQueue([
       {
         ...opts.A,
-        x: Math.floor(opts.A.x / this.cellStep) * this.cellStep,
-        y: Math.floor(opts.A.y / this.cellStep) * this.cellStep,
+        ...initialNodePosition,
         z: opts.A.z ?? 0,
         g: 0,
         h: 0,
@@ -206,7 +219,10 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
         }
       }
       for (const via of route.vias) {
-        if (distance(node, via) < this.viaDiameter / 2 + margin) {
+        if (
+          distance(node, via) <
+          this.viaDiameter / 2 + this.traceThickness / 2 + margin
+        ) {
           return true
         }
       }
@@ -543,8 +559,8 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       if (this.debug_nodePathToParentIntersectsObstacle.has(nodeKey)) continue
       graphics.rects!.push({
         center: {
-          x: x + (z * this.cellStep) / 20,
-          y: y + (z * this.cellStep) / 20,
+          x: x + this.initialNodeGridOffset.x + (z * this.cellStep) / 20,
+          y: y + this.initialNodeGridOffset.y + (z * this.cellStep) / 20,
         },
         fill:
           z === 0
