@@ -74,6 +74,7 @@ export class UnravelSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
   tunedNodeCapacityMap: Map<CapacityMeshNodeId, number>
   MAX_CANDIDATES = 500
+  iterationsSinceImprovement = 0
 
   selectedCandidateIndex: number | "best" | "original" | null = null
 
@@ -95,6 +96,7 @@ export class UnravelSectionSolver extends BaseSolver {
     super()
 
     this.MUTABLE_HOPS = params.MUTABLE_HOPS ?? this.MUTABLE_HOPS
+    this.MAX_ITERATIONS = 50_000
 
     this.nodeMap = params.nodeMap
     this.dedupedSegments = params.dedupedSegments
@@ -630,6 +632,7 @@ export class UnravelSectionSolver extends BaseSolver {
 
   _step() {
     const candidate = this.candidates.shift()
+    this.iterationsSinceImprovement++
     if (!candidate) {
       this.solved = true
       return
@@ -638,6 +641,7 @@ export class UnravelSectionSolver extends BaseSolver {
 
     if (candidate.f < (this.bestCandidate?.f ?? Infinity)) {
       this.bestCandidate = candidate
+      this.iterationsSinceImprovement = 0
       // TODO, only works if we start computing f
       // if (candidate.f <= 0.00001) {
       //   this.solved = true

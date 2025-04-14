@@ -200,6 +200,10 @@ export const UnravelSectionDebugger = ({
           Candidates:{" "}
           <span className="font-bold">{solver.candidates.length}</span>
         </div>
+        <div className="border p-2 rounded">
+          Iterations Since Improvement:{" "}
+          <span className="font-bold">{solver.iterationsSinceImprovement}</span>
+        </div>
         {solver.error && (
           <div className="border p-2 rounded bg-red-100">
             Error: <span className="font-bold">{solver.error}</span>

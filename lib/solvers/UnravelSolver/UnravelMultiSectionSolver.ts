@@ -189,11 +189,12 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     const { bestCandidate, originalCandidate, lastProcessedCandidate } =
       this.activeSolver
 
-    const giveUpFactor =
-      1 + 4 * (1 - Math.min(1, this.activeSolver.iterations / 40))
-    const shouldEarlyStop =
-      lastProcessedCandidate &&
-      lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
+    // const giveUpFactor =
+    //   1 + 4 * (1 - Math.min(1, this.activeSolver.iterations / 40))
+    // const shouldEarlyStop =
+    //   lastProcessedCandidate &&
+    //   lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
+    const shouldEarlyStop = this.activeSolver.iterationsSinceImprovement > 200
 
     if (this.activeSolver.solved || shouldEarlyStop) {
       // Incorporate the changes from the active solver
