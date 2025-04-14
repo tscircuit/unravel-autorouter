@@ -43,6 +43,7 @@ import {
   HighDensityRoute,
 } from "lib/types/high-density-types"
 import { CapacityMeshEdgeSolver2_NodeTreeOptimization } from "./CapacityMeshSolver/CapacityMeshEdgeSolver2_NodeTreeOptimization"
+import { UselessViaRemovalSolver } from "./UselessViaRemovalSolver/UselessViaRemovalSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -94,6 +95,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
   singleLayerNodeMerger?: SingleLayerNodeMergerSolver
   strawSolver?: StrawSolver
+  uselessViaRemovalSolver?: UselessViaRemovalSolver
   multiSimplifiedPathSolver?: MultiSimplifiedPathSolver
 
   startTimeOfPhase: Record<string, number>
@@ -257,11 +259,25 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       ],
     ),
     definePipelineStep(
+      "uselessViaRemovalSolver",
+      UselessViaRemovalSolver,
+      (cms) => [
+        {
+          unsimplifiedHdRoutes: cms.highDensityStitchSolver!.mergedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          colorMap: cms.colorMap,
+          layerCount: cms.srj.layerCount,
+        },
+      ],
+    ),
+    definePipelineStep(
       "multiSimplifiedPathSolver",
       MultiSimplifiedPathSolver,
       (cms) => [
         {
-          unsimplifiedHdRoutes: cms.highDensityStitchSolver!.mergedHdRoutes,
+          unsimplifiedHdRoutes:
+            cms.uselessViaRemovalSolver?.getOptimizedHdRoutes() ||
+            cms.highDensityStitchSolver!.mergedHdRoutes,
           obstacles: cms.srj.obstacles,
           connMap: cms.connMap,
           colorMap: cms.colorMap,
@@ -360,6 +376,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const highDensityStitchViz = this.highDensityStitchSolver?.visualize()
+    const uselessViaRemovalViz = this.uselessViaRemovalSolver?.visualize()
     const simplifiedPathSolverViz = this.multiSimplifiedPathSolver?.visualize()
     const problemViz = {
       points: [
@@ -415,6 +432,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
       highDensityStitchViz,
+      uselessViaRemovalViz,
       simplifiedPathSolverViz,
       this.solved
         ? combineVisualizations(
@@ -490,6 +508,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   _getOutputHdRoutes(): HighDensityRoute[] {
     return (
       this.multiSimplifiedPathSolver?.simplifiedHdRoutes ??
+      this.uselessViaRemovalSolver?.getOptimizedHdRoutes() ??
       this.highDensityStitchSolver!.mergedHdRoutes
     )
   }
