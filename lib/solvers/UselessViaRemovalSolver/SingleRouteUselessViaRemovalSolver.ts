@@ -179,7 +179,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
       if (route[i].z !== route[i + 1].z) {
         vias.push({
           x: route[i].x,
-          y: route[i].z,
+          y: route[i].y,
         })
       }
     }
