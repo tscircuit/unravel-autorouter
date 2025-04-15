@@ -22,30 +22,26 @@ const EPSILON = 1e-9 // Using a slightly smaller epsilon can sometimes help prec
 
 /**
  * Calculates the percentage of each side traversed when going from point A to point B
- * along the rectangle boundary.
- * Assumes traversal is always in the 'forward' direction along the perimeter (clockwise conceptually).
+ * along the rectangle boundary, following the specified turn direction.
  */
 function calculateSegmentTraversal(
   startPoint: Point,
   endPoint: Point,
   bounds: Bounds,
-  turnDirection?: "cw" | "ccw",
+  turnDirection: "cw" | "ccw" = "cw", // Default to clockwise
 ): SidePercentages {
   const startAngle = pointToAngle(startPoint, bounds)
-  let endAngle = pointToAngle(endPoint, bounds)
+  const endAngle = pointToAngle(endPoint, bounds)
 
-  // Handle angle wrap-around (e.g., traversing past the 2π point)
-  // If the end angle is less than the start angle, it means we crossed the 0/2π boundary
-  if (endAngle < startAngle) {
-    endAngle += 2 * Math.PI
-  }
-
-  // Use the existing helper, which calculates percentages based on a start and end angle
-  // Ensure the end angle is strictly greater for non-zero traversal
+  // Check if start and end points map to the same angle (within epsilon)
+  // Note: This doesn't necessarily mean the points are identical if the bounds are degenerate.
   if (Math.abs(endAngle - startAngle) < EPSILON) {
-    return { left: 0, top: 0, right: 0, bottom: 0 } // No movement
+    // A more robust check might compare the points directly if needed:
+    // if (Math.abs(startPoint.x - endPoint.x) < EPSILON && Math.abs(startPoint.y - endPoint.y) < EPSILON)
+    return { left: 0, top: 0, right: 0, bottom: 0 } // No significant angular movement
   }
 
+  // Pass raw angles and direction to the main calculation function
   return calculateSidePercentages(startAngle, endAngle, bounds, turnDirection)
 }
 
@@ -162,14 +158,14 @@ export function pointToAngle(point: Point, bounds: Bounds): number {
 }
 
 /**
- * Calculate percentages of each side traversed based on start and end angles (endAngle >= startAngle).
- * This function remains largely the same but benefits from corrected inputs.
+ * Calculate percentages of each side traversed based on start and end angles,
+ * respecting the specified turn direction.
  */
 function calculateSidePercentages(
-  startAngle: number,
-  endAngle: number,
+  startAngle: number, // Raw angle [0, 2π)
+  endAngle: number, // Raw angle [0, 2π)
   bounds: Bounds,
-  turnDirection?: "cw" | "ccw",
+  turnDirection: "cw" | "ccw",
 ): SidePercentages {
   const width = bounds.maxX - bounds.minX
   const height = bounds.maxY - bounds.minY
@@ -199,30 +195,81 @@ function calculateSidePercentages(
   ]
 
   const result: SidePercentages = { left: 0, top: 0, right: 0, bottom: 0 }
-  const totalAngleTraversal = endAngle - startAngle
 
-  if (totalAngleTraversal < EPSILON) return result // No traversal
+  // Helper to calculate the total angle length of the intersection between
+  // a side's angle range [sStart, sEnd) and a traversal range.
+  // The traversal range is defined from tStart to tEnd in clockwise direction,
+  // potentially wrapping around 2π if wrapsAround is true.
+  const calculateTraversalOverlap = (
+    sStart: number,
+    sEnd: number, // Side range [sStart, sEnd)
+    tStart: number,
+    tEnd: number, // Traversal range (clockwise)
+    wrapsAround: boolean, // Does the traversal range wrap around 2π?
+  ): number => {
+    // Ensure side range is valid (adjust end slightly if it's 2PI to handle interval logic)
+    const effectiveSEnd = sEnd > 2 * Math.PI - EPSILON ? 2 * Math.PI : sEnd
+    if (effectiveSEnd <= sStart + EPSILON) return 0
+
+    if (!wrapsAround) {
+      // Simple case: traversal is [tStart, tEnd)
+      const overlapStart = Math.max(sStart, tStart)
+      const overlapEnd = Math.min(effectiveSEnd, tEnd)
+      return Math.max(0, overlapEnd - overlapStart)
+    } else {
+      // Wrap-around case: traversal is [tStart, 2π) U [0, tEnd)
+      // Overlap with first part: [tStart, 2π)
+      const overlap1Start = Math.max(sStart, tStart)
+      const overlap1End = Math.min(effectiveSEnd, 2 * Math.PI)
+      const overlap1 = Math.max(0, overlap1End - overlap1Start)
+
+      // Overlap with second part: [0, tEnd)
+      const overlap2Start = Math.max(sStart, 0)
+      const overlap2End = Math.min(effectiveSEnd, tEnd)
+      const overlap2 = Math.max(0, overlap2End - overlap2Start)
+
+      return overlap1 + overlap2
+    }
+  }
 
   for (const side of sides) {
+    // Use side.end directly for range calculation, helper handles 2PI case
     const sideAngleRange = side.end - side.start
-
-    // Skip calculation if side length (and thus angle range) is effectively zero
     if (sideAngleRange < EPSILON || side.length < EPSILON) continue
 
-    // Calculate overlap
-    const overlapStart = Math.max(startAngle, side.start)
-    const overlapEnd = Math.min(endAngle, side.end)
+    let traversedAngleOnSide = 0
+    if (turnDirection === "cw") {
+      // Clockwise: Traverse from startAngle to endAngle
+      const wraps = startAngle > endAngle + EPSILON // Check if CW traversal wraps past 2PI
+      traversedAngleOnSide = calculateTraversalOverlap(
+        side.start,
+        side.end,
+        startAngle,
+        endAngle,
+        wraps,
+      )
+    } else {
+      // turnDirection === "ccw"
+      // Counter-clockwise: Traverse from startAngle *backwards* to endAngle
+      // This is equivalent to traversing clockwise from endAngle to startAngle.
+      const wraps = endAngle > startAngle + EPSILON // Check if equivalent CW traversal wraps past 2PI
+      traversedAngleOnSide = calculateTraversalOverlap(
+        side.start,
+        side.end,
+        endAngle, // Start of equivalent CW traversal
+        startAngle, // End of equivalent CW traversal
+        wraps,
+      )
+    }
 
-    if (overlapStart < overlapEnd - EPSILON) {
-      // Check overlap is significant
-      const traversedAngleOnSide = overlapEnd - overlapStart
-
+    if (traversedAngleOnSide > EPSILON) {
       // Percentage calculation: (traversed angle on side) / (total angle range of side)
-      // This gives the fraction *of the side* that was covered by this segment traversal.
       const percentage = traversedAngleOnSide / sideAngleRange
-
-      // Add percentage, ensuring it's non-negative
-      result[side.name as keyof SidePercentages] += Math.max(0, percentage)
+      // Add percentage, ensuring it's non-negative and handles potential division by zero if sideAngleRange is tiny
+      result[side.name as keyof SidePercentages] += Math.max(
+        0,
+        Number.isFinite(percentage) ? percentage : 0,
+      )
     }
   }
 
