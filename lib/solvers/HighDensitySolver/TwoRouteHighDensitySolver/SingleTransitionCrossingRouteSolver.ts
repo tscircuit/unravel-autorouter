@@ -16,7 +16,11 @@ import { findClosestPointToABCWithinBounds } from "lib/utils/findClosestPointToA
 import { calculatePerpendicularPointsAtDistance } from "lib/utils/calculatePointsAtDistance"
 import { snapToNearestBound } from "lib/utils/snapToNearestBound"
 import { findPointToGetAroundCircle } from "lib/utils/findPointToGetAroundCircle"
-import { calculateTraversalPercentages } from "./calculateSideTraversal"
+import {
+  calculateTraversalPercentages,
+  pointToAngle,
+} from "./calculateSideTraversal"
+import { computeTurnDirection } from "./computeTurnDirection"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
@@ -166,7 +170,17 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const B = ntrP1
     const C = flatRoute.B
 
-    const sideTraversal = calculateTraversalPercentages(A, B, C, this.bounds)
+    const turnDirection = computeTurnDirection(A, B, C, this.bounds)
+    // const turnDirection = computeTurnDirection(A, B, C, this.bounds)
+    const sideTraversal = calculateTraversalPercentages(
+      A,
+      B,
+      C,
+      this.bounds,
+      turnDirection,
+    )
+
+    // console.log({ sideTraversal, turnDirection })
 
     const viaBounds = {
       minX:

@@ -29,6 +29,7 @@ function calculateSegmentTraversal(
   startPoint: Point,
   endPoint: Point,
   bounds: Bounds,
+  turnDirection?: "cw" | "ccw",
 ): SidePercentages {
   const startAngle = pointToAngle(startPoint, bounds)
   let endAngle = pointToAngle(endPoint, bounds)
@@ -45,7 +46,7 @@ function calculateSegmentTraversal(
     return { left: 0, top: 0, right: 0, bottom: 0 } // No movement
   }
 
-  return calculateSidePercentages(startAngle, endAngle, bounds)
+  return calculateSidePercentages(startAngle, endAngle, bounds, turnDirection)
 }
 
 /**
@@ -57,12 +58,13 @@ export function calculateTraversalPercentages(
   B: Point,
   C: Point,
   bounds: Bounds,
+  turnDirection?: "cw" | "ccw",
 ): SidePercentages {
   // Calculate traversal percentages for the segment A -> B
-  const percentagesAB = calculateSegmentTraversal(A, B, bounds)
+  const percentagesAB = calculateSegmentTraversal(A, B, bounds, turnDirection)
 
   // Calculate traversal percentages for the segment B -> C
-  const percentagesBC = calculateSegmentTraversal(B, C, bounds)
+  const percentagesBC = calculateSegmentTraversal(B, C, bounds, turnDirection)
 
   // Sum the percentages from both segments
   // Use Math.min to cap at 1.0 in case of tiny floating point overflows
@@ -87,7 +89,7 @@ export function calculateTraversalPercentages(
  * Converts a point on the rectangle boundary to an angle (0 to 2π, clockwise from top-left).
  * Updated to be slightly more robust with epsilon checks.
  */
-function pointToAngle(point: Point, bounds: Bounds): number {
+export function pointToAngle(point: Point, bounds: Bounds): number {
   const width = bounds.maxX - bounds.minX
   const height = bounds.maxY - bounds.minY
   // Avoid division by zero if width or height is zero
@@ -167,6 +169,7 @@ function calculateSidePercentages(
   startAngle: number,
   endAngle: number,
   bounds: Bounds,
+  turnDirection?: "cw" | "ccw",
 ): SidePercentages {
   const width = bounds.maxX - bounds.minX
   const height = bounds.maxY - bounds.minY
