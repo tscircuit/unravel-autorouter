@@ -394,6 +394,9 @@ export class CapacityPathingSolver extends BaseSolver {
     }
 
     for (const node of this.nodes) {
+      const usedCapacity =
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+      const totalCapacity = this.getTotalCapacity(node)
       const nodeCosts = this.debug_lastNodeCostMap.get(node.capacityMeshNodeId)
       graphics.rects!.push({
         ...createRectFromCapacityNode(node, {
@@ -402,13 +405,14 @@ export class CapacityPathingSolver extends BaseSolver {
         }),
         label: [
           `${node.capacityMeshNodeId}`,
-          `${this.usedNodeCapacityMap.get(node.capacityMeshNodeId)}/${this.getTotalCapacity(node).toFixed(2)}`,
+          `${usedCapacity}/${totalCapacity}`,
           `${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
           `g: ${nodeCosts?.g !== undefined ? nodeCosts.g.toFixed(2) : "?"}`,
           `h: ${nodeCosts?.h !== undefined ? nodeCosts.h.toFixed(2) : "?"}`,
           `f: ${nodeCosts?.f !== undefined ? nodeCosts.f.toFixed(2) : "?"}`,
           `z: ${node.availableZ.join(", ")}`,
         ].join("\n"),
+        stroke: usedCapacity > totalCapacity + 0.5 ? "red" : undefined,
       })
     }
 
