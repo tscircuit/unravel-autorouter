@@ -6,9 +6,13 @@ import {
   SimpleRouteJson,
 } from "lib/types"
 import { BaseSolver } from "../BaseSolver"
-import { CapacityPathingSolver } from "../CapacityPathingSolver/CapacityPathingSolver"
+import {
+  CapacityPathingSolver,
+  ConnectionPathWithNodes,
+} from "../CapacityPathingSolver/CapacityPathingSolver"
 import { CapacityPathingGreedySolver } from "./CapacityPathingGreedySolver"
 import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingSingleSectionSolver"
+import { CapacityPathingSingleSectionSolver } from "./CapacityPathingSingleSectionSolver"
 
 /**
  * This solver solves for capacity paths by first solving with negative
@@ -19,14 +23,18 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
+  connectionsWithNodes: Array<ConnectionPathWithNodes>
   colorMap: Record<string, string>
 
   initialSolver: CapacityPathingGreedySolver
-  sectionSolver?: HyperCapacityPathingSingleSectionSolver
+  sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
   stage: "initialization" | "section-optimization" = "initialization"
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode> = new Map()
+
+  nodeCapacityPercentMap: Map<CapacityMeshNodeId, number> = new Map()
+  nodeOptimizationAttemptCountMap: Map<CapacityMeshNodeId, number> = new Map()
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
@@ -51,12 +59,73 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       this.failed = true
       return
     }
-    if (this.initialSolver?.solved) {
-      this.stage = "section-optimization"
+    if (!this.initialSolver?.solved) {
+      this.failed = true
+      this.error = this.initialSolver.error
+      return
     }
+    const { usedNodeCapacityMap } = this.initialSolver
+
+    for (const node of this.nodes) {
+      this.nodeCapacityPercentMap.set(
+        node.capacityMeshNodeId,
+        (usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) /
+          this.initialSolver.getTotalCapacity(node),
+      )
+      this.nodeOptimizationAttemptCountMap.set(node.capacityMeshNodeId, 0)
+    }
+
+    this.connectionsWithNodes = this.initialSolver.connectionsWithNodes
+
+    this.stage = "section-optimization"
   }
 
-  _stepSectionOptimization() {}
+  _getNextNodeToOptimize(): CapacityMeshNodeId | null {
+    // Get the node with the highest % capacity used with no attempts
+    let highestPercentCapacityUsed = 0
+    let nodeWithHighestPercentCapacityUsed: CapacityMeshNodeId | null = null
+    for (const node of this.nodes) {
+      const attemptCount = this.nodeOptimizationAttemptCountMap.get(
+        node.capacityMeshNodeId,
+      )!
+      const percentCapacityUsed = this.nodeCapacityPercentMap.get(
+        node.capacityMeshNodeId,
+      )!
+      if (
+        attemptCount === 0 &&
+        percentCapacityUsed > highestPercentCapacityUsed &&
+        percentCapacityUsed > 1
+      ) {
+        highestPercentCapacityUsed = percentCapacityUsed
+        nodeWithHighestPercentCapacityUsed = node.capacityMeshNodeId
+      }
+    }
+    return nodeWithHighestPercentCapacityUsed
+  }
+
+  _stepSectionOptimization() {
+    if (!this.sectionSolver) {
+      const centerNodeId = this._getNextNodeToOptimize()
+      if (!centerNodeId) {
+        // No more nodes to optimize
+        this.solved = true
+      }
+      this.sectionSolver = new CapacityPathingSingleSectionSolver({
+        centerNodeId,
+        connectionsWithNodes: this.connectionsWithNodes,
+        nodes: this.nodes,
+        edges: this.edges,
+        expansionDegrees: 3,
+      })
+    }
+
+    this.sectionSolver.step()
+    if (this.sectionSolver.solved) {
+      // Apply results to edges
+      // TODO: Update node capacity percent map
+      this.sectionSolver = null
+    }
+  }
 
   _step() {
     if (this.stage === "initialization") {
@@ -67,6 +136,6 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   visualize() {
-    return this.initialSolver.visualize()
+    return this.sectionSolver?.visualize() ?? this.initialSolver.visualize()
   }
 }

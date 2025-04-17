@@ -15,10 +15,6 @@ export class CapacityPathingSolver5 extends CapacityPathingSolver {
     return this.hyperParameters.MAX_CAPACITY_FACTOR ?? 1
   }
 
-  doesNodeHaveCapacityForTrace(node: CapacityMeshNode): boolean {
-    return true
-  }
-
   getTotalCapacity(node: CapacityMeshNode): number {
     return getTunedTotalCapacity1(node, this.maxCapacityFactor)
   }

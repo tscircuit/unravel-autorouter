@@ -22,13 +22,15 @@ export type Candidate = {
   h: number
 }
 
+export type ConnectionPathWithNodes = {
+  connection: SimpleRouteConnection
+  nodes: CapacityMeshNode[]
+  path?: CapacityMeshNode[]
+  straightLineDistance: number
+}
+
 export class CapacityPathingSolver extends BaseSolver {
-  connectionsWithNodes: Array<{
-    connection: SimpleRouteConnection
-    nodes: CapacityMeshNode[]
-    path?: CapacityMeshNode[]
-    straightLineDistance: number
-  }>
+  connectionsWithNodes: Array<ConnectionPathWithNodes>
 
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number>
 
