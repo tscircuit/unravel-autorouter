@@ -142,16 +142,59 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
 
     // Highlight all nodes in the section
     for (const node of this.sectionNodes) {
+      let nodeFill = "rgba(128, 128, 128, 0.2)" // Default gray
+      let nodeStroke = "gray"
+
+      const availableZ = node.availableZ ?? []
+      const hasZ0 = availableZ.includes(0)
+      const hasZ1 = availableZ.includes(1)
+
+      if (hasZ0 && hasZ1) {
+        nodeFill = "rgba(128, 0, 128, 0.2)" // Purple
+        nodeStroke = "purple"
+      } else if (hasZ0) {
+        nodeFill = "rgba(0, 0, 255, 0.2)" // Blue
+        nodeStroke = "blue"
+      } else if (hasZ1) {
+        nodeFill = "rgba(255, 0, 0, 0.2)" // Red
+        nodeStroke = "red"
+      }
+
+      // Override for center node
+      if (node.capacityMeshNodeId === this.centerNodeId) {
+        nodeFill = "rgba(0, 255, 0, 0.3)" // Center node green
+        nodeStroke = "green"
+      }
+
       graphics.rects!.push({
         ...createRectFromCapacityNode(node),
-        fill:
-          node.capacityMeshNodeId === this.centerNodeId
-            ? "rgba(0, 255, 0, 0.3)" // Center node green
-            : "rgba(255, 165, 0, 0.2)", // Other section nodes orange
-        stroke:
-          node.capacityMeshNodeId === this.centerNodeId ? "green" : "orange",
-        label: `${node.capacityMeshNodeId}\n(Section Node)`,
+        fill: nodeFill,
+        stroke: nodeStroke,
+        label: `${node.capacityMeshNodeId}\n(Section Node)\nZ: ${availableZ.join(
+          ",",
+        )}`,
       })
+    }
+
+    // Draw edges within the section
+    const sectionNodeIds = new Set(
+      this.sectionNodes.map((n) => n.capacityMeshNodeId),
+    )
+    for (const edge of this.edges) {
+      const [nodeIdA, nodeIdB] = edge.nodeIds
+      if (sectionNodeIds.has(nodeIdA) && sectionNodeIds.has(nodeIdB)) {
+        const nodeA = this.nodeMap.get(nodeIdA)
+        const nodeB = this.nodeMap.get(nodeIdB)
+        if (nodeA && nodeB) {
+          graphics.lines!.push({
+            points: [
+              { x: nodeA.center.x, y: nodeA.center.y },
+              { x: nodeB.center.x, y: nodeB.center.y },
+            ],
+            strokeColor: "rgba(0, 0, 0, 0.3)", // Light gray for intra-section edges
+          })
+        }
+      }
     }
 
     // Highlight connection terminals within the section
