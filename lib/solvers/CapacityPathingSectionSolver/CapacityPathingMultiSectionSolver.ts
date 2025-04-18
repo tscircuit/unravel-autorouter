@@ -117,6 +117,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         connectionsWithNodes: this.connectionsWithNodes,
         nodes: this.nodes,
         edges: this.edges,
+        colorMap: this.colorMap,
         expansionDegrees: 3,
       })
     }
