@@ -8,6 +8,7 @@ import { GraphicsObject } from "graphics-debug"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeSection } from "./visualizeSection"
+import { CapacityPathingSingleSectionPathingSolver } from "./CapacityPathingSingleSectionPathingSolver"
 
 export interface CapacityPathingSingleSectionSolverInput {
   centerNodeId: CapacityMeshNodeId
@@ -34,6 +35,10 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     startNodeId: CapacityMeshNodeId
     endNodeId: CapacityMeshNodeId
   }>
+  activeSubSolver?:
+    | CapacityPathingSingleSectionPathingSolver
+    | null
+    | undefined = null
 
   constructor(params: CapacityPathingSingleSectionSolverInput) {
     super()
@@ -51,6 +56,13 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.sectionConnectionTerminals = []
 
     this.computeSectionNodesTerminalsAndEdges()
+
+    this.activeSubSolver = new CapacityPathingSingleSectionPathingSolver({
+      sectionConnectionTerminals: this.sectionConnectionTerminals,
+      sectionNodes: this.sectionNodes,
+      sectionEdges: this.sectionEdges,
+      colorMap: this.colorMap,
+    })
   }
 
   private computeSectionNodesTerminalsAndEdges() {
@@ -125,7 +137,16 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   }
 
   _step() {
-    // TODO: Implement the actual optimization logic for the section
+    this.activeSubSolver?.step()
+    if (this.activeSubSolver?.solved) {
+      this.solved = true
+      return
+    }
+    if (this.activeSubSolver?.failed) {
+      this.failed = true
+      this.error = this.activeSubSolver.error
+      return
+    }
   }
 
   getConstructorParams() {

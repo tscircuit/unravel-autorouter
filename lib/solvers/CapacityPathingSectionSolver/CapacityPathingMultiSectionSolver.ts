@@ -36,6 +36,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   nodeCapacityPercentMap: Map<CapacityMeshNodeId, number> = new Map()
   nodeOptimizationAttemptCountMap: Map<CapacityMeshNodeId, number> = new Map()
 
+  activeSubSolver?: CapacityPathingSingleSectionSolver | null = null
+
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
     this.simpleRouteJson = params.simpleRouteJson
@@ -112,7 +114,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         this.solved = true
         return
       }
-      this.sectionSolver = new CapacityPathingSingleSectionSolver({
+      this.activeSubSolver = new CapacityPathingSingleSectionSolver({
         centerNodeId,
         connectionsWithNodes: this.connectionsWithNodes,
         nodes: this.nodes,
@@ -122,11 +124,11 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       })
     }
 
-    this.sectionSolver.step()
-    if (this.sectionSolver.solved) {
+    this.activeSubSolver!.step()
+    if (this.activeSubSolver!.solved) {
       // Apply results to edges
       // TODO: Update node capacity percent map
-      this.sectionSolver = null
+      this.activeSubSolver = null
     }
   }
 
@@ -139,6 +141,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   visualize() {
-    return this.sectionSolver?.visualize() ?? this.initialSolver.visualize()
+    return (
+      this.activeSubSolver?.activeSubSolver?.visualize() ??
+      this.activeSubSolver?.visualize() ??
+      this.initialSolver.visualize()
+    )
   }
 }
