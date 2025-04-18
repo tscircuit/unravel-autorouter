@@ -30,7 +30,7 @@ export function visualizeSection({
   colorMap,
   centerNodeId,
   title,
-  nodeOpacity = 1,
+  nodeOpacity = 0.1,
 }: VisualizeSectionParams): GraphicsObject {
   const graphics: GraphicsObject = {
     points: [],

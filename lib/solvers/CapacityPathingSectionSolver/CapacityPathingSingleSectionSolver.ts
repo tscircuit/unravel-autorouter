@@ -15,8 +15,10 @@ export interface CapacityPathingSingleSectionSolverInput {
   connectionsWithNodes: Array<ConnectionPathWithNodes>
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
-  expansionDegrees: number
   colorMap: Record<string, string>
+  hyperParameters?: {
+    expansionDegrees?: number
+  }
 }
 
 export class CapacityPathingSingleSectionSolver extends BaseSolver {
@@ -51,7 +53,8 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.nodeMap = new Map(this.nodes.map((n) => [n.capacityMeshNodeId, n]))
     this.edges = params.edges
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
-    this.expansionDegrees = params.expansionDegrees ?? 1
+    this.expansionDegrees = params.hyperParameters?.expansionDegrees ?? 3
+
     this.sectionNodes = []
     this.sectionEdges = [] // Initialize sectionEdges
     this.sectionConnectionTerminals = []

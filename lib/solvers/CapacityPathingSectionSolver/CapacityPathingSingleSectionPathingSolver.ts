@@ -11,6 +11,7 @@ import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1" // Add
 import { distance } from "@tscircuit/math-utils" // Added import
 import { safeTransparentize } from "../colors" // Added import
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode" // Added import
+import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
 
 // Copied from CapacityPathingSolver
 export type Candidate = {
@@ -19,6 +20,10 @@ export type Candidate = {
   f: number
   g: number
   h: number
+}
+
+export interface CpssPathingSolverHyperParameters {
+  SHUFFLE_SEED?: number
 }
 
 export interface CapacityPathingSingleSectionPathingSolverParams {
@@ -33,6 +38,7 @@ export interface CapacityPathingSingleSectionPathingSolverParams {
     // originalPath?: CapacityMeshNode[];
   }>
   colorMap?: Record<string, string> // Make colorMap optional in params
+  hyperParameters?: CpssPathingSolverHyperParameters
 }
 
 export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
@@ -91,6 +97,12 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       this.sectionNodes.map((node) => [node.capacityMeshNodeId, 0]),
     )
 
+    if (params.hyperParameters?.SHUFFLE_SEED) {
+      this.sectionConnectionTerminals = cloneAndShuffleArray(
+        this.sectionConnectionTerminals,
+        params.hyperParameters?.SHUFFLE_SEED,
+      )
+    }
     // Sort connections? (Maybe not necessary if order is determined by caller)
     // this.sectionConnectionTerminals.sort((a, b) => ...);
   }

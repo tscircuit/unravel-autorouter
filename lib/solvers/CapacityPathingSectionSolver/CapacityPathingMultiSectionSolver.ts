@@ -14,6 +14,7 @@ import { CapacityPathingGreedySolver } from "./CapacityPathingGreedySolver"
 import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingSingleSectionSolver"
 import { CapacityPathingSingleSectionSolver } from "./CapacityPathingSingleSectionSolver"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1" // Added import
+import { visualizeSection } from "./visualizeSection"
 
 /**
  * This solver solves for capacity paths by first solving with negative
@@ -96,7 +97,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         node.capacityMeshNodeId,
       )!
       if (
-        attemptCount === 0 &&
+        attemptCount < 1 &&
         percentCapacityUsed > highestPercentCapacityUsed &&
         percentCapacityUsed > 1
       ) {
@@ -121,7 +122,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         nodes: this.nodes,
         edges: this.edges,
         colorMap: this.colorMap,
-        expansionDegrees: 3,
+        hyperParameters: {
+          EXPANSION_DEGREES: 3,
+          // SHUFFLE_SEED: this.iterations,
+        },
       })
       this.nodeOptimizationAttemptCountMap.set(
         centerNodeId,
@@ -291,6 +295,20 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   visualize() {
+    if (this.solved) {
+      return visualizeSection({
+        nodeMap: this.nodeMap,
+        sectionConnectionTerminals: this.connectionsWithNodes.map((conn) => ({
+          connectionName: conn.connection.name,
+          startNodeId: conn.path?.[0]?.capacityMeshNodeId!,
+          endNodeId: conn.path?.[conn.path.length - 1]?.capacityMeshNodeId!,
+        })),
+        sectionNodes: this.nodes,
+        sectionEdges: this.edges,
+        colorMap: this.colorMap,
+        title: "Capacity Pathing Multi-Section Solver",
+      })
+    }
     return (
       this.activeSubSolver?.activeSubSolver?.visualize() ??
       this.activeSubSolver?.visualize() ??
