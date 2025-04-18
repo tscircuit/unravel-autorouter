@@ -119,31 +119,31 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
   getNodeCapacityPenalty(node: CapacityMeshNode): number {
     if (!this.nodeMap.has(node.capacityMeshNodeId)) return Infinity // Penalize leaving section heavily
 
-    const MAX_PENALTY = node.width + node.height
+    /**
+     * Roughly, -1 remaining capacity is penalized to this much distance
+     */
+    const mmPenaltyFactor = 4
+
     const MIN_PENALTY = 0.05
-    const START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW = 2
 
     const totalCapacity = this.getTotalCapacity(node)
     const usedCapacity =
       this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
-    const remainingCapacity = totalCapacity - usedCapacity
+    const remainingCapacity = totalCapacity - usedCapacity - 1
 
-    if (remainingCapacity > START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW) {
-      return MIN_PENALTY
+    if (remainingCapacity > 0) {
+      return 0
     }
 
-    // Simplified penalty calculation from Solver5
-    const penalty =
-      (MAX_PENALTY - MIN_PENALTY) *
-        Math.max(
-          0, // Ensure penalty doesn't go below MIN_PENALTY due to calculation
-          (START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW - remainingCapacity) /
-            START_PENALIZING_CAPACITY_WHEN_IT_DROPS_BELOW, // Normalize based on threshold
-        ) +
-      MIN_PENALTY
+    let singleLayerUsagePenaltyFactor = 1
+    if (node.availableZ.length === 1) {
+      singleLayerUsagePenaltyFactor = 10
+    }
 
-    // Clamp penalty to MAX_PENALTY
-    return Math.min(penalty, MAX_PENALTY)
+    return (
+      (MIN_PENALTY + remainingCapacity ** 2 * mmPenaltyFactor) *
+      singleLayerUsagePenaltyFactor
+    )
   }
 
   // Adapted from CapacityPathingSolver5 (using simple distance)

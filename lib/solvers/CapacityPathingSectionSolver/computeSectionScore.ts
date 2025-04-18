@@ -6,7 +6,7 @@ export const calculateNodeProbabilityOfFailureForNode = (
   totalCapacity: number,
 ) => {
   if (usedCapacity < totalCapacity) return 0
-  if (totalCapacity < 1 && usedCapacity < 1) return 0
+  if (totalCapacity < 1 && usedCapacity <= 1) return 0
 
   const ratioOverTotal = usedCapacity / totalCapacity
 

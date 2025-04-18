@@ -175,6 +175,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
       nodeMap: this.nodeMap,
       colorMap: this.colorMap,
       centerNodeId: this.centerNodeId,
+      nodeOpacity: 0.001,
       title: `Section Solver (Center: ${this.centerNodeId}, Hops: ${this.expansionDegrees})`,
     })
   }

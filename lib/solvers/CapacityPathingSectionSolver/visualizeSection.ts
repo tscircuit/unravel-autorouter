@@ -7,6 +7,7 @@ import {
 import { safeTransparentize } from "../colors" // Added import
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode"
 import { getLinesBetweenNodes } from "lib/utils/getLinesBetweenNodes"
+import { calculateNodeProbabilityOfFailureForNode } from "./computeSectionScore"
 
 interface VisualizeSectionParams {
   sectionNodes: CapacityMeshNode[]
@@ -97,10 +98,16 @@ export function visualizeSection({
         1,
       )} / ${total.toFixed(1)}\n${percent}%`
 
-      // Add stroke if over capacity
-      if (used > total) {
-        graphics.rects![rectIndex].stroke = safeTransparentize("red", 0.7)
-        graphics.rects![rectIndex].strokeWidth = 0.05 // Make it more visible
+      // Add stroke if probability of failure is > 0
+      const probabilityOfFailure = calculateNodeProbabilityOfFailureForNode(
+        used,
+        total,
+      )
+      if (probabilityOfFailure > 0) {
+        graphics.rects![rectIndex].stroke = safeTransparentize(
+          "red",
+          (0.8 + nodeOpacity) * 0.7,
+        )
       }
     }
   }
@@ -115,7 +122,7 @@ export function visualizeSection({
       const { lineStart, lineEnd } = getLinesBetweenNodes(nodeA, nodeB)
       graphics.lines!.push({
         points: [lineStart, lineEnd],
-        strokeColor: "rgba(0, 0, 0, 0.2)", // Light gray for intra-section edges
+        strokeColor: `rgba(0, 0, 0, ${0.2 * Math.min(1, nodeOpacity / 0.1)})`, // Light gray for intra-section edges
       })
     }
   }
@@ -209,8 +216,8 @@ export function visualizeSection({
       if (solvedPathData.path && solvedPathData.path.length > 0) {
         const pathColor = colorMap[solvedPathData.connectionName] ?? "gray"
         const offset = {
-          x: ((index + index / 50) % 5) * 0.02,
-          y: ((index + index / 50) % 5) * 0.02,
+          x: ((index + index / 50) % 5) * 0.03,
+          y: ((index + index / 50) % 5) * 0.03,
         }
         graphics.lines!.push({
           points: solvedPathData.path.map(({ center: { x, y } }) => ({
@@ -218,7 +225,7 @@ export function visualizeSection({
             y: y + offset.y,
           })),
           strokeColor: safeTransparentize(pathColor, 0.2), // Make solved paths semi-transparent
-          strokeWidth: 0.02,
+          strokeWidth: 0.03,
         })
       }
     })
