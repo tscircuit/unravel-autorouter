@@ -1,14 +1,21 @@
-import { CapacityMeshNodeId } from "lib/types"
+import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { ConnectionPathWithNodes } from "../CapacityPathingSolver/CapacityPathingSolver"
 
 export const calculateNodeProbabilityOfFailureForNode = (
   usedCapacity: number,
   totalCapacity: number,
+  layerCount: number,
 ) => {
   if (usedCapacity < totalCapacity) return 0
   if (totalCapacity < 1 && usedCapacity <= 1) return 0
 
   const ratioOverTotal = usedCapacity / totalCapacity
+
+  // If you only have one layer, you really can't have multiple paths, 50% of
+  // the time you'll have an unsolvable intersection
+  if (layerCount === 1 && usedCapacity >= 1) {
+    return 1 - 0.01 ** usedCapacity
+  }
 
   // Tunable parameter to shape the curve
   const k = 2 // increase for steeper approach to 1
@@ -24,10 +31,12 @@ export const calculateNodeProbabilityOfFailureForNode = (
 export const computeSectionScore = ({
   totalNodeCapacityMap,
   usedNodeCapacityMap,
+  nodeMap,
   sectionNodeIds, // Destructure sectionNodeIds here
 }: {
   totalNodeCapacityMap: Map<CapacityMeshNodeId, number>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number>
+  nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   sectionNodeIds?: Set<CapacityMeshNodeId> // Optional: Only consider nodes in this set
 }) => {
   let logProbabilityOfSuccessSum = 0
@@ -36,6 +45,10 @@ export const computeSectionScore = ({
   for (const nodeId of nodesToConsider) {
     // Skip if node doesn't have capacity info (shouldn't happen if maps are consistent)
     if (!totalNodeCapacityMap.has(nodeId)) continue
+    const node = nodeMap.get(nodeId)
+    if (!node) continue
+
+    if (node._containsTarget) continue
 
     const totalCapacity = totalNodeCapacityMap.get(nodeId)!
     const usedCapacity = usedNodeCapacityMap.get(nodeId) ?? 0
@@ -47,6 +60,7 @@ export const computeSectionScore = ({
     const probabilityOfFailure = calculateNodeProbabilityOfFailureForNode(
       usedCapacity,
       totalCapacity,
+      node.availableZ.length,
     )
     const probabilityOfSuccess = 1 - probabilityOfFailure
 

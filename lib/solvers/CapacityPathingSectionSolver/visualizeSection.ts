@@ -102,8 +102,9 @@ export function visualizeSection({
       const probabilityOfFailure = calculateNodeProbabilityOfFailureForNode(
         used,
         total,
+        node.availableZ.length,
       )
-      if (probabilityOfFailure > 0) {
+      if (probabilityOfFailure > 0.2) {
         graphics.rects![rectIndex].stroke = safeTransparentize(
           "red",
           (0.8 + nodeOpacity) * 0.7,

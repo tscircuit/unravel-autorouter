@@ -42,6 +42,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
+  MAX_ATTEMPTS_PER_NODE = 30
+
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
     this.MAX_ITERATIONS = 100_000
@@ -98,7 +100,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   _getNextNodeToOptimize(): CapacityMeshNodeId | null {
     // Get the node with the highest % capacity used with no attempts
-    let highestPercentCapacityUsed = 0
+    let highestPercentCapacityUsedDivAttempts = 0
     let nodeWithHighestPercentCapacityUsed: CapacityMeshNodeId | null = null
     for (const node of this.nodes) {
       if (node._containsTarget) continue
@@ -108,15 +110,18 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       const percentCapacityUsed = this.nodeCapacityPercentMap.get(
         node.capacityMeshNodeId,
       )!
+      const percentCapacityUsedDivAttempts =
+        percentCapacityUsed / (attemptCount + 1)
       const totalCapacity = this.totalNodeCapacityMap.get(
         node.capacityMeshNodeId,
       )!
       if (
-        attemptCount < 1 &&
-        percentCapacityUsed > highestPercentCapacityUsed &&
+        attemptCount < this.MAX_ATTEMPTS_PER_NODE &&
+        percentCapacityUsedDivAttempts >
+          highestPercentCapacityUsedDivAttempts &&
         percentCapacityUsed > (totalCapacity < 1 ? 1.5 : 1)
       ) {
-        highestPercentCapacityUsed = percentCapacityUsed
+        highestPercentCapacityUsedDivAttempts = percentCapacityUsedDivAttempts
         nodeWithHighestPercentCapacityUsed = node.capacityMeshNodeId
       }
     }
@@ -139,7 +144,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         colorMap: this.colorMap,
         hyperParameters: {
           EXPANSION_DEGREES: 3,
-          // SHUFFLE_SEED: this.iterations,
+          SHUFFLE_SEED: this.iterations,
         },
       })
       this.activeSubSolver = this.sectionSolver
@@ -182,6 +187,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       const beforeScore = computeSectionScore({
         totalNodeCapacityMap: this.totalNodeCapacityMap,
         usedNodeCapacityMap: this.usedNodeCapacityMap,
+        nodeMap: this.nodeMap,
         sectionNodeIds,
       })
 
@@ -229,6 +235,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       const afterScore = computeSectionScore({
         totalNodeCapacityMap: this.totalNodeCapacityMap,
         usedNodeCapacityMap: afterUsedCapacityMap,
+        nodeMap: this.nodeMap,
         sectionNodeIds,
       })
 
