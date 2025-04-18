@@ -40,7 +40,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   nodeCapacityPercentMap: Map<CapacityMeshNodeId, number> = new Map()
   nodeOptimizationAttemptCountMap: Map<CapacityMeshNodeId, number> = new Map()
 
-  activeSubSolver?: CapacityPathingSingleSectionSolver | null = null
+  sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
@@ -58,6 +58,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       edges: this.edges,
       colorMap: this.colorMap,
     })
+    this.activeSubSolver = this.initialSolver
 
     // Calculate and store total capacity for each node (only needs to be done once)
     for (const node of this.nodes) {
@@ -67,34 +68,32 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   _stepInitialization() {
-    this.initialSolver?.solve()
+    this.initialSolver?.step()
     if (this.initialSolver?.failed) {
-      this.failed = true
-      return
-    }
-    if (!this.initialSolver?.solved) {
       this.failed = true
       this.error = this.initialSolver.error
       return
     }
-    // Initialize the class's usedNodeCapacityMap from the initial solver
-    this.usedNodeCapacityMap = new Map(this.initialSolver.usedNodeCapacityMap)
+    if (this.initialSolver?.solved) {
+      // Initialize the class's usedNodeCapacityMap from the initial solver
+      this.usedNodeCapacityMap = new Map(this.initialSolver.usedNodeCapacityMap)
 
-    // Calculate initial capacity percentages and reset attempt counts
-    for (const node of this.nodes) {
-      const totalCapacity =
-        this.totalNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0 // Use pre-calculated total capacity
-      const usedCapacity =
-        this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
-      const percentUsed = totalCapacity > 0 ? usedCapacity / totalCapacity : 0
+      // Calculate initial capacity percentages and reset attempt counts
+      for (const node of this.nodes) {
+        const totalCapacity =
+          this.totalNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0 // Use pre-calculated total capacity
+        const usedCapacity =
+          this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+        const percentUsed = totalCapacity > 0 ? usedCapacity / totalCapacity : 0
 
-      this.nodeCapacityPercentMap.set(node.capacityMeshNodeId, percentUsed)
-      this.nodeOptimizationAttemptCountMap.set(node.capacityMeshNodeId, 0)
+        this.nodeCapacityPercentMap.set(node.capacityMeshNodeId, percentUsed)
+        this.nodeOptimizationAttemptCountMap.set(node.capacityMeshNodeId, 0)
+      }
+
+      this.connectionsWithNodes = this.initialSolver.connectionsWithNodes
+
+      this.stage = "section-optimization"
     }
-
-    this.connectionsWithNodes = this.initialSolver.connectionsWithNodes
-
-    this.stage = "section-optimization"
   }
 
   _getNextNodeToOptimize(): CapacityMeshNodeId | null {
@@ -125,14 +124,14 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   _stepSectionOptimization() {
-    if (!this.activeSubSolver) {
+    if (!this.sectionSolver) {
       const centerNodeId = this._getNextNodeToOptimize()
       if (!centerNodeId) {
         // No more nodes to optimize
         this.solved = true
         return
       }
-      this.activeSubSolver = new CapacityPathingSingleSectionSolver({
+      this.sectionSolver = new CapacityPathingSingleSectionSolver({
         centerNodeId,
         connectionsWithNodes: this.connectionsWithNodes,
         nodes: this.nodes,
@@ -143,29 +142,31 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
           // SHUFFLE_SEED: this.iterations,
         },
       })
+      this.activeSubSolver = this.sectionSolver
       this.nodeOptimizationAttemptCountMap.set(
         centerNodeId,
         (this.nodeOptimizationAttemptCountMap.get(centerNodeId) ?? 0) + 1,
       )
     }
 
-    this.activeSubSolver!.step()
+    this.sectionSolver!.step()
 
-    if (this.activeSubSolver!.failed) {
+    if (this.sectionSolver!.failed) {
       // If the section solver fails, mark the node as attempted but don't update paths
       // TODO: Consider more sophisticated failure handling? Maybe increase expansionDegrees?
       console.warn(
-        `Section solver failed for node ${this.activeSubSolver.centerNodeId}. Error: ${this.activeSubSolver.error}`,
+        `Section solver failed for node ${this.sectionSolver.centerNodeId}. Error: ${this.sectionSolver.error}`,
       )
+      this.sectionSolver = null
       this.activeSubSolver = null
       return // Try the next node in the next step
     }
 
-    if (this.activeSubSolver!.solved) {
-      const solvedSectionSolver = this.activeSubSolver
+    if (this.sectionSolver!.solved) {
+      const solvedSectionSolver = this.sectionSolver
       const pathingSolver = solvedSectionSolver.activeSubSolver
-      this.activeSubSolver = null // Clear active solver regardless of merge outcome
-
+      this.sectionSolver = null // Clear active solver regardless of merge outcome
+      this.activeSubSolver = null
       if (!pathingSolver || !pathingSolver.solved) {
         console.warn(
           `Pathing sub-solver for section ${solvedSectionSolver.centerNodeId} did not complete successfully. Discarding results.`,
