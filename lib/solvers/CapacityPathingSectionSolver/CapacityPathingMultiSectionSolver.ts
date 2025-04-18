@@ -13,8 +13,9 @@ import {
 import { CapacityPathingGreedySolver } from "./CapacityPathingGreedySolver"
 import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingSingleSectionSolver"
 import { CapacityPathingSingleSectionSolver } from "./CapacityPathingSingleSectionSolver"
-import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1" // Added import
+import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { visualizeSection } from "./visualizeSection"
+import { computeSectionScore } from "./computeSectionScore" // Added import
 
 /**
  * This solver solves for capacity paths by first solving with negative
@@ -161,10 +162,97 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
 
     if (this.activeSubSolver!.solved) {
-      // Section solver succeeded, merge the results
-      this._mergeSolvedSectionPaths(this.activeSubSolver)
-      this._recalculateNodeCapacityUsage() // Recalculate capacity after merging
-      this.activeSubSolver = null
+      const solvedSectionSolver = this.activeSubSolver
+      const pathingSolver = solvedSectionSolver.activeSubSolver
+      this.activeSubSolver = null // Clear active solver regardless of merge outcome
+
+      if (!pathingSolver || !pathingSolver.solved) {
+        console.warn(
+          `Pathing sub-solver for section ${solvedSectionSolver.centerNodeId} did not complete successfully. Discarding results.`,
+        )
+        return // Skip scoring and merging
+      }
+
+      const sectionNodeIds = new Set(
+        solvedSectionSolver.sectionNodes.map((n) => n.capacityMeshNodeId),
+      )
+
+      // --- Calculate Before Score ---
+      const beforeScore = computeSectionScore({
+        totalNodeCapacityMap: this.totalNodeCapacityMap,
+        usedNodeCapacityMap: this.usedNodeCapacityMap,
+        sectionNodeIds,
+      })
+
+      // --- Calculate After Score (Simulated) ---
+      // 1. Create a temporary capacity map reflecting the state *after* applying new paths
+      const afterUsedCapacityMap = new Map(this.usedNodeCapacityMap)
+      const newSectionPaths = pathingSolver.sectionConnectionTerminals
+
+      // 2. Decrement capacity for original paths within the section
+      for (const terminal of newSectionPaths) {
+        const originalConnection = this.connectionsWithNodes.find(
+          (conn) => conn.connection.name === terminal.connectionName,
+        )
+        if (originalConnection?.path) {
+          for (const node of originalConnection.path) {
+            if (sectionNodeIds.has(node.capacityMeshNodeId)) {
+              const currentUsage =
+                afterUsedCapacityMap.get(node.capacityMeshNodeId) ?? 0
+              // Ensure usage doesn't go below zero if maps were somehow inconsistent
+              afterUsedCapacityMap.set(
+                node.capacityMeshNodeId,
+                Math.max(0, currentUsage - 1),
+              )
+            }
+          }
+        }
+      }
+
+      // 3. Increment capacity for new paths within the section
+      for (const terminal of newSectionPaths) {
+        if (terminal.path) {
+          for (const node of terminal.path) {
+            // Only consider nodes within the section for the temporary map
+            if (sectionNodeIds.has(node.capacityMeshNodeId)) {
+              afterUsedCapacityMap.set(
+                node.capacityMeshNodeId,
+                (afterUsedCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1,
+              )
+            }
+          }
+        }
+      }
+
+      // 4. Calculate the score with the simulated capacity map
+      const afterScore = computeSectionScore({
+        totalNodeCapacityMap: this.totalNodeCapacityMap,
+        usedNodeCapacityMap: afterUsedCapacityMap,
+        sectionNodeIds,
+      })
+
+      // --- Compare and Merge ---
+      if (afterScore > beforeScore) {
+        // console.log(
+        //   `Section ${
+        //     solvedSectionSolver.centerNodeId
+        //   } improved score (${beforeScore.toFixed(
+        //     2,
+        //   )} -> ${afterScore.toFixed(2)}). Merging results.`,
+        // )
+        // Section solver succeeded AND improved score, merge the results
+        this._mergeSolvedSectionPaths(solvedSectionSolver) // Pass the original section solver instance
+        this._recalculateNodeCapacityUsage() // Recalculate global capacity after merging
+      } else {
+        // console.log(
+        //   `Section ${
+        //     solvedSectionSolver.centerNodeId
+        //   } did not improve score (${beforeScore.toFixed(
+        //     2,
+        //   )} -> ${afterScore.toFixed(2)}). Discarding results.`,
+        // )
+        // Score did not improve, do not merge. Capacity remains unchanged.
+      }
     }
   }
 

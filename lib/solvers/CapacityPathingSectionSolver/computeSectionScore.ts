@@ -24,31 +24,39 @@ export const calculateNodeProbabilityOfFailureForNode = (
 export const computeSectionScore = ({
   totalNodeCapacityMap,
   usedNodeCapacityMap,
-  connectionsWithNodes,
+  sectionNodeIds, // Destructure sectionNodeIds here
 }: {
-  connectionsWithNodes: Array<{
-    connection: { name: string }
-    path: CapacityMeshNodeId[]
-  }>
   totalNodeCapacityMap: Map<CapacityMeshNodeId, number>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number>
+  sectionNodeIds?: Set<CapacityMeshNodeId> // Optional: Only consider nodes in this set
 }) => {
   let logProbabilityOfSuccessSum = 0
-  const computedNodes = new Set<CapacityMeshNodeId>()
+  const nodesToConsider = sectionNodeIds ?? new Set(usedNodeCapacityMap.keys()) // Use provided set or all nodes in used map
 
-  for (const connection of connectionsWithNodes) {
-    for (const node of connection.path) {
-      if (!computedNodes.has(node)) {
-        computedNodes.add(node)
-        const totalCapacity = totalNodeCapacityMap.get(node) ?? 1
-        const usedCapacity = usedNodeCapacityMap.get(node) ?? 0
-        const probabilityOfFailure = calculateNodeProbabilityOfFailureForNode(
-          usedCapacity,
-          totalCapacity,
-        )
-        const probabilityOfSuccess = 1 - probabilityOfFailure
-        logProbabilityOfSuccessSum += Math.log(probabilityOfSuccess)
-      }
+  for (const nodeId of nodesToConsider) {
+    // Skip if node doesn't have capacity info (shouldn't happen if maps are consistent)
+    if (!totalNodeCapacityMap.has(nodeId)) continue
+
+    const totalCapacity = totalNodeCapacityMap.get(nodeId)!
+    const usedCapacity = usedNodeCapacityMap.get(nodeId) ?? 0
+
+    // Skip calculation if node is not over capacity (prob success = 1, log(1) = 0)
+    // This avoids issues with log(0) if probabilityOfSuccess is exactly 1.
+    if (usedCapacity <= totalCapacity) continue
+
+    const probabilityOfFailure = calculateNodeProbabilityOfFailureForNode(
+      usedCapacity,
+      totalCapacity,
+    )
+    const probabilityOfSuccess = 1 - probabilityOfFailure
+
+    // Avoid log(0) or log(<0) if probabilityOfFailure >= 1
+    if (probabilityOfSuccess <= 0) {
+      // Assign a very large negative number to represent extremely low probability
+      // This handles cases where a node is massively over capacity.
+      logProbabilityOfSuccessSum += -1e9 // Or return -Infinity immediately?
+    } else {
+      logProbabilityOfSuccessSum += Math.log(probabilityOfSuccess)
     }
   }
 

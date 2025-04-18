@@ -24,6 +24,7 @@ export type Candidate = {
 
 export interface CpssPathingSolverHyperParameters {
   SHUFFLE_SEED?: number
+  EXPANSION_DEGREES?: number
 }
 
 export interface CapacityPathingSingleSectionPathingSolverParams {

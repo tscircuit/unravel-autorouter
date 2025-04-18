@@ -8,7 +8,10 @@ import { GraphicsObject } from "graphics-debug"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeSection } from "./visualizeSection"
-import { CapacityPathingSingleSectionPathingSolver } from "./CapacityPathingSingleSectionPathingSolver"
+import {
+  CapacityPathingSingleSectionPathingSolver,
+  CpssPathingSolverHyperParameters,
+} from "./CapacityPathingSingleSectionPathingSolver"
 
 export interface CapacityPathingSingleSectionSolverInput {
   centerNodeId: CapacityMeshNodeId
@@ -16,9 +19,7 @@ export interface CapacityPathingSingleSectionSolverInput {
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
   colorMap: Record<string, string>
-  hyperParameters?: {
-    expansionDegrees?: number
-  }
+  hyperParameters?: CpssPathingSolverHyperParameters
 }
 
 export class CapacityPathingSingleSectionSolver extends BaseSolver {
@@ -53,7 +54,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.nodeMap = new Map(this.nodes.map((n) => [n.capacityMeshNodeId, n]))
     this.edges = params.edges
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
-    this.expansionDegrees = params.hyperParameters?.expansionDegrees ?? 3
+    this.expansionDegrees = params.hyperParameters?.EXPANSION_DEGREES ?? 3
 
     this.sectionNodes = []
     this.sectionEdges = [] // Initialize sectionEdges
@@ -66,6 +67,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
       sectionNodes: this.sectionNodes,
       sectionEdges: this.sectionEdges,
       colorMap: this.colorMap,
+      hyperParameters: params.hyperParameters,
     })
   }
 
