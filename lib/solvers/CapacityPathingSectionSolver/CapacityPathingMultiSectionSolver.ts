@@ -13,6 +13,7 @@ import {
 import { CapacityPathingGreedySolver } from "./CapacityPathingGreedySolver"
 import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingSingleSectionSolver"
 import { CapacityPathingSingleSectionSolver } from "./CapacityPathingSingleSectionSolver"
+import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1" // Added import
 
 /**
  * This solver solves for capacity paths by first solving with negative
@@ -39,6 +40,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
+    this.MAX_ITERATIONS = 100_000
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
     this.edges = params.edges
@@ -128,10 +130,155 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
 
     this.activeSubSolver!.step()
-    if (this.activeSubSolver!.solved) {
-      // TODO: update this.connectionsWithNodes
-      // TODO: Update node capacity percent map
+
+    if (this.activeSubSolver!.failed) {
+      // If the section solver fails, mark the node as attempted but don't update paths
+      // TODO: Consider more sophisticated failure handling? Maybe increase expansionDegrees?
+      console.warn(
+        `Section solver failed for node ${this.activeSubSolver.centerNodeId}. Error: ${this.activeSubSolver.error}`,
+      )
       this.activeSubSolver = null
+      return // Try the next node in the next step
+    }
+
+    if (this.activeSubSolver!.solved) {
+      // Section solver succeeded, merge the results
+      this._mergeSolvedSectionPaths(this.activeSubSolver)
+      this._recalculateNodeCapacityUsage() // Recalculate capacity after merging
+      this.activeSubSolver = null
+    }
+  }
+
+  /**
+   * Merges the paths found by a successful section solver back into the main
+   * connectionsWithNodes list.
+   */
+  private _mergeSolvedSectionPaths(
+    solvedSectionSolver: CapacityPathingSingleSectionSolver,
+  ) {
+    // Ensure the pathing sub-solver actually ran and has results
+    const pathingSolver = solvedSectionSolver.activeSubSolver
+    if (!pathingSolver || !pathingSolver.solved) {
+      console.warn(
+        `Pathing sub-solver for section ${solvedSectionSolver.centerNodeId} did not complete successfully. Skipping merge.`,
+      )
+      return
+    }
+
+    const solvedTerminals = pathingSolver.sectionConnectionTerminals
+
+    for (const solvedTerminal of solvedTerminals) {
+      if (!solvedTerminal.path) {
+        // Pathing might have failed for this specific connection within the section
+        console.warn(
+          `No path found for connection ${solvedTerminal.connectionName} in section ${solvedSectionSolver.centerNodeId}`,
+        )
+        continue
+      }
+
+      const originalConnection = this.connectionsWithNodes.find(
+        (conn) => conn.connection.name === solvedTerminal.connectionName,
+      )
+
+      if (!originalConnection || !originalConnection.path) {
+        console.warn(
+          `Original connection or path not found for ${solvedTerminal.connectionName} while merging section ${solvedSectionSolver.centerNodeId}`,
+        )
+        continue
+      }
+
+      const originalPath = originalConnection.path
+      const newSectionPath = solvedTerminal.path
+
+      // Find the indices in the original path corresponding to the section terminals
+      const startIndex = originalPath.findIndex(
+        (node) => node.capacityMeshNodeId === solvedTerminal.startNodeId,
+      )
+      const endIndex = originalPath.findIndex(
+        (node) => node.capacityMeshNodeId === solvedTerminal.endNodeId,
+      )
+
+      if (startIndex === -1 || endIndex === -1) {
+        console.warn(
+          `Could not find start/end nodes (${solvedTerminal.startNodeId}/${solvedTerminal.endNodeId}) in original path for ${solvedTerminal.connectionName}`,
+        )
+        continue
+      }
+
+      // Ensure start comes before end in the original path array
+      // (Path direction might be reversed relative to section definition)
+      const [actualStartIndex, actualEndIndex] =
+        startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex]
+
+      // Construct the new path: part before section + new section path + part after section
+      const pathBefore = originalPath.slice(0, actualStartIndex)
+      const pathAfter = originalPath.slice(actualEndIndex + 1)
+
+      // The newSectionPath might be reversed relative to the original path direction.
+      // Check if the start of newSectionPath matches the node at actualStartIndex.
+      // If not, reverse newSectionPath.
+      let orientedNewSectionPath = newSectionPath
+      if (
+        newSectionPath.length > 0 &&
+        originalPath[actualStartIndex] && // Check if node exists
+        newSectionPath[0].capacityMeshNodeId !==
+          originalPath[actualStartIndex].capacityMeshNodeId
+      ) {
+        // It's possible the section path connects directly to the node *after* the end index
+        // or *before* the start index if the section boundary was tight.
+        // A more robust check compares the connection points.
+        // Let's assume for now the section solver respects the start/end node IDs provided.
+        // If the first node of the new path doesn't match the node at the start index,
+        // and the last node *does* match, then reverse.
+        if (
+          newSectionPath[newSectionPath.length - 1].capacityMeshNodeId ===
+          originalPath[actualStartIndex].capacityMeshNodeId
+        ) {
+          orientedNewSectionPath = [...newSectionPath].reverse()
+        } else {
+          // This case is problematic - the new path doesn't seem to connect correctly.
+          console.warn(
+            `New section path for ${solvedTerminal.connectionName} doesn't align with original path boundaries. Skipping merge for this connection.`,
+          )
+          continue // Skip merging this specific path
+        }
+      }
+
+      originalConnection.path = [
+        ...pathBefore,
+        ...orientedNewSectionPath,
+        ...pathAfter,
+      ]
+    }
+  }
+
+  /**
+   * Recalculates node capacity usage based on the current connectionsWithNodes
+   * and updates the nodeCapacityPercentMap.
+   */
+  private _recalculateNodeCapacityUsage() {
+    const usedNodeCapacityMap = new Map<CapacityMeshNodeId, number>()
+
+    // Sum capacity usage from all current paths
+    for (const conn of this.connectionsWithNodes) {
+      if (!conn.path) continue
+      for (const node of conn.path) {
+        usedNodeCapacityMap.set(
+          node.capacityMeshNodeId,
+          (usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1,
+        )
+      }
+    }
+
+    // Update the percentage map
+    for (const node of this.nodes) {
+      // Use the same total capacity calculation as the initial solver
+      // TODO: Ensure CapacityPathingGreedySolver exposes getTotalCapacity or uses a shared util
+      const totalCapacity = this.initialSolver.getTotalCapacity(node) // Assuming getTotalCapacity is accessible or replicated
+      const usedCapacity = usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+      const percentUsed = totalCapacity > 0 ? usedCapacity / totalCapacity : 0 // Avoid division by zero
+
+      this.nodeCapacityPercentMap.set(node.capacityMeshNodeId, percentUsed)
     }
   }
 

@@ -43,6 +43,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   constructor(params: CapacityPathingSingleSectionSolverInput) {
     super()
 
+    this.MAX_ITERATIONS = 100_000
     this.colorMap = params.colorMap
     this.centerNodeId = params.centerNodeId
     this.connectionsWithNodes = params.connectionsWithNodes
