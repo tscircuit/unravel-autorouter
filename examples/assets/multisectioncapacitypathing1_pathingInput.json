@@ -2800,7 +2800,7 @@
     ],
     "colorMap": {
       "connectivity_net1": "hsl(30, 100%, 50%)",
-      "source_trace_4": "hsl(60, 100%, 50%)",
+      "source_trace_4": "hsl(240, 100%, 50%)",
       "source_trace_3": "hsl(90, 100%, 50%)",
       "source_trace_2": "hsl(120, 100%, 50%)",
       "source_trace_1": "hsl(150, 100%, 50%)",

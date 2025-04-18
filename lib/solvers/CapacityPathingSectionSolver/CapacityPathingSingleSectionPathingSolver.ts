@@ -422,7 +422,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
 
         // Add stroke if over capacity
         if (usedCapacity > totalCapacity) {
-          baseGraphics.rects![rectIndex].stroke = "orange"
+          baseGraphics.rects![rectIndex].stroke = safeTransparentize("red", 0.7)
         }
       }
     }
@@ -457,9 +457,16 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       const solvedTerminal = this.sectionConnectionTerminals[i]
       if (solvedTerminal.path && solvedTerminal.path.length > 0) {
         const pathColor = this.colorMap[solvedTerminal.connectionName] ?? "gray"
+        const offset = {
+          x: ((i + i / 50) % 5) * 0.02,
+          y: ((i + i / 50) % 5) * 0.02,
+        }
         baseGraphics.lines!.push({
-          points: solvedTerminal.path.map(({ center: { x, y } }) => ({ x, y })),
-          strokeColor: safeTransparentize(pathColor, 1), // Make solved paths semi-transparent
+          points: solvedTerminal.path.map(({ center: { x, y } }) => ({
+            x: x + offset.x,
+            y: y + offset.y,
+          })),
+          strokeColor: safeTransparentize(pathColor, 0.2), // Make solved paths semi-transparent
           strokeWidth: 0.02,
         })
       }
