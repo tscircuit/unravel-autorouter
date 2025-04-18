@@ -297,7 +297,8 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()! // Not null due to check above
     console.log(currentCandidate.node.capacityMeshNodeId)
-    this.visitedNodes?.add(currentCandidate.node.capacityMeshNodeId)
+    // Add the node selected for expansion to the visited/closed set
+    this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId)
 
     // Check if goal reached
     // Use direct ID check first, then isConnectedToEndGoal if needed (e.g., for adjacent nodes)
@@ -363,10 +364,10 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
         h,
       }
       this.candidates.push(newCandidate)
-      this.visitedNodes!.add(neighborNode.capacityMeshNodeId) // Mark as visited when added to open list
+      // Do NOT add to visitedNodes here. Add only when a node is popped from candidates.
     }
 
-    // Mark current node as fully processed (closed list) - already done by adding to visitedNodes when exploring neighbors
+    // Mark current node as fully processed (closed list) - This happens when the node is popped from candidates and added to visitedNodes.
     // No, visitedNodes is the open list + closed list. Let's stick to adding when pushing to candidates.
     // this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId); // This seems redundant if added above
   }
