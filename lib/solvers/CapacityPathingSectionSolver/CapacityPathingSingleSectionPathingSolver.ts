@@ -57,6 +57,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
   currentConnectionIndex = 0
   candidates?: Array<Candidate> | null = null
   visitedNodes?: Set<CapacityMeshNodeId> | null = null
+  queuedNodes?: Set<CapacityMeshNodeId> | null = null
   activeCandidateStraightLineDistance?: number
   debug_lastNodeCostMap: Map<
     CapacityMeshNodeId,
@@ -260,6 +261,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
 
     // Initialize A* for the current connection if not already started
     if (!this.candidates) {
+      // TODO refactor to use this._setupAStar({ startNode, endNode })
       this.candidates = [
         { prevCandidate: null, node: startNode, f: 0, g: 0, h: 0 },
       ]
@@ -279,9 +281,11 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
         g: 0,
         h: initialH,
       })
+      this.queuedNodes = new Set([startNode.capacityMeshNodeId])
     }
 
     if (this.candidates.length === 0) {
+      // TODO refactor to use this._handleCandidatesExhausted()
       console.error(
         `Ran out of candidates for section connection ${currentTerminal.connectionName}`,
       )
@@ -296,7 +300,6 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
 
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()! // Not null due to check above
-    console.log(currentCandidate.node.capacityMeshNodeId)
     // Add the node selected for expansion to the visited/closed set
     this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId)
 
@@ -306,6 +309,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       currentCandidate.node.capacityMeshNodeId ===
       endNode.capacityMeshNodeId /*|| this.isConnectedToEndGoal(currentCandidate.node, endNode)*/
     ) {
+      // TODO refactor to use this._handleGoalReached({ currentCandidate, ... })
       // Found the path for the current connection
       const path = this.getBacktrackedPath(currentCandidate)
       // If using isConnectedToEndGoal, might need to add endNode explicitly if not the current node
@@ -327,7 +331,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
     const neighborNodes = this.getNeighboringNodes(currentCandidate.node)
     for (const neighborNode of neighborNodes) {
       // Skip if already visited
-      if (this.visitedNodes?.has(neighborNode.capacityMeshNodeId)) {
+      if (this.queuedNodes?.has(neighborNode.capacityMeshNodeId)) {
         continue
       }
 
@@ -363,6 +367,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
         g,
         h,
       }
+      this.queuedNodes?.add(neighborNode.capacityMeshNodeId)
       this.candidates.push(newCandidate)
       // Do NOT add to visitedNodes here. Add only when a node is popped from candidates.
     }
@@ -384,6 +389,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       title: `Section Pathing: Conn ${this.currentConnectionIndex + 1}/${
         this.sectionConnectionTerminals.length
       } (${this.sectionNodes.length} nodes)`,
+      nodeOpacity: 0.1,
     })
 
     // Enhance with A* specific visualization
@@ -434,12 +440,13 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       const connectionColor = this.colorMap[connectionName] ?? "purple" // Default color
 
       topCandidates.forEach((candidate, index) => {
-        const opacity = 0.6 * (1 - index / 5) // Decreasing opacity
+        const opacity = 0.8 * (1 - index / 5) // Decreasing opacity
         const path = this.getBacktrackedPath(candidate)
         if (path.length > 0) {
           baseGraphics.lines!.push({
             points: path.map(({ center: { x, y } }) => ({ x, y })),
             strokeColor: safeTransparentize(connectionColor, 1 - opacity),
+            strokeWidth: 0.05,
           })
         }
       })
@@ -452,7 +459,8 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
         const pathColor = this.colorMap[solvedTerminal.connectionName] ?? "gray"
         baseGraphics.lines!.push({
           points: solvedTerminal.path.map(({ center: { x, y } }) => ({ x, y })),
-          strokeColor: safeTransparentize(pathColor, 0.5), // Make solved paths semi-transparent
+          strokeColor: safeTransparentize(pathColor, 1), // Make solved paths semi-transparent
+          strokeWidth: 0.02,
         })
       }
     }

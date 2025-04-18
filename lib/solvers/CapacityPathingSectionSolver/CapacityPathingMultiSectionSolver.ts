@@ -27,7 +27,6 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
 
   initialSolver: CapacityPathingGreedySolver
-  sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
   stage: "initialization" | "section-optimization" = "initialization"
 
@@ -107,7 +106,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   _stepSectionOptimization() {
-    if (!this.sectionSolver) {
+    if (!this.activeSubSolver) {
       const centerNodeId = this._getNextNodeToOptimize()
       if (!centerNodeId) {
         // No more nodes to optimize

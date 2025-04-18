@@ -19,6 +19,7 @@ interface VisualizeSectionParams {
   colorMap: Record<string, string>
   centerNodeId?: CapacityMeshNodeId | null // Optional: for highlighting the center
   title: string // Custom title for the visualization
+  nodeOpacity?: number
 }
 
 export function visualizeSection({
@@ -29,6 +30,7 @@ export function visualizeSection({
   colorMap,
   centerNodeId,
   title,
+  nodeOpacity = 1,
 }: VisualizeSectionParams): GraphicsObject {
   const graphics: GraphicsObject = {
     points: [],
@@ -38,34 +40,32 @@ export function visualizeSection({
     title: title,
   }
 
-  const sectionNodeIds = new Set(
-    sectionNodes.map((n) => n.capacityMeshNodeId),
-  )
+  const sectionNodeIds = new Set(sectionNodes.map((n) => n.capacityMeshNodeId))
 
   // Highlight all nodes in the section
   for (const node of sectionNodes) {
-    let nodeFill = "rgba(128, 128, 128, 0.2)" // Default gray
-    let nodeStroke = "gray"
+    let nodeFill = `rgba(128, 128, 128, ${nodeOpacity})` // Default gray
+    let nodeStroke = `rgba(128, 128, 128, ${nodeOpacity})` // Default gray stroke
 
     const availableZ = node.availableZ ?? []
     const hasZ0 = availableZ.includes(0)
     const hasZ1 = availableZ.includes(1)
 
     if (hasZ0 && hasZ1) {
-      nodeFill = "rgba(128, 0, 128, 0.2)" // Purple
-      nodeStroke = "purple"
+      nodeFill = `rgba(128, 0, 128, ${nodeOpacity})` // Purple fill
+      nodeStroke = `rgba(128, 0, 128, ${nodeOpacity})` // Purple stroke
     } else if (hasZ0) {
-      nodeFill = "rgba(0, 0, 255, 0.2)" // Blue
-      nodeStroke = "blue"
+      nodeFill = `rgba(0, 0, 255, ${nodeOpacity})` // Blue fill
+      nodeStroke = `rgba(0, 0, 255, ${nodeOpacity})` // Blue stroke
     } else if (hasZ1) {
-      nodeFill = "rgba(255, 0, 0, 0.2)" // Red
-      nodeStroke = "red"
+      nodeFill = `rgba(255, 0, 0, ${nodeOpacity})` // Red fill
+      nodeStroke = `rgba(255, 0, 0, ${nodeOpacity})` // Red stroke
     }
 
     // Override for center node if provided
     if (centerNodeId && node.capacityMeshNodeId === centerNodeId) {
-      nodeFill = "rgba(0, 255, 0, 0.3)" // Center node green
-      nodeStroke = "green"
+      nodeFill = `rgba(0, 255, 0, ${nodeOpacity})` // Center node green fill
+      nodeStroke = `rgba(0, 128, 0, ${nodeOpacity})` // Center node green stroke (using standard green RGB)
     }
 
     graphics.rects!.push({
@@ -88,7 +88,7 @@ export function visualizeSection({
       const { lineStart, lineEnd } = getLinesBetweenNodes(nodeA, nodeB)
       graphics.lines!.push({
         points: [lineStart, lineEnd],
-        strokeColor: "rgba(0, 0, 0, 0.3)", // Light gray for intra-section edges
+        strokeColor: "rgba(0, 0, 0, 0.2)", // Light gray for intra-section edges
       })
     }
   }
@@ -100,9 +100,10 @@ export function visualizeSection({
     const connectionColor = colorMap[terminal.connectionName] ?? "black" // Default to black if not found
 
     // Ensure terminals are actually within the visualized section nodes
-    const isStartInSection = startNode && sectionNodeIds.has(startNode.capacityMeshNodeId)
-    const isEndInSection = endNode && sectionNodeIds.has(endNode.capacityMeshNodeId)
-
+    const isStartInSection =
+      startNode && sectionNodeIds.has(startNode.capacityMeshNodeId)
+    const isEndInSection =
+      endNode && sectionNodeIds.has(endNode.capacityMeshNodeId)
 
     const offsetMultiplier = (index + index / 50) % 5 // Simple offset logic
     let startOffsetX = 0
