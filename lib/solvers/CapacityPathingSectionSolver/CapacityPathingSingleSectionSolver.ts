@@ -8,86 +8,7 @@ import { GraphicsObject } from "graphics-debug"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 import { BaseSolver } from "../BaseSolver"
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode"
-
-// Helper interfaces and function for edge visualization
-interface Point {
-  x: number
-  y: number
-}
-interface Rect {
-  center: Point
-  width: number
-  height: number
-}
-
-/**
- * Calculates the intersection point of a ray starting from startPoint towards endPoint
- * with the boundary of an axis-aligned rectangle.
- * Returns the intersection point closest to startPoint along the ray.
- */
-function getEdgeIntersectionPoint(
-  startPoint: Point,
-  endPoint: Point,
-  rect: Rect,
-): Point {
-  const dx = endPoint.x - startPoint.x
-  const dy = endPoint.y - startPoint.y
-
-  // Handle cases where start and end points are the same or very close
-  if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return startPoint
-
-  const halfWidth = rect.width / 2
-  const halfHeight = rect.height / 2
-  const minX = rect.center.x - halfWidth
-  const maxX = rect.center.x + halfWidth
-  const minY = rect.center.y - halfHeight
-  const maxY = rect.center.y + halfHeight
-
-  let tmin = 0 // Start checking from the origin of the ray
-  let tmax = Infinity // Assume ray extends infinitely
-
-  // Check intersection with vertical slab
-  if (Math.abs(dx) > 1e-9) {
-    const tx1 = (minX - startPoint.x) / dx
-    const tx2 = (maxX - startPoint.x) / dx
-    tmin = Math.max(tmin, Math.min(tx1, tx2))
-    tmax = Math.min(tmax, Math.max(tx1, tx2))
-  } else if (startPoint.x < minX || startPoint.x > maxX) {
-    // Ray is parallel to Y-axis and outside the vertical slab
-    // console.warn("Ray parallel to Y-axis and outside slab", startPoint, endPoint, rect);
-    return startPoint // Or handle as no intersection
-  }
-
-  // Check intersection with horizontal slab
-  if (Math.abs(dy) > 1e-9) {
-    const ty1 = (minY - startPoint.y) / dy
-    const ty2 = (maxY - startPoint.y) / dy
-    tmin = Math.max(tmin, Math.min(ty1, ty2))
-    tmax = Math.min(tmax, Math.max(ty1, ty2))
-  } else if (startPoint.y < minY || startPoint.y > maxY) {
-    // Ray is parallel to X-axis and outside the horizontal slab
-    // console.warn("Ray parallel to X-axis and outside slab", startPoint, endPoint, rect);
-    return startPoint // Or handle as no intersection
-  }
-
-  // Check if the intersection interval is valid
-  if (
-    tmax < tmin ||
-    tmin === Infinity ||
-    tmin < -1e9 /* allow slight numerical errors */
-  ) {
-    // console.warn("No valid intersection found", { startPoint, endPoint, rect, tmin, tmax });
-    // Fallback: If the start point is inside, the first intersection (tmin) should be valid.
-    // If calculation fails unexpectedly, return startPoint as a safe fallback.
-    return startPoint
-  }
-
-  // Calculate the intersection point using tmin (the first intersection along the ray)
-  const intersectX = startPoint.x + dx * tmin
-  const intersectY = startPoint.y + dy * tmin
-
-  return { x: intersectX, y: intersectY }
-}
+import { getLinesBetweenNodes } from "lib/utils/getLinesBetweenNodes"
 
 export interface CapacityPathingSingleSectionSolverInput {
   centerNodeId: CapacityMeshNodeId
@@ -268,63 +189,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
         const nodeA = this.nodeMap.get(nodeIdA)
         const nodeB = this.nodeMap.get(nodeIdB)
         if (nodeA && nodeB) {
-          const centerA = nodeA.center
-          const centerB = nodeB.center
-
-          // Calculate intersection points with outer boundaries
-          const intersectA = getEdgeIntersectionPoint(centerA, centerB, nodeA)
-          const intersectB = getEdgeIntersectionPoint(centerB, centerA, nodeB)
-
-          // Calculate vector from A to B
-          const vec = { dx: centerB.x - centerA.x, dy: centerB.y - centerA.y }
-          const len = Math.sqrt(vec.dx * vec.dx + vec.dy * vec.dy)
-
-          let lineStart = intersectA
-          let lineEnd = intersectB
-
-          if (len > 1e-9) {
-            // Avoid division by zero if centers are coincident
-            const unitVec = { x: vec.dx / len, y: vec.dy / len }
-
-            // Calculate margins
-            const marginA = 0.3 * nodeA.width
-            const marginB = 0.3 * nodeB.width
-
-            // Calculate final points by moving inward from the intersection points
-            // Ensure we don't move past the other node's intersection point if nodes are close
-            const distIntersectAIntersectB = Math.sqrt(
-              (intersectB.x - intersectA.x) ** 2 +
-                (intersectB.y - intersectA.y) ** 2,
-            )
-
-            // Only apply margin if it doesn't exceed the distance between intersection points
-            if (marginA + marginB < distIntersectAIntersectB) {
-              lineStart = {
-                x: intersectA.x + unitVec.x * marginA,
-                y: intersectA.y + unitVec.y * marginA,
-              }
-              lineEnd = {
-                x: intersectB.x - unitVec.x * marginB,
-                y: intersectB.y - unitVec.y * marginB,
-              }
-            } else {
-              // If margins overlap, just draw line between intersections or centers?
-              // Drawing between intersections seems reasonable in this edge case.
-              lineStart = intersectA
-              lineEnd = intersectB
-              // Alternatively, could place points proportionally along intersectA-intersectB
-              // const totalMargin = marginA + marginB;
-              // lineStart = {
-              //   x: intersectA.x + unitVec.x * (marginA / totalMargin) * distIntersectAIntersectB,
-              //   y: intersectA.y + unitVec.y * (marginA / totalMargin) * distIntersectAIntersectB,
-              // };
-              // lineEnd = {
-              //   x: intersectB.x - unitVec.x * (marginB / totalMargin) * distIntersectAIntersectB,
-              //   y: intersectB.y - unitVec.y * (marginB / totalMargin) * distIntersectAIntersectB,
-              // };
-            }
-          }
-
+          const { lineStart, lineEnd } = getLinesBetweenNodes(nodeA, nodeB)
           graphics.lines!.push({
             points: [lineStart, lineEnd],
             strokeColor: "rgba(0, 0, 0, 0.3)", // Light gray for intra-section edges
