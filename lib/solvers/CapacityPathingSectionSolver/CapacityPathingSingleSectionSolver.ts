@@ -28,6 +28,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   expansionDegrees: number
   colorMap: Record<string, string>
   sectionNodes: CapacityMeshNode[]
+  sectionEdges: CapacityMeshEdge[] // Added sectionEdges property
   sectionConnectionTerminals: Array<{
     connectionName: string
     startNodeId: CapacityMeshNodeId
@@ -46,12 +47,13 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
     this.expansionDegrees = params.expansionDegrees ?? 1
     this.sectionNodes = []
+    this.sectionEdges = [] // Initialize sectionEdges
     this.sectionConnectionTerminals = []
 
-    this.computeSectionNodesAndTerminals()
+    this.computeSectionNodesTerminalsAndEdges()
   }
 
-  private computeSectionNodesAndTerminals() {
+  private computeSectionNodesTerminalsAndEdges() {
     const sectionNodeIds = new Set<CapacityMeshNodeId>()
     const queue: Array<{ nodeId: CapacityMeshNodeId; depth: number }> = [
       { nodeId: this.centerNodeId, depth: 0 },
@@ -80,6 +82,12 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.sectionNodes = Array.from(sectionNodeIds).map(
       (id) => this.nodeMap.get(id)!,
     )
+
+    // Compute section edges (edges where both nodes are in the section)
+    this.sectionEdges = this.edges.filter((edge) => {
+      const [nodeIdA, nodeIdB] = edge.nodeIds
+      return sectionNodeIds.has(nodeIdA) && sectionNodeIds.has(nodeIdB)
+    })
 
     // Compute terminals
     this.sectionConnectionTerminals = []
@@ -133,17 +141,9 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
-    const sectionNodeIds = new Set(
-      this.sectionNodes.map((n) => n.capacityMeshNodeId),
-    )
-    const sectionEdges = this.edges.filter((edge) => {
-      const [nodeIdA, nodeIdB] = edge.nodeIds
-      return sectionNodeIds.has(nodeIdA) && sectionNodeIds.has(nodeIdB)
-    })
-
     return visualizeSection({
       sectionNodes: this.sectionNodes,
-      sectionEdges: sectionEdges,
+      sectionEdges: this.sectionEdges, // Use the computed class property
       sectionConnectionTerminals: this.sectionConnectionTerminals,
       nodeMap: this.nodeMap,
       colorMap: this.colorMap,
