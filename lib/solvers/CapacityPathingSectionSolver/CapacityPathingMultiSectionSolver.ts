@@ -49,7 +49,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
-    this.MAX_ITERATIONS = 100_000
+    this.MAX_ITERATIONS = 1e6
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
     this.edges = params.edges
@@ -146,7 +146,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         edges: this.edges,
         colorMap: this.colorMap,
         hyperParameters: {
-          EXPANSION_DEGREES: 2,
+          EXPANSION_DEGREES: 3,
           SHUFFLE_SEED: this.iterations,
         },
       })
@@ -401,7 +401,27 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
   }
 
+  getCapacityPaths(): CapacityPath[] {
+    const capacityPaths: CapacityPath[] = []
+    for (const connection of this.connectionsWithNodes) {
+      const path = connection.path
+      if (path) {
+        capacityPaths.push({
+          capacityPathId: connection.connection.name,
+          connectionName: connection.connection.name,
+          nodeIds: path.map((node) => node.capacityMeshNodeId),
+        })
+      }
+    }
+    return capacityPaths
+  }
+
   _step() {
+    if (this.iterations >= this.MAX_ITERATIONS - 1) {
+      // We're just an optimizer so we can't fail
+      this.solved = true
+      return
+    }
     if (this.stage === "initialization") {
       this._stepInitialization()
     } else if (this.stage === "section-optimization") {

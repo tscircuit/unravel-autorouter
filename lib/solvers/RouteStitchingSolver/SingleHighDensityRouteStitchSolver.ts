@@ -17,21 +17,37 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
   }) {
     super()
     this.remainingHdRoutes = [...opts.hdRoutes]
+    const firstRoute = this.remainingHdRoutes[0]
+    const firstRouteToStartDist = Math.min(
+      distance(firstRoute.route[0], opts.start),
+      distance(firstRoute.route[firstRoute.route.length - 1], opts.start),
+    )
+    const firstRouteToEndDist = Math.min(
+      distance(firstRoute.route[0], opts.end),
+      distance(firstRoute.route[firstRoute.route.length - 1], opts.end),
+    )
+
+    if (firstRouteToStartDist < firstRouteToEndDist) {
+      this.start = opts.start
+      this.end = opts.end
+    } else {
+      this.start = opts.end
+      this.end = opts.start
+    }
+
     this.mergedHdRoute = {
-      connectionName: opts.connectionName ?? opts.hdRoutes[0].connectionName,
+      connectionName: opts.connectionName ?? firstRoute.connectionName,
       route: [
         {
-          x: opts.start.x,
-          y: opts.start.y,
-          z: opts.start.z,
+          x: this.start.x,
+          y: this.start.y,
+          z: this.start.z,
         },
       ],
       vias: [],
       viaDiameter: opts.hdRoutes?.[0]?.viaDiameter ?? 0.6,
       traceThickness: opts.hdRoutes?.[0]?.traceThickness ?? 0.15,
     }
-    this.start = opts.start
-    this.end = opts.end
   }
 
   _step() {

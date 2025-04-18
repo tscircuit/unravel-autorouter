@@ -313,6 +313,8 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       }
 
       // Skip if node lacks capacity (using the adapted check)
+      // Note: doesNodeHaveCapacityForTrace currently always returns true in this solver,
+      // capacity is handled via penalties. Keep the check structure for potential future changes.
       if (
         !this.doesNodeHaveCapacityForTrace(neighborNode, currentCandidate.node)
       ) {
@@ -320,10 +322,15 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       }
 
       // Skip if it's an obstacle node and not a designated terminal for *this* connection
-      // (Obstacle logic might need refinement based on how obstacles are represented in sections)
-      // if (neighborNode._containsObstacle && !(neighborNode.capacityMeshNodeId === startNode.capacityMeshNodeId || neighborNode.capacityMeshNodeId === endNode.capacityMeshNodeId)) {
-      //    continue;
-      // }
+      if (neighborNode._containsObstacle) {
+        const isStartTerminal =
+          neighborNode.capacityMeshNodeId === currentTerminal.startNodeId
+        const isEndTerminal =
+          neighborNode.capacityMeshNodeId === currentTerminal.endNodeId
+        if (!isStartTerminal && !isEndTerminal) {
+          continue // Skip this neighbor as it's an obstacle and not a terminal
+        }
+      }
 
       // Calculate costs
       const g = this.computeG(currentCandidate, neighborNode, endNode)
