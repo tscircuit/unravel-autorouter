@@ -135,6 +135,12 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       return 0
     }
 
+    // const probabilityOfFailure = calculateNodeProbabilityOfFailure(
+    //   usedCapacity,
+    //   totalCapacity,
+    //   node.availableZ.length,
+    // )
+
     let singleLayerUsagePenaltyFactor = 1
     if (node.availableZ.length === 1) {
       singleLayerUsagePenaltyFactor = 10

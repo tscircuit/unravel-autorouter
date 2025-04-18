@@ -7,7 +7,7 @@ import {
 import { safeTransparentize } from "../colors" // Added import
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode"
 import { getLinesBetweenNodes } from "lib/utils/getLinesBetweenNodes"
-import { calculateNodeProbabilityOfFailureForNode } from "./computeSectionScore"
+import { calculateNodeProbabilityOfFailure } from "./computeSectionScore"
 
 interface VisualizeSectionParams {
   sectionNodes: CapacityMeshNode[]
@@ -99,7 +99,7 @@ export function visualizeSection({
       )} / ${total.toFixed(1)}\n${percent}%`
 
       // Add stroke if probability of failure is > 0
-      const probabilityOfFailure = calculateNodeProbabilityOfFailureForNode(
+      const probabilityOfFailure = calculateNodeProbabilityOfFailure(
         used,
         total,
         node.availableZ.length,

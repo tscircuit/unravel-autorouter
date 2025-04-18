@@ -1,7 +1,7 @@
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { ConnectionPathWithNodes } from "../CapacityPathingSolver/CapacityPathingSolver"
 
-export const calculateNodeProbabilityOfFailureForNode = (
+export const calculateNodeProbabilityOfFailure = (
   usedCapacity: number,
   totalCapacity: number,
   layerCount: number,
@@ -57,7 +57,7 @@ export const computeSectionScore = ({
     // This avoids issues with log(0) if probabilityOfSuccess is exactly 1.
     if (usedCapacity <= totalCapacity) continue
 
-    const probabilityOfFailure = calculateNodeProbabilityOfFailureForNode(
+    const probabilityOfFailure = calculateNodeProbabilityOfFailure(
       usedCapacity,
       totalCapacity,
       node.availableZ.length,
