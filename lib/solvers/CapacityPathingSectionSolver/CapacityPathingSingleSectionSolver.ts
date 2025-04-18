@@ -155,22 +155,34 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     }
 
     // Highlight connection terminals within the section
-    for (const terminal of this.sectionConnectionTerminals) {
+    this.sectionConnectionTerminals.forEach((terminal, index) => {
       const startNode = this.nodeMap.get(terminal.startNodeId)
       const endNode = this.nodeMap.get(terminal.endNodeId)
 
+      const offsetMultiplier = (index + index / 50) % 5
+      let startOffsetX = 0
+      let startOffsetY = 0
+      let endOffsetX = 0
+      let endOffsetY = 0
+
       if (startNode) {
+        const baseOffset = 0.1 * Math.min(startNode.width, startNode.height)
+        startOffsetX = baseOffset * offsetMultiplier
+        startOffsetY = baseOffset * offsetMultiplier // Apply same offset for simplicity, could vary
         graphics.points!.push({
-          x: startNode.center.x,
-          y: startNode.center.y,
+          x: startNode.center.x + startOffsetX,
+          y: startNode.center.y + startOffsetY,
           color: "purple",
           label: `Start: ${terminal.connectionName}\n(${terminal.startNodeId})`,
         })
       }
       if (endNode) {
+        const baseOffset = 0.1 * Math.min(endNode.width, endNode.height)
+        endOffsetX = baseOffset * offsetMultiplier
+        endOffsetY = baseOffset * offsetMultiplier // Apply same offset for simplicity
         graphics.points!.push({
-          x: endNode.center.x,
-          y: endNode.center.y,
+          x: endNode.center.x + endOffsetX,
+          y: endNode.center.y + endOffsetY,
           color: "magenta",
           label: `End: ${terminal.connectionName}\n(${terminal.endNodeId})`,
         })
@@ -178,12 +190,21 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
       // Optionally draw a line between terminals within the section
       if (startNode && endNode) {
         graphics.lines!.push({
-          points: [startNode.center, endNode.center],
+          points: [
+            {
+              x: startNode.center.x + startOffsetX,
+              y: startNode.center.y + startOffsetY,
+            },
+            {
+              x: endNode.center.x + endOffsetX,
+              y: endNode.center.y + endOffsetY,
+            },
+          ],
           strokeColor: "rgba(128, 0, 128, 0.5)", // Purple dashed line
           strokeDash: "5 5",
         })
       }
-    }
+    })
 
     return graphics
   }
