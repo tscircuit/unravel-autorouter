@@ -85,6 +85,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     let highestPercentCapacityUsed = 0
     let nodeWithHighestPercentCapacityUsed: CapacityMeshNodeId | null = null
     for (const node of this.nodes) {
+      if (node._containsTarget) continue
       const attemptCount = this.nodeOptimizationAttemptCountMap.get(
         node.capacityMeshNodeId,
       )!
@@ -109,6 +110,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       if (!centerNodeId) {
         // No more nodes to optimize
         this.solved = true
+        return
       }
       this.sectionSolver = new CapacityPathingSingleSectionSolver({
         centerNodeId,
