@@ -33,6 +33,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   stage: "initialization" | "section-optimization" = "initialization"
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode> = new Map()
+  usedNodeCapacityMap: Map<CapacityMeshNodeId, number> = new Map()
+  totalNodeCapacityMap: Map<CapacityMeshNodeId, number> = new Map() // Added
 
   nodeCapacityPercentMap: Map<CapacityMeshNodeId, number> = new Map()
   nodeOptimizationAttemptCountMap: Map<CapacityMeshNodeId, number> = new Map()
@@ -55,6 +57,12 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       edges: this.edges,
       colorMap: this.colorMap,
     })
+
+    // Calculate and store total capacity for each node (only needs to be done once)
+    for (const node of this.nodes) {
+      const totalCapacity = this.initialSolver.getTotalCapacity(node)
+      this.totalNodeCapacityMap.set(node.capacityMeshNodeId, totalCapacity)
+    }
   }
 
   _stepInitialization() {
@@ -68,14 +76,18 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       this.error = this.initialSolver.error
       return
     }
-    const { usedNodeCapacityMap } = this.initialSolver
+    // Initialize the class's usedNodeCapacityMap from the initial solver
+    this.usedNodeCapacityMap = new Map(this.initialSolver.usedNodeCapacityMap)
 
+    // Calculate initial capacity percentages and reset attempt counts
     for (const node of this.nodes) {
-      this.nodeCapacityPercentMap.set(
-        node.capacityMeshNodeId,
-        (usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) /
-          this.initialSolver.getTotalCapacity(node),
-      )
+      const totalCapacity =
+        this.totalNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0 // Use pre-calculated total capacity
+      const usedCapacity =
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+      const percentUsed = totalCapacity > 0 ? usedCapacity / totalCapacity : 0
+
+      this.nodeCapacityPercentMap.set(node.capacityMeshNodeId, percentUsed)
       this.nodeOptimizationAttemptCountMap.set(node.capacityMeshNodeId, 0)
     }
 
@@ -96,10 +108,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       const percentCapacityUsed = this.nodeCapacityPercentMap.get(
         node.capacityMeshNodeId,
       )!
+      const totalCapacity = this.totalNodeCapacityMap.get(
+        node.capacityMeshNodeId,
+      )!
       if (
         attemptCount < 1 &&
         percentCapacityUsed > highestPercentCapacityUsed &&
-        percentCapacityUsed > 1
+        percentCapacityUsed > (totalCapacity < 1 ? 1.5 : 1)
       ) {
         highestPercentCapacityUsed = percentCapacityUsed
         nodeWithHighestPercentCapacityUsed = node.capacityMeshNodeId
@@ -261,25 +276,26 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
    * and updates the nodeCapacityPercentMap.
    */
   private _recalculateNodeCapacityUsage() {
-    const usedNodeCapacityMap = new Map<CapacityMeshNodeId, number>()
+    // Clear the existing map
+    this.usedNodeCapacityMap.clear()
 
-    // Sum capacity usage from all current paths
+    // Sum capacity usage from all current paths into the class property
     for (const conn of this.connectionsWithNodes) {
       if (!conn.path) continue
       for (const node of conn.path) {
-        usedNodeCapacityMap.set(
+        this.usedNodeCapacityMap.set(
           node.capacityMeshNodeId,
-          (usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1,
+          (this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1,
         )
       }
     }
 
-    // Update the percentage map
+    // Update the percentage map using the updated class property and the total capacity map
     for (const node of this.nodes) {
-      // Use the same total capacity calculation as the initial solver
-      // TODO: Ensure CapacityPathingGreedySolver exposes getTotalCapacity or uses a shared util
-      const totalCapacity = this.initialSolver.getTotalCapacity(node) // Assuming getTotalCapacity is accessible or replicated
-      const usedCapacity = usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+      const totalCapacity =
+        this.totalNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0 // Use stored total capacity
+      const usedCapacity =
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0 // Use class property
       const percentUsed = totalCapacity > 0 ? usedCapacity / totalCapacity : 0 // Avoid division by zero
 
       this.nodeCapacityPercentMap.set(node.capacityMeshNodeId, percentUsed)
@@ -317,6 +333,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         sectionNodes: this.nodes,
         sectionEdges: this.edges,
         colorMap: this.colorMap,
+        totalCapacityMap: this.totalNodeCapacityMap,
+        usedNodeCapacityMap: this.usedNodeCapacityMap,
         title: "Capacity Pathing Multi-Section Solver (Solved)",
       })
     }
