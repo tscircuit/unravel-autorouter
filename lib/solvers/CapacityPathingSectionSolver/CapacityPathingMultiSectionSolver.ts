@@ -23,7 +23,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
-  connectionsWithNodes: Array<ConnectionPathWithNodes>
+  connectionsWithNodes: Array<ConnectionPathWithNodes> = [] // Initialize here
   colorMap: Record<string, string>
 
   initialSolver: CapacityPathingGreedySolver
