@@ -48,6 +48,8 @@ export const AutoroutingPipelineDebugger = ({
   )
   const [drcErrors, setDrcErrors] = useState<GraphicsObject | null>(null)
   const [drcErrorCount, setDrcErrorCount] = useState<number>(0)
+  const [showDeepestVisualization, setShowDeepestVisualization] =
+    useState(false)
 
   const speedLevels = [1, 2, 5, 10, 100, 500]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x", "500x"]
@@ -352,7 +354,12 @@ export const AutoroutingPipelineDebugger = ({
   const visualization = useMemo(() => {
     try {
       let baseVisualization: GraphicsObject
-      if (previewMode) {
+
+      if (showDeepestVisualization && deepestActiveSubSolver) {
+        baseVisualization = previewMode
+          ? deepestActiveSubSolver.preview() || { points: [], lines: [] }
+          : deepestActiveSubSolver.visualize() || { points: [], lines: [] }
+      } else if (previewMode) {
         baseVisualization = solver?.preview() || { points: [], lines: [] }
       } else {
         baseVisualization = solver?.visualize() || { points: [], lines: [] }
@@ -368,7 +375,14 @@ export const AutoroutingPipelineDebugger = ({
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations, previewMode, drcErrors])
+  }, [
+    solver,
+    solver.iterations,
+    previewMode,
+    drcErrors,
+    showDeepestVisualization,
+    deepestActiveSubSolver,
+  ])
 
   return (
     <div className="p-4">
@@ -510,6 +524,18 @@ export const AutoroutingPipelineDebugger = ({
             Error: <span className="font-bold">{solver.error}</span>
           </div>
         )}
+        <div className="ml-2 flex items-center">
+          <input
+            type="checkbox"
+            id="showDeepestVisualization"
+            className="mr-1"
+            checked={showDeepestVisualization}
+            onChange={(e) => setShowDeepestVisualization(e.target.checked)}
+          />
+          <label htmlFor="showDeepestVisualization" className="text-sm">
+            Deep Viz
+          </label>
+        </div>
       </div>
 
       <div className="border rounded-md p-4 mb-4">

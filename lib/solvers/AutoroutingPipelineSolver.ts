@@ -32,7 +32,7 @@ import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { MultipleHighDensityRouteStitchSolver } from "./RouteStitchingSolver/MultipleHighDensityRouteStitchSolver"
 import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
 import { UnravelMultiSectionSolver } from "./UnravelSolver/UnravelMultiSectionSolver"
-import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
+import { CapacityPathingMultiSectionSolver } from "./CapacityPathingSectionSolver/CapacityPathingMultiSectionSolver" // Added import
 import { StrawSolver } from "./StrawSolver/StrawSolver"
 import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 import { CapacityNodeTargetMerger2 } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger2"
@@ -85,7 +85,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   nodeSolver?: CapacityMeshNodeSolver
   nodeTargetMerger?: CapacityNodeTargetMerger
   edgeSolver?: CapacityMeshEdgeSolver
-  pathingSolver?: CapacityPathingSolver
+  pathingSolver?: CapacityPathingMultiSectionSolver // Updated type
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
   segmentToPointSolver?: CapacitySegmentToPointSolver
@@ -173,7 +173,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       CapacityMeshEdgeSolver2_NodeTreeOptimization,
       (cms) => [cms.capacityNodes!],
     ),
-    definePipelineStep("pathingSolver", CapacityPathingSolver5, (cms) => [
+    definePipelineStep("pathingSolver", CapacityPathingMultiSectionSolver, (cms) => [ // Replaced solver class
       {
         simpleRouteJson: cms.srjWithPointPairs!,
         nodes: cms.capacityNodes!,

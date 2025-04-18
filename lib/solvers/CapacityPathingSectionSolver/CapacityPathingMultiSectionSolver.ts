@@ -15,7 +15,10 @@ import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingS
 import { CapacityPathingSingleSectionSolver } from "./CapacityPathingSingleSectionSolver"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { visualizeSection } from "./visualizeSection"
-import { computeSectionScore } from "./computeSectionScore" // Added import
+import {
+  calculateNodeProbabilityOfFailure,
+  computeSectionScore,
+} from "./computeSectionScore" // Added import
 
 /**
  * This solver solves for capacity paths by first solving with negative
@@ -42,7 +45,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
-  MAX_ATTEMPTS_PER_NODE = 30
+  MAX_ATTEMPTS_PER_NODE = 2
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
@@ -100,28 +103,28 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   _getNextNodeToOptimize(): CapacityMeshNodeId | null {
     // Get the node with the highest % capacity used with no attempts
-    let highestPercentCapacityUsedDivAttempts = 0
+    let highestNodePfDivAttempts = 0
     let nodeWithHighestPercentCapacityUsed: CapacityMeshNodeId | null = null
     for (const node of this.nodes) {
       if (node._containsTarget) continue
       const attemptCount = this.nodeOptimizationAttemptCountMap.get(
         node.capacityMeshNodeId,
       )!
-      const percentCapacityUsed = this.nodeCapacityPercentMap.get(
-        node.capacityMeshNodeId,
-      )!
-      const percentCapacityUsedDivAttempts =
-        percentCapacityUsed / (attemptCount + 1)
       const totalCapacity = this.totalNodeCapacityMap.get(
         node.capacityMeshNodeId,
       )!
+      const nodePf = calculateNodeProbabilityOfFailure(
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0,
+        totalCapacity,
+        node.availableZ.length,
+      )
+      const nodePfDivAttempts = nodePf / (attemptCount + 1)
       if (
         attemptCount < this.MAX_ATTEMPTS_PER_NODE &&
-        percentCapacityUsedDivAttempts >
-          highestPercentCapacityUsedDivAttempts &&
-        percentCapacityUsed > (totalCapacity < 1 ? 1.5 : 1)
+        nodePfDivAttempts > highestNodePfDivAttempts &&
+        nodePf > 0.2
       ) {
-        highestPercentCapacityUsedDivAttempts = percentCapacityUsedDivAttempts
+        highestNodePfDivAttempts = nodePfDivAttempts
         nodeWithHighestPercentCapacityUsed = node.capacityMeshNodeId
       }
     }
@@ -143,7 +146,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         edges: this.edges,
         colorMap: this.colorMap,
         hyperParameters: {
-          EXPANSION_DEGREES: 3,
+          EXPANSION_DEGREES: 2,
           SHUFFLE_SEED: this.iterations,
         },
       })
