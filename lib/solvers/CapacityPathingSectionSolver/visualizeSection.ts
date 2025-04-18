@@ -27,6 +27,8 @@ interface VisualizeSectionParams {
   centerNodeId?: CapacityMeshNodeId | null // Optional: for highlighting the center
   title: string // Custom title for the visualization
   nodeOpacity?: number
+  usedNodeCapacityMap?: Map<CapacityMeshNodeId, number> // Optional capacity map
+  totalCapacityMap?: Map<CapacityMeshNodeId, number> // Optional capacity map
 }
 
 export function visualizeSection({
@@ -39,6 +41,8 @@ export function visualizeSection({
   centerNodeId,
   title,
   nodeOpacity = 0.1,
+  usedNodeCapacityMap, // Destructure added params
+  totalCapacityMap, // Destructure added params
 }: VisualizeSectionParams): GraphicsObject {
   const graphics: GraphicsObject = {
     points: [],
@@ -80,10 +84,25 @@ export function visualizeSection({
       ...createRectFromCapacityNode(node),
       fill: nodeFill,
       stroke: nodeStroke,
-      label: `${node.capacityMeshNodeId}\n(Section Node)\nZ: ${availableZ.join(
-        ",",
-      )}`,
+      label: `${node.capacityMeshNodeId}\n(Section Node)\nZ: ${availableZ.join(",")}`,
     })
+
+    // Add capacity info to label if maps are provided
+    const rectIndex = graphics.rects!.length - 1
+    if (usedNodeCapacityMap && totalCapacityMap) {
+      const used = usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
+      const total = totalCapacityMap.get(node.capacityMeshNodeId) ?? 0
+      const percent = total > 0 ? ((used / total) * 100).toFixed(1) : "N/A"
+      graphics.rects![rectIndex].label += `\n${used.toFixed(
+        1,
+      )} / ${total.toFixed(1)}\n${percent}%`
+
+      // Add stroke if over capacity
+      if (used > total) {
+        graphics.rects![rectIndex].stroke = safeTransparentize("red", 0.7)
+        graphics.rects![rectIndex].strokeWidth = 0.05 // Make it more visible
+      }
+    }
   }
 
   // Draw edges within the section
