@@ -121,11 +121,15 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         colorMap: this.colorMap,
         expansionDegrees: 3,
       })
+      this.nodeOptimizationAttemptCountMap.set(
+        centerNodeId,
+        (this.nodeOptimizationAttemptCountMap.get(centerNodeId) ?? 0) + 1,
+      )
     }
 
     this.activeSubSolver!.step()
     if (this.activeSubSolver!.solved) {
-      // Apply results to edges
+      // TODO: update this.connectionsWithNodes
       // TODO: Update node capacity percent map
       this.activeSubSolver = null
     }
