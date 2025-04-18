@@ -261,69 +261,27 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
 
     // Initialize A* for the current connection if not already started
     if (!this.candidates) {
-      // TODO refactor to use this._setupAStar({ startNode, endNode })
-      this.candidates = [
-        { prevCandidate: null, node: startNode, f: 0, g: 0, h: 0 },
-      ]
-      this.visitedNodes = new Set([startNode.capacityMeshNodeId])
-      this.debug_lastNodeCostMap = new Map() // Reset costs for the new connection
-      this.activeCandidateStraightLineDistance = distance(
-        startNode.center,
-        endNode.center,
-      )
-
-      // Initial cost calculation for start node
-      const initialH = this.computeH(null!, startNode, endNode)
-      this.candidates[0].h = initialH
-      this.candidates[0].f = initialH * this.GREEDY_MULTIPLIER // g is 0
-      this.debug_lastNodeCostMap.set(startNode.capacityMeshNodeId, {
-        f: this.candidates[0].f,
-        g: 0,
-        h: initialH,
-      })
-      this.queuedNodes = new Set([startNode.capacityMeshNodeId])
+      this._setupAStar(startNode, endNode)
     }
 
-    if (this.candidates.length === 0) {
-      // TODO refactor to use this._handleCandidatesExhausted()
-      console.error(
-        `Ran out of candidates for section connection ${currentTerminal.connectionName}`,
-      )
-      // Failed to find path for this connection
-      this.currentConnectionIndex++
-      this.candidates = null
-      this.visitedNodes = null
-      // Optionally mark the solver as failed if any path fails
-      // this.failed = true;
+    const candidates = this.candidates!
+
+    if (candidates.length === 0) {
+      this._handleCandidatesExhausted(currentTerminal)
       return
     }
 
-    this.candidates.sort((a, b) => a.f - b.f)
-    const currentCandidate = this.candidates.shift()! // Not null due to check above
+    candidates.sort((a, b) => a.f - b.f)
+    const currentCandidate = candidates.shift()! // Not null due to check above
     // Add the node selected for expansion to the visited/closed set
     this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId)
 
     // Check if goal reached
     // Use direct ID check first, then isConnectedToEndGoal if needed (e.g., for adjacent nodes)
     if (
-      currentCandidate.node.capacityMeshNodeId ===
-      endNode.capacityMeshNodeId /*|| this.isConnectedToEndGoal(currentCandidate.node, endNode)*/
+      currentCandidate.node.capacityMeshNodeId === endNode.capacityMeshNodeId
     ) {
-      // TODO refactor to use this._handleGoalReached({ currentCandidate, ... })
-      // Found the path for the current connection
-      const path = this.getBacktrackedPath(currentCandidate)
-      // If using isConnectedToEndGoal, might need to add endNode explicitly if not the current node
-      // if (path[path.length - 1]?.capacityMeshNodeId !== endNode.capacityMeshNodeId) {
-      //    path.push(endNode);
-      // }
-
-      currentTerminal.path = path // Store the found path
-      this.reduceCapacityAlongPath(path) // Update capacity usage
-
-      // Move to the next connection
-      this.currentConnectionIndex++
-      this.candidates = null
-      this.visitedNodes = null
+      this._handleGoalReached(currentCandidate, currentTerminal, endNode)
       return
     }
 
@@ -368,13 +326,78 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
         h,
       }
       this.queuedNodes?.add(neighborNode.capacityMeshNodeId)
-      this.candidates.push(newCandidate)
+      candidates!.push(newCandidate)
       // Do NOT add to visitedNodes here. Add only when a node is popped from candidates.
     }
 
     // Mark current node as fully processed (closed list) - This happens when the node is popped from candidates and added to visitedNodes.
     // No, visitedNodes is the open list + closed list. Let's stick to adding when pushing to candidates.
     // this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId); // This seems redundant if added above
+  }
+
+  private _setupAStar(startNode: CapacityMeshNode, endNode: CapacityMeshNode) {
+    this.candidates = [
+      { prevCandidate: null, node: startNode, f: 0, g: 0, h: 0 },
+    ]
+    this.visitedNodes = new Set([startNode.capacityMeshNodeId])
+    this.debug_lastNodeCostMap = new Map() // Reset costs for the new connection
+    this.activeCandidateStraightLineDistance = distance(
+      startNode.center,
+      endNode.center,
+    )
+
+    // Initial cost calculation for start node
+    const initialH = this.computeH(null!, startNode, endNode)
+    this.candidates[0].h = initialH
+    this.candidates[0].f = initialH * this.GREEDY_MULTIPLIER // g is 0
+    this.debug_lastNodeCostMap.set(startNode.capacityMeshNodeId, {
+      f: this.candidates[0].f,
+      g: 0,
+      h: initialH,
+    })
+    this.queuedNodes = new Set([startNode.capacityMeshNodeId])
+  }
+
+  private _handleCandidatesExhausted(currentTerminal: {
+    connectionName: string
+  }) {
+    console.error(
+      `Ran out of candidates for section connection ${currentTerminal.connectionName}`,
+    )
+    // Failed to find path for this connection
+    this.currentConnectionIndex++
+    this.candidates = null
+    this.visitedNodes = null
+    this.queuedNodes = null
+    // Optionally mark the solver as failed if any path fails
+    // this.failed = true;
+  }
+
+  private _handleGoalReached(
+    currentCandidate: Candidate,
+    currentTerminal: {
+      connectionName: string
+      startNodeId: CapacityMeshNodeId
+      endNodeId: CapacityMeshNodeId
+      path?: CapacityMeshNode[]
+    },
+    endNode: CapacityMeshNode, // Pass endNode if needed for checks like isConnectedToEndGoal
+  ) {
+    // Found the path for the current connection
+    const path = this.getBacktrackedPath(currentCandidate)
+    // If using isConnectedToEndGoal, might need to add endNode explicitly if not the current node
+    // if (path[path.length - 1]?.capacityMeshNodeId !== endNode.capacityMeshNodeId) {
+    //    path.push(endNode);
+    // }
+
+    currentTerminal.path = path // Store the found path
+    this.reduceCapacityAlongPath(path) // Update capacity usage
+
+    // Move to the next connection
+    this.currentConnectionIndex++
+    this.candidates = null
+    this.visitedNodes = null
+    this.queuedNodes = null
   }
 
   visualize(): GraphicsObject {
