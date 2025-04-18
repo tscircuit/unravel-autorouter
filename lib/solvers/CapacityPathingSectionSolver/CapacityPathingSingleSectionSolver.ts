@@ -166,7 +166,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
       let endOffsetY = 0
 
       if (startNode) {
-        const baseOffset = 0.1 * Math.min(startNode.width, startNode.height)
+        const baseOffset = 0.02 * Math.min(startNode.width, startNode.height)
         startOffsetX = baseOffset * offsetMultiplier
         startOffsetY = baseOffset * offsetMultiplier // Apply same offset for simplicity, could vary
         graphics.points!.push({
@@ -175,9 +175,21 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
           color: "purple",
           label: `Start: ${terminal.connectionName}\n(${terminal.startNodeId})`,
         })
+        // Add line from original center to offset point
+        graphics.lines!.push({
+          points: [
+            { x: startNode.center.x, y: startNode.center.y },
+            {
+              x: startNode.center.x + startOffsetX,
+              y: startNode.center.y + startOffsetY,
+            },
+          ],
+          strokeColor: "gray",
+          strokeDash: "2 2",
+        })
       }
       if (endNode) {
-        const baseOffset = 0.1 * Math.min(endNode.width, endNode.height)
+        const baseOffset = 0.02 * Math.min(endNode.width, endNode.height)
         endOffsetX = baseOffset * offsetMultiplier
         endOffsetY = baseOffset * offsetMultiplier // Apply same offset for simplicity
         graphics.points!.push({
@@ -185,6 +197,18 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
           y: endNode.center.y + endOffsetY,
           color: "magenta",
           label: `End: ${terminal.connectionName}\n(${terminal.endNodeId})`,
+        })
+        // Add line from original center to offset point
+        graphics.lines!.push({
+          points: [
+            { x: endNode.center.x, y: endNode.center.y },
+            {
+              x: endNode.center.x + endOffsetX,
+              y: endNode.center.y + endOffsetY,
+            },
+          ],
+          strokeColor: "gray",
+          strokeDash: "2 2",
         })
       }
       // Optionally draw a line between terminals within the section
