@@ -4,6 +4,7 @@ import {
   CapacityMeshNode,
   CapacityMeshNodeId,
 } from "lib/types"
+import { safeTransparentize } from "../colors" // Added import
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode"
 import { getLinesBetweenNodes } from "lib/utils/getLinesBetweenNodes"
 
@@ -14,6 +15,12 @@ interface VisualizeSectionParams {
     connectionName: string
     startNodeId: CapacityMeshNodeId
     endNodeId: CapacityMeshNodeId
+    path?: CapacityMeshNode[] // Optional path for terminals
+  }>
+  completedPaths?: Array<{
+    // Optional array for explicitly drawing completed paths
+    connectionName: string
+    path: CapacityMeshNode[]
   }>
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode> // Map for all relevant nodes (section + potentially neighbors if needed for edges)
   colorMap: Record<string, string>
@@ -26,6 +33,7 @@ export function visualizeSection({
   sectionNodes,
   sectionEdges,
   sectionConnectionTerminals,
+  completedPaths, // Added completedPaths
   nodeMap,
   colorMap,
   centerNodeId,
@@ -175,6 +183,27 @@ export function visualizeSection({
       })
     }
   })
+
+  // Draw completed paths if provided
+  if (completedPaths) {
+    completedPaths.forEach((solvedPathData, index) => {
+      if (solvedPathData.path && solvedPathData.path.length > 0) {
+        const pathColor = colorMap[solvedPathData.connectionName] ?? "gray"
+        const offset = {
+          x: ((index + index / 50) % 5) * 0.02,
+          y: ((index + index / 50) % 5) * 0.02,
+        }
+        graphics.lines!.push({
+          points: solvedPathData.path.map(({ center: { x, y } }) => ({
+            x: x + offset.x,
+            y: y + offset.y,
+          })),
+          strokeColor: safeTransparentize(pathColor, 0.2), // Make solved paths semi-transparent
+          strokeWidth: 0.02,
+        })
+      }
+    })
+  }
 
   return graphics
 }

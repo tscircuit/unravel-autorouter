@@ -413,11 +413,20 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
+    // Prepare data for completed paths visualization
+    const completedPathsForViz = this.sectionConnectionTerminals
+      .filter((t) => t.path && t.path.length > 0) // Only include terminals with a solved path
+      .map((t) => ({
+        connectionName: t.connectionName,
+        path: t.path!, // Assert path is defined due to filter
+      }))
+
     // Base visualization from visualizeSection
     const baseGraphics = visualizeSection({
       sectionNodes: this.sectionNodes,
       sectionEdges: this.sectionEdges,
-      sectionConnectionTerminals: this.sectionConnectionTerminals,
+      sectionConnectionTerminals: this.sectionConnectionTerminals, // Still pass terminals for start/end points
+      completedPaths: completedPathsForViz, // Pass the solved paths
       nodeMap: this.nodeMap, // Pass the section's node map
       colorMap: this.colorMap,
       centerNodeId: null, // No single center node for pathing visualization
@@ -427,7 +436,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       nodeOpacity: 0.1,
     })
 
-    // Enhance with A* specific visualization
+    // Enhance with A* specific visualization (Keep this part)
 
     // 1. Highlight node costs (f, g, h) and capacity usage
     for (const node of this.sectionNodes) {
@@ -485,26 +494,6 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
           })
         }
       })
-    }
-
-    // 3. Visualize already solved paths for previous connections in this section run
-    for (let i = 0; i < this.currentConnectionIndex; i++) {
-      const solvedTerminal = this.sectionConnectionTerminals[i]
-      if (solvedTerminal.path && solvedTerminal.path.length > 0) {
-        const pathColor = this.colorMap[solvedTerminal.connectionName] ?? "gray"
-        const offset = {
-          x: ((i + i / 50) % 5) * 0.02,
-          y: ((i + i / 50) % 5) * 0.02,
-        }
-        baseGraphics.lines!.push({
-          points: solvedTerminal.path.map(({ center: { x, y } }) => ({
-            x: x + offset.x,
-            y: y + offset.y,
-          })),
-          strokeColor: safeTransparentize(pathColor, 0.2), // Make solved paths semi-transparent
-          strokeWidth: 0.02,
-        })
-      }
     }
 
     return baseGraphics

@@ -296,19 +296,32 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   visualize() {
     if (this.solved) {
+      // Prepare completed paths data for visualization
+      const completedPathsForViz = this.connectionsWithNodes
+        .filter((conn) => conn.path && conn.path.length > 0)
+        .map((conn) => ({
+          connectionName: conn.connection.name,
+          path: conn.path!, // Assert path exists due to filter
+        }))
+
       return visualizeSection({
         nodeMap: this.nodeMap,
+        // Still show terminals for context, even if paths are drawn separately
         sectionConnectionTerminals: this.connectionsWithNodes.map((conn) => ({
           connectionName: conn.connection.name,
           startNodeId: conn.path?.[0]?.capacityMeshNodeId!,
           endNodeId: conn.path?.[conn.path.length - 1]?.capacityMeshNodeId!,
+          // path: conn.path // Optionally pass the path here too if visualizeSection uses it for terminals
         })),
+        completedPaths: completedPathsForViz, // Pass the final paths
         sectionNodes: this.nodes,
         sectionEdges: this.edges,
         colorMap: this.colorMap,
-        title: "Capacity Pathing Multi-Section Solver",
+        title: "Capacity Pathing Multi-Section Solver (Solved)",
       })
     }
+
+    // Visualization for intermediate steps remains the same
     return (
       this.activeSubSolver?.activeSubSolver?.visualize() ??
       this.activeSubSolver?.visualize() ??
