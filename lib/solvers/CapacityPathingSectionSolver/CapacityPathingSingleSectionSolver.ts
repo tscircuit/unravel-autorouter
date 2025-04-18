@@ -203,6 +203,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.sectionConnectionTerminals.forEach((terminal, index) => {
       const startNode = this.nodeMap.get(terminal.startNodeId)
       const endNode = this.nodeMap.get(terminal.endNodeId)
+      const connectionColor = this.colorMap[terminal.connectionName] ?? "black" // Default to black if not found
 
       const offsetMultiplier = (index + index / 50) % 5
       let startOffsetX = 0
@@ -217,7 +218,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
         graphics.points!.push({
           x: startNode.center.x + startOffsetX,
           y: startNode.center.y + startOffsetY,
-          color: "purple",
+          color: connectionColor, // Use connection color
           label: `Start: ${terminal.connectionName}\n(${terminal.startNodeId})`,
         })
         // Add line from original center to offset point
@@ -240,7 +241,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
         graphics.points!.push({
           x: endNode.center.x + endOffsetX,
           y: endNode.center.y + endOffsetY,
-          color: "magenta",
+          color: connectionColor, // Use connection color
           label: `End: ${terminal.connectionName}\n(${terminal.endNodeId})`,
         })
         // Add line from original center to offset point
@@ -269,7 +270,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
               y: endNode.center.y + endOffsetY,
             },
           ],
-          strokeColor: "rgba(128, 0, 128, 0.5)", // Purple dashed line
+          strokeColor: connectionColor, // Use connection color
           strokeDash: "5 5",
         })
       }

@@ -15,6 +15,7 @@ export default () => {
 
         const solver = new CapacityPathingMultiSectionSolver({
           ...(pathingInput[0] as any),
+          colorMap: pathingInput[0].colorMap,
           hyperParameters: {
             MAX_CAPACITY_FACTOR: 1,
           },
