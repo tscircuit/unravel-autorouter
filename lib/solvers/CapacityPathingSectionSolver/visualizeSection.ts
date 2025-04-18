@@ -94,16 +94,18 @@ export function visualizeSection({
       const used = usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0
       const total = totalCapacityMap.get(node.capacityMeshNodeId) ?? 0
       const percent = total > 0 ? ((used / total) * 100).toFixed(1) : "N/A"
-      graphics.rects![rectIndex].label += `\n${used.toFixed(
-        1,
-      )} / ${total.toFixed(1)}\n${percent}%`
-
-      // Add stroke if probability of failure is > 0
       const probabilityOfFailure = calculateNodeProbabilityOfFailure(
         used,
         total,
         node.availableZ.length,
       )
+      graphics.rects![rectIndex].label += `\n${used.toFixed(
+        1,
+      )} / ${total.toFixed(1)}\n${percent}% (Pf: ${(
+        probabilityOfFailure * 100
+      ).toFixed(1)}%)`
+
+      // Add stroke if probability of failure is > 0
       if (probabilityOfFailure > 0.2) {
         graphics.rects![rectIndex].stroke = safeTransparentize(
           "red",

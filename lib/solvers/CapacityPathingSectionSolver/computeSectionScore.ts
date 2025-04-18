@@ -13,7 +13,7 @@ export const calculateNodeProbabilityOfFailure = (
 
   // If you only have one layer, you really can't have multiple paths, 50% of
   // the time you'll have an unsolvable intersection
-  if (layerCount === 1 && usedCapacity >= 1) {
+  if (layerCount === 1 && usedCapacity > 1) {
     return 1 - 0.01 ** usedCapacity
   }
 
