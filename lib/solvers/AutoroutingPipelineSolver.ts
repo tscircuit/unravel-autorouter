@@ -173,17 +173,22 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       CapacityMeshEdgeSolver2_NodeTreeOptimization,
       (cms) => [cms.capacityNodes!],
     ),
-    definePipelineStep("pathingSolver", CapacityPathingMultiSectionSolver, (cms) => [ // Replaced solver class
-      {
-        simpleRouteJson: cms.srjWithPointPairs!,
-        nodes: cms.capacityNodes!,
-        edges: cms.edgeSolver?.edges || [],
-        colorMap: cms.colorMap,
-        hyperParameters: {
-          MAX_CAPACITY_FACTOR: 1,
+    definePipelineStep(
+      "pathingSolver",
+      CapacityPathingMultiSectionSolver,
+      (cms) => [
+        // Replaced solver class
+        {
+          simpleRouteJson: cms.srjWithPointPairs!,
+          nodes: cms.capacityNodes!,
+          edges: cms.edgeSolver?.edges || [],
+          colorMap: cms.colorMap,
+          hyperParameters: {
+            MAX_CAPACITY_FACTOR: 1,
+          },
         },
-      },
-    ]),
+      ],
+    ),
     definePipelineStep(
       "edgeToPortSegmentSolver",
       CapacityEdgeToPortSegmentSolver,
@@ -254,6 +259,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         {
           connections: cms.srjWithPointPairs!.connections,
           hdRoutes: cms.highDensityRouteSolver!.routes,
+          colorMap: cms.colorMap,
           layerCount: cms.srj.layerCount,
         },
       ],

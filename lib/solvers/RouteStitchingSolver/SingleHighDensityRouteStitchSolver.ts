@@ -8,15 +8,18 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
   remainingHdRoutes: HighDensityIntraNodeRoute[]
   start: { x: number; y: number; z: number }
   end: { x: number; y: number; z: number }
+  colorMap: Record<string, string>
 
   constructor(opts: {
     connectionName?: string
     hdRoutes: HighDensityIntraNodeRoute[]
     start: { x: number; y: number; z: number }
     end: { x: number; y: number; z: number }
+    colorMap?: Record<string, string>
   }) {
     super()
     this.remainingHdRoutes = [...opts.hdRoutes]
+    this.colorMap = opts.colorMap ?? {} // Store colorMap, default to empty object
     const firstRoute = this.remainingHdRoutes[0]
     const firstRouteToStartDist = Math.min(
       distance(firstRoute.route[0], opts.start),
@@ -156,17 +159,14 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       }
     }
 
-    // Visualize all remaining HD routes
-    const colorList = Array.from(
-      { length: this.remainingHdRoutes.length },
-      (_, i) => `hsl(${(i * 360) / this.remainingHdRoutes.length}, 100%, 50%)`,
-    )
+    // Visualize all remaining HD routes using colorMap
     for (const [i, hdRoute] of this.remainingHdRoutes.entries()) {
+      const routeColor = this.colorMap[hdRoute.connectionName] ?? "gray" // Default to gray if not in map
       if (hdRoute.route.length > 1) {
         // Create a line for the route
         graphics.lines?.push({
           points: hdRoute.route.map((point) => ({ x: point.x, y: point.y })),
-          strokeColor: colorList[i],
+          strokeColor: routeColor,
         })
       }
 
@@ -174,10 +174,10 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       for (let pi = 0; pi < hdRoute.route.length; pi++) {
         const point = hdRoute.route[pi]
         graphics.points?.push({
-          x: point.x + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000,
+          x: point.x + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000, // Keep slight offset for visibility
           y: point.y + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000,
-          color: colorList[i],
-          label: `Route ${i} ${point === hdRoute.route[0] ? "First" : point === hdRoute.route[hdRoute.route.length - 1] ? "Last" : ""}`,
+          color: routeColor,
+          label: `Route ${hdRoute.connectionName} ${point === hdRoute.route[0] ? "First" : point === hdRoute.route[hdRoute.route.length - 1] ? "Last" : ""}`,
         })
       }
 
@@ -186,7 +186,7 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
         graphics.circles?.push({
           center: { x: via.x, y: via.y },
           radius: hdRoute.viaDiameter / 2,
-          fill: colorList[i],
+          fill: routeColor,
         })
       }
     }

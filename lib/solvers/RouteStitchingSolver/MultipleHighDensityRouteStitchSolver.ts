@@ -17,13 +17,16 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
   unsolvedRoutes: UnsolvedRoute[]
   activeSolver: SingleHighDensityRouteStitchSolver | null = null
   mergedHdRoutes: HighDensityIntraNodeRoute[] = []
+  colorMap: Record<string, string> = {}
 
   constructor(opts: {
     connections: SimpleRouteConnection[]
     hdRoutes: HighDensityIntraNodeRoute[]
+    colorMap?: Record<string, string>
     layerCount: number
   }) {
     super()
+    this.colorMap = opts.colorMap ?? {}
     this.unsolvedRoutes = opts.connections.map((c) => ({
       connectionName: c.name,
       hdRoutes: opts.hdRoutes.filter((r) => r.connectionName === c.name),
@@ -64,6 +67,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
       hdRoutes: unsolvedRoute.hdRoutes,
       start: unsolvedRoute.start,
       end: unsolvedRoute.end,
+      colorMap: this.colorMap,
     })
   }
 
