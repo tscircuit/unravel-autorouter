@@ -130,7 +130,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         nodeWithHighestPercentCapacityUsed = node.capacityMeshNodeId
       }
     }
-    console.log(`Highest node Pf: ${highestNodePf}`)
+    // console.log(`Highest node Pf: ${highestNodePf}`)
     return nodeWithHighestPercentCapacityUsed
   }
 
@@ -247,13 +247,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
       // --- Compare and Merge ---
       if (afterScore > beforeScore) {
-        console.log(
-          `Section ${
-            solvedSectionSolver.centerNodeId
-          } improved score (${beforeScore.toFixed(
-            2,
-          )} -> ${afterScore.toFixed(2)}). Merging results.`,
-        )
+        // console.log(
+        //   `Section ${
+        //     solvedSectionSolver.centerNodeId
+        //   } improved score (${beforeScore.toFixed(
+        //     2,
+        //   )} -> ${afterScore.toFixed(2)}). Merging results.`,
+        // )
         // Section solver succeeded AND improved score, merge the results
         this._mergeSolvedSectionPaths(solvedSectionSolver) // Pass the original section solver instance
         this._recalculateNodeCapacityUsage() // Recalculate global capacity after merging
