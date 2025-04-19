@@ -602,8 +602,20 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     // Create the route with 4 points
     return [
       { x: start.x, y: start.y, z: start.z ?? 0 },
-      { x: middlePoint1.x, y: middlePoint1.y, z: start.z ?? 0 },
-      { x: middlePoint2.x, y: middlePoint2.y, z: start.z ?? 0 },
+      {
+        x: middlePoint1.x,
+        y: middlePoint1.y,
+        z: start.z ?? 0,
+        // @ts-ignore
+        _label: "Conservative Orthogonal Point 1",
+      },
+      {
+        x: middlePoint2.x,
+        y: middlePoint2.y,
+        z: start.z ?? 0,
+        // @ts-ignore
+        _label: "Conservative Orthogonal Point 2",
+      },
       { x: end.x, y: end.y, z: end.z ?? 0 },
     ]
   }
@@ -672,8 +684,20 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     return [
       { x: start.x, y: start.y, z: start.z ?? 0 },
-      { x: orthogonalPoint1.x, y: orthogonalPoint1.y, z: start.z ?? 0 },
-      { x: orthogonalPoint2.x, y: orthogonalPoint2.y, z: start.z ?? 0 },
+      {
+        x: orthogonalPoint1.x,
+        y: orthogonalPoint1.y,
+        z: start.z ?? 0,
+        // @ts-ignore
+        _label: "Orthogonal Point 1",
+      },
+      {
+        x: orthogonalPoint2.x,
+        y: orthogonalPoint2.y,
+        z: start.z ?? 0,
+        // @ts-ignore
+        _label: "Orthogonal Point 2",
+      },
       { x: end.x, y: end.y, z: end.z ?? 0 },
     ]
   }
@@ -876,6 +900,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
           strokeWidth: route.traceThickness,
           label: `${route.connectionName} z=${pointA.z}`,
         })
+
+        if ((pointA as any)._label) {
+          graphics.points!.push({
+            x: pointA.x,
+            y: pointA.y,
+            label: (pointA as any)._label,
+          })
+        }
       }
 
       // Draw vias in solved routes
