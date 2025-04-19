@@ -198,21 +198,10 @@ export const AutoroutingPipelineDebugger = ({
         return
       }
 
-      let routes: any[]
+      const routes: any = solver?.getOutputSimplifiedPcbTraces()
 
-      // Check if we have simplified routes (output format)
-      if (
-        solver.solved &&
-        solver.multiSimplifiedPathSolver?.simplifiedHdRoutes
-      ) {
-        routes = solver.getOutputSimplifiedPcbTraces()
-      }
-      // Otherwise, use the high-density routes if available
-      else if (solver.highDensityRouteSolver?.routes.length) {
-        routes = solver.highDensityRouteSolver.routes
-      }
       // Neither available, show error
-      else {
+      if (!routes) {
         alert(
           "No routes available yet. Complete routing first or proceed to high-density routing stage.",
         )
