@@ -170,6 +170,14 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
     return true
   }
 
+  getConstructorParams() {
+    return {
+      obstacleSHI: this.obstacleSHI,
+      hdRouteSHI: this.hdRouteSHI,
+      unsimplifiedRoute: this.unsimplifiedRoute,
+    }
+  }
+
   getOptimizedHdRoute(): HighDensityRoute {
     // TODO reconstruct the route from segments, we will need to recompute the
     // vias
