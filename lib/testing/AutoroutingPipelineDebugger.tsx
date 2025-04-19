@@ -746,97 +746,101 @@ export const AutoroutingPipelineDebugger = ({
                 if (stepSolver) {
                   cumulativeIterations += stepSolver.iterations
                 }
-              const status = stepSolver?.solved
-                ? "Solved"
-                : stepSolver?.failed
-                  ? "Failed"
-                  : stepSolver
-                    ? "In Progress"
-                    : "Not Started"
-              const statusClass = stepSolver?.solved
-                ? "text-green-600"
-                : stepSolver?.failed
-                  ? "text-red-600"
-                  : "text-blue-600"
+                const status = stepSolver?.solved
+                  ? "Solved"
+                  : stepSolver?.failed
+                    ? "Failed"
+                    : stepSolver
+                      ? "In Progress"
+                      : "Not Started"
+                const statusClass = stepSolver?.solved
+                  ? "text-green-600"
+                  : stepSolver?.failed
+                    ? "text-red-600"
+                    : "text-blue-600"
 
-              return (
-                <tr key={step.solverName}>
-                  <td className="border p-2">{step.solverName}</td>
-                  <td className={`border p-2 font-bold ${statusClass}`}>
-                    {status}
-                  </td>
-                  <td className="border p-2">{stepSolver?.iterations || 0}</td>
-                  <td className="border p-2 tabular-nums text-gray-500">{i0}</td>
-                  <td className="border p-2 tabular-nums">
-                    {(
-                      ((solver.endTimeOfPhase[step.solverName] ??
-                        performance.now()) -
-                        (solver.startTimeOfPhase[step.solverName] ??
-                          performance.now())) /
-                      1000
-                    ).toFixed(2)}
-                  </td>
-                  <td className="border p-2">
-                    <button
-                      className="text-blue-600 hover:underline"
-                      onClick={() => {
-                        // Get the constructor parameters for this step
-                        const params = step.getConstructorParams(solver)
-                        // Recursively replace _parent: { ... } with _parent: { capacityMeshNodeId: "..." }
-                        // This prevents circular references in the JSON
-                        const replaceParent = (obj: any) => {
-                          if (obj && typeof obj === "object") {
-                            if (obj._parent) {
-                              obj._parent = {
-                                capacityMeshNodeId:
-                                  obj._parent.capacityMeshNodeId,
+                return (
+                  <tr key={step.solverName}>
+                    <td className="border p-2">{step.solverName}</td>
+                    <td className={`border p-2 font-bold ${statusClass}`}>
+                      {status}
+                    </td>
+                    <td className="border p-2">
+                      {stepSolver?.iterations || 0}
+                    </td>
+                    <td className="border p-2 tabular-nums text-gray-500">
+                      {i0}
+                    </td>
+                    <td className="border p-2 tabular-nums">
+                      {(
+                        ((solver.endTimeOfPhase[step.solverName] ??
+                          performance.now()) -
+                          (solver.startTimeOfPhase[step.solverName] ??
+                            performance.now())) /
+                        1000
+                      ).toFixed(2)}
+                    </td>
+                    <td className="border p-2">
+                      <button
+                        className="text-blue-600 hover:underline"
+                        onClick={() => {
+                          // Get the constructor parameters for this step
+                          const params = step.getConstructorParams(solver)
+                          // Recursively replace _parent: { ... } with _parent: { capacityMeshNodeId: "..." }
+                          // This prevents circular references in the JSON
+                          const replaceParent = (obj: any) => {
+                            if (obj && typeof obj === "object") {
+                              if (obj._parent) {
+                                obj._parent = {
+                                  capacityMeshNodeId:
+                                    obj._parent.capacityMeshNodeId,
+                                }
                               }
-                            }
 
-                            // Recursively process all properties
-                            for (const key in obj) {
-                              if (
-                                Object.prototype.hasOwnProperty.call(obj, key)
-                              ) {
-                                replaceParent(obj[key])
+                              // Recursively process all properties
+                              for (const key in obj) {
+                                if (
+                                  Object.prototype.hasOwnProperty.call(obj, key)
+                                ) {
+                                  replaceParent(obj[key])
+                                }
                               }
-                            }
 
-                            // Handle arrays
-                            if (Array.isArray(obj)) {
-                              obj.forEach((item) => replaceParent(item))
+                              // Handle arrays
+                              if (Array.isArray(obj)) {
+                                obj.forEach((item) => replaceParent(item))
+                              }
                             }
                           }
-                        }
-                        replaceParent(params[0])
+                          replaceParent(params[0])
 
-                        // Create a JSON string with proper formatting
-                        const paramsJson = JSON.stringify(params, null, 2)
-                        // Create a blob with the JSON data
-                        const blob = new Blob([paramsJson], {
-                          type: "application/json",
-                        })
-                        // Create a URL for the blob
-                        const url = URL.createObjectURL(blob)
-                        // Create a temporary anchor element
-                        const a = document.createElement("a")
-                        // Set the download filename to the solver name
-                        a.download = `${step.solverName}_input.json`
-                        a.href = url
-                        // Trigger the download
-                        a.click()
-                        // Clean up by revoking the URL
-                        URL.revokeObjectURL(url)
-                      }}
-                      disabled={!stepSolver}
-                    >
-                      ⬇️ Input
-                    </button>
-                  </td>
-                </tr>
-              )
-            })
-          })()}
+                          // Create a JSON string with proper formatting
+                          const paramsJson = JSON.stringify(params, null, 2)
+                          // Create a blob with the JSON data
+                          const blob = new Blob([paramsJson], {
+                            type: "application/json",
+                          })
+                          // Create a URL for the blob
+                          const url = URL.createObjectURL(blob)
+                          // Create a temporary anchor element
+                          const a = document.createElement("a")
+                          // Set the download filename to the solver name
+                          a.download = `${step.solverName}_input.json`
+                          a.href = url
+                          // Trigger the download
+                          a.click()
+                          // Clean up by revoking the URL
+                          URL.revokeObjectURL(url)
+                        }}
+                        disabled={!stepSolver}
+                      >
+                        ⬇️ Input
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })
+            })()}
           </tbody>
         </table>
       </div>

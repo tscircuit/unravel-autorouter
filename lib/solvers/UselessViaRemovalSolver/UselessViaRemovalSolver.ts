@@ -77,6 +77,30 @@ export class UselessViaRemovalSolver extends BaseSolver {
       title: "Useless Via Removal Solver",
     }
 
+    // Visualize obstacles
+    for (const obstacle of this.input.obstacles) {
+      let fillColor = "rgba(128, 128, 128, 0.2)" // Default faded gray
+      const strokeColor = "rgba(128, 128, 128, 0.5)"
+      const isOnLayer0 = obstacle.zLayers?.includes(0)
+      const isOnLayer1 = obstacle.zLayers?.includes(1)
+
+      if (isOnLayer0 && isOnLayer1) {
+        fillColor = "rgba(128, 0, 128, 0.2)" // Faded purple for both layers
+      } else if (isOnLayer0) {
+        fillColor = "rgba(255, 0, 0, 0.2)" // Faded red for layer 0
+      } else if (isOnLayer1) {
+        fillColor = "rgba(0, 0, 255, 0.2)" // Faded blue for layer 1
+      }
+
+      visualization.rects.push({
+        center: obstacle.center,
+        width: obstacle.width,
+        height: obstacle.height,
+        fill: fillColor,
+        label: `Obstacle (Z: ${obstacle.zLayers?.join(", ")})`,
+      })
+    }
+
     // Display each optimized route
     for (const route of this.optimizedHdRoutes) {
       // Skip routes with no points
