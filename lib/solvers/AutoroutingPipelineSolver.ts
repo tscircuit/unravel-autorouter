@@ -568,9 +568,9 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     const allHdRoutes = this._getOutputHdRoutes()
 
     for (const connection of this.netToPointPairsSolver?.newConnections ?? []) {
-      const netConnection = this.srj.connections.find(
-        (c) => c.name === connection.netConnectionName,
-      )
+      const netConnectionName = this.srj.connections.find(
+        (c) => c.name === connection.name,
+      )?.netConnectionName
 
       // Find all the hdRoutes that correspond to this connection
       const hdRoutes = allHdRoutes.filter(
@@ -582,7 +582,9 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         const simplifiedPcbTrace: SimplifiedPcbTrace = {
           type: "pcb_trace",
           pcb_trace_id: `${connection.name}_${i}`,
-          connection_name: this.getOriginalConnectionName(connection.name),
+          connection_name:
+            netConnectionName ??
+            this.getOriginalConnectionName(connection.name),
           route: convertHdRouteToSimplifiedRoute(hdRoute, this.srj.layerCount),
         }
 
