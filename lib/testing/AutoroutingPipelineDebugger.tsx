@@ -728,15 +728,24 @@ export const AutoroutingPipelineDebugger = ({
               <th className="border p-2 text-left">Step</th>
               <th className="border p-2 text-left">Status</th>
               <th className="border p-2 text-left">Iterations</th>
+              <th className="border p-2 text-left">
+                i<sub>0</sub>
+              </th>
               <th className="border p-2 text-left">Time</th>
               <th className="border p-2 text-left">Input</th>
             </tr>
           </thead>
           <tbody>
-            {solver.pipelineDef?.map((step) => {
-              const stepSolver = solver[
-                step.solverName as keyof CapacityMeshSolver
-              ] as BaseSolver | undefined
+            {(() => {
+              let cumulativeIterations = 0
+              return solver.pipelineDef?.map((step, index) => {
+                const stepSolver = solver[
+                  step.solverName as keyof CapacityMeshSolver
+                ] as BaseSolver | undefined
+                const i0 = cumulativeIterations
+                if (stepSolver) {
+                  cumulativeIterations += stepSolver.iterations
+                }
               const status = stepSolver?.solved
                 ? "Solved"
                 : stepSolver?.failed
@@ -757,6 +766,7 @@ export const AutoroutingPipelineDebugger = ({
                     {status}
                   </td>
                   <td className="border p-2">{stepSolver?.iterations || 0}</td>
+                  <td className="border p-2 tabular-nums text-gray-500">{i0}</td>
                   <td className="border p-2 tabular-nums">
                     {(
                       ((solver.endTimeOfPhase[step.solverName] ??
@@ -825,7 +835,8 @@ export const AutoroutingPipelineDebugger = ({
                   </td>
                 </tr>
               )
-            })}
+            })
+          })()}
           </tbody>
         </table>
       </div>
