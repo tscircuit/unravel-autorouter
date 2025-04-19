@@ -30,31 +30,10 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   obstacleMargin: number
   layerCount: number = 2
 
-  // Debugging intermediate data
-  debugItems: {
-    attempt: number
-    outerBox?: { x: number; y: number; width: number; height: number }
-    innerBox?: { x: number; y: number; width: number; height: number }
-    k1Circles?: { center: Point; radius: number }[]
-    candidatePoints?: Array<
-      Point & { type: string; index?: number; circle?: number; edge?: number }
-    >
-    edgeIntersections?: Point[]
-    optimalPair?: Point[]
-    initialVias?: { via1: Point; via2: Point }
-    optimizedVias?: { via1: Point; via2: Point }
-    orthogonalCalc?: {
-      midSegmentCenter?: Point
-      orthogonalLinePoints?: Point[]
-      intersections?: Point[]
-      chosenPoints?: Point[]
-    }
-    shortestOrthogonalCalc?: {
-      midSegmentCenter?: Point
-      orthogonalPoint1?: Point
-      orthogonalPoint2?: Point
-    }
-  }[] = []
+  debugViaPositions: {
+    via1: Point
+    via2: Point
+  }[]
 
   // Solution state
   solvedRoutes: HighDensityIntraNodeRoute[] = []
@@ -76,6 +55,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     this.traceThickness = params?.traceThickness ?? 0.15
     this.obstacleMargin = params?.obstacleMargin ?? 0.1
     this.layerCount = params?.layerCount ?? 2
+    this.debugViaPositions = []
 
     // Extract routes from the node data
     this.routes = this.extractRoutesFromNode()
@@ -173,16 +153,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   }
 
   private calculateViaPositions(
-    routeA: Route, // Route that will potentially use vias
-    routeB: Route, // Route that stays on the original layer
-    attemptIndex: number,
-  ): { via1: Point; via2: Point } | null {
-    // Initialize debug data structure for this attempt first
-    this.debugItems[attemptIndex] = { attempt: attemptIndex }
-    const currentDebugData = this.debugItems[attemptIndex] // Now get a reference
-
+    routeA: Route,
+    routeB: Route,
+  ): {
+    via1: Point
+    via2: Point
+  } | null {
     // Define outer box as the bounds where all points lie
-    currentDebugData.outerBox = {
+    const outerBox = {
       width: this.bounds.maxX - this.bounds.minX,
       height: this.bounds.maxY - this.bounds.minY,
       x: this.bounds.minX,
@@ -190,38 +168,20 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     // Define inner box with padding of obstacleMargin
-    currentDebugData.innerBox = {
-      width:
-        currentDebugData.outerBox.width -
-        2 * this.obstacleMargin -
-        this.viaDiameter,
-      height:
-        currentDebugData.outerBox.height -
-        2 * this.obstacleMargin -
-        this.viaDiameter,
-      x:
-        currentDebugData.outerBox.x +
-        this.obstacleMargin +
-        this.viaDiameter / 2,
-      y:
-        currentDebugData.outerBox.y +
-        this.obstacleMargin +
-        this.viaDiameter / 2,
+    const innerBox = {
+      width: outerBox.width - 2 * this.obstacleMargin - this.viaDiameter,
+      height: outerBox.height - 2 * this.obstacleMargin - this.viaDiameter,
+      x: outerBox.x + this.obstacleMargin + this.viaDiameter / 2,
+      y: outerBox.y + this.obstacleMargin + this.viaDiameter / 2,
     }
-    const innerBox = currentDebugData.innerBox // Local alias for convenience
 
     // Define the K1 parameter (minimum distance from A/B to C/D)
     // We'll use viaDiameter + obstacleMargin as the minimum distance
     const K1 = this.viaDiameter + this.obstacleMargin
 
-    // Get points A and B from the routeB (the one staying on the layer)
+    // Get points A and B from the routeB
     const pointA = routeB.startPort
     const pointB = routeB.endPort
-
-    currentDebugData.k1Circles = [
-      { center: pointA, radius: K1 },
-      { center: pointB, radius: K1 },
-    ]
 
     // Get the inner box corners
     const corners = [
@@ -237,10 +197,9 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     // Find all valid candidate points
-    currentDebugData.candidatePoints = []
-    const candidatePoints = currentDebugData.candidatePoints // Local alias
-    currentDebugData.edgeIntersections = []
-    const edgeIntersections = currentDebugData.edgeIntersections // Local alias
+    const candidatePoints: Array<
+      Point & { type: string; index?: number; circle?: number; edge?: number }
+    > = []
 
     // 1. First check which corners are valid (outside both K1 circles)
     corners.forEach((corner, index) => {
@@ -271,14 +230,13 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
         // For each intersection, check if it's also outside the other circle
         intersections.forEach((point) => {
-          edgeIntersections.push(point) // Store all intersections for debug
           const otherCircle = circleIndex === 0 ? pointB : pointA
           if (distanceBetween(point, otherCircle) >= K1) {
             candidatePoints.push({
               ...point,
               type: "intersection",
-              circle: circleIndex, // 0 for pointA, 1 for pointB
-              edge: edgeIndex, // 0: top, 1: right, 2: bottom, 3: left
+              circle: circleIndex,
+              edge: edgeIndex,
             })
           }
         })
@@ -293,9 +251,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         if (
           distanceBetween(corner, pointA) >= relaxedK1 &&
           distanceBetween(corner, pointB) >= relaxedK1 &&
-          !candidatePoints.some(
-            (p: Point) => p.x === corner.x && p.y === corner.y,
-          )
+          !candidatePoints.some((p) => p.x === corner.x && p.y === corner.y)
         ) {
           candidatePoints.push({ ...corner, type: "relaxed_corner", index })
         }
@@ -319,9 +275,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         // Add corners not already in candidatePoints
         for (const corner of sortedCorners) {
           if (
-            !candidatePoints.some(
-              (p: Point) => p.x === corner.x && p.y === corner.y,
-            )
+            !candidatePoints.some((p) => p.x === corner.x && p.y === corner.y)
           ) {
             candidatePoints.push({ ...corner, type: "forced_corner" })
             if (candidatePoints.length >= 2) break
@@ -337,7 +291,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Find the pair of points with maximum distance between them
     let maxDist = 0
-    let optimalPairPoints = [
+    let optimalPair = [
       candidatePoints[0],
       candidatePoints[candidatePoints.length > 1 ? 1 : 0],
     ]
@@ -347,14 +301,13 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         const dist = distanceBetween(candidatePoints[i], candidatePoints[j])
         if (dist > maxDist) {
           maxDist = dist
-          optimalPairPoints = [candidatePoints[i], candidatePoints[j]]
+          optimalPair = [candidatePoints[i], candidatePoints[j]]
         }
       }
     }
-    currentDebugData.optimalPair = optimalPairPoints // Store the chosen pair
 
-    let via1 = { x: optimalPairPoints[0].x, y: optimalPairPoints[0].y }
-    let via2 = { x: optimalPairPoints[1].x, y: optimalPairPoints[1].y }
+    let via1 = { x: optimalPair[0].x, y: optimalPair[0].y }
+    let via2 = { x: optimalPair[1].x, y: optimalPair[1].y }
 
     const via1DistToStart = distance(via1, routeA.startPort)
     const via2DistToStart = distance(via2, routeA.startPort)
@@ -363,9 +316,10 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       ;[via1, via2] = [via2, via1]
     }
 
-    currentDebugData.initialVias = { via1, via2 }
-
-    return { via1, via2 }
+    return {
+      via1,
+      via2,
+    }
   }
 
   /**
@@ -400,24 +354,17 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   }
 
   /**
-   * Try to solve with routeA going over and routeB staying on the original layer
+   * Try to solve with routeA going over and routeB staying on layer 0
    */
-  private trySolveAOverB(
-    routeA: Route,
-    routeB: Route,
-    attemptIndex: number,
-  ): boolean {
-    const viaPositions = this.calculateViaPositions(
-      routeA,
-      routeB,
-      attemptIndex,
-    )
-    if (!viaPositions) {
-      return false // Failed to find initial via positions
+  private trySolveAOverB(routeA: Route, routeB: Route): boolean {
+    const viaPositions = this.calculateViaPositions(routeA, routeB)
+    if (viaPositions) {
+      this.debugViaPositions.push(viaPositions)
+    } else {
+      return false
     }
 
-    const optimizedVias = this.optimizeViaPositions(viaPositions, attemptIndex)
-    const { via1, via2 } = optimizedVias
+    const { via1, via2 } = this.optimizeViaPositions(viaPositions)
 
     // if (
     //   distance(via1, via2) <
@@ -436,39 +383,27 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     )
 
     // Calculate orthogonal line through the middle segment of route A
-    const midSegmentStart = {
-      x: via1.x,
-      y: via1.y,
-      z: routeA.startPort.z === 0 ? 1 : 0,
-    }
-    const midSegmentEnd = {
-      x: via2.x,
-      y: via2.y,
-      z: routeA.startPort.z === 0 ? 1 : 0,
-    }
+    const midSegmentStart = { x: via1.x, y: via1.y, z: 1 }
+    const midSegmentEnd = { x: via2.x, y: via2.y, z: 1 }
 
     // Calculate the orthogonal points for route B
-    let orthogonalPoints = this.calculateShortestOrthogonalRoutePoints(
-      routeB.startPort,
-      routeB.endPort,
-      midSegmentStart,
-      midSegmentEnd,
-      routeA.startPort,
-      routeA.endPort,
-      attemptIndex,
-    )
-
-    if (!orthogonalPoints) {
-      orthogonalPoints = this.calculateConservativeOrthogonalRoutePoints(
+    const orthogonalPoints =
+      this.calculateShortestOrthogonalRoutePoints(
         routeB.startPort,
         routeB.endPort,
         midSegmentStart,
         midSegmentEnd,
         routeA.startPort,
         routeA.endPort,
-        attemptIndex,
+      ) ??
+      this.calculateConservativeOrthogonalRoutePoints(
+        routeB.startPort,
+        routeB.endPort,
+        midSegmentStart,
+        midSegmentEnd,
+        routeA.startPort,
+        routeA.endPort,
       )
-    }
 
     // Create route for B that navigates around the vias
     const routeBSolution: HighDensityIntraNodeRoute = {
@@ -483,15 +418,11 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     return true
   }
 
-  private optimizeViaPositions(
-    viaPositions: { via1: Point; via2: Point },
-    attemptIndex: number,
-  ): {
+  private optimizeViaPositions(viaPositions: { via1: Point; via2: Point }): {
     via1: Point
     via2: Point
   } {
     const { via1, via2 } = viaPositions
-    const currentDebugData = this.debugItems[attemptIndex]
 
     // Calculate the minimum required distance between vias
     const minRequiredDistance =
@@ -500,9 +431,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     // Calculate current distance between vias
     const currentDistance = distance(via1, via2)
 
-    // If vias are already closer than or equal to the minimum required distance, store and return as is
+    // If vias are already closer than or equal to the minimum required distance, return as is
     if (currentDistance <= minRequiredDistance) {
-      currentDebugData.optimizedVias = { via1, via2 }
       return viaPositions
     }
 
@@ -537,9 +467,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       via1: newVia1,
       via2: newVia2,
     }
-
-    currentDebugData.optimizedVias = { via1: newVia1, via2: newVia2 }
-    return { via1: newVia1, via2: newVia2 }
   }
 
   /**
@@ -552,13 +479,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     via2: Point,
     otherRouteStart: Point,
     otherRouteEnd: Point,
-    attemptIndex: number,
-  ): Point[] {
-    const currentDebugData = this.debugItems[attemptIndex]
-    currentDebugData.orthogonalCalc = {} // Initialize debug data for this calc
-
+  ): Point[] | null {
     // Define the inner edge box which is obstacleMargin away from outer box
-    const outerBox = currentDebugData.outerBox! // Use stored outer box
+    const outerBox = {
+      width: this.bounds.maxX - this.bounds.minX,
+      height: this.bounds.maxY - this.bounds.minY,
+      x: this.bounds.minX,
+      y: this.bounds.minY,
+    }
 
     const innerEdgeBox = {
       width: outerBox.width - 2 * this.obstacleMargin - this.traceThickness,
@@ -584,25 +512,9 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     // Calculate the midpoint of the mid segment
     const midpointX = (via1.x + via2.x) / 2
     const midpointY = (via1.y + via2.y) / 2
-    currentDebugData.orthogonalCalc!.midSegmentCenter = {
-      x: midpointX,
-      y: midpointY,
-    }
 
     // Calculate the orthogonal line that passes through the midpoint
     // Line equation: (x, y) = (midpointX, midpointY) + t * (normOrthDX, normOrthDY)
-    // Store two points far along this line for visualization
-    const lineLength = Math.max(outerBox.width, outerBox.height) * 2
-    currentDebugData.orthogonalCalc!.orthogonalLinePoints = [
-      {
-        x: midpointX - normOrthDX * lineLength,
-        y: midpointY - normOrthDY * lineLength,
-      },
-      {
-        x: midpointX + normOrthDX * lineLength,
-        y: midpointY + normOrthDY * lineLength,
-      },
-    ]
 
     // Function to calculate intersections with the innerEdgeBox
     const calculateIntersections = (): Point[] => {
@@ -660,7 +572,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     const intersections = calculateIntersections()
-    currentDebugData.orthogonalCalc!.intersections = intersections // Store intersections
 
     // If we don't have at least 2 intersections, return direct route
     if (intersections.length < 2) {
@@ -687,7 +598,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     ) {
       ;[middlePoint1, middlePoint2] = [middlePoint2, middlePoint1]
     }
-    currentDebugData.orthogonalCalc!.chosenPoints = [middlePoint1, middlePoint2]
 
     // Create the route with 4 points
     return [
@@ -705,16 +615,11 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     via2: Point,
     otherRouteStart: Point,
     otherRouteEnd: Point,
-    attemptIndex: number,
   ): Point[] | null {
-    const currentDebugObj = this.debugItems[attemptIndex]
-    currentDebugObj.shortestOrthogonalCalc = {} // Initialize debug data
-
     const midSegmentCenter = {
       x: (via1.x + via2.x) / 2,
       y: (via1.y + via2.y) / 2,
     }
-    currentDebugObj.shortestOrthogonalCalc.midSegmentCenter = midSegmentCenter
 
     const midSegmentDirection = {
       x: via2.x - via1.x,
@@ -743,8 +648,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         orthogonalPoint1,
       ]
     }
-    currentDebugObj.shortestOrthogonalCalc.orthogonalPoint1 = orthogonalPoint1
-    currentDebugObj.shortestOrthogonalCalc.orthogonalPoint2 = orthogonalPoint2
 
     // Make sure we're not too close to the other route, or the mid segment
     // start or end (which has vias)
@@ -833,14 +736,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       return
     }
 
-    // Try having route A go over route B (Attempt 0)
-    if (this.trySolveAOverB(routeA, routeB, 0)) {
+    // Try having route A go over route B
+    if (this.trySolveAOverB(routeA, routeB)) {
       this.solved = true
       return
     }
 
-    // If that fails, try having route B go over route A (Attempt 1)
-    if (this.trySolveAOverB(routeB, routeA, 1)) {
+    // If that fails, try having route B go over route A
+    if (this.trySolveAOverB(routeB, routeA)) {
       this.solved = true
       return
     }
@@ -871,320 +774,107 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       stroke: "rgba(0, 0, 0, 0.5)",
       fill: "rgba(240, 240, 240, 0.1)",
       label: "PCB Bounds",
-      step: 0,
     })
 
-    // Draw original routes (Step 1)
-    for (let i = 0; i < this.routes.length; i++) {
-      const route = this.routes[i]
-      const routeLabel = i === 0 ? "Route A" : "Route B"
+    // Draw original routes
+    for (const [routeName, route] of [
+      ["Route A", this.routes[0]],
+      ["Route B", this.routes[1]],
+    ]) {
       // Draw endpoints
       graphics.points!.push({
         x: route.startPort.x,
         y: route.startPort.y,
-        label: `${routeLabel} Start (${route.connectionName})`,
-        color: "blue",
-        step: 1,
+        label: `${routeName}\n${route.connectionName} start`,
+        color: "orange",
       })
 
       graphics.points!.push({
         x: route.endPort.x,
         y: route.endPort.y,
-        label: `${routeLabel} End (${route.connectionName})`,
-        color: "blue",
-        step: 1,
+        label: `${routeName}\n${route.connectionName} end`,
+        color: "orange",
       })
 
       // Draw direct connection line
       graphics.lines!.push({
         points: [route.startPort, route.endPort],
-        strokeColor: "rgba(0, 0, 255, 0.3)",
-        label: `${routeLabel} Direct Path`,
-        step: 1,
+        strokeColor: "rgba(255, 0, 0, 0.5)",
+        label: `${routeName}\n${route.connectionName} direct`,
       })
     }
 
-    // Draw debug intermediate calculations (Steps 2+)
-    for (let i = 0; i < this.debugItems.length; i++) {
-      const debugItem = this.debugItems[i]
-      const attemptLabel = `Attempt ${i + 1}`
-      const attemptColor =
-        i === 0 ? "rgba(255, 165, 0, 0.7)" : "rgba(128, 0, 128, 0.7)" // orange, purple
-      const attemptColorLight =
-        i === 0 ? "rgba(255, 165, 0, 0.3)" : "rgba(128, 0, 128, 0.3)"
+    // Draw debug via positions (even if solution failed)
+    for (let i = 0; i < this.debugViaPositions.length; i++) {
+      const { via1, via2 } = this.debugViaPositions[i]
 
-      // Step 2: Inner/Outer Box
-      if (debugItem.outerBox) {
-        graphics.rects!.push({
-          center: {
-            x: debugItem.outerBox.x + debugItem.outerBox.width / 2,
-            y: debugItem.outerBox.y + debugItem.outerBox.height / 2,
-          },
-          width: debugItem.outerBox.width,
-          height: debugItem.outerBox.height,
-          stroke: "rgba(150, 150, 150, 0.5)",
-          fill: "none",
-          label: `${attemptLabel} Outer Box`,
-          step: 2,
-        })
-      }
-      if (debugItem.innerBox) {
-        graphics.rects!.push({
-          center: {
-            x: debugItem.innerBox.x + debugItem.innerBox.width / 2,
-            y: debugItem.innerBox.y + debugItem.innerBox.height / 2,
-          },
-          width: debugItem.innerBox.width,
-          height: debugItem.innerBox.height,
-          stroke: attemptColor,
-          fill: "none",
-          label: `${attemptLabel} Inner Box (Via Candidate Area)`,
-          step: 2,
-        })
-      }
+      // Draw computed vias (using different colors for different attempts)
+      const colors = ["rgba(255, 165, 0, 0.7)", "rgba(128, 0, 128, 0.7)"] // orange, purple
+      const color = colors[i % colors.length]
 
-      // Step 3: K1 Circles
-      if (debugItem.k1Circles) {
-        debugItem.k1Circles.forEach((circle, k) => {
-          graphics.circles!.push({
-            center: circle.center,
-            radius: circle.radius,
-            stroke: attemptColor,
-            fill: attemptColorLight,
-            label: `${attemptLabel} K1 Circle ${k + 1}`,
-            step: 3,
-          })
-        })
-      }
+      graphics.circles!.push({
+        center: via1,
+        radius: this.viaDiameter / 2,
+        fill: color,
+        stroke: "rgba(0, 0, 0, 0.5)",
+        label: `Computed Via A (attempt ${i + 1})`,
+      })
 
-      // Step 4: Candidate Points & Intersections
-      if (debugItem.edgeIntersections) {
-        debugItem.edgeIntersections.forEach((p, k) => {
-          graphics.points!.push({
-            ...p,
-            color: "rgba(200, 200, 0, 0.5)", // Yellowish
-            label: `${attemptLabel} Edge Intersection ${k + 1}`,
-            step: 4,
-          })
-        })
-      }
-      if (debugItem.candidatePoints) {
-        debugItem.candidatePoints.forEach((p, k) => {
-          graphics.points!.push({
-            ...p,
-            color: attemptColor,
-            label: `${attemptLabel} Candidate ${k + 1} (${p.type})`,
-            step: 4,
-          })
-        })
-      }
+      graphics.circles!.push({
+        center: via2,
+        radius: this.viaDiameter / 2,
+        fill: color,
+        stroke: "rgba(0, 0, 0, 0.5)",
+        label: `Computed Via B (attempt ${i + 1})`,
+      })
 
-      // Step 5: Optimal Pair
-      if (debugItem.optimalPair) {
-        graphics.points!.push({
-          ...debugItem.optimalPair[0],
-          color: "red",
-          label: `${attemptLabel} Optimal Pair 1`,
-          step: 5,
-        })
-        graphics.points!.push({
-          ...debugItem.optimalPair[1],
-          color: "red",
-          label: `${attemptLabel} Optimal Pair 2`,
-          step: 5,
-        })
-        graphics.lines!.push({
-          points: debugItem.optimalPair,
-          strokeColor: "rgba(255, 0, 0, 0.5)",
-          label: `${attemptLabel} Optimal Pair Line`,
-          step: 5,
-        })
-      }
+      // Draw safety margins around vias
+      const safetyMargin = this.viaDiameter / 2 + this.obstacleMargin
+      graphics.circles!.push({
+        center: via1,
+        radius: safetyMargin,
+        stroke: color,
+        fill: "rgba(0, 0, 0, 0)",
+        label: `Debug Via 1 Safety Margin (attempt ${i + 1})`,
+      })
 
-      // Step 6: Initial Vias
-      if (debugItem.initialVias) {
-        graphics.circles!.push({
-          center: debugItem.initialVias.via1,
-          radius: this.viaDiameter / 4, // Smaller circle for initial
-          fill: "cyan",
-          label: `${attemptLabel} Initial Via 1`,
-          step: 6,
-        })
-        graphics.circles!.push({
-          center: debugItem.initialVias.via2,
-          radius: this.viaDiameter / 4,
-          fill: "cyan",
-          label: `${attemptLabel} Initial Via 2`,
-          step: 6,
-        })
-      }
+      graphics.circles!.push({
+        center: via2,
+        radius: safetyMargin,
+        stroke: color,
+        fill: "rgba(0, 0, 0, 0)",
+        label: `Debug Via 2 Safety Margin (attempt ${i + 1})`,
+      })
 
-      // Step 7: Optimized Vias
-      if (debugItem.optimizedVias) {
-        graphics.circles!.push({
-          center: debugItem.optimizedVias.via1,
-          radius: this.viaDiameter / 2,
-          fill: attemptColor,
-          stroke: "black",
-          label: `${attemptLabel} Optimized Via 1`,
-          step: 7,
-        })
-        graphics.circles!.push({
-          center: debugItem.optimizedVias.via2,
-          radius: this.viaDiameter / 2,
-          fill: attemptColor,
-          stroke: "black",
-          label: `${attemptLabel} Optimized Via 2`,
-          step: 7,
-        })
-        // Draw safety margins around optimized vias
-        const safetyMargin = this.viaDiameter / 2 + this.obstacleMargin
-        graphics.circles!.push({
-          center: debugItem.optimizedVias.via1,
-          radius: safetyMargin,
-          stroke: attemptColor,
-          fill: "none",
-          // strokeDash: [2, 2], // strokeDash is not valid for circles
-          label: `${attemptLabel} Via 1 Safety Margin`,
-          step: 7,
-        })
-        graphics.circles!.push({
-          center: debugItem.optimizedVias.via2,
-          radius: safetyMargin,
-          stroke: attemptColor,
-          fill: "none",
-          // strokeDash: [2, 2], // strokeDash is not valid for circles
-          label: `${attemptLabel} Via 2 Safety Margin`,
-          step: 7,
-        })
-        // Draw potential route through optimized vias
-        const routeIndex = i % 2 // 0 for first attempt (routeA over), 1 for second (routeB over)
-        graphics.lines!.push({
-          points: [
-            this.routes[routeIndex].startPort,
-            debugItem.optimizedVias.via1,
-            debugItem.optimizedVias.via2,
-            this.routes[routeIndex].endPort,
-          ],
-          strokeColor: attemptColorLight,
-          strokeDash: [5, 5],
-          label: `${attemptLabel} Potential Via Route`,
-          step: 7,
-        })
-      }
-
-      // Step 8: Orthogonal Route Calculation (Conservative)
-      if (debugItem.orthogonalCalc) {
-        if (debugItem.orthogonalCalc.midSegmentCenter) {
-          graphics.points!.push({
-            ...debugItem.orthogonalCalc.midSegmentCenter,
-            color: "magenta",
-            label: `${attemptLabel} Ortho Mid Segment Center`,
-            step: 8,
-          })
-        }
-        if (debugItem.orthogonalCalc.orthogonalLinePoints) {
-          graphics.lines!.push({
-            points: debugItem.orthogonalCalc.orthogonalLinePoints,
-            strokeColor: "rgba(255, 0, 255, 0.4)", // Magenta
-            strokeDash: [3, 3],
-            label: `${attemptLabel} Orthogonal Line`,
-            step: 8,
-          })
-        }
-        if (debugItem.orthogonalCalc.intersections) {
-          debugItem.orthogonalCalc.intersections.forEach((p, k) => {
-            graphics.points!.push({
-              ...p,
-              color: "rgba(255, 0, 255, 0.6)",
-              label: `${attemptLabel} Ortho Intersection ${k + 1}`,
-              step: 8,
-            })
-          })
-        }
-        if (debugItem.orthogonalCalc.chosenPoints) {
-          graphics.points!.push({
-            ...debugItem.orthogonalCalc.chosenPoints[0],
-            color: "red",
-            label: `${attemptLabel} Ortho Chosen Point 1`,
-            step: 8,
-          })
-          graphics.points!.push({
-            ...debugItem.orthogonalCalc.chosenPoints[1],
-            color: "red",
-            label: `${attemptLabel} Ortho Chosen Point 2`,
-            step: 8,
-          })
-        }
-      }
-
-      // Step 8.5: Orthogonal Route Calculation (Shortest)
-      if (debugItem.shortestOrthogonalCalc) {
-        if (debugItem.shortestOrthogonalCalc.midSegmentCenter) {
-          graphics.points!.push({
-            ...debugItem.shortestOrthogonalCalc.midSegmentCenter,
-            color: "lime",
-            label: `${attemptLabel} Shortest Ortho Mid Center`,
-            step: 8.5,
-          })
-        }
-        if (
-          debugItem.shortestOrthogonalCalc.orthogonalPoint1 &&
-          debugItem.shortestOrthogonalCalc.orthogonalPoint2
-        ) {
-          graphics.points!.push({
-            ...debugItem.shortestOrthogonalCalc.orthogonalPoint1,
-            color: "lime",
-            label: `${attemptLabel} Shortest Ortho Point 1`,
-            step: 8.5,
-          })
-          graphics.points!.push({
-            ...debugItem.shortestOrthogonalCalc.orthogonalPoint2,
-            color: "lime",
-            label: `${attemptLabel} Shortest Ortho Point 2`,
-            step: 8.5,
-          })
-          graphics.lines!.push({
-            points: [
-              debugItem.shortestOrthogonalCalc.orthogonalPoint1,
-              debugItem.shortestOrthogonalCalc.orthogonalPoint2,
-            ],
-            strokeColor: "rgba(0, 255, 0, 0.5)", // Lime
-            label: `${attemptLabel} Shortest Ortho Segment`,
-            step: 8.5,
-          })
-        }
-      }
+      // Draw potential route through vias
+      graphics.lines!.push({
+        points: [
+          this.routes[i % 2].startPort,
+          via1,
+          via2,
+          this.routes[i % 2].endPort,
+        ],
+        strokeColor: `${color.substring(0, color.lastIndexOf(","))}, 0.3)`,
+        strokeDash: [5, 5],
+        label: `Potential Route (attempt ${i + 1})`,
+      })
     }
 
-    // Step 9: Draw solved routes if available
+    // Draw solved routes if available
     for (let si = 0; si < this.solvedRoutes.length; si++) {
       const route = this.solvedRoutes[si]
-      // Determine color based on which original route it corresponds to
-      const originalRouteIndex = this.routes.findIndex(
-        (r) => r.connectionName === route.connectionName,
-      )
       const routeColor =
-        originalRouteIndex === 0
-          ? "rgba(0, 180, 0, 0.8)" // Darker Green for Route A solution
-          : "rgba(180, 0, 180, 0.8)" // Darker Magenta for Route B solution
-      const routeColorLayer1 =
-        originalRouteIndex === 0
-          ? "rgba(0, 180, 0, 0.5)"
-          : "rgba(180, 0, 180, 0.5)"
-
+        si % 2 === 0 ? "rgba(0, 255, 0, 0.75)" : "rgba(255, 0, 255, 0.75)"
       for (let i = 0; i < route.route.length - 1; i++) {
         const pointA = route.route[i]
         const pointB = route.route[i + 1]
-        const isLayer1 = pointA.z !== 0 || pointB.z !== 0 // Check if segment involves layer 1
 
         graphics.lines!.push({
           points: [pointA, pointB],
-          strokeColor: isLayer1 ? routeColorLayer1 : routeColor,
-          strokeDash: isLayer1 ? [2, 2] : undefined,
+          strokeColor: routeColor,
+          strokeDash: pointA.z === 1 ? [0.2, 0.2] : undefined,
           strokeWidth: route.traceThickness,
-          label: `${route.connectionName} Solved Segment (z=${pointA.z}->${pointB.z})`,
-          step: 9, // Final solution step
+          label: `${route.connectionName} z=${pointA.z}`,
         })
       }
 
@@ -1193,20 +883,16 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         graphics.circles!.push({
           center: via,
           radius: this.viaDiameter / 2,
-          fill: routeColor, // Use route color for via fill
+          fill: "rgba(0, 0, 255, 0.8)",
           stroke: "black",
-          label: `${route.connectionName} Solved Via`,
-          step: 9,
+          label: "Solved Via",
         })
-        // Optionally draw margin around solved vias too
         graphics.circles!.push({
           center: via,
           radius: this.viaDiameter / 2 + this.obstacleMargin,
-          fill: "none",
-          stroke: routeColor,
-          // strokeDash: [1, 1], // strokeDash is not valid for circles
-          label: `${route.connectionName} Solved Via Margin`,
-          step: 9,
+          fill: "rgba(0, 0, 255, 0.3)",
+          stroke: "black",
+          label: "Solved Via Margin",
         })
       }
     }
