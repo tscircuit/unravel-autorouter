@@ -73,7 +73,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   _stepInitialization() {
-    this.initialSolver?.step()
+    this.initialSolver?.solve()
     if (this.initialSolver?.failed) {
       this.failed = true
       this.error = this.initialSolver.error
@@ -104,6 +104,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   _getNextNodeToOptimize(): CapacityMeshNodeId | null {
     // Get the node with the highest % capacity used with no attempts
     let highestNodePfDivAttempts = 0
+    let highestNodePf = 0
     let nodeWithHighestPercentCapacityUsed: CapacityMeshNodeId | null = null
     for (const node of this.nodes) {
       if (node._containsTarget) continue
@@ -125,9 +126,11 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         nodePf > 0.2
       ) {
         highestNodePfDivAttempts = nodePfDivAttempts
+        highestNodePf = nodePf
         nodeWithHighestPercentCapacityUsed = node.capacityMeshNodeId
       }
     }
+    console.log(`Highest node Pf: ${highestNodePf}`)
     return nodeWithHighestPercentCapacityUsed
   }
 
@@ -244,13 +247,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
       // --- Compare and Merge ---
       if (afterScore > beforeScore) {
-        // console.log(
-        //   `Section ${
-        //     solvedSectionSolver.centerNodeId
-        //   } improved score (${beforeScore.toFixed(
-        //     2,
-        //   )} -> ${afterScore.toFixed(2)}). Merging results.`,
-        // )
+        console.log(
+          `Section ${
+            solvedSectionSolver.centerNodeId
+          } improved score (${beforeScore.toFixed(
+            2,
+          )} -> ${afterScore.toFixed(2)}). Merging results.`,
+        )
         // Section solver succeeded AND improved score, merge the results
         this._mergeSolvedSectionPaths(solvedSectionSolver) // Pass the original section solver instance
         this._recalculateNodeCapacityUsage() // Recalculate global capacity after merging

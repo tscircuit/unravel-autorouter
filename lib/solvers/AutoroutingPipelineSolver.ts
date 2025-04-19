@@ -44,6 +44,7 @@ import {
 } from "lib/types/high-density-types"
 import { CapacityMeshEdgeSolver2_NodeTreeOptimization } from "./CapacityMeshSolver/CapacityMeshEdgeSolver2_NodeTreeOptimization"
 import { UselessViaRemovalSolver } from "./UselessViaRemovalSolver/UselessViaRemovalSolver"
+import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -95,8 +96,10 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
   singleLayerNodeMerger?: SingleLayerNodeMergerSolver
   strawSolver?: StrawSolver
-  uselessViaRemovalSolver?: UselessViaRemovalSolver
-  multiSimplifiedPathSolver?: MultiSimplifiedPathSolver
+  uselessViaRemovalSolver1?: UselessViaRemovalSolver
+  uselessViaRemovalSolver2?: UselessViaRemovalSolver
+  multiSimplifiedPathSolver1?: MultiSimplifiedPathSolver
+  multiSimplifiedPathSolver2?: MultiSimplifiedPathSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -265,7 +268,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       ],
     ),
     definePipelineStep(
-      "uselessViaRemovalSolver",
+      "uselessViaRemovalSolver1",
       UselessViaRemovalSolver,
       (cms) => [
         {
@@ -277,13 +280,39 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       ],
     ),
     definePipelineStep(
-      "multiSimplifiedPathSolver",
+      "multiSimplifiedPathSolver1",
       MultiSimplifiedPathSolver,
       (cms) => [
         {
           unsimplifiedHdRoutes:
-            cms.uselessViaRemovalSolver?.getOptimizedHdRoutes() ||
+            cms.uselessViaRemovalSolver1?.getOptimizedHdRoutes() ||
             cms.highDensityStitchSolver!.mergedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          connMap: cms.connMap,
+          colorMap: cms.colorMap,
+        },
+      ],
+    ),
+    definePipelineStep(
+      "uselessViaRemovalSolver2",
+      UselessViaRemovalSolver,
+      (cms) => [
+        {
+          unsimplifiedHdRoutes:
+            cms.multiSimplifiedPathSolver1!.simplifiedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          colorMap: cms.colorMap,
+          layerCount: cms.srj.layerCount,
+        },
+      ],
+    ),
+    definePipelineStep(
+      "multiSimplifiedPathSolver2",
+      MultiSimplifiedPathSolver,
+      (cms) => [
+        {
+          unsimplifiedHdRoutes:
+            cms.uselessViaRemovalSolver2?.getOptimizedHdRoutes()!,
           obstacles: cms.srj.obstacles,
           connMap: cms.connMap,
           colorMap: cms.colorMap,
@@ -382,8 +411,12 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const highDensityStitchViz = this.highDensityStitchSolver?.visualize()
-    const uselessViaRemovalViz = this.uselessViaRemovalSolver?.visualize()
-    const simplifiedPathSolverViz = this.multiSimplifiedPathSolver?.visualize()
+    const uselessViaRemovalViz1 = this.uselessViaRemovalSolver1?.visualize()
+    const uselessViaRemovalViz2 = this.uselessViaRemovalSolver2?.visualize()
+    const simplifiedPathSolverViz1 =
+      this.multiSimplifiedPathSolver1?.visualize()
+    const simplifiedPathSolverViz2 =
+      this.multiSimplifiedPathSolver2?.visualize()
     const problemViz = {
       points: [
         ...this.srj.connections.flatMap((c) =>
@@ -438,8 +471,10 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
       highDensityStitchViz,
-      uselessViaRemovalViz,
-      simplifiedPathSolverViz,
+      uselessViaRemovalViz1,
+      simplifiedPathSolverViz1,
+      uselessViaRemovalViz2,
+      simplifiedPathSolverViz2,
       this.solved
         ? combineVisualizations(
             problemViz,
@@ -513,8 +548,10 @@ export class AutoroutingPipelineSolver extends BaseSolver {
 
   _getOutputHdRoutes(): HighDensityRoute[] {
     return (
-      this.multiSimplifiedPathSolver?.simplifiedHdRoutes ??
-      this.uselessViaRemovalSolver?.getOptimizedHdRoutes() ??
+      this.multiSimplifiedPathSolver2?.simplifiedHdRoutes ??
+      this.uselessViaRemovalSolver2?.getOptimizedHdRoutes() ??
+      this.multiSimplifiedPathSolver1?.simplifiedHdRoutes ??
+      this.uselessViaRemovalSolver1?.getOptimizedHdRoutes() ??
       this.highDensityStitchSolver!.mergedHdRoutes
     )
   }
