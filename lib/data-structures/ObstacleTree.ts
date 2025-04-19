@@ -7,7 +7,11 @@ export class ObstacleSpatialHashIndex {
   CELL_SIZE = 0.4
 
   constructor(public obstacles: Obstacle[]) {
+    // console.log(
+    //   `[ObstacleSHI] Initializing with ${obstacles.length} obstacles. CELL_SIZE: ${this.CELL_SIZE}`,
+    // )
     this.buckets = new Map()
+    let bucketEntriesCount = 0
     // for (const obstacle of obstacles) {
     for (let i = 0; i < obstacles.length; i++) {
       const obstacle = obstacles[i]
@@ -23,10 +27,14 @@ export class ObstacleSpatialHashIndex {
             this.buckets.set(bucketKey, [[obstacle, i]])
           } else {
             bucket.push([obstacle, i])
+            bucketEntriesCount++
           }
         }
       }
     }
+    // console.log(
+    //   `[ObstacleSHI] Initialization complete. Populated ${this.buckets.size} buckets with ${bucketEntriesCount} total entries.`,
+    // )
   }
 
   getBucketKey(x: number, y: number): BucketCoordinate {
