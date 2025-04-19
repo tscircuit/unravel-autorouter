@@ -111,33 +111,41 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
         this.colorMap[mergedRoute.connectionName] ??
         `hsl(120, 100%, ${40 + ((i * 10) % 40)}%)` // Different shades of green
 
-      // Visualize the route path
-      if (mergedRoute.route.length > 1) {
+      // Visualize the route path segment by segment
+      for (let j = 0; j < mergedRoute.route.length - 1; j++) {
+        const p1 = mergedRoute.route[j]
+        const p2 = mergedRoute.route[j + 1]
+        const segmentColor =
+          p1.z !== 0 ? safeTransparentize(solvedColor, 0.5) : solvedColor
+
         graphics.lines?.push({
-          points: mergedRoute.route.map((point) => ({
-            x: point.x,
-            y: point.y,
-          })),
-          strokeColor: solvedColor,
+          points: [
+            { x: p1.x, y: p1.y },
+            { x: p2.x, y: p2.y },
+          ],
+          strokeColor: segmentColor,
           strokeWidth: mergedRoute.traceThickness,
         })
       }
 
-      // Visualize route points
+      // Visualize route points (apply transparency based on Z)
       for (const point of mergedRoute.route) {
+        const pointColor =
+          point.z !== 0 ? safeTransparentize(solvedColor, 0.5) : solvedColor
         graphics.points?.push({
           x: point.x,
           y: point.y,
-          color: solvedColor,
+          color: pointColor,
         })
       }
 
-      // Visualize vias in the merged route
+      // Visualize vias in the merged route (Vias inherently connect layers, keep solid for now)
+      // TODO: Consider if via transparency should depend on connected layers
       for (const via of mergedRoute.vias) {
         graphics.circles?.push({
           center: { x: via.x, y: via.y },
           radius: mergedRoute.viaDiameter / 2,
-          fill: solvedColor,
+          fill: solvedColor, // Keep vias solid color for visibility
         })
       }
     }
