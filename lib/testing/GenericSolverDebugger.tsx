@@ -92,6 +92,19 @@ export const GenericSolverDebugger = ({
     }
   }
 
+  // Substep function for deepest active subsolver
+  const handleSubStep = () => {
+    let deepestSolver = mainSolver.activeSubSolver
+    while (deepestSolver?.activeSubSolver) {
+      deepestSolver = deepestSolver.activeSubSolver
+    }
+
+    if (deepestSolver && !deepestSolver.solved && !deepestSolver.failed) {
+      deepestSolver.step()
+      setForceUpdate((prev) => prev + 1)
+    }
+  }
+
   // Next Stage function
   const handleNextStage = () => {
     if (!mainSolver.solved && !mainSolver.failed) {
@@ -273,6 +286,19 @@ export const GenericSolverDebugger = ({
         >
           Step
         </button>
+        {showDeepestVisualization && (
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100"
+            onClick={handleSubStep}
+            disabled={
+              !deepestActiveSubSolver ||
+              mainSolver.solved ||
+              mainSolver.failed
+            }
+          >
+            Substep
+          </button>
+        )}
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleNextStage}
