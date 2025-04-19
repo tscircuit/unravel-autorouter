@@ -515,6 +515,23 @@ export const GenericSolverDebugger = ({
               {deepestActiveSubSolver?.constructor?.name})
             </button>
           )}
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100"
+            onClick={() => {
+              const vizJson = JSON.stringify(visualization, null, 2)
+              const blob = new Blob([vizJson], { type: "application/json" })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement("a")
+              a.download = "visualization.json"
+              a.href = url
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+              URL.revokeObjectURL(url)
+            }}
+          >
+            Download Visualization JSON
+          </button>
         </div>
       </div>
     </div>
