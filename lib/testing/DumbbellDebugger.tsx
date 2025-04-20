@@ -287,7 +287,7 @@ export const DumbbellDebugger = ({
         ctx.font = "12px Arial"
         ctx.fillStyle = "#000"
         ctx.fillText(
-          `Optimal Path: S${pathResult.optimalPath.index} (${pathResult.optimalPath.startsAt} → ${pathResult.optimalPath.goesTo})`,
+          `Optimal Path: S${(pathResult.optimalPath as any).index} (${pathResult.optimalPath.startsAt} → ${pathResult.optimalPath.goesTo})`,
           10,
           20,
         )
