@@ -19,7 +19,6 @@ import {
 } from "./createPointModificationsHash"
 import { getIssuesInSection } from "./getIssuesInSection"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
-import { getLogProbability } from "./getLogProbability"
 import { applyOperationToPointModifications } from "./applyOperationToPointModifications"
 import {
   createSegmentPointMap,
@@ -539,7 +538,12 @@ export class UnravelSectionSolver extends BaseSolver {
       }
     }
 
-    let cost = 0
+    function log1mexp(x: number): number {
+      if (x < -Math.LN2) return Math.log(1 - Math.exp(x))
+      else return Math.log(-Math.expm1(x)) // more accurate when x ~ 0
+    }
+
+    let logSuccess = 0 // log(probability all nodes succeed)
 
     for (const [
       nodeId,
@@ -557,10 +561,13 @@ export class UnravelSectionSolver extends BaseSolver {
         numTransitionCrossings,
       )
 
-      cost += getLogProbability(estPf)
+      const log1mPf = Math.log(1 - estPf)
+      logSuccess += log1mPf
     }
 
-    return cost
+    const logPf = log1mexp(logSuccess)
+
+    return logPf
   }
 
   getUnexploredNeighborByApplyingOperation(
