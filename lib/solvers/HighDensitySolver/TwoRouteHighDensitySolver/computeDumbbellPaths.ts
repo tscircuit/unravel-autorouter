@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { distance } from "@tscircuit/math-utils"
+import { distance, pointToSegmentDistance } from "@tscircuit/math-utils"
 
 type Point = { x: number; y: number }
 type Segment = { start: Point; end: Point }
@@ -817,11 +817,34 @@ export function computeDumbbellPaths({
       ? subdivideOptimalPath(optimalPath.path, subdivisions)
       : optimalPath.path
 
-  // Find the J-pair that doesn't intersect with the optimal path
+  /**
+   * Used for JLines, returns the distance to the opposite point (the one
+   * it doesn't connect to). One of the distances is always 0 because a
+   * JLine is always connected to either A or B.
+   */
+  const pathDistanceToOppAB = (points: Point[]) => {
+    return Math.max(
+      Math.min(
+        ...points
+          .slice(0, -1)
+          .map((p, i) => [p, points[i + 1]])
+          .map(([p1, p2]) => pointToSegmentDistance(A, p1, p2)),
+      ),
+      Math.min(
+        ...points
+          .slice(0, -1)
+          .map((p, i) => [p, points[i + 1]])
+          .map(([p1, p2]) => pointToSegmentDistance(B, p1, p2)),
+      ),
+    )
+  }
+
+  // Find the J-pair that doesn't intersect with the optimal path and isn't too close to A or B
   const findJPair = (): { line1: JLine; line2: JLine } | null => {
     if (optimalPath.path.length === 0) return null
 
     const jLines = getJLines()
+    const minDistFromAB = radius + margin / 2
 
     // Separate J-lines into those starting with E and those starting with F
     const eLinesIndices = jLines.filter((line) => line.startsAt === "E")
@@ -830,18 +853,20 @@ export function computeDumbbellPaths({
     const nonIntersectingELines: JLine[] = []
     const nonIntersectingFLines: JLine[] = []
 
-    // Check each E J-line for intersection with optimal path
+    // Check each E J-line for proximity and intersection with optimal path
     for (const jLine of eLinesIndices) {
-      if (!doPathsIntersect(jLine.points, optimalPath.path)) {
-        nonIntersectingELines.push(jLine as JLine)
-      }
+      if (doPathsIntersect(jLine.points, optimalPath.path)) continue
+      if (pathDistanceToOppAB(jLine.points) < minDistFromAB) continue
+
+      nonIntersectingELines.push(jLine as JLine)
     }
 
-    // Check each F J-line for intersection with optimal path
+    // Check each F J-line for proximity and intersection with optimal path
     for (const jLine of fLinesIndices) {
-      if (!doPathsIntersect(jLine.points, optimalPath.path)) {
-        nonIntersectingFLines.push(jLine as JLine)
-      }
+      if (doPathsIntersect(jLine.points, optimalPath.path)) continue
+      if (pathDistanceToOppAB(jLine.points) < minDistFromAB) continue
+
+      nonIntersectingFLines.push(jLine as JLine)
     }
 
     // If we don't have at least one E line and one F line, return an empty pair
