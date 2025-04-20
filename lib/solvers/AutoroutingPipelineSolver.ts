@@ -178,8 +178,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     ),
     definePipelineStep(
       "pathingSolver",
-      CapacityPathingSolver5,
-      // CapacityPathingMultiSectionSolver,
+      // CapacityPathingSolver5,
+      CapacityPathingMultiSectionSolver,
       (cms) => [
         // Replaced solver class
         {

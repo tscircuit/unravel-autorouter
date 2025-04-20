@@ -34,7 +34,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   MAX_NODE_ATTEMPTS = 2
 
-  MUTABLE_HOPS = 1
+  MUTABLE_HOPS = 2
 
   ACCEPTABLE_PF = 0.05
 

@@ -45,7 +45,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
-  MAX_ATTEMPTS_PER_NODE = 2
+  MAX_ATTEMPTS_PER_NODE = 10
+  MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
+  MAX_EXPANSION_DEGREES = 3
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
@@ -123,7 +125,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       if (
         attemptCount < this.MAX_ATTEMPTS_PER_NODE &&
         nodePfDivAttempts > highestNodePfDivAttempts &&
-        nodePf > 0.2
+        nodePf > this.MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE
       ) {
         highestNodePfDivAttempts = nodePfDivAttempts
         highestNodePf = nodePf
@@ -149,7 +151,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         edges: this.edges,
         colorMap: this.colorMap,
         hyperParameters: {
-          EXPANSION_DEGREES: 3,
+          EXPANSION_DEGREES: this.MAX_EXPANSION_DEGREES,
           SHUFFLE_SEED: this.iterations,
         },
       })
