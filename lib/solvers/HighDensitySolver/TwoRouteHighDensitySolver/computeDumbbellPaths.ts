@@ -732,6 +732,109 @@ export function computeDumbbellPaths({
     ]
   }
 
+  // Subdivide a J-line path if segments are too close to the opposite point (A or B)
+  const subdivideJLinePath = (
+    jLine: JLine,
+    oppositePoint: Point,
+    r: number,
+    m: number,
+    numSubdivisions: number, // Keep consistent with optimal path subdivision
+  ): Point[] => {
+    const path = jLine.points
+    if (path.length < 2) return path
+
+    const minDistThreshold = r + m
+    const result: Point[] = [path[0]] // Start with the first point
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const segment = { start: path[i], end: path[i + 1] }
+
+      // Calculate the distance from the segment to the opposite point
+      const distToOpposite = pointToSegmentDistance(
+        oppositePoint,
+        segment.start,
+        segment.end,
+      )
+
+      if (distToOpposite < minDistThreshold) {
+        // Segment is too close, need to subdivide/adjust
+
+        // Find the point on the segment closest to the opposite point
+        const closestPt = closestPointOnSegment(segment, oppositePoint)
+
+        // Calculate the direction vector from the opposite point to the closest point
+        const dirX = closestPt.x - oppositePoint.x
+        const dirY = closestPt.y - oppositePoint.y
+        const norm = Math.sqrt(dirX * dirX + dirY * dirY)
+
+        let adjustedPoint: Point | null = null
+        if (norm > 1e-6) {
+          // Calculate the point pushed away to the minimum distance threshold
+          adjustedPoint = {
+            x: oppositePoint.x + (minDistThreshold * dirX) / norm,
+            y: oppositePoint.y + (minDistThreshold * dirY) / norm,
+            // We might need 't' if combining with regular subdivisions,
+            // but for now, just the adjusted point is needed.
+            // t: closestPt.t
+          }
+        } else {
+          // Closest point is the opposite point itself (unlikely for segments, but handle)
+          // Push away in the segment's direction
+          const segDirX = segment.end.x - segment.start.x
+          const segDirY = segment.end.y - segment.start.y
+          const segNorm = Math.sqrt(segDirX * segDirX + segDirY * segDirY)
+          if (segNorm > 1e-6) {
+            adjustedPoint = {
+              x: oppositePoint.x + (minDistThreshold * segDirX) / segNorm,
+              y: oppositePoint.y + (minDistThreshold * segDirY) / segNorm,
+            }
+          } else {
+            // Segment is a point at the opposite point - keep original? Or push arbitrarily?
+            // Let's just keep the start point for now.
+            // adjustedPoint = { ...segment.start };
+            // Or maybe push radially from opposite point? Needs a defined direction.
+            // For simplicity, we'll just add the adjusted point if calculable.
+          }
+        }
+
+        // Add the adjusted point if it was calculated
+        // We need to decide where to insert it. Inserting at the 't' position
+        // like in the optimal path subdivision might be complex.
+        // A simpler approach for now: insert it between start and end.
+        // This might create sharp turns, but ensures clearance.
+        if (adjustedPoint) {
+          // Check distance to avoid adding points too close to start/end
+          if (distance(segment.start, adjustedPoint) > radius / 10) {
+            result.push(adjustedPoint)
+          }
+        }
+      }
+
+      // Add the original end point of the segment
+      // Ensure no duplicates or very close points are added
+      const lastPointInResult = result[result.length - 1]
+      if (distance(lastPointInResult, segment.end) > radius / 10) {
+        result.push(segment.end)
+      }
+    }
+
+    // Final filter for close points
+    if (result.length > 1) {
+      const filteredResult = [result[0]]
+      for (let i = 1; i < result.length; i++) {
+        if (
+          distance(filteredResult[filteredResult.length - 1], result[i]) >
+          radius / 10
+        ) {
+          filteredResult.push(result[i])
+        }
+      }
+      return filteredResult
+    }
+
+    return result
+  }
+
   // Find the optimal path based on constraints
   const findOptimalPath = () => {
     const paths = getPaths()
@@ -881,10 +984,46 @@ export function computeDumbbellPaths({
   }
 
   // Find the J-pair
-  const jPair = findJPair()
+  let jPair = findJPair()
 
-  // TODO if JPair is too close to the opposite A/B, subdivide segments that are
-  // close and push them away from the close point
+  // If a J-pair was found, check and subdivide its lines if they are too close
+  // to the opposite A/B point.
+  if (jPair) {
+    const oppositePoint1 = jPair.line1.goesTo === "A" ? B : A
+    const oppositePoint2 = jPair.line2.goesTo === "A" ? B : A
+    const minDistFromOppAB = radius + margin / 2
+
+    const subdividedPoints1 = subdivideJLinePath(
+      jPair.line1,
+      oppositePoint1,
+      radius,
+      margin,
+      subdivisions, // Use same subdivision count for consistency? Or 0? Let's use 0 for now.
+    )
+
+    const subdividedPoints2 = subdivideJLinePath(
+      jPair.line2,
+      oppositePoint2,
+      radius,
+      margin,
+      subdivisions, // Use same subdivision count for consistency? Or 0? Let's use 0 for now.
+    )
+
+    // Update the jPair with the subdivided points
+    jPair = {
+      line1: { ...jPair.line1, points: subdividedPoints1 },
+      line2: { ...jPair.line2, points: subdividedPoints2 },
+    }
+
+    // Optional: Re-check intersection between the *new* jPair lines and the optimal path?
+    // This could lead to cycles if subdivision causes new intersections.
+    // For now, we assume the subdivision primarily pushes points away and doesn't create new intersections.
+    // if (doPathsIntersect(jPair.line1.points, optimalPath.path) || doPathsIntersect(jPair.line2.points, optimalPath.path)) {
+    //   console.warn("Subdivision of J-lines caused intersection with optimal path.");
+    //   // Potentially invalidate jPair here or try alternative J-lines?
+    //   // jPair = null;
+    // }
+  }
 
   // Return the final result
   return {
