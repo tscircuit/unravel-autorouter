@@ -45,7 +45,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   attemptsToFixNode: Map<CapacityMeshNodeId, number>
 
-  activeSolver: UnravelSectionSolver | null = null
+  activeSubSolver: UnravelSectionSolver | null = null
 
   segmentPointMap: SegmentPointMap
 
@@ -145,7 +145,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       this.solved = true
       return
     }
-    if (!this.activeSolver) {
+    if (!this.activeSubSolver) {
       // Find the node with the highest probability of failure
       let highestPfNodeId = null
       let highestPf = 0
@@ -169,7 +169,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         highestPfNodeId,
         (this.attemptsToFixNode.get(highestPfNodeId) ?? 0) + 1,
       )
-      this.activeSolver = new UnravelSectionSolver({
+      this.activeSubSolver = new UnravelSectionSolver({
         dedupedSegments: this.dedupedSegments,
         dedupedSegmentMap: this.dedupedSegmentMap,
         nodeMap: this.nodeMap,
@@ -184,19 +184,20 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       })
     }
 
-    this.activeSolver.step()
+    this.activeSubSolver.step()
 
     const { bestCandidate, originalCandidate, lastProcessedCandidate } =
-      this.activeSolver
+      this.activeSubSolver
 
     // const giveUpFactor =
-    //   1 + 4 * (1 - Math.min(1, this.activeSolver.iterations / 40))
+    //   1 + 4 * (1 - Math.min(1, this.activeSubSolver.iterations / 40))
     // const shouldEarlyStop =
     //   lastProcessedCandidate &&
     //   lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
-    const shouldEarlyStop = this.activeSolver.iterationsSinceImprovement > 200
+    const shouldEarlyStop =
+      this.activeSubSolver.iterationsSinceImprovement > 200
 
-    if (this.activeSolver.solved || shouldEarlyStop) {
+    if (this.activeSubSolver.solved || shouldEarlyStop) {
       // Incorporate the changes from the active solver
 
       const foundBetterSolution =
@@ -217,10 +218,10 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         // HACK: This is time consuming but there is a bug where sometimes the
         // UnravelSectionSolver accidentally mutates immutable nodes, so we
         // need to go to even more neighbors to be sure we have the updated
-        // Pf values. If that bug gets fixed, you can use this.activeSolver.section.allNodeIds
+        // Pf values. If that bug gets fixed, you can use this.activeSubSolver.section.allNodeIds
         const possiblyImpactedNodeIds = getNodesNearNode({
-          hops: this.activeSolver.MUTABLE_HOPS + 2,
-          nodeId: this.activeSolver.rootNodeId,
+          hops: this.activeSubSolver.MUTABLE_HOPS + 2,
+          nodeId: this.activeSubSolver.rootNodeId,
           nodeIdToSegmentIds: this.nodeIdToSegmentIds,
           segmentIdToNodeIds: this.segmentIdToNodeIds,
         })
@@ -235,13 +236,13 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         }
       }
 
-      this.activeSolver = null
+      this.activeSubSolver = null
     }
   }
 
   visualize(): GraphicsObject {
-    if (this.activeSolver) {
-      return this.activeSolver.visualize()
+    if (this.activeSubSolver) {
+      return this.activeSubSolver.visualize()
     }
 
     const graphics: Required<GraphicsObject> = {
