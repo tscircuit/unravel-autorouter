@@ -1,4 +1,8 @@
 import { useState, useRef, useEffect } from "react"
+import { distance } from "@tscircuit/math-utils"
+
+type Point = { x: number; y: number }
+type Segment = { start: Point; end: Point }
 
 /**
  * Compute optimal paths for the dumbbell visualization
@@ -36,7 +40,25 @@ export function computeDumbbellPaths({
   radius: number
   margin: number
   subdivisions: number
-}) {
+}): {
+  jPair: {
+    line1: {
+      goesTo: "A" | "B"
+      startsAt: "C" | "D"
+      points: { x: number; y: number }[]
+    }
+    line2: {
+      goesTo: "A" | "B"
+      startsAt: "C" | "D"
+      points: { x: number; y: number }[]
+    }
+  }
+  optimalPath: {
+    startsAt: "C" | "D"
+    goesTo: "C" | "D"
+    points: { x: number; y: number }[]
+  }
+} {
   // Basic types
   // Point and Segment types are assumed to be defined like this:
   // interface Point { x: number; y: number; }
@@ -45,30 +67,35 @@ export function computeDumbbellPaths({
   // Helper functions
 
   // Calculate midpoint between two points
-  const midpoint = (p1, p2) => ({
+  const midpoint = (p1: Point, p2: Point): Point => ({
     x: (p1.x + p2.x) / 2,
     y: (p1.y + p2.y) / 2,
   })
 
-  // Calculate distance between two points
-  const distance = (p1, p2) => {
-    const dx = p2.x - p1.x
-    const dy = p2.y - p1.y
-    return Math.sqrt(dx * dx + dy * dy)
-  }
-
   // Calculate all dumbbell points
-  const calculatePoints = (a, b, r) => {
+  const calculatePoints = (
+    a: Point,
+    b: Point,
+    r: number,
+  ): {
+    midpoint: Point
+    A_Opp: Point
+    A_Right: Point
+    A_Left: Point
+    B_Opp: Point
+    B_Right: Point
+    B_Left: Point
+  } => {
     // Vector from A to B
     const dx = b.x - a.x
     const dy = b.y - a.y
     const len = Math.sqrt(dx * dx + dy * dy)
 
     // Unit vectors
-    const ux = dx / len,
-      uy = dy / len
-    const px = -uy,
-      py = ux // Perpendicular unit vector
+    const ux = dx / len
+    const uy = dy / len
+    const px = -uy
+    const py = ux // Perpendicular unit vector
 
     return {
       midpoint: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
@@ -82,7 +109,7 @@ export function computeDumbbellPaths({
   }
 
   // Check if a point is on a line segment
-  const isPointOnSegment = (point, segment) => {
+  const isPointOnSegment = (point: Point, segment: Segment): boolean => {
     // Calculate distance from point to segment endpoints
     const d1 = distance(point, segment.start)
     const d2 = distance(point, segment.end)
@@ -95,7 +122,7 @@ export function computeDumbbellPaths({
   }
 
   // Line intersection check
-  const intersect = (l1, l2) => {
+  const intersect = (l1: Segment, l2: Segment): boolean => {
     const { start: p1, end: p2 } = l1
     const { start: p3, end: p4 } = l2
 
@@ -109,16 +136,16 @@ export function computeDumbbellPaths({
       return true
     }
 
-    const d1x = p2.x - p1.x,
-      d1y = p2.y - p1.y
-    const d2x = p4.x - p3.x,
-      d2y = p4.y - p3.y
+    const d1x = p2.x - p1.x
+    const d1y = p2.y - p1.y
+    const d2x = p4.x - p3.x
+    const d2y = p4.y - p3.y
 
     const det = d1x * d2y - d1y * d2x
     if (Math.abs(det) < 0.001) return false // Parallel or collinear
 
-    const dx = p3.x - p1.x,
-      dy = p3.y - p1.y
+    const dx = p3.x - p1.x
+    const dy = p3.y - p1.y
     const t = (dx * d2y - dy * d2x) / det
     const u = (dx * d1y - dy * d1x) / det
 
@@ -126,7 +153,7 @@ export function computeDumbbellPaths({
   }
 
   // Check if path1 intersects with path2
-  const doPathsIntersect = (path1, path2) => {
+  const doPathsIntersect = (path1: Point[], path2: Point[]): boolean => {
     // Create segments from path1
     const segments1 = []
     for (let i = 0; i < path1.length - 1; i++) {
@@ -152,7 +179,7 @@ export function computeDumbbellPaths({
   }
 
   // Path length calculation
-  const pathLength = (points) => {
+  const pathLength = (points: Point[]): number => {
     let len = 0
     for (let i = 1; i < points.length; i++) {
       const dx = points[i].x - points[i - 1].x
@@ -163,7 +190,10 @@ export function computeDumbbellPaths({
   }
 
   // Find closest point on segment to circle center
-  const closestPointOnSegment = (segment, circleCenter) => {
+  const closestPointOnSegment = (
+    segment: Segment,
+    circleCenter: Point,
+  ): { x: number; y: number; t: number } => {
     const { start, end } = segment
     const dx = end.x - start.x
     const dy = end.y - start.y
@@ -190,7 +220,11 @@ export function computeDumbbellPaths({
   }
 
   // Find the point at radius distance from circle center, moving away from the closest point
-  const getSubdivisionPoint = (segment, circleCenter, r) => {
+  const getSubdivisionPoint = (
+    segment: Segment,
+    circleCenter: Point,
+    r: number,
+  ): { x: number; y: number; t: number } => {
     const closestPoint = closestPointOnSegment(segment, circleCenter)
 
     // Calculate distance from closest point to circle center

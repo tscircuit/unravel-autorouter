@@ -11,6 +11,7 @@ import {
 import type { GraphicsObject } from "graphics-debug"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { findCircleLineIntersections } from "./findCircleLineIntersections"
+import { computeDumbbellPaths } from "./computeDumbbellPaths"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
@@ -323,37 +324,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   }
 
   /**
-   * Create a route with properly placed vias
-   */
-  private createRoute(
-    start: Point,
-    end: Point,
-    via1: Point,
-    via2: Point,
-    connectionName: string,
-  ): HighDensityIntraNodeRoute {
-    const middleZ = start.z === 0 ? 1 : 0
-
-    // Create the route path with layer transitions
-    const route = [
-      { x: start.x, y: start.y, z: start.z ?? 0 },
-      { x: via1.x, y: via1.y, z: start.z ?? 0 },
-      { x: via1.x, y: via1.y, z: middleZ }, // Via transition to layer 1
-      { x: via2.x, y: via2.y, z: middleZ }, // Stay on layer 1
-      { x: via2.x, y: via2.y, z: end.z ?? 0 }, // Via transition back
-      { x: end.x, y: end.y, z: end.z ?? 0 },
-    ]
-
-    return {
-      connectionName,
-      route,
-      traceThickness: this.traceThickness,
-      viaDiameter: this.viaDiameter,
-      vias: [via1, via2],
-    }
-  }
-
-  /**
    * Try to solve with routeA going over and routeB staying on layer 0
    */
   private trySolveAOverB(routeA: Route, routeB: Route): boolean {
@@ -366,52 +336,28 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     const { via1, via2 } = this.optimizeViaPositions(viaPositions)
 
-    // if (
-    //   distance(via1, via2) <
-    //   this.viaDiameter + this.traceThickness + this.obstacleMargin * 2
-    // ) {
-    //   return false
-    // }
+    const { jPair, optimalPath } = computeDumbbellPaths({
+      A: via1,
+      B: via2,
+      C: routeA.startPort,
+      D: routeA.endPort,
+      E: routeB.startPort,
+      F: routeB.endPort,
+      radius: this.viaDiameter,
+      margin: this.obstacleMargin,
+      subdivisions: 1,
+    })
 
-    // Create route for A that goes over B using vias
-    const routeASolution = this.createRoute(
-      routeA.startPort,
-      routeA.endPort,
-      via1,
-      via2,
-      routeA.connectionName,
-    )
-
-    // Calculate orthogonal line through the middle segment of route A
-    const midSegmentStart = { x: via1.x, y: via1.y, z: 1 }
-    const midSegmentEnd = { x: via2.x, y: via2.y, z: 1 }
-
-    // Calculate the orthogonal points for route B
-    const orthogonalPoints =
-      this.calculateShortestOrthogonalRoutePoints(
-        routeB.startPort,
-        routeB.endPort,
-        midSegmentStart,
-        midSegmentEnd,
-        routeA.startPort,
-        routeA.endPort,
-      ) ??
-      this.calculateConservativeOrthogonalRoutePoints(
-        routeB.startPort,
-        routeB.endPort,
-        midSegmentStart,
-        midSegmentEnd,
-        routeA.startPort,
-        routeA.endPort,
-      )
-
-    // Create route for B that navigates around the vias
-    const routeBSolution: HighDensityIntraNodeRoute = {
-      connectionName: routeB.connectionName,
-      route: orthogonalPoints as any,
+    const routeASolution: HighDensityIntraNodeRoute = {
+      connectionName: routeA.connectionName,
+      route: optimalPath.points.map((p) => ({
+        x: p.x,
+        y: p.y,
+        z: routeA.startPort.z ?? 0,
+      })),
       traceThickness: this.traceThickness,
       viaDiameter: this.viaDiameter,
-      vias: [],
+      vias: [via1, via2],
     }
 
     this.solvedRoutes.push(routeASolution, routeBSolution)
