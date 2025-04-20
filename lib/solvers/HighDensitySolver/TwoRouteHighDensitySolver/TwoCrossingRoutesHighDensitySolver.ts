@@ -354,6 +354,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     )
     this.debugViaPositions.push({ via1, via2 })
 
+    const NOT_CIRCULAR_PENALTY_TC = 1.5
     const { jPair, optimalPath } = computeDumbbellPaths({
       A: via1,
       B: via2,
@@ -363,8 +364,13 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       F: routeB.endPort,
       // NOTE: Should be traceThickness /2, but we don't currently subdivide
       // enough to make a round enough circle, so we have to add additional margin
-      radius: this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness,
-      margin: this.obstacleMargin * 2 + this.traceThickness,
+      radius:
+        this.viaDiameter / 2 +
+        this.obstacleMargin +
+        (this.traceThickness / 2) * NOT_CIRCULAR_PENALTY_TC,
+      margin:
+        this.obstacleMargin * 2 +
+        (this.traceThickness / 2) * NOT_CIRCULAR_PENALTY_TC,
       subdivisions: 1,
     })
 
