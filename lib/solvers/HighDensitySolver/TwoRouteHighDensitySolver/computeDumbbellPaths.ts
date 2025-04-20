@@ -492,14 +492,14 @@ export function computeDumbbellPaths({
       // …via the (AR ↔ BR) right‑side midpoint
       { startsAt: "E", goesTo: "B", points: [E, mid_AR_BR, B] },
       { startsAt: "E", goesTo: "A", points: [E, mid_AR_BR, A] },
-      { startsAt: "F", goesTo: "B", points: [F, mid_AR_BR, B] }, // new / fixed
-      { startsAt: "F", goesTo: "A", points: [F, mid_AR_BR, A] }, // ← fixed
+      { startsAt: "F", goesTo: "B", points: [F, mid_AR_BR, B] },
+      { startsAt: "F", goesTo: "A", points: [F, mid_AR_BR, A] },
 
       // …via the (AL ↔ BL) left‑side midpoint
       { startsAt: "E", goesTo: "B", points: [E, mid_AL_BL, B] },
       { startsAt: "E", goesTo: "A", points: [E, mid_AL_BL, A] },
-      { startsAt: "F", goesTo: "B", points: [F, mid_AL_BL, B] }, // ← fixed
-      { startsAt: "F", goesTo: "A", points: [F, mid_AL_BL, A] }, // new
+      { startsAt: "F", goesTo: "B", points: [F, mid_AL_BL, B] },
+      { startsAt: "F", goesTo: "A", points: [F, mid_AL_BL, A] },
 
       /*─────────────────────────  Medium (one outer waypoint)  ─────────────────*/
       // right‑side outer arc

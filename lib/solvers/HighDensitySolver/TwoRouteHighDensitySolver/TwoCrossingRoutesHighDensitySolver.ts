@@ -360,10 +360,11 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       F: routeB.endPort,
       radius:
         this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness / 2,
-      margin: this.obstacleMargin * 2 + this.traceThickness,
+      margin: this.obstacleMargin * 2,
       subdivisions: 1,
     })
 
+    console.log("jPair", jPair)
     if (!jPair) return false
 
     const routeASolution: HighDensityIntraNodeRoute = {
