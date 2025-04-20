@@ -334,8 +334,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
   /**
    * Try to solve with routeA going over and routeB staying on layer 0
    */
-  private trySolveAOverB(routeA: Route, routeB: Route): boolean {
-    const viaPositions = this.calculateViaPositions(routeB, routeA)
+  private trySolveAOverB(
+    routeA: Route,
+    routeB: Route,
+    swapVias = false,
+  ): boolean {
+    const viaPositions = swapVias
+      ? this.calculateViaPositions(routeA, routeB)
+      : this.calculateViaPositions(routeB, routeA)
     if (viaPositions) {
       this.debugViaPositions.push(viaPositions)
     } else {
@@ -530,9 +536,21 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       this.solved = true
       return
     }
-
     // If that fails, try having route B go over route A
     if (this.trySolveAOverB(routeB, routeA)) {
+      this.solved = true
+      return
+    }
+
+    // HACK: Via calculation is not great, so we'll also try swapping their
+    // locations and trying again
+    // Try having route A go over route B
+    if (this.trySolveAOverB(routeA, routeB, true)) {
+      this.solved = true
+      return
+    }
+    // If that fails, try having route B go over route A
+    if (this.trySolveAOverB(routeB, routeA, true)) {
       this.solved = true
       return
     }
@@ -597,14 +615,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       const { via1, via2 } = this.debugViaPositions[i]
 
       // Draw computed vias (using different colors for different attempts)
-      const colors = ["rgba(255, 165, 0, 0.7)", "rgba(128, 0, 128, 0.7)"] // orange, purple
+      const colors = ["rgba(255, 165, 0, 0.3)", "rgba(128, 0, 128, 0.3)"] // orange, purple
       const color = colors[i % colors.length]
 
       graphics.circles!.push({
         center: via1,
         radius: this.viaDiameter / 2,
         fill: color,
-        stroke: "rgba(0, 0, 0, 0.5)",
+        stroke: "rgba(0, 0, 0, 0.3)",
         label: `Computed Via A (attempt ${i + 1})`,
       })
 
@@ -612,7 +630,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         center: via2,
         radius: this.viaDiameter / 2,
         fill: color,
-        stroke: "rgba(0, 0, 0, 0.5)",
+        stroke: "rgba(0, 0, 0, 0.3)",
         label: `Computed Via B (attempt ${i + 1})`,
       })
 

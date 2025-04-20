@@ -483,76 +483,68 @@ export function computeDumbbellPaths({
 
     return [
       // Direct J-lines (shortest)
-      // J1: E→mid(AR,BR)→B (direct)
-      { index: 1, startsAt: "E", goesTo: "B", points: [E, mid_AR_BR, B] },
-      // J2: E→mid(BL,AL)→A (direct)
-      { index: 2, startsAt: "E", goesTo: "A", points: [E, mid_AL_BL, A] },
-      // J3: F→mid(BL,AL)→B (direct)
-      { index: 3, startsAt: "F", goesTo: "B", points: [F, mid_AL_BL, B] },
-      // J4: F→mid(AR,BR)→A (direct)
-      { index: 4, startsAt: "F", goesTo: "A", points: [F, mid_AR_BR, A] },
-      // J5: F→mid(AR,BR)→B (direct)
-      { index: 5, startsAt: "F", goesTo: "B", points: [F, mid_AR_BR, B] },
-      // J6: F→mid(BL,AL)→A (direct)
-      { index: 6, startsAt: "F", goesTo: "A", points: [F, mid_AL_BL, A] },
-      // J7: E→mid(BL,AL)→B (direct)
-      { index: 7, startsAt: "E", goesTo: "B", points: [E, mid_AL_BL, B] },
-      // J8: E→mid(AR,BR)→A (direct)
-      { index: 8, startsAt: "E", goesTo: "A", points: [E, mid_AR_BR, A] },
+      { startsAt: "E", goesTo: "B", points: [E, B] },
+      { startsAt: "E", goesTo: "A", points: [E, A] },
+      { startsAt: "F", goesTo: "B", points: [F, B] },
+      { startsAt: "F", goesTo: "A", points: [F, A] },
+      { startsAt: "F", goesTo: "B", points: [F, B] },
+      { startsAt: "F", goesTo: "A", points: [F, A] },
+      { startsAt: "E", goesTo: "B", points: [E, B] },
+      { startsAt: "E", goesTo: "A", points: [E, A] },
+
+      { startsAt: "E", goesTo: "B", points: [E, mid_AR_BR, B] },
+      { startsAt: "E", goesTo: "A", points: [E, mid_AL_BL, A] },
+      { startsAt: "F", goesTo: "B", points: [F, mid_AL_BL, B] },
+      { startsAt: "F", goesTo: "A", points: [F, mid_AR_BR, A] },
+      { startsAt: "F", goesTo: "B", points: [F, mid_AR_BR, B] },
+      { startsAt: "F", goesTo: "A", points: [F, mid_AL_BL, A] },
+      { startsAt: "E", goesTo: "B", points: [E, mid_AL_BL, B] },
+      { startsAt: "E", goesTo: "A", points: [E, mid_AR_BR, A] },
 
       // Medium length J-lines (one waypoint)
-      // J9: E→outer.A_Right→mid(AR,BR)→B
       {
-        index: 9,
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Right, mid_AR_BR, B],
       },
       // J10: E→outer.B_Left→mid(BL,AL)→A
       {
-        index: 10,
         startsAt: "E",
         goesTo: "A",
         points: [E, outerPoints.B_Left, mid_AL_BL, A],
       },
       // J11: F→outer.A_Left→mid(BL,AL)→A
       {
-        index: 11,
         startsAt: "F",
         goesTo: "A",
         points: [F, outerPoints.A_Left, mid_AL_BL, A],
       },
       // J12: F→outer.B_Right→mid(AR,BR)→B
       {
-        index: 12,
         startsAt: "F",
         goesTo: "B",
         points: [F, outerPoints.B_Right, mid_AR_BR, B],
       },
       // J13: F→outer.B_Right→mid(AR,BR)→A
       {
-        index: 13,
         startsAt: "F",
         goesTo: "A",
         points: [F, outerPoints.B_Right, mid_AR_BR, A],
       },
       // J14: F→outer.B_Left→mid(BL,AL)→B
       {
-        index: 14,
         startsAt: "F",
         goesTo: "B",
         points: [F, outerPoints.B_Left, mid_AL_BL, B],
       },
       // J15: E→outer.A_Left→mid(BL,AL)→B
       {
-        index: 15,
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Left, mid_AL_BL, B],
       },
       // J16: E→outer.B_Right→mid(AR,BR)→A
       {
-        index: 16,
         startsAt: "E",
         goesTo: "A",
         points: [E, outerPoints.B_Right, mid_AR_BR, A],
@@ -561,56 +553,48 @@ export function computeDumbbellPaths({
       // Longer J-lines (two waypoints)
       // J17: E→outer.A_Opp→outer.A_Right→mid(AR,BR)→B
       {
-        index: 17,
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Opp, outerPoints.A_Right, mid_AR_BR, B],
       },
       // J18: E→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
       {
-        index: 18,
         startsAt: "E",
         goesTo: "A",
         points: [E, outerPoints.B_Opp, outerPoints.B_Left, mid_AL_BL, A],
       },
       // J19: F→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
       {
-        index: 19,
         startsAt: "F",
         goesTo: "B",
         points: [F, outerPoints.A_Opp, outerPoints.A_Left, mid_AL_BL, B],
       },
       // J20: F→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
       {
-        index: 20,
         startsAt: "F",
         goesTo: "A",
         points: [F, outerPoints.B_Opp, outerPoints.B_Right, mid_AR_BR, A],
       },
       // J21: F→outer.B_Opp→outer.B_Right→mid(AR,BR)→A (duplicate of J20)
       {
-        index: 21,
         startsAt: "F",
         goesTo: "A",
         points: [F, outerPoints.B_Opp, outerPoints.B_Right, mid_AR_BR, A],
       },
       // J22: F→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
       {
-        index: 22,
         startsAt: "F",
         goesTo: "A",
         points: [F, outerPoints.B_Opp, outerPoints.B_Left, mid_AL_BL, A],
       },
       // J23: E→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
       {
-        index: 23,
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Opp, outerPoints.A_Left, mid_AL_BL, B],
       },
       // J24: E→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
       {
-        index: 24,
         startsAt: "E",
         goesTo: "A",
         points: [E, outerPoints.B_Opp, outerPoints.B_Right, mid_AR_BR, A],
@@ -619,7 +603,6 @@ export function computeDumbbellPaths({
       // Longest J-lines (three waypoints)
       // J25: E→outer.A_Left→outer.A_Opp→outer.A_Right→mid(AR,BR)→B
       {
-        index: 25,
         startsAt: "E",
         goesTo: "B",
         points: [
@@ -633,7 +616,6 @@ export function computeDumbbellPaths({
       },
       // J26: E→outer.B_Right→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
       {
-        index: 26,
         startsAt: "E",
         goesTo: "A",
         points: [
@@ -647,7 +629,6 @@ export function computeDumbbellPaths({
       },
       // J27: F→outer.A_Right→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
       {
-        index: 27,
         startsAt: "F",
         goesTo: "B",
         points: [
@@ -661,7 +642,6 @@ export function computeDumbbellPaths({
       },
       // J28: F→outer.B_Left→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
       {
-        index: 28,
         startsAt: "F",
         goesTo: "A",
         points: [
@@ -675,7 +655,6 @@ export function computeDumbbellPaths({
       },
       // J29: F→outer.B_Left→outer.B_Opp→outer.B_Right→mid(AR,BR)→A (duplicate of J28)
       {
-        index: 29,
         startsAt: "F",
         goesTo: "A",
         points: [
@@ -689,7 +668,6 @@ export function computeDumbbellPaths({
       },
       // J30: F→outer.B_Right→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
       {
-        index: 30,
         startsAt: "F",
         goesTo: "A",
         points: [
@@ -703,7 +681,6 @@ export function computeDumbbellPaths({
       },
       // J31: E→outer.A_Right→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
       {
-        index: 31,
         startsAt: "E",
         goesTo: "B",
         points: [
@@ -717,7 +694,6 @@ export function computeDumbbellPaths({
       },
       // J32: E→outer.B_Left→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
       {
-        index: 32,
         startsAt: "E",
         goesTo: "A",
         points: [
