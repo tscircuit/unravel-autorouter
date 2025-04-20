@@ -26,6 +26,20 @@ import {
   SegmentPointMapAndReverseMaps,
 } from "./createSegmentPointMap"
 
+interface UnravelSectionSolverParams {
+  rootNodeId: CapacityMeshNodeId
+  colorMap?: Record<string, string>
+  MUTABLE_HOPS?: number
+  nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
+  dedupedSegments: SegmentWithAssignedPoints[]
+  dedupedSegmentMap?: Map<SegmentId, SegmentWithAssignedPoints>
+  nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
+  segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
+  segmentPointMap?: SegmentPointMap
+  nodeToSegmentPointMap?: Map<CapacityMeshNodeId, SegmentPointId[]>
+  segmentToSegmentPointMap?: Map<SegmentId, SegmentPointId[]>
+}
+
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
  * with their deduplicated segments.
@@ -80,20 +94,12 @@ export class UnravelSectionSolver extends BaseSolver {
 
   queuedOrExploredCandidatePointModificationHashes: Set<string> = new Set()
 
-  constructor(params: {
-    rootNodeId: CapacityMeshNodeId
-    colorMap?: Record<string, string>
-    MUTABLE_HOPS?: number
-    nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
-    dedupedSegments: SegmentWithAssignedPoints[]
-    dedupedSegmentMap?: Map<SegmentId, SegmentWithAssignedPoints>
-    nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
-    segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
-    segmentPointMap?: SegmentPointMap
-    nodeToSegmentPointMap?: Map<CapacityMeshNodeId, SegmentPointId[]>
-    segmentToSegmentPointMap?: Map<SegmentId, SegmentPointId[]>
-  }) {
+  constructorParams: UnravelSectionSolverParams
+
+  constructor(params: UnravelSectionSolverParams) {
     super()
+
+    this.constructorParams = params
 
     this.MUTABLE_HOPS = params.MUTABLE_HOPS ?? this.MUTABLE_HOPS
     this.MAX_ITERATIONS = 50_000
@@ -126,6 +132,10 @@ export class UnravelSectionSolver extends BaseSolver {
     }
     this.originalCandidate = this.createInitialCandidate()
     this.candidates = [this.originalCandidate]
+  }
+
+  getConstructorParams(): UnravelSectionSolverParams {
+    return this.constructorParams
   }
 
   createUnravelSection(
