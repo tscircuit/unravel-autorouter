@@ -25,6 +25,7 @@ import {
   createSegmentPointMap,
   SegmentPointMapAndReverseMaps,
 } from "./createSegmentPointMap"
+import { calculateNodeProbabilityOfFailure } from "./calculateCrossingProbabilityOfFailure"
 
 interface UnravelSectionSolverParams {
   rootNodeId: CapacityMeshNodeId
@@ -548,16 +549,13 @@ export class UnravelSectionSolver extends BaseSolver {
         numTransitionCrossings,
       },
     ] of nodeProblemCounts) {
-      const estNumVias =
-        numSameLayerCrossings * 0.82 +
-        numEntryExitLayerChanges * 0.41 +
-        numTransitionCrossings * 0.2
-
-      const estUsedCapacity = (estNumVias / 2) ** 1.1
-
-      const totalCapacity = this.tunedNodeCapacityMap.get(nodeId)!
-
-      const estPf = estUsedCapacity / totalCapacity
+      const node = this.nodeMap.get(nodeId)!
+      const estPf = calculateNodeProbabilityOfFailure(
+        node,
+        numSameLayerCrossings,
+        numEntryExitLayerChanges,
+        numTransitionCrossings,
+      )
 
       cost += getLogProbability(estPf)
     }
