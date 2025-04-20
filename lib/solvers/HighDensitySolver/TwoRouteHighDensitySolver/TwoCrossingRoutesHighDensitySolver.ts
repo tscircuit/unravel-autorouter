@@ -348,7 +348,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       return false
     }
 
-    const { via1, via2 } = this.moveViasAsCloseAsPossible(viaPositions)
+    // Move vias away from endpoints first, then ensure minimum spacing
+    const { via1, via2 } = this.pushViasFromEndpoints(viaPositions)
     this.debugViaPositions.push({ via1, via2 })
 
     const { jPair, optimalPath } = computeDumbbellPaths({
@@ -360,11 +361,10 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       F: routeB.endPort,
       radius:
         this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness / 2,
-      margin: this.obstacleMargin * 2,
+      margin: this.obstacleMargin * 2 + this.traceThickness / 2,
       subdivisions: 1,
     })
 
-    console.log("jPair", jPair)
     if (!jPair) return false
 
     const routeASolution: HighDensityIntraNodeRoute = {
@@ -414,6 +414,9 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     via1: Point
     via2: Point
   } {
+    let currentVia1 = { ...viaPositions.via1 }
+    let currentVia2 = { ...viaPositions.via2 }
+
     const endpoints = [
       this.routes[0].startPort,
       this.routes[0].endPort,
@@ -422,20 +425,106 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     ]
 
     const minDistanceBtwViaCenters = this.getMinDistanceBetweenViaCenters()
-    // Room for two traces
+    // Required clearance: via radius + trace thickness + obstacle margin
     const minDistanceBtwViaAndEndpoint =
-      this.viaDiameter / 2 + this.obstacleMargin * 2 + this.traceThickness
+      this.viaDiameter / 2 + this.traceThickness + this.obstacleMargin * 2
 
-    const MAX_ITERS = 5
+    const MAX_ITERS = 10
+    const PUSH_DECAY = 0.9 // Decay push force over iterations
 
-    // TODO iterative loop where we move the via away from the endpoints if they
-    // are within minDistanceBtwViaAndEndpoint, then make sure that they are
-    // make sure that they are spaced at least minDistanceApart. If they are
-    // not, we move them further apart along the line connecting them. We decay
-    // the distance endpoints can push by 10% each iteration.
-    for (let i = 0; i < MAX_ITERS; i++) {
-      // TODO
+    for (let iter = 0; iter < MAX_ITERS; iter++) {
+      let via1Moved = false
+      let via2Moved = false
+      const pushDecayFactor = PUSH_DECAY ** iter
+
+      // --- Push from Endpoints ---
+      for (const endpoint of endpoints) {
+        // Check Via 1
+        const dist1 = distance(currentVia1, endpoint)
+        if (dist1 < minDistanceBtwViaAndEndpoint) {
+          const overlap = minDistanceBtwViaAndEndpoint - dist1
+          const pushAmount = overlap * pushDecayFactor
+          const dx = currentVia1.x - endpoint.x
+          const dy = currentVia1.y - endpoint.y
+          const norm = Math.sqrt(dx * dx + dy * dy)
+          if (norm > 1e-6) {
+            // Avoid division by zero if via is exactly on endpoint
+            currentVia1.x += (dx / norm) * pushAmount
+            currentVia1.y += (dy / norm) * pushAmount
+            via1Moved = true
+          }
+        }
+
+        // Check Via 2
+        const dist2 = distance(currentVia2, endpoint)
+        if (dist2 < minDistanceBtwViaAndEndpoint) {
+          const overlap = minDistanceBtwViaAndEndpoint - dist2
+          const pushAmount = overlap * pushDecayFactor
+          const dx = currentVia2.x - endpoint.x
+          const dy = currentVia2.y - endpoint.y
+          const norm = Math.sqrt(dx * dx + dy * dy)
+          if (norm > 1e-6) {
+            currentVia2.x += (dx / norm) * pushAmount
+            currentVia2.y += (dy / norm) * pushAmount
+            via2Moved = true
+          }
+        }
+      }
+
+      // --- Ensure Minimum Distance Between Vias ---
+      const distBetweenVias = distance(currentVia1, currentVia2)
+      if (distBetweenVias < minDistanceBtwViaCenters) {
+        const overlap = minDistanceBtwViaCenters - distBetweenVias
+        const pushAmount = overlap / 2 // Push each via half the distance
+
+        const dx = currentVia2.x - currentVia1.x
+        const dy = currentVia2.y - currentVia1.y
+        const norm = Math.sqrt(dx * dx + dy * dy)
+
+        if (norm > 1e-6) {
+          // Push via1 away from via2
+          currentVia1.x -= (dx / norm) * pushAmount
+          currentVia1.y -= (dy / norm) * pushAmount
+          // Push via2 away from via1
+          currentVia2.x += (dx / norm) * pushAmount
+          currentVia2.y += (dy / norm) * pushAmount
+          via1Moved = true
+          via2Moved = true
+        } else {
+          // Vias are coincident, push them apart arbitrarily (e.g., horizontally)
+          currentVia1.x -= pushAmount
+          currentVia2.x += pushAmount
+          via1Moved = true
+          via2Moved = true
+        }
+      }
+
+      // If neither via moved in this iteration, we've reached stability
+      if (!via1Moved && !via2Moved) {
+        break
+      }
     }
+
+    // Final check: ensure vias are not too close after all adjustments
+    const finalDist = distance(currentVia1, currentVia2)
+    if (finalDist < minDistanceBtwViaCenters) {
+      const overlap = minDistanceBtwViaCenters - finalDist
+      const pushAmount = overlap / 2
+      const dx = currentVia2.x - currentVia1.x
+      const dy = currentVia2.y - currentVia1.y
+      const norm = Math.sqrt(dx * dx + dy * dy)
+      if (norm > 1e-6) {
+        currentVia1.x -= (dx / norm) * pushAmount
+        currentVia1.y -= (dy / norm) * pushAmount
+        currentVia2.x += (dx / norm) * pushAmount
+        currentVia2.y += (dy / norm) * pushAmount
+      } else {
+        currentVia1.x -= pushAmount
+        currentVia2.x += pushAmount
+      }
+    }
+
+    return { via1: currentVia1, via2: currentVia2 }
   }
 
   private getMinDistanceBetweenViaCenters(): number {
