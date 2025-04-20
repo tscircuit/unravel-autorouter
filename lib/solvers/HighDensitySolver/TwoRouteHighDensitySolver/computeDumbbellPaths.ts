@@ -420,53 +420,6 @@ export function computeDumbbellPaths({
     return result
   }
 
-  // Check if a single segment intersects with any segment in a path
-  const doesSegmentIntersectPath = (
-    segment: Segment,
-    path: Point[],
-  ): boolean => {
-    if (path.length < 2) return false
-    for (let i = 0; i < path.length - 1; i++) {
-      const pathSegment = { start: path[i], end: path[i + 1] }
-      if (intersect(segment, pathSegment)) {
-        return true
-      }
-    }
-    return false
-  }
-
-  // Shorten a path by removing intermediate points if the shortcut doesn't intersect the optimal path
-  const shortenJLinePath = (
-    jLinePoints: Point[],
-    optimalPathPoints: Point[],
-  ): Point[] => {
-    if (jLinePoints.length <= 2) {
-      return jLinePoints // Cannot shorten
-    }
-
-    const shortenedPath = [...jLinePoints] // Work on a copy
-    let i = 1 // Index of the point to potentially remove
-
-    while (i < shortenedPath.length - 1) {
-      const P_prev = shortenedPath[i - 1]
-      const P_curr = shortenedPath[i] // The point we might remove
-      const P_next = shortenedPath[i + 1]
-
-      const shortcutSegment: Segment = { start: P_prev, end: P_next }
-
-      // Check if the shortcut segment intersects the optimal path
-      if (!doesSegmentIntersectPath(shortcutSegment, optimalPathPoints)) {
-        // No intersection - remove the current point
-        shortenedPath.splice(i, 1)
-        // Do not increment i, as the next point is now at index i
-      } else {
-        // Intersection would occur - keep the current point and move to the next
-        i++
-      }
-    }
-    return shortenedPath
-  }
-
   // Calculate points for inner and outer dumbbells
   const innerPoints = calculatePoints(A, B, radius)
   const outerPoints = calculatePoints(A, B, radius + margin)
@@ -529,126 +482,102 @@ export function computeDumbbellPaths({
     const mid_AL_BL = midpoint(innerPoints.B_Left, innerPoints.A_Left)
 
     return [
-      // Direct J-lines (shortest)
+      /*─────────────────────────  Shortest (straight)  ─────────────────────────*/
       { startsAt: "E", goesTo: "B", points: [E, B] },
       { startsAt: "E", goesTo: "A", points: [E, A] },
       { startsAt: "F", goesTo: "B", points: [F, B] },
       { startsAt: "F", goesTo: "A", points: [F, A] },
-      { startsAt: "F", goesTo: "B", points: [F, B] },
-      { startsAt: "F", goesTo: "A", points: [F, A] },
-      { startsAt: "E", goesTo: "B", points: [E, B] },
-      { startsAt: "E", goesTo: "A", points: [E, A] },
 
+      /*─────────────────────────  One‑bend variants  ───────────────────────────*/
+      // …via the (AR ↔ BR) right‑side midpoint
       { startsAt: "E", goesTo: "B", points: [E, mid_AR_BR, B] },
-      { startsAt: "E", goesTo: "A", points: [E, mid_AL_BL, A] },
-      { startsAt: "F", goesTo: "B", points: [F, mid_AL_BL, B] },
-      { startsAt: "F", goesTo: "A", points: [F, mid_AR_BR, A] },
-      { startsAt: "F", goesTo: "B", points: [F, mid_AR_BR, B] },
-      { startsAt: "F", goesTo: "A", points: [F, mid_AL_BL, A] },
-      { startsAt: "E", goesTo: "B", points: [E, mid_AL_BL, B] },
       { startsAt: "E", goesTo: "A", points: [E, mid_AR_BR, A] },
+      { startsAt: "F", goesTo: "B", points: [F, mid_AR_BR, B] }, // new / fixed
+      { startsAt: "F", goesTo: "A", points: [F, mid_AR_BR, A] }, // ← fixed
 
-      // Medium length J-lines (one waypoint)
+      // …via the (AL ↔ BL) left‑side midpoint
+      { startsAt: "E", goesTo: "B", points: [E, mid_AL_BL, B] },
+      { startsAt: "E", goesTo: "A", points: [E, mid_AL_BL, A] },
+      { startsAt: "F", goesTo: "B", points: [F, mid_AL_BL, B] }, // ← fixed
+      { startsAt: "F", goesTo: "A", points: [F, mid_AL_BL, A] }, // new
+
+      /*─────────────────────────  Medium (one outer waypoint)  ─────────────────*/
+      // right‑side outer arc
       {
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Right, mid_AR_BR, B],
       },
-      // J10: E→outer.B_Left→mid(BL,AL)→A
-      {
-        startsAt: "E",
-        goesTo: "A",
-        points: [E, outerPoints.B_Left, mid_AL_BL, A],
-      },
-      // J11: F→outer.A_Left→mid(BL,AL)→A
-      {
-        startsAt: "F",
-        goesTo: "A",
-        points: [F, outerPoints.A_Left, mid_AL_BL, A],
-      },
-      // J12: F→outer.B_Right→mid(AR,BR)→B
       {
         startsAt: "F",
         goesTo: "B",
         points: [F, outerPoints.B_Right, mid_AR_BR, B],
       },
-      // J13: F→outer.B_Right→mid(AR,BR)→A
+
+      // left‑side outer arc
+      {
+        startsAt: "E",
+        goesTo: "A",
+        points: [E, outerPoints.B_Left, mid_AL_BL, A],
+      },
       {
         startsAt: "F",
         goesTo: "A",
-        points: [F, outerPoints.B_Right, mid_AR_BR, A],
+        points: [F, outerPoints.A_Left, mid_AL_BL, A],
       },
-      // J14: F→outer.B_Left→mid(BL,AL)→B
-      {
-        startsAt: "F",
-        goesTo: "B",
-        points: [F, outerPoints.B_Left, mid_AL_BL, B],
-      },
-      // J15: E→outer.A_Left→mid(BL,AL)→B
+
+      // criss‑cross outer arc
       {
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Left, mid_AL_BL, B],
       },
-      // J16: E→outer.B_Right→mid(AR,BR)→A
       {
         startsAt: "E",
         goesTo: "A",
         points: [E, outerPoints.B_Right, mid_AR_BR, A],
       },
 
-      // Longer J-lines (two waypoints)
-      // J17: E→outer.A_Opp→outer.A_Right→mid(AR,BR)→B
+      /*─────────────────────────  Long (two outer waypoints)  ──────────────────*/
       {
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Opp, outerPoints.A_Right, mid_AR_BR, B],
       },
-      // J18: E→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
       {
         startsAt: "E",
         goesTo: "A",
         points: [E, outerPoints.B_Opp, outerPoints.B_Left, mid_AL_BL, A],
       },
-      // J19: F→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
+
       {
         startsAt: "F",
         goesTo: "B",
         points: [F, outerPoints.A_Opp, outerPoints.A_Left, mid_AL_BL, B],
       },
-      // J20: F→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
       {
         startsAt: "F",
         goesTo: "A",
         points: [F, outerPoints.B_Opp, outerPoints.B_Right, mid_AR_BR, A],
       },
-      // J21: F→outer.B_Opp→outer.B_Right→mid(AR,BR)→A (duplicate of J20)
       {
         startsAt: "F",
-        goesTo: "A",
-        points: [F, outerPoints.B_Opp, outerPoints.B_Right, mid_AR_BR, A],
-      },
-      // J22: F→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
-      {
-        startsAt: "F",
-        goesTo: "A",
+        goesTo: "A" /* alt‑route  */,
         points: [F, outerPoints.B_Opp, outerPoints.B_Left, mid_AL_BL, A],
       },
-      // J23: E→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
+
       {
         startsAt: "E",
         goesTo: "B",
         points: [E, outerPoints.A_Opp, outerPoints.A_Left, mid_AL_BL, B],
       },
-      // J24: E→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
       {
         startsAt: "E",
         goesTo: "A",
         points: [E, outerPoints.B_Opp, outerPoints.B_Right, mid_AR_BR, A],
       },
 
-      // Longest J-lines (three waypoints)
-      // J25: E→outer.A_Left→outer.A_Opp→outer.A_Right→mid(AR,BR)→B
+      /*─────────────────────────  Longest (three outer waypoints)  ─────────────*/
       {
         startsAt: "E",
         goesTo: "B",
@@ -661,7 +590,7 @@ export function computeDumbbellPaths({
           B,
         ],
       },
-      // J26: E→outer.B_Right→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
+
       {
         startsAt: "E",
         goesTo: "A",
@@ -674,7 +603,7 @@ export function computeDumbbellPaths({
           A,
         ],
       },
-      // J27: F→outer.A_Right→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
+
       {
         startsAt: "F",
         goesTo: "B",
@@ -687,7 +616,7 @@ export function computeDumbbellPaths({
           B,
         ],
       },
-      // J28: F→outer.B_Left→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
+
       {
         startsAt: "F",
         goesTo: "A",
@@ -700,23 +629,10 @@ export function computeDumbbellPaths({
           A,
         ],
       },
-      // J29: F→outer.B_Left→outer.B_Opp→outer.B_Right→mid(AR,BR)→A (duplicate of J28)
+
       {
         startsAt: "F",
-        goesTo: "A",
-        points: [
-          F,
-          outerPoints.B_Left,
-          outerPoints.B_Opp,
-          outerPoints.B_Right,
-          mid_AR_BR,
-          A,
-        ],
-      },
-      // J30: F→outer.B_Right→outer.B_Opp→outer.B_Left→mid(BL,AL)→A
-      {
-        startsAt: "F",
-        goesTo: "A",
+        goesTo: "A" /* alt‑route  */,
         points: [
           F,
           outerPoints.B_Right,
@@ -726,7 +642,7 @@ export function computeDumbbellPaths({
           A,
         ],
       },
-      // J31: E→outer.A_Right→outer.A_Opp→outer.A_Left→mid(BL,AL)→B
+
       {
         startsAt: "E",
         goesTo: "B",
@@ -739,7 +655,7 @@ export function computeDumbbellPaths({
           B,
         ],
       },
-      // J32: E→outer.B_Left→outer.B_Opp→outer.B_Right→mid(AR,BR)→A
+
       {
         startsAt: "E",
         goesTo: "A",
@@ -1025,33 +941,13 @@ export function computeDumbbellPaths({
     // }
   }
 
-  // Determine the actual optimal path points to use for intersection checks
-  const finalOptimalPathPoints = subdivided
-
-  // Shorten the J-lines if possible
-  if (jPair) {
-    const shortenedPoints1 = shortenJLinePath(
-      jPair.line1.points,
-      finalOptimalPathPoints,
-    )
-    const shortenedPoints2 = shortenJLinePath(
-      jPair.line2.points,
-      finalOptimalPathPoints,
-    )
-
-    jPair = {
-      line1: { ...jPair.line1, points: shortenedPoints1 },
-      line2: { ...jPair.line2, points: shortenedPoints2 },
-    }
-  }
-
   // Return the final result
   return {
     jPair,
     optimalPath: {
       startsAt: optimalPath.startsAt! as "C" | "D",
       goesTo: optimalPath.goesTo! as "C" | "D",
-      points: finalOptimalPathPoints, // Use the potentially subdivided path
+      points: subdivided,
     },
   }
 }
