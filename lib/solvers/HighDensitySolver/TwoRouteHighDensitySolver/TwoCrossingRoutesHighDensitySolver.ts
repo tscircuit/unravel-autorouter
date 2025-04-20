@@ -424,7 +424,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       this.routes[1].endPort,
     ]
 
-    const minDistanceBtwViaCenters = this.getMinDistanceBetweenViaCenters()
+    const optimalDistBtwViaCenters = this.getMinDistanceBetweenViaCenters()
     // Required clearance: via radius + trace thickness + obstacle margin
     const minDistanceBtwViaAndEndpoint =
       this.viaDiameter / 2 + this.traceThickness + this.obstacleMargin * 2
@@ -473,8 +473,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
       // --- Ensure Minimum Distance Between Vias ---
       const distBetweenVias = distance(currentVia1, currentVia2)
-      if (distBetweenVias < minDistanceBtwViaCenters) {
-        const overlap = minDistanceBtwViaCenters - distBetweenVias
+      if (distBetweenVias < optimalDistBtwViaCenters) {
+        const overlap = optimalDistBtwViaCenters - distBetweenVias
         const pushAmount = overlap / 2 // Push each via half the distance
 
         const dx = currentVia2.x - currentVia1.x
@@ -507,8 +507,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Final check: ensure vias are not too close after all adjustments
     const finalDist = distance(currentVia1, currentVia2)
-    if (finalDist < minDistanceBtwViaCenters) {
-      const overlap = minDistanceBtwViaCenters - finalDist
+    if (finalDist < optimalDistBtwViaCenters) {
+      const overlap = optimalDistBtwViaCenters - finalDist
       const pushAmount = overlap / 2
       const dx = currentVia2.x - currentVia1.x
       const dy = currentVia2.y - currentVia1.y
