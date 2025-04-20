@@ -135,7 +135,13 @@ export class UnravelSectionSolver extends BaseSolver {
   }
 
   getConstructorParams(): UnravelSectionSolverParams {
-    return this.constructorParams
+    return {
+      ...this.constructorParams,
+      // use the section maps instead of the global maps
+      segmentPointMap: this.unravelSection.segmentPointMap,
+      nodeToSegmentPointMap: this.unravelSection.segmentPointsInNode,
+      segmentToSegmentPointMap: this.unravelSection.segmentPointsInSegment,
+    }
   }
 
   createUnravelSection(

@@ -872,16 +872,12 @@ export const AutoroutingPipelineDebugger = ({
                 return (
                   <tr key={step.solverName}>
                     <td className="border p-2">
-                      <span className="text-gray-500 whitespace-pre mr-2">
-                        {(index + 1).toString().padStart(2, " ")}
+                      <span className="text-gray-500 mr-1 tabular-nums">
+                        {(index + 1).toString().padStart(2, "0")}
                       </span>
-                      {step.solverName}
-                    </td>
-                    <td className={`border p-2 font-bold ${statusClass}`}>
-                      {status}
                       {status === "Not Started" && (
                         <button
-                          className="ml-2 text-xs hover:bg-gray-200 rounded px-1 py-0.5"
+                          className="ml-2 mr-2 text-xs hover:bg-gray-200 rounded px-1 py-0.5"
                           onClick={() =>
                             handlePlayStage(
                               solver.pipelineDef[index].solverName,
@@ -892,6 +888,10 @@ export const AutoroutingPipelineDebugger = ({
                           ▶️
                         </button>
                       )}
+                      {step.solverName}
+                    </td>
+                    <td className={`border p-2 font-bold ${statusClass}`}>
+                      {status}
                     </td>
                     <td className="border p-2">
                       {stepSolver?.iterations || 0}
