@@ -3,6 +3,12 @@ import { distance } from "@tscircuit/math-utils"
 
 type Point = { x: number; y: number }
 type Segment = { start: Point; end: Point }
+type JLine = {
+  index: number
+  startsAt: "C" | "D"
+  goesTo: "C" | "D"
+  points: Point[]
+}
 
 /**
  * Compute optimal paths for the dumbbell visualization
@@ -42,17 +48,9 @@ export function computeDumbbellPaths({
   subdivisions: number
 }): {
   jPair: {
-    line1: {
-      goesTo: "A" | "B"
-      startsAt: "C" | "D"
-      points: { x: number; y: number }[]
-    }
-    line2: {
-      goesTo: "A" | "B"
-      startsAt: "C" | "D"
-      points: { x: number; y: number }[]
-    }
-  }
+    line1: JLine
+    line2: JLine
+  } | null
   optimalPath: {
     startsAt: "C" | "D"
     goesTo: "C" | "D"
@@ -199,7 +197,7 @@ export function computeDumbbellPaths({
     const dy = end.y - start.y
     const segmentLengthSquared = dx * dx + dy * dy
 
-    if (segmentLengthSquared === 0) return start // Segment is a point
+    if (segmentLengthSquared === 0) return { ...start, t: 0 } // Segment is a point
 
     // Calculate projection scalar
     const t = Math.max(
@@ -224,7 +222,13 @@ export function computeDumbbellPaths({
     segment: Segment,
     circleCenter: Point,
     r: number,
-  ): { x: number; y: number; t: number } => {
+  ): {
+    x: number
+    y: number
+    t: number
+    isSpecial?: boolean
+    specialType?: "A" | "B"
+  } => {
     const closestPoint = closestPointOnSegment(segment, circleCenter)
 
     // Calculate distance from closest point to circle center
@@ -265,7 +269,10 @@ export function computeDumbbellPaths({
   }
 
   // Subdivide path based on proximity to A and B
-  const subdivideOptimalPath = (path, numSubdivisions) => {
+  const subdivideOptimalPath = (
+    path: Point[],
+    numSubdivisions: number,
+  ): Point[] => {
     if (path.length < 2) return path
 
     const result = [path[0]] // Start with the first point
@@ -811,8 +818,8 @@ export function computeDumbbellPaths({
       : optimalPath.path
 
   // Find the J-pair that doesn't intersect with the optimal path
-  const findJPair = () => {
-    if (optimalPath.path.length === 0) return { line1: null, line2: null }
+  const findJPair = (): { line1: JLine; line2: JLine } | null => {
+    if (optimalPath.path.length === 0) return null
 
     const jLines = getJLines()
 
@@ -820,20 +827,20 @@ export function computeDumbbellPaths({
     const eLinesIndices = jLines.filter((line) => line.startsAt === "E")
     const fLinesIndices = jLines.filter((line) => line.startsAt === "F")
 
-    const nonIntersectingELines = []
-    const nonIntersectingFLines = []
+    const nonIntersectingELines: JLine[] = []
+    const nonIntersectingFLines: JLine[] = []
 
     // Check each E J-line for intersection with optimal path
     for (const jLine of eLinesIndices) {
       if (!doPathsIntersect(jLine.points, optimalPath.path)) {
-        nonIntersectingELines.push(jLine)
+        nonIntersectingELines.push(jLine as JLine)
       }
     }
 
     // Check each F J-line for intersection with optimal path
     for (const jLine of fLinesIndices) {
       if (!doPathsIntersect(jLine.points, optimalPath.path)) {
-        nonIntersectingFLines.push(jLine)
+        nonIntersectingFLines.push(jLine as JLine)
       }
     }
 
@@ -842,7 +849,7 @@ export function computeDumbbellPaths({
       nonIntersectingELines.length === 0 ||
       nonIntersectingFLines.length === 0
     ) {
-      return { line1: null, line2: null }
+      return null
     }
 
     // Return the first non-intersecting E line and F line as the J-pair
@@ -859,9 +866,8 @@ export function computeDumbbellPaths({
   return {
     jPair,
     optimalPath: {
-      index: optimalPath.index,
-      startsAt: optimalPath.startsAt,
-      goesTo: optimalPath.goesTo,
+      startsAt: optimalPath.startsAt! as "C" | "D",
+      goesTo: optimalPath.goesTo! as "C" | "D",
       points: subdivided,
     },
   }
