@@ -5,39 +5,39 @@ const ComputeDumbbellPathsFixture1 = () => {
     <DumbbellDebugger
       {...{
         A: {
-          x: 0.44843477786630276,
-          y: 9.775,
+          x: 144.84347778663028,
+          y: 177.5,
         },
         B: {
-          x: 1.475,
-          y: 10.850000000000001,
+          x: 247.5,
+          y: 285.0000000000002,
         },
         C: {
-          x: 1.40625,
-          y: 9.375,
+          x: 240.625,
+          y: 137.5,
           z: 0,
           connectionName: "source_trace_6",
         },
         D: {
-          x: 0,
-          y: 10.3125,
+          x: 100,
+          y: 231.25,
           z: 0,
           connectionName: "source_trace_6",
         },
         E: {
-          x: 0.46875,
-          y: 9.375,
+          x: 146.875,
+          y: 137.5,
           z: 0,
           connectionName: "source_net_0_mst1",
         },
         F: {
-          x: 0.9375,
-          y: 11.25,
+          x: 193.75,
+          y: 325,
           z: 0,
           connectionName: "source_net_0_mst1",
         },
-        radius: 0.6,
-        margin: 0.1,
+        radius: 30,
+        margin: 10,
         subdivisions: 1,
       }}
     />

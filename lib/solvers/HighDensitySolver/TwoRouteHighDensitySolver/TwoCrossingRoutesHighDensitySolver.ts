@@ -335,7 +335,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
    * Try to solve with routeA going over and routeB staying on layer 0
    */
   private trySolveAOverB(routeA: Route, routeB: Route): boolean {
-    const viaPositions = this.calculateViaPositions(routeA, routeB)
+    const viaPositions = this.calculateViaPositions(routeB, routeA)
     if (viaPositions) {
       this.debugViaPositions.push(viaPositions)
     } else {
@@ -347,22 +347,12 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const { jPair, optimalPath } = computeDumbbellPaths({
       A: via1,
       B: via2,
-      C: routeB.startPort,
-      D: routeB.endPort,
-      E: routeA.startPort,
-      F: routeA.endPort,
-      radius: this.viaDiameter,
-      margin: this.obstacleMargin,
-      subdivisions: 1,
-    })
-    console.log({
-      A: via1,
-      B: via2,
-      C: routeB.startPort,
-      D: routeB.endPort,
-      E: routeA.startPort,
-      F: routeA.endPort,
-      radius: this.viaDiameter,
+      C: routeA.startPort,
+      D: routeA.endPort,
+      E: routeB.startPort,
+      F: routeB.endPort,
+      radius:
+        this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness / 2,
       margin: this.obstacleMargin,
       subdivisions: 1,
     })
@@ -455,239 +445,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       via1: newVia1,
       via2: newVia2,
     }
-  }
-
-  /**
-   * Calculate the orthogonal route points for the second route
-   */
-  private calculateConservativeOrthogonalRoutePoints(
-    start: Point,
-    end: Point,
-    via1: Point,
-    via2: Point,
-    otherRouteStart: Point,
-    otherRouteEnd: Point,
-  ): Point[] | null {
-    // Define the inner edge box which is obstacleMargin away from outer box
-    const outerBox = {
-      width: this.bounds.maxX - this.bounds.minX,
-      height: this.bounds.maxY - this.bounds.minY,
-      x: this.bounds.minX,
-      y: this.bounds.minY,
-    }
-
-    const innerEdgeBox = {
-      width: outerBox.width - 2 * this.obstacleMargin - this.traceThickness,
-      height: outerBox.height - 2 * this.obstacleMargin - this.traceThickness,
-      x: outerBox.x + this.obstacleMargin + this.traceThickness / 2,
-      y: outerBox.y + this.obstacleMargin + this.traceThickness / 2,
-    }
-
-    // Calculate the orthogonal line to the mid segment
-    // First get the direction vector of mid segment
-    const midSegmentDX = via2.x - via1.x
-    const midSegmentDY = via2.y - via1.y
-
-    // Calculate orthogonal vector (rotate by 90 degrees)
-    const orthDX = -midSegmentDY
-    const orthDY = midSegmentDX
-
-    // Normalize the orthogonal vector
-    const orthLength = Math.sqrt(orthDX * orthDX + orthDY * orthDY)
-    const normOrthDX = orthDX / orthLength
-    const normOrthDY = orthDY / orthLength
-
-    // Calculate the midpoint of the mid segment
-    const midpointX = (via1.x + via2.x) / 2
-    const midpointY = (via1.y + via2.y) / 2
-
-    // Calculate the orthogonal line that passes through the midpoint
-    // Line equation: (x, y) = (midpointX, midpointY) + t * (normOrthDX, normOrthDY)
-
-    // Function to calculate intersections with the innerEdgeBox
-    const calculateIntersections = (): Point[] => {
-      const intersections: Point[] = []
-
-      // Check intersection with left edge
-      const leftT = (innerEdgeBox.x - midpointX) / normOrthDX
-      const leftY = midpointY + leftT * normOrthDY
-      if (
-        leftY >= innerEdgeBox.y &&
-        leftY <= innerEdgeBox.y + innerEdgeBox.height
-      ) {
-        intersections.push({ x: innerEdgeBox.x, y: leftY })
-      }
-
-      // Check intersection with right edge
-      const rightT =
-        (innerEdgeBox.x + innerEdgeBox.width - midpointX) / normOrthDX
-      const rightY = midpointY + rightT * normOrthDY
-      if (
-        rightY >= innerEdgeBox.y &&
-        rightY <= innerEdgeBox.y + innerEdgeBox.height
-      ) {
-        intersections.push({
-          x: innerEdgeBox.x + innerEdgeBox.width,
-          y: rightY,
-        })
-      }
-
-      // Check intersection with top edge
-      const topT = (innerEdgeBox.y - midpointY) / normOrthDY
-      const topX = midpointX + topT * normOrthDX
-      if (
-        topX >= innerEdgeBox.x &&
-        topX <= innerEdgeBox.x + innerEdgeBox.width
-      ) {
-        intersections.push({ x: topX, y: innerEdgeBox.y })
-      }
-
-      // Check intersection with bottom edge
-      const bottomT =
-        (innerEdgeBox.y + innerEdgeBox.height - midpointY) / normOrthDY
-      const bottomX = midpointX + bottomT * normOrthDX
-      if (
-        bottomX >= innerEdgeBox.x &&
-        bottomX <= innerEdgeBox.x + innerEdgeBox.width
-      ) {
-        intersections.push({
-          x: bottomX,
-          y: innerEdgeBox.y + innerEdgeBox.height,
-        })
-      }
-
-      return intersections
-    }
-
-    const intersections = calculateIntersections()
-
-    // If we don't have at least 2 intersections, return direct route
-    if (intersections.length < 2) {
-      return [
-        { x: start.x, y: start.y, z: start.z ?? 0 },
-        { x: end.x, y: end.y, z: end.z ?? 0 },
-      ]
-    }
-
-    // Sort intersections by distance from start point
-    const sortedIntersections = [...intersections].sort((a, b) => {
-      const distA = distance(a, start)
-      const distB = distance(b, start)
-      return distA - distB
-    })
-
-    // Choose the closest intersection to the start and the closest to the end
-    let middlePoint1 = sortedIntersections[0]
-    let middlePoint2 = sortedIntersections[intersections.length - 1]
-
-    if (
-      doSegmentsIntersect(start, middlePoint1, otherRouteStart, via1) ||
-      doSegmentsIntersect(end, middlePoint2, otherRouteEnd, via2)
-    ) {
-      ;[middlePoint1, middlePoint2] = [middlePoint2, middlePoint1]
-    }
-
-    // Create the route with 4 points
-    return [
-      { x: start.x, y: start.y, z: start.z ?? 0 },
-      {
-        x: middlePoint1.x,
-        y: middlePoint1.y,
-        z: start.z ?? 0,
-        // @ts-ignore
-        _label: "Conservative Orthogonal Point 1",
-      },
-      {
-        x: middlePoint2.x,
-        y: middlePoint2.y,
-        z: start.z ?? 0,
-        // @ts-ignore
-        _label: "Conservative Orthogonal Point 2",
-      },
-      { x: end.x, y: end.y, z: end.z ?? 0 },
-    ]
-  }
-
-  private calculateShortestOrthogonalRoutePoints(
-    start: Point,
-    end: Point,
-    via1: Point,
-    via2: Point,
-    otherRouteStart: Point,
-    otherRouteEnd: Point,
-  ): Point[] | null {
-    const midSegmentCenter = {
-      x: (via1.x + via2.x) / 2,
-      y: (via1.y + via2.y) / 2,
-    }
-
-    const midSegmentDirection = {
-      x: via2.x - via1.x,
-      y: via2.y - via1.y,
-    }
-
-    const midSegmentLength = distance(via1, via2)
-    const normOrthDX = midSegmentDirection.y / midSegmentLength
-    const normOrthDY = midSegmentDirection.x / midSegmentLength
-
-    // Travel orthogonal to the mid segment by the length of the mid segment to
-    // get two points
-    let orthogonalPoint1 = {
-      x: midSegmentCenter.x + (midSegmentLength / 2) * normOrthDY,
-      y: midSegmentCenter.y - (midSegmentLength / 2) * normOrthDX,
-    }
-
-    let orthogonalPoint2 = {
-      x: midSegmentCenter.x - (midSegmentLength / 2) * normOrthDY,
-      y: midSegmentCenter.y + (midSegmentLength / 2) * normOrthDX,
-    }
-
-    if (distance(orthogonalPoint2, start) < distance(orthogonalPoint1, start)) {
-      ;[orthogonalPoint1, orthogonalPoint2] = [
-        orthogonalPoint2,
-        orthogonalPoint1,
-      ]
-    }
-
-    // Make sure we're not too close to the other route, or the mid segment
-    // start or end (which has vias)
-    // TODO - i haven't done this because we need a good test case/fixture -seve
-
-    if (
-      doSegmentsIntersect(start, orthogonalPoint1, otherRouteStart, via1) ||
-      doSegmentsIntersect(end, orthogonalPoint2, otherRouteEnd, via2)
-    ) {
-      ;[orthogonalPoint1, orthogonalPoint2] = [
-        orthogonalPoint2,
-        orthogonalPoint1,
-      ]
-    }
-
-    if (
-      doSegmentsIntersect(start, orthogonalPoint2, otherRouteStart, via1) ||
-      doSegmentsIntersect(end, orthogonalPoint1, otherRouteEnd, via2)
-    ) {
-      return null
-    }
-
-    return [
-      { x: start.x, y: start.y, z: start.z ?? 0 },
-      {
-        x: orthogonalPoint1.x,
-        y: orthogonalPoint1.y,
-        z: start.z ?? 0,
-        // @ts-ignore
-        _label: "Orthogonal Point 1",
-      },
-      {
-        x: orthogonalPoint2.x,
-        y: orthogonalPoint2.y,
-        z: start.z ?? 0,
-        // @ts-ignore
-        _label: "Orthogonal Point 2",
-      },
-      { x: end.x, y: end.y, z: end.z ?? 0 },
-    ]
   }
 
   handleRoutesDontCross() {
