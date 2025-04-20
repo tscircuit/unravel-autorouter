@@ -6,7 +6,7 @@ type Segment = { start: Point; end: Point }
 type JLine = {
   index: number
   startsAt: "C" | "D"
-  goesTo: "C" | "D"
+  goesTo: "A" | "B"
   points: Point[]
 }
 
