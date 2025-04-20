@@ -1,20 +1,52 @@
 import { useState, useRef, useEffect } from "react"
 import { computeDumbbellPaths } from "lib/solvers/HighDensitySolver/TwoRouteHighDensitySolver/computeDumbbellPaths"
 
-const DumbbellVisualizer = () => {
-  // State for points and parameters
-  const [pointA, setPointA] = useState({ x: 150, y: 250 })
-  const [pointB, setPointB] = useState({ x: 350, y: 250 })
-  const [pointC, setPointC] = useState({ x: 100, y: 100 })
-  const [pointD, setPointD] = useState({ x: 500, y: 100 })
-  const [pointE, setPointE] = useState({ x: 309, y: 106 })
-  const [pointF, setPointF] = useState({ x: 500, y: 400 })
-  const [radius, setRadius] = useState(30)
-  const [margin, setMargin] = useState(15)
-  const [subdivisions, setSubdivisions] = useState(1)
+interface Point {
+  x: number
+  y: number
+  z?: number
+  connectionName?: string
+}
+
+interface DumbbellDebuggerProps {
+  A?: Point
+  B?: Point
+  C?: Point
+  D?: Point
+  E?: Point
+  F?: Point
+  radius?: number
+  margin?: number
+  subdivisions?: number
+}
+
+export const DumbbellDebugger = ({
+  A = { x: 150, y: 250 },
+  B = { x: 350, y: 250 },
+  C = { x: 100, y: 100 },
+  D = { x: 500, y: 100 },
+  E = { x: 309, y: 106 },
+  F = { x: 500, y: 400 },
+  radius: initialRadius = 30,
+  margin: initialMargin = 15,
+  subdivisions: initialSubdivisions = 1,
+}: DumbbellDebuggerProps) => {
+  // State for points and parameters, initialized from props
+  const [pointA, setPointA] = useState<Point>(A)
+  const [pointB, setPointB] = useState<Point>(B)
+  const [pointC, setPointC] = useState<Point>(C)
+  const [pointD, setPointD] = useState<Point>(D)
+  const [pointE, setPointE] = useState<Point>(E)
+  const [pointF, setPointF] = useState<Point>(F)
+  const [radius, setRadius] = useState(initialRadius)
+  const [margin, setMargin] = useState(initialMargin)
+  const [subdivisions, setSubdivisions] = useState(initialSubdivisions)
 
   // State for UI controls
-  const [dragging, setDragging] = useState(null)
+  const [dragging, setDragging] = useState<{
+    name: string
+    setter: React.Dispatch<React.SetStateAction<Point>>
+  } | null>(null)
   const [showInnerPoints, setShowInnerPoints] = useState(true)
   const [showOuterPoints, setShowOuterPoints] = useState(false)
   const [showJPair, setShowJPair] = useState(true)
@@ -22,9 +54,11 @@ const DumbbellVisualizer = () => {
   const [showSubdivided, setShowSubdivided] = useState(true)
 
   // State for computation result
-  const [pathResult, setPathResult] = useState(null)
+  const [pathResult, setPathResult] = useState<ReturnType<
+    typeof computeDumbbellPaths
+  > | null>(null)
 
-  const canvasRef = useRef(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   // Compute paths whenever parameters change
   useEffect(() => {
@@ -54,7 +88,7 @@ const DumbbellVisualizer = () => {
   ])
 
   // Helper function to calculate dumbbell points
-  const calculatePoints = (a, b, r) => {
+  const calculatePoints = (a: Point, b: Point, r: number) => {
     // Vector from A to B
     const dx = b.x - a.x
     const dy = b.y - a.y
@@ -83,6 +117,7 @@ const DumbbellVisualizer = () => {
     if (!canvas || !pathResult) return
 
     const ctx = canvas.getContext("2d")
+    if (!ctx) return
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     // Calculate inner and outer dumbbell points
@@ -90,7 +125,12 @@ const DumbbellVisualizer = () => {
     const outerPoints = calculatePoints(pointA, pointB, radius + margin)
 
     // Draw helper function for points
-    const drawPoint = (point, label, color = "#000", size = 5) => {
+    const drawPoint = (
+      point: Point,
+      label: string,
+      color = "#000",
+      size = 5,
+    ) => {
       ctx.beginPath()
       ctx.arc(point.x, point.y, size, 0, Math.PI * 2)
       ctx.fillStyle = color
@@ -156,7 +196,7 @@ const DumbbellVisualizer = () => {
 
     // Draw inner dumbbell calculated points
     if (showInnerPoints) {
-      const drawSmallPoint = (point, label, color) => {
+      const drawSmallPoint = (point: Point, label: string, color: string) => {
         ctx.beginPath()
         ctx.arc(point.x, point.y, 3, 0, Math.PI * 2)
         ctx.fillStyle = color
@@ -177,7 +217,7 @@ const DumbbellVisualizer = () => {
 
     // Draw outer dumbbell calculated points
     if (showOuterPoints) {
-      const drawSmallPoint = (point, label, color) => {
+      const drawSmallPoint = (point: Point, label: string, color: string) => {
         ctx.beginPath()
         ctx.arc(point.x, point.y, 3, 0, Math.PI * 2)
         ctx.fillStyle = color
@@ -211,7 +251,10 @@ const DumbbellVisualizer = () => {
 
         // Draw points on the path
         for (let i = 1; i < points.length - 1; i++) {
-          const point = points[i]
+          const point = points[i] as Point & {
+            isSpecial?: boolean
+            specialType?: "A" | "B"
+          }
           let color = "#0000AA"
           let size = 3
 
@@ -250,7 +293,7 @@ const DumbbellVisualizer = () => {
         )
 
         if (showSubdivided && subdivisions > 0) {
-          const specialPoints = points.filter((p) => p.isSpecial)
+          const specialPoints = points.filter((p: any) => p.isSpecial)
           ctx.fillText(
             `Subdivided: ${points.length} points, ${specialPoints.length} at radius distance`,
             10,
@@ -339,7 +382,7 @@ const DumbbellVisualizer = () => {
   ])
 
   // Event handlers
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -366,7 +409,7 @@ const DumbbellVisualizer = () => {
     }
   }
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!dragging) return
 
     const canvas = canvasRef.current
@@ -389,7 +432,7 @@ const DumbbellVisualizer = () => {
 
   return (
     <div className="flex flex-col items-center p-4">
-      <h1 className="text-2xl font-bold mb-4">Dumbbell Path Visualizer</h1>
+      <h1 className="text-2xl font-bold mb-4">Dumbbell Path Debugger</h1>
 
       <div className="flex flex-wrap gap-4 mb-4">
         <div className="flex flex-col items-start p-4 border rounded shadow-sm bg-gray-50">
@@ -584,4 +627,4 @@ const DumbbellVisualizer = () => {
   )
 }
 
-export default DumbbellVisualizer
+export default DumbbellDebugger

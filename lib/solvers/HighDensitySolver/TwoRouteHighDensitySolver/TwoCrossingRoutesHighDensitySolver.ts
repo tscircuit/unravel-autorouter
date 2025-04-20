@@ -36,6 +36,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     via2: Point
   }[]
 
+  escapeLayer: number = 1
+
   // Solution state
   solvedRoutes: HighDensityIntraNodeRoute[] = []
 
@@ -89,8 +91,14 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       this.failed = true
       return
     }
-
     // TODO check to make sure the lines cross
+
+    // TODO support more layers, use availableZLayers when it's provided
+    if (routeA.startPort.z === 0) {
+      this.escapeLayer = 1
+    } else {
+      this.escapeLayer = 0
+    }
   }
 
   /**
@@ -339,14 +347,27 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const { jPair, optimalPath } = computeDumbbellPaths({
       A: via1,
       B: via2,
-      C: routeA.startPort,
-      D: routeA.endPort,
-      E: routeB.startPort,
-      F: routeB.endPort,
+      C: routeB.startPort,
+      D: routeB.endPort,
+      E: routeA.startPort,
+      F: routeA.endPort,
       radius: this.viaDiameter,
       margin: this.obstacleMargin,
       subdivisions: 1,
     })
+    console.log({
+      A: via1,
+      B: via2,
+      C: routeB.startPort,
+      D: routeB.endPort,
+      E: routeA.startPort,
+      F: routeA.endPort,
+      radius: this.viaDiameter,
+      margin: this.obstacleMargin,
+      subdivisions: 1,
+    })
+
+    if (!jPair) return false
 
     const routeASolution: HighDensityIntraNodeRoute = {
       connectionName: routeA.connectionName,
@@ -355,6 +376,27 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
         y: p.y,
         z: routeA.startPort.z ?? 0,
       })),
+      traceThickness: this.traceThickness,
+      viaDiameter: this.viaDiameter,
+      vias: [],
+    }
+    jPair.line2.points.reverse()
+    const routeBSolution: HighDensityIntraNodeRoute = {
+      connectionName: routeB.connectionName,
+      route: [
+        ...jPair.line1.points.map((p) => ({
+          x: p.x,
+          y: p.y,
+          z: routeB.startPort.z ?? 0,
+        })),
+        { ...jPair.line1.points[jPair.line1.points.length - 1], z: 1 },
+        { ...jPair.line2.points[0], z: this.escapeLayer },
+        ...jPair.line2.points.map((p) => ({
+          x: p.x,
+          y: p.y,
+          z: routeB.startPort.z ?? 0,
+        })),
+      ],
       traceThickness: this.traceThickness,
       viaDiameter: this.viaDiameter,
       vias: [via1, via2],
@@ -648,6 +690,52 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     ]
   }
 
+  handleRoutesDontCross() {
+    const [routeA, routeB] = this.routes
+    // Routes don't cross, create simple direct connections
+    const routeASolution: HighDensityIntraNodeRoute = {
+      connectionName: routeA.connectionName,
+      route: [
+        {
+          x: routeA.startPort.x,
+          y: routeA.startPort.y,
+          z: routeA.startPort.z ?? 0,
+        },
+        {
+          x: routeA.endPort.x,
+          y: routeA.endPort.y,
+          z: routeA.endPort.z ?? 0,
+        },
+      ],
+      traceThickness: this.traceThickness,
+      viaDiameter: this.viaDiameter,
+      vias: [],
+    }
+
+    const routeBSolution: HighDensityIntraNodeRoute = {
+      connectionName: routeB.connectionName,
+      route: [
+        {
+          x: routeB.startPort.x,
+          y: routeB.startPort.y,
+          z: routeB.startPort.z ?? 0,
+        },
+        {
+          x: routeB.endPort.x,
+          y: routeB.endPort.y,
+          z: routeB.endPort.z ?? 0,
+        },
+      ],
+      traceThickness: this.traceThickness,
+      viaDiameter: this.viaDiameter,
+      vias: [],
+    }
+
+    this.solvedRoutes.push(routeASolution, routeBSolution)
+    this.solved = true
+    return
+  }
+
   /**
    * Main step method that attempts to solve the two crossing routes
    */
@@ -662,47 +750,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Check if routes are actually crossing
     if (!this.doRoutesCross(routeA, routeB)) {
-      // Routes don't cross, create simple direct connections
-      const routeASolution: HighDensityIntraNodeRoute = {
-        connectionName: routeA.connectionName,
-        route: [
-          {
-            x: routeA.startPort.x,
-            y: routeA.startPort.y,
-            z: routeA.startPort.z ?? 0,
-          },
-          {
-            x: routeA.endPort.x,
-            y: routeA.endPort.y,
-            z: routeA.endPort.z ?? 0,
-          },
-        ],
-        traceThickness: this.traceThickness,
-        viaDiameter: this.viaDiameter,
-        vias: [],
-      }
-
-      const routeBSolution: HighDensityIntraNodeRoute = {
-        connectionName: routeB.connectionName,
-        route: [
-          {
-            x: routeB.startPort.x,
-            y: routeB.startPort.y,
-            z: routeB.startPort.z ?? 0,
-          },
-          {
-            x: routeB.endPort.x,
-            y: routeB.endPort.y,
-            z: routeB.endPort.z ?? 0,
-          },
-        ],
-        traceThickness: this.traceThickness,
-        viaDiameter: this.viaDiameter,
-        vias: [],
-      }
-
-      this.solvedRoutes.push(routeASolution, routeBSolution)
-      this.solved = true
+      this.handleRoutesDontCross()
       return
     }
 
@@ -750,7 +798,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     for (const [routeName, route] of [
       ["Route A", this.routes[0]],
       ["Route B", this.routes[1]],
-    ]) {
+    ] as const) {
       // Draw endpoints
       graphics.points!.push({
         x: route.startPort.x,
