@@ -746,14 +746,70 @@ export class UnravelSectionSolver extends BaseSolver {
       })
     }
 
-    // Visualize nodes
+    // Calculate node stats for the selected candidate
+    const nodeStatsMap = new Map<
+      CapacityMeshNodeId,
+      {
+        numTransitionCrossings: number
+        numSameLayerCrossings: number
+        numEntryExitLayerChanges: number
+        estPf: number
+      }
+    >()
+
+    for (const nodeId of this.unravelSection.allNodeIds) {
+      nodeStatsMap.set(nodeId, {
+        numTransitionCrossings: 0,
+        numSameLayerCrossings: 0,
+        numEntryExitLayerChanges: 0,
+        estPf: 0,
+      })
+    }
+
+    for (const issue of candidate.issues) {
+      const stats = nodeStatsMap.get(issue.capacityMeshNodeId)!
+      if (issue.type === "transition_via") {
+        stats.numTransitionCrossings++
+      } else if (issue.type === "same_layer_crossing") {
+        stats.numSameLayerCrossings++
+      } else if (
+        issue.type === "double_transition_crossing" ||
+        issue.type === "single_transition_crossing"
+      ) {
+        stats.numEntryExitLayerChanges++
+      }
+      // TODO: Handle same_layer_trace_imbalance_with_low_capacity if needed for stats
+    }
+
+    // Calculate Pf for each node
+    for (const [nodeId, stats] of nodeStatsMap.entries()) {
+      const node = this.nodeMap.get(nodeId)!
+      stats.estPf = calculateNodeProbabilityOfFailure(
+        node,
+        stats.numSameLayerCrossings,
+        stats.numEntryExitLayerChanges,
+        stats.numTransitionCrossings,
+      )
+    }
+
+    // Visualize nodes with stats
     for (const nodeId of this.unravelSection.allNodeIds) {
       const node = this.nodeMap.get(nodeId)!
       const isMutable = this.unravelSection.mutableNodeIds.includes(nodeId)
+      const stats = nodeStatsMap.get(nodeId)!
+
+      const label = [
+        `${nodeId} (${isMutable ? "MUT" : "IMM"})`,
+        `${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+        `Pf: ${stats.estPf.toFixed(3)}`,
+        `TC: ${stats.numTransitionCrossings}`, // Transition Crossings (Vias)
+        `SLC: ${stats.numSameLayerCrossings}`, // Same Layer Crossings
+        `EELC: ${stats.numEntryExitLayerChanges}`, // Entry/Exit Layer Changes
+      ].join("\n")
 
       graphics.rects.push({
         center: node.center,
-        label: `${nodeId}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}\n${isMutable ? "MUTABLE" : "IMMUTABLE"}`,
+        label: label,
         color: isMutable ? "green" : "red",
         width: node.width / 8,
         height: node.height / 8,
