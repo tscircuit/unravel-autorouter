@@ -668,7 +668,7 @@ export function computeDumbbellPaths({
           A,
         ],
       },
-    ]
+    ].map((l, index) => ({ ...l, index }))
   }
 
   // Subdivide a J-line path if segments are too close to the opposite point (A or B)
@@ -867,22 +867,24 @@ export function computeDumbbellPaths({
     const minDistFromAB = radius + margin / 2
 
     // Separate J-lines into those starting with E and those starting with F
-    const eLinesIndices = jLines.filter((line) => line.startsAt === "E")
-    const fLinesIndices = jLines.filter((line) => line.startsAt === "F")
+    const eLines = jLines.filter((line) => line.startsAt === "E")
+    const fLines = jLines.filter((line) => line.startsAt === "F")
 
     const nonIntersectingELines: JLine[] = []
     const nonIntersectingFLines: JLine[] = []
 
     // Check each E J-line for proximity and intersection with optimal path
-    for (const jLine of eLinesIndices) {
+    for (const jLine of eLines) {
       if (doPathsIntersect(jLine.points, optimalPath.path)) continue
       nonIntersectingELines.push(jLine as JLine)
+      break
     }
 
     // Check each F J-line for proximity and intersection with optimal path
-    for (const jLine of fLinesIndices) {
+    for (const jLine of fLines) {
       if (doPathsIntersect(jLine.points, optimalPath.path)) continue
       nonIntersectingFLines.push(jLine as JLine)
+      break
     }
 
     // If we don't have at least one E line and one F line, return an empty pair

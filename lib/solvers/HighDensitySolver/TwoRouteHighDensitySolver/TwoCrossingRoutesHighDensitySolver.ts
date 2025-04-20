@@ -349,7 +349,9 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     // Move vias away from endpoints first, then ensure minimum spacing
-    const { via1, via2 } = this.pushViasFromEndpoints(viaPositions)
+    const { via1, via2 } = this.pushViasFromEndpoints(
+      this.moveViasAsCloseAsPossible(viaPositions),
+    )
     this.debugViaPositions.push({ via1, via2 })
 
     const { jPair, optimalPath } = computeDumbbellPaths({
@@ -414,8 +416,8 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     via1: Point
     via2: Point
   } {
-    let currentVia1 = { ...viaPositions.via1 }
-    let currentVia2 = { ...viaPositions.via2 }
+    const currentVia1 = { ...viaPositions.via1 }
+    const currentVia2 = { ...viaPositions.via2 }
 
     const endpoints = [
       this.routes[0].startPort,
@@ -427,7 +429,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     const optimalDistBtwViaCenters = this.getMinDistanceBetweenViaCenters()
     // Required clearance: via radius + trace thickness + obstacle margin
     const minDistanceBtwViaAndEndpoint =
-      this.viaDiameter / 2 + this.traceThickness + this.obstacleMargin * 2
+      this.viaDiameter / 2 + this.traceThickness * 2 + this.obstacleMargin * 2
 
     const MAX_ITERS = 10
     const PUSH_DECAY = 0.9 // Decay push force over iterations
