@@ -420,6 +420,53 @@ export function computeDumbbellPaths({
     return result
   }
 
+  // Check if a single segment intersects with any segment in a path
+  const doesSegmentIntersectPath = (
+    segment: Segment,
+    path: Point[],
+  ): boolean => {
+    if (path.length < 2) return false
+    for (let i = 0; i < path.length - 1; i++) {
+      const pathSegment = { start: path[i], end: path[i + 1] }
+      if (intersect(segment, pathSegment)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  // Shorten a path by removing intermediate points if the shortcut doesn't intersect the optimal path
+  const shortenJLinePath = (
+    jLinePoints: Point[],
+    optimalPathPoints: Point[],
+  ): Point[] => {
+    if (jLinePoints.length <= 2) {
+      return jLinePoints // Cannot shorten
+    }
+
+    const shortenedPath = [...jLinePoints] // Work on a copy
+    let i = 1 // Index of the point to potentially remove
+
+    while (i < shortenedPath.length - 1) {
+      const P_prev = shortenedPath[i - 1]
+      const P_curr = shortenedPath[i] // The point we might remove
+      const P_next = shortenedPath[i + 1]
+
+      const shortcutSegment: Segment = { start: P_prev, end: P_next }
+
+      // Check if the shortcut segment intersects the optimal path
+      if (!doesSegmentIntersectPath(shortcutSegment, optimalPathPoints)) {
+        // No intersection - remove the current point
+        shortenedPath.splice(i, 1)
+        // Do not increment i, as the next point is now at index i
+      } else {
+        // Intersection would occur - keep the current point and move to the next
+        i++
+      }
+    }
+    return shortenedPath
+  }
+
   // Calculate points for inner and outer dumbbells
   const innerPoints = calculatePoints(A, B, radius)
   const outerPoints = calculatePoints(A, B, radius + margin)
@@ -978,13 +1025,33 @@ export function computeDumbbellPaths({
     // }
   }
 
+  // Determine the actual optimal path points to use for intersection checks
+  const finalOptimalPathPoints = subdivided
+
+  // Shorten the J-lines if possible
+  if (jPair) {
+    const shortenedPoints1 = shortenJLinePath(
+      jPair.line1.points,
+      finalOptimalPathPoints,
+    )
+    const shortenedPoints2 = shortenJLinePath(
+      jPair.line2.points,
+      finalOptimalPathPoints,
+    )
+
+    jPair = {
+      line1: { ...jPair.line1, points: shortenedPoints1 },
+      line2: { ...jPair.line2, points: shortenedPoints2 },
+    }
+  }
+
   // Return the final result
   return {
     jPair,
     optimalPath: {
       startsAt: optimalPath.startsAt! as "C" | "D",
       goesTo: optimalPath.goesTo! as "C" | "D",
-      points: subdivided,
+      points: finalOptimalPathPoints, // Use the potentially subdivided path
     },
   }
 }
