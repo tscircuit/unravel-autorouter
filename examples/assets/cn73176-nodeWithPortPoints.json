@@ -9,10 +9,7 @@
     "width": 1.2155141816406252,
     "height": 1.2155141816406252,
     "layer": "top",
-    "availableZ": [
-      0,
-      1
-    ],
+    "availableZ": [0, 1],
     "_depth": 8,
     "_parent": {
       "capacityMeshNodeId": "cn73113",
@@ -23,10 +20,7 @@
       "width": 2.4310283632812504,
       "height": 2.4310283632812504,
       "layer": "top",
-      "availableZ": [
-        0,
-        1
-      ],
+      "availableZ": [0, 1],
       "_depth": 7,
       "_parent": {
         "capacityMeshNodeId": "cn72880",
@@ -37,10 +31,7 @@
         "width": 4.862056726562501,
         "height": 4.862056726562501,
         "layer": "top",
-        "availableZ": [
-          0,
-          1
-        ],
+        "availableZ": [0, 1],
         "_depth": 6,
         "_parent": {
           "capacityMeshNodeId": "cn72877",
@@ -51,10 +42,7 @@
           "width": 9.724113453125002,
           "height": 9.724113453125002,
           "layer": "top",
-          "availableZ": [
-            0,
-            1
-          ],
+          "availableZ": [0, 1],
           "_depth": 5,
           "_parent": {
             "capacityMeshNodeId": "cn68262",
@@ -65,10 +53,7 @@
             "width": 19.448226906250003,
             "height": 19.448226906250003,
             "layer": "top",
-            "availableZ": [
-              0,
-              1
-            ],
+            "availableZ": [0, 1],
             "_depth": 4,
             "_parent": {
               "capacityMeshNodeId": "cn50081",
@@ -79,10 +64,7 @@
               "width": 38.896453812500006,
               "height": 38.896453812500006,
               "layer": "top",
-              "availableZ": [
-                0,
-                1
-              ],
+              "availableZ": [0, 1],
               "_depth": 3,
               "_parent": {
                 "capacityMeshNodeId": "cn50078",
@@ -93,10 +75,7 @@
                 "width": 77.79290762500001,
                 "height": 77.79290762500001,
                 "layer": "top",
-                "availableZ": [
-                  0,
-                  1
-                ],
+                "availableZ": [0, 1],
                 "_depth": 2,
                 "_parent": {
                   "capacityMeshNodeId": "cn3",
@@ -107,10 +86,7 @@
                   "width": 155.58581525000002,
                   "height": 155.58581525000002,
                   "layer": "top",
-                  "availableZ": [
-                    0,
-                    1
-                  ],
+                  "availableZ": [0, 1],
                   "_depth": 1,
                   "_parent": {
                     "capacityMeshNodeId": "cn0",
@@ -121,10 +97,7 @@
                     "width": 311.17163050000005,
                     "height": 311.17163050000005,
                     "layer": "top",
-                    "availableZ": [
-                      0,
-                      1
-                    ],
+                    "availableZ": [0, 1],
                     "_depth": 0,
                     "_containsTarget": true,
                     "_containsObstacle": true,

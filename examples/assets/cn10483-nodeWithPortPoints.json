@@ -9,10 +9,7 @@
     "width": 1.796875,
     "height": 1.796875,
     "layer": "top",
-    "availableZ": [
-      0,
-      1
-    ],
+    "availableZ": [0, 1],
     "_depth": 6,
     "_parent": {
       "capacityMeshNodeId": "cn10402",
@@ -23,10 +20,7 @@
       "width": 3.59375,
       "height": 3.59375,
       "layer": "top",
-      "availableZ": [
-        0,
-        1
-      ],
+      "availableZ": [0, 1],
       "_depth": 5,
       "_parent": {
         "capacityMeshNodeId": "cn10218",
@@ -37,10 +31,7 @@
         "width": 7.1875,
         "height": 7.1875,
         "layer": "top",
-        "availableZ": [
-          0,
-          1
-        ],
+        "availableZ": [0, 1],
         "_depth": 4,
         "_parent": {
           "capacityMeshNodeId": "cn10216",
@@ -51,10 +42,7 @@
           "width": 14.375,
           "height": 14.375,
           "layer": "top",
-          "availableZ": [
-            0,
-            1
-          ],
+          "availableZ": [0, 1],
           "_depth": 3,
           "_parent": {
             "capacityMeshNodeId": "cn7327",
@@ -65,10 +53,7 @@
             "width": 28.75,
             "height": 28.75,
             "layer": "top",
-            "availableZ": [
-              0,
-              1
-            ],
+            "availableZ": [0, 1],
             "_depth": 2,
             "_parent": {
               "capacityMeshNodeId": "cn3",
@@ -79,10 +64,7 @@
               "width": 57.5,
               "height": 57.5,
               "layer": "top",
-              "availableZ": [
-                0,
-                1
-              ],
+              "availableZ": [0, 1],
               "_depth": 1,
               "_parent": {
                 "capacityMeshNodeId": "cn0",
@@ -93,10 +75,7 @@
                 "width": 115,
                 "height": 115,
                 "layer": "top",
-                "availableZ": [
-                  0,
-                  1
-                ],
+                "availableZ": [0, 1],
                 "_depth": 0,
                 "_containsTarget": true,
                 "_containsObstacle": true,

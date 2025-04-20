@@ -291,9 +291,7 @@ export const GenericSolverDebugger = ({
             className="border rounded-md p-2 hover:bg-gray-100"
             onClick={handleSubStep}
             disabled={
-              !deepestActiveSubSolver ||
-              mainSolver.solved ||
-              mainSolver.failed
+              !deepestActiveSubSolver || mainSolver.solved || mainSolver.failed
             }
           >
             Substep
