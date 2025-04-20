@@ -48,6 +48,8 @@ export const AutoroutingPipelineDebugger = ({
   )
   const [drcErrors, setDrcErrors] = useState<GraphicsObject | null>(null)
   const [drcErrorCount, setDrcErrorCount] = useState<number>(0)
+  const [showDeepestVisualization, setShowDeepestVisualization] =
+    useState(false)
 
   const speedLevels = [1, 2, 5, 10, 100, 500]
   const speedLabels = ["1x", "2x", "5x", "10x", "100x", "500x"]
@@ -196,21 +198,10 @@ export const AutoroutingPipelineDebugger = ({
         return
       }
 
-      let routes: any[]
+      const routes: any = solver?.getOutputSimplifiedPcbTraces()
 
-      // Check if we have simplified routes (output format)
-      if (
-        solver.solved &&
-        solver.multiSimplifiedPathSolver?.simplifiedHdRoutes
-      ) {
-        routes = solver.getOutputSimplifiedPcbTraces()
-      }
-      // Otherwise, use the high-density routes if available
-      else if (solver.highDensityRouteSolver?.routes.length) {
-        routes = solver.highDensityRouteSolver.routes
-      }
       // Neither available, show error
-      else {
+      if (!routes) {
         alert(
           "No routes available yet. Complete routing first or proceed to high-density routing stage.",
         )
@@ -352,7 +343,12 @@ export const AutoroutingPipelineDebugger = ({
   const visualization = useMemo(() => {
     try {
       let baseVisualization: GraphicsObject
-      if (previewMode) {
+
+      if (showDeepestVisualization && deepestActiveSubSolver) {
+        baseVisualization = previewMode
+          ? deepestActiveSubSolver.preview() || { points: [], lines: [] }
+          : deepestActiveSubSolver.visualize() || { points: [], lines: [] }
+      } else if (previewMode) {
         baseVisualization = solver?.preview() || { points: [], lines: [] }
       } else {
         baseVisualization = solver?.visualize() || { points: [], lines: [] }
@@ -368,7 +364,14 @@ export const AutoroutingPipelineDebugger = ({
       console.error("Visualization error:", error)
       return { points: [], lines: [] }
     }
-  }, [solver, solver.iterations, previewMode, drcErrors])
+  }, [
+    solver,
+    solver.iterations,
+    previewMode,
+    drcErrors,
+    showDeepestVisualization,
+    deepestActiveSubSolver,
+  ])
 
   return (
     <div className="p-4">
@@ -510,6 +513,18 @@ export const AutoroutingPipelineDebugger = ({
             Error: <span className="font-bold">{solver.error}</span>
           </div>
         )}
+        <div className="ml-2 flex items-center">
+          <input
+            type="checkbox"
+            id="showDeepestVisualization"
+            className="mr-1"
+            checked={showDeepestVisualization}
+            onChange={(e) => setShowDeepestVisualization(e.target.checked)}
+          />
+          <label htmlFor="showDeepestVisualization" className="text-sm">
+            Deep Viz
+          </label>
+        </div>
       </div>
 
       <div className="border rounded-md p-4 mb-4">
@@ -702,104 +717,124 @@ export const AutoroutingPipelineDebugger = ({
               <th className="border p-2 text-left">Step</th>
               <th className="border p-2 text-left">Status</th>
               <th className="border p-2 text-left">Iterations</th>
+              <th className="border p-2 text-left">
+                i<sub>0</sub>
+              </th>
               <th className="border p-2 text-left">Time</th>
               <th className="border p-2 text-left">Input</th>
             </tr>
           </thead>
           <tbody>
-            {solver.pipelineDef?.map((step) => {
-              const stepSolver = solver[
-                step.solverName as keyof CapacityMeshSolver
-              ] as BaseSolver | undefined
-              const status = stepSolver?.solved
-                ? "Solved"
-                : stepSolver?.failed
-                  ? "Failed"
-                  : stepSolver
-                    ? "In Progress"
-                    : "Not Started"
-              const statusClass = stepSolver?.solved
-                ? "text-green-600"
-                : stepSolver?.failed
-                  ? "text-red-600"
-                  : "text-blue-600"
+            {(() => {
+              let cumulativeIterations = 0
+              return solver.pipelineDef?.map((step, index) => {
+                const stepSolver = solver[
+                  step.solverName as keyof CapacityMeshSolver
+                ] as BaseSolver | undefined
+                const i0 = cumulativeIterations
+                if (stepSolver) {
+                  cumulativeIterations += stepSolver.iterations
+                }
+                const status = stepSolver?.solved
+                  ? "Solved"
+                  : stepSolver?.failed
+                    ? "Failed"
+                    : stepSolver
+                      ? "In Progress"
+                      : "Not Started"
+                const statusClass = stepSolver?.solved
+                  ? "text-green-600"
+                  : stepSolver?.failed
+                    ? "text-red-600"
+                    : "text-blue-600"
 
-              return (
-                <tr key={step.solverName}>
-                  <td className="border p-2">{step.solverName}</td>
-                  <td className={`border p-2 font-bold ${statusClass}`}>
-                    {status}
-                  </td>
-                  <td className="border p-2">{stepSolver?.iterations || 0}</td>
-                  <td className="border p-2 tabular-nums">
-                    {(
-                      ((solver.endTimeOfPhase[step.solverName] ??
-                        performance.now()) -
-                        (solver.startTimeOfPhase[step.solverName] ??
-                          performance.now())) /
-                      1000
-                    ).toFixed(2)}
-                  </td>
-                  <td className="border p-2">
-                    <button
-                      className="text-blue-600 hover:underline"
-                      onClick={() => {
-                        // Get the constructor parameters for this step
-                        const params = step.getConstructorParams(solver)
-                        // Recursively replace _parent: { ... } with _parent: { capacityMeshNodeId: "..." }
-                        // This prevents circular references in the JSON
-                        const replaceParent = (obj: any) => {
-                          if (obj && typeof obj === "object") {
-                            if (obj._parent) {
-                              obj._parent = {
-                                capacityMeshNodeId:
-                                  obj._parent.capacityMeshNodeId,
+                return (
+                  <tr key={step.solverName}>
+                    <td className="border p-2">
+                      <span className="text-gray-500 whitespace-pre mr-2">
+                        {(index + 1).toString().padStart(2, " ")}
+                      </span>
+                      {step.solverName}
+                    </td>
+                    <td className={`border p-2 font-bold ${statusClass}`}>
+                      {status}
+                    </td>
+                    <td className="border p-2">
+                      {stepSolver?.iterations || 0}
+                    </td>
+                    <td className="border p-2 tabular-nums text-gray-500">
+                      {i0}
+                    </td>
+                    <td className="border p-2 tabular-nums">
+                      {(
+                        ((solver.endTimeOfPhase[step.solverName] ??
+                          performance.now()) -
+                          (solver.startTimeOfPhase[step.solverName] ??
+                            performance.now())) /
+                        1000
+                      ).toFixed(2)}
+                    </td>
+                    <td className="border p-2">
+                      <button
+                        className="text-blue-600 hover:underline"
+                        onClick={() => {
+                          // Get the constructor parameters for this step
+                          const params = step.getConstructorParams(solver)
+                          // Recursively replace _parent: { ... } with _parent: { capacityMeshNodeId: "..." }
+                          // This prevents circular references in the JSON
+                          const replaceParent = (obj: any) => {
+                            if (obj && typeof obj === "object") {
+                              if (obj._parent) {
+                                obj._parent = {
+                                  capacityMeshNodeId:
+                                    obj._parent.capacityMeshNodeId,
+                                }
                               }
-                            }
 
-                            // Recursively process all properties
-                            for (const key in obj) {
-                              if (
-                                Object.prototype.hasOwnProperty.call(obj, key)
-                              ) {
-                                replaceParent(obj[key])
+                              // Recursively process all properties
+                              for (const key in obj) {
+                                if (
+                                  Object.prototype.hasOwnProperty.call(obj, key)
+                                ) {
+                                  replaceParent(obj[key])
+                                }
                               }
-                            }
 
-                            // Handle arrays
-                            if (Array.isArray(obj)) {
-                              obj.forEach((item) => replaceParent(item))
+                              // Handle arrays
+                              if (Array.isArray(obj)) {
+                                obj.forEach((item) => replaceParent(item))
+                              }
                             }
                           }
-                        }
-                        replaceParent(params[0])
+                          replaceParent(params[0])
 
-                        // Create a JSON string with proper formatting
-                        const paramsJson = JSON.stringify(params, null, 2)
-                        // Create a blob with the JSON data
-                        const blob = new Blob([paramsJson], {
-                          type: "application/json",
-                        })
-                        // Create a URL for the blob
-                        const url = URL.createObjectURL(blob)
-                        // Create a temporary anchor element
-                        const a = document.createElement("a")
-                        // Set the download filename to the solver name
-                        a.download = `${step.solverName}_input.json`
-                        a.href = url
-                        // Trigger the download
-                        a.click()
-                        // Clean up by revoking the URL
-                        URL.revokeObjectURL(url)
-                      }}
-                      disabled={!stepSolver}
-                    >
-                      ⬇️ Input
-                    </button>
-                  </td>
-                </tr>
-              )
-            })}
+                          // Create a JSON string with proper formatting
+                          const paramsJson = JSON.stringify(params, null, 2)
+                          // Create a blob with the JSON data
+                          const blob = new Blob([paramsJson], {
+                            type: "application/json",
+                          })
+                          // Create a URL for the blob
+                          const url = URL.createObjectURL(blob)
+                          // Create a temporary anchor element
+                          const a = document.createElement("a")
+                          // Set the download filename to the solver name
+                          a.download = `${step.solverName}_input.json`
+                          a.href = url
+                          // Trigger the download
+                          a.click()
+                          // Clean up by revoking the URL
+                          URL.revokeObjectURL(url)
+                        }}
+                        disabled={!stepSolver}
+                      >
+                        ⬇️ Input
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })
+            })()}
           </tbody>
         </table>
       </div>

@@ -17,13 +17,16 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
   unsolvedRoutes: UnsolvedRoute[]
   activeSolver: SingleHighDensityRouteStitchSolver | null = null
   mergedHdRoutes: HighDensityIntraNodeRoute[] = []
+  colorMap: Record<string, string> = {}
 
   constructor(opts: {
     connections: SimpleRouteConnection[]
     hdRoutes: HighDensityIntraNodeRoute[]
+    colorMap?: Record<string, string>
     layerCount: number
   }) {
     super()
+    this.colorMap = opts.colorMap ?? {}
     this.unsolvedRoutes = opts.connections.map((c) => ({
       connectionName: c.name,
       hdRoutes: opts.hdRoutes.filter((r) => r.connectionName === c.name),
@@ -64,6 +67,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
       hdRoutes: unsolvedRoute.hdRoutes,
       start: unsolvedRoute.start,
       end: unsolvedRoute.end,
+      colorMap: this.colorMap,
     })
   }
 
@@ -103,57 +107,65 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
 
     // Visualize all merged HD routes that have been solved
     for (const [i, mergedRoute] of this.mergedHdRoutes.entries()) {
-      const solvedColor = `hsl(120, 100%, ${40 + ((i * 10) % 40)}%)` // Different shades of green
+      const solvedColor =
+        this.colorMap[mergedRoute.connectionName] ??
+        `hsl(120, 100%, ${40 + ((i * 10) % 40)}%)` // Different shades of green
 
-      // Visualize the route path
-      if (mergedRoute.route.length > 1) {
+      // Visualize the route path segment by segment
+      for (let j = 0; j < mergedRoute.route.length - 1; j++) {
+        const p1 = mergedRoute.route[j]
+        const p2 = mergedRoute.route[j + 1]
+        const segmentColor =
+          p1.z !== 0 ? safeTransparentize(solvedColor, 0.5) : solvedColor
+
         graphics.lines?.push({
-          points: mergedRoute.route.map((point) => ({
-            x: point.x,
-            y: point.y,
-          })),
-          strokeColor: solvedColor,
+          points: [
+            { x: p1.x, y: p1.y },
+            { x: p2.x, y: p2.y },
+          ],
+          strokeColor: segmentColor,
           strokeWidth: mergedRoute.traceThickness,
         })
       }
 
-      // Visualize route points
+      // Visualize route points (apply transparency based on Z)
       for (const point of mergedRoute.route) {
+        const pointColor =
+          point.z !== 0 ? safeTransparentize(solvedColor, 0.5) : solvedColor
         graphics.points?.push({
           x: point.x,
           y: point.y,
-          color: solvedColor,
+          color: pointColor,
         })
       }
 
-      // Visualize vias in the merged route
+      // Visualize vias in the merged route (Vias inherently connect layers, keep solid for now)
+      // TODO: Consider if via transparency should depend on connected layers
       for (const via of mergedRoute.vias) {
         graphics.circles?.push({
           center: { x: via.x, y: via.y },
           radius: mergedRoute.viaDiameter / 2,
-          fill: solvedColor,
+          fill: solvedColor, // Keep vias solid color for visibility
         })
       }
     }
 
     // Visualize all remaining unsolved routes - start/end points only
-    const colorList = Array.from(
-      { length: this.unsolvedRoutes.length },
-      (_, i) => `hsl(${(i * 360) / this.unsolvedRoutes.length}, 100%, 50%)`,
-    )
-    for (const [i, unsolvedRoute] of this.unsolvedRoutes.entries()) {
+    for (const unsolvedRoute of this.unsolvedRoutes) {
+      const routeColor = this.colorMap[unsolvedRoute.connectionName] ?? "gray" // Use colorMap, default to gray
+
       // Add start and end points for unsolved connections
       graphics.points?.push(
         {
           x: unsolvedRoute.start.x,
           y: unsolvedRoute.start.y,
-          color: colorList[i],
+          color: routeColor,
           label: `${unsolvedRoute.connectionName} Start`,
         },
         {
           x: unsolvedRoute.end.x,
           y: unsolvedRoute.end.y,
-          color: colorList[i],
+          color: routeColor,
           label: `${unsolvedRoute.connectionName} End`,
         },
       )
@@ -164,7 +176,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
           { x: unsolvedRoute.start.x, y: unsolvedRoute.start.y },
           { x: unsolvedRoute.end.x, y: unsolvedRoute.end.y },
         ],
-        strokeColor: colorList[i],
+        strokeColor: routeColor,
         strokeDash: "2 2",
       })
 
@@ -173,7 +185,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
         if (hdRoute.route.length > 1) {
           graphics.lines?.push({
             points: hdRoute.route.map((point) => ({ x: point.x, y: point.y })),
-            strokeColor: safeTransparentize(colorList[i], 0.5),
+            strokeColor: safeTransparentize(routeColor, 0.5), // Use routeColor
             strokeDash: "10 5",
           })
         }
@@ -183,7 +195,7 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
           graphics.circles?.push({
             center: { x: via.x, y: via.y },
             radius: hdRoute.viaDiameter / 2,
-            fill: colorList[i],
+            fill: routeColor, // Use routeColor
           })
         }
       }
