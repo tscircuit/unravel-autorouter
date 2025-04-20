@@ -293,7 +293,8 @@ export function computeDumbbellPaths({
 
       // Only subdivide if midpoint is within radius of A or B
       const shouldSubdivide =
-        midpointDistToA <= radius || midpointDistToB <= radius
+        (midpointDistToA <= radius || midpointDistToB <= radius) &&
+        Math.abs(midpointDistToA - midpointDistToB) > 0.0001
 
       if (shouldSubdivide) {
         // Calculate closest points to A and B on this segment
@@ -432,7 +433,14 @@ export function computeDumbbellPaths({
       innerPoints.B_Left,
       innerPoints.B_Opp,
       innerPoints.B_Right,
-      innerPoints.midpoint,
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.B_Right, innerPoints.A_Right),
+      ),
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.A_Left, innerPoints.B_Left),
+      ),
       innerPoints.A_Left,
       innerPoints.A_Opp,
       innerPoints.A_Right,
@@ -444,7 +452,14 @@ export function computeDumbbellPaths({
       innerPoints.B_Right,
       innerPoints.B_Opp,
       innerPoints.B_Left,
-      innerPoints.midpoint,
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.A_Left, innerPoints.B_Left),
+      ),
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.A_Right, innerPoints.B_Right),
+      ),
       innerPoints.A_Right,
       innerPoints.A_Opp,
       innerPoints.A_Left,
@@ -456,7 +471,14 @@ export function computeDumbbellPaths({
       innerPoints.B_Left,
       innerPoints.B_Opp,
       innerPoints.B_Right,
-      innerPoints.midpoint,
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.A_Right, innerPoints.B_Right),
+      ),
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.A_Left, innerPoints.B_Left),
+      ),
       innerPoints.A_Left,
       innerPoints.A_Opp,
       innerPoints.A_Right,
@@ -468,7 +490,14 @@ export function computeDumbbellPaths({
       innerPoints.B_Right,
       innerPoints.B_Opp,
       innerPoints.B_Left,
-      innerPoints.midpoint,
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.A_Left, innerPoints.B_Left),
+      ),
+      midpoint(
+        innerPoints.midpoint,
+        midpoint(innerPoints.A_Right, innerPoints.B_Right),
+      ),
       innerPoints.A_Right,
       innerPoints.A_Opp,
       innerPoints.A_Left,
@@ -807,9 +836,7 @@ export function computeDumbbellPaths({
       return { index: 0, path: [] }
     }
 
-    const optimalPath = validPaths.reduce((prev, curr) =>
-      pathLength(prev.path) > pathLength(curr.path) ? prev : curr,
-    )
+    const optimalPath = validPaths.sort((a, b) => a.length - b.length)[0]
 
     // Post-process the optimal path
     const path = [...optimalPath.path] // Create a copy of the path

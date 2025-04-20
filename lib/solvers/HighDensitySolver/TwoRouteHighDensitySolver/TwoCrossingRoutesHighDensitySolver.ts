@@ -361,9 +361,10 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       D: routeA.endPort,
       E: routeB.startPort,
       F: routeB.endPort,
-      radius:
-        this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness / 2,
-      margin: this.obstacleMargin * 2 + this.traceThickness / 2,
+      // NOTE: Should be traceThickness /2, but we don't currently subdivide
+      // enough to make a round enough circle, so we have to add additional margin
+      radius: this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness,
+      margin: this.obstacleMargin * 2 + this.traceThickness,
       subdivisions: 1,
     })
 
