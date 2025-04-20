@@ -856,16 +856,12 @@ export function computeDumbbellPaths({
     // Check each E J-line for proximity and intersection with optimal path
     for (const jLine of eLinesIndices) {
       if (doPathsIntersect(jLine.points, optimalPath.path)) continue
-      if (pathDistanceToOppAB(jLine.points) < minDistFromAB) continue
-
       nonIntersectingELines.push(jLine as JLine)
     }
 
     // Check each F J-line for proximity and intersection with optimal path
     for (const jLine of fLinesIndices) {
       if (doPathsIntersect(jLine.points, optimalPath.path)) continue
-      if (pathDistanceToOppAB(jLine.points) < minDistFromAB) continue
-
       nonIntersectingFLines.push(jLine as JLine)
     }
 
@@ -886,6 +882,9 @@ export function computeDumbbellPaths({
 
   // Find the J-pair
   const jPair = findJPair()
+
+  // TODO if JPair is too close to the opposite A/B, subdivide segments that are
+  // close and push them away from the close point
 
   // Return the final result
   return {
