@@ -750,7 +750,12 @@ export const AutoroutingPipelineDebugger = ({
 
                 return (
                   <tr key={step.solverName}>
-                    <td className="border p-2">{step.solverName}</td>
+                    <td className="border p-2">
+                      <span className="text-gray-500 whitespace-pre mr-2">
+                        {(index + 1).toString().padStart(2, " ")}
+                      </span>
+                      {step.solverName}
+                    </td>
                     <td className={`border p-2 font-bold ${statusClass}`}>
                       {status}
                     </td>

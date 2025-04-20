@@ -364,19 +364,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       subdivisions: 1,
     })
 
-    console.log({
-      A: via1,
-      B: via2,
-      C: routeA.startPort,
-      D: routeA.endPort,
-      E: routeB.startPort,
-      F: routeB.endPort,
-      radius:
-        this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness / 2,
-      margin: this.obstacleMargin,
-      subdivisions: 1,
-    })
-
     if (!jPair) return false
 
     const routeASolution: HighDensityIntraNodeRoute = {
@@ -399,7 +386,10 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
           y: p.y,
           z: routeB.startPort.z ?? 0,
         })),
-        { ...jPair.line1.points[jPair.line1.points.length - 1], z: 1 },
+        {
+          ...jPair.line1.points[jPair.line1.points.length - 1],
+          z: this.escapeLayer,
+        },
         { ...jPair.line2.points[0], z: this.escapeLayer },
         ...jPair.line2.points.map((p) => ({
           x: p.x,
