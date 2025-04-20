@@ -343,8 +343,22 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     }
 
     const { via1, via2 } = this.optimizeViaPositions(viaPositions)
+    this.debugViaPositions.push({ via1, via2 })
 
     const { jPair, optimalPath } = computeDumbbellPaths({
+      A: via1,
+      B: via2,
+      C: routeA.startPort,
+      D: routeA.endPort,
+      E: routeB.startPort,
+      F: routeB.endPort,
+      radius:
+        this.viaDiameter / 2 + this.obstacleMargin + this.traceThickness / 2,
+      margin: this.obstacleMargin * 2 + this.traceThickness,
+      subdivisions: 1,
+    })
+
+    console.log({
       A: via1,
       B: via2,
       C: routeA.startPort,
@@ -404,7 +418,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
 
     // Calculate the minimum required distance between vias
     const minRequiredDistance =
-      (this.viaDiameter + this.traceThickness + this.obstacleMargin) * 2
+      this.viaDiameter + this.traceThickness + this.obstacleMargin * 2
 
     // Calculate current distance between vias
     const currentDistance = distance(via1, via2)
@@ -548,7 +562,6 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       height: this.bounds.maxY - this.bounds.minY,
       stroke: "rgba(0, 0, 0, 0.5)",
       fill: "rgba(240, 240, 240, 0.1)",
-      label: "PCB Bounds",
     })
 
     // Draw original routes

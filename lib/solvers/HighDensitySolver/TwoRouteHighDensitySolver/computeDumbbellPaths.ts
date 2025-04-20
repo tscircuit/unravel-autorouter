@@ -114,7 +114,7 @@ export function computeDumbbellPaths({
     // Calculate segment length
     const segmentLength = distance(segment.start, segment.end)
     // Allow a small tolerance for floating-point errors
-    const tolerance = 0.1
+    const tolerance = 0.0001
     // Check if point is on segment (d1 + d2 should approximately equal segmentLength)
     return Math.abs(d1 + d2 - segmentLength) < tolerance
   }
@@ -140,7 +140,7 @@ export function computeDumbbellPaths({
     const d2y = p4.y - p3.y
 
     const det = d1x * d2y - d1y * d2x
-    if (Math.abs(det) < 0.001) return false // Parallel or collinear
+    if (Math.abs(det) < 0.0001) return false // Parallel or collinear
 
     const dx = p3.x - p1.x
     const dy = p3.y - p1.y
@@ -920,28 +920,6 @@ export function computeDumbbellPaths({
       ? subdivideOptimalPath(optimalPath.path, subdivisions)
       : optimalPath.path
 
-  /**
-   * Used for JLines, returns the distance to the opposite point (the one
-   * it doesn't connect to). One of the distances is always 0 because a
-   * JLine is always connected to either A or B.
-   */
-  const pathDistanceToOppAB = (points: Point[]) => {
-    return Math.max(
-      Math.min(
-        ...points
-          .slice(0, -1)
-          .map((p, i) => [p, points[i + 1]])
-          .map(([p1, p2]) => pointToSegmentDistance(A, p1, p2)),
-      ),
-      Math.min(
-        ...points
-          .slice(0, -1)
-          .map((p, i) => [p, points[i + 1]])
-          .map(([p1, p2]) => pointToSegmentDistance(B, p1, p2)),
-      ),
-    )
-  }
-
   // Find the J-pair that doesn't intersect with the optimal path and isn't too close to A or B
   const findJPair = (): { line1: JLine; line2: JLine } | null => {
     if (optimalPath.path.length === 0) return null
@@ -991,7 +969,6 @@ export function computeDumbbellPaths({
   if (jPair) {
     const oppositePoint1 = jPair.line1.goesTo === "A" ? B : A
     const oppositePoint2 = jPair.line2.goesTo === "A" ? B : A
-    const minDistFromOppAB = radius + margin / 2
 
     const subdividedPoints1 = subdivideJLinePath(
       jPair.line1,
