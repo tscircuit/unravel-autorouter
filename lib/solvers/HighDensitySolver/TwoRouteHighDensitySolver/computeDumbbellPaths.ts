@@ -869,7 +869,7 @@ export function computeDumbbellPaths({
     }
 
     const optimalPath = validPaths.reduce((prev, curr) =>
-      prev.length < curr.length ? prev : curr,
+      pathLength(prev.path) > pathLength(curr.path) ? prev : curr,
     )
 
     // Post-process the optimal path
