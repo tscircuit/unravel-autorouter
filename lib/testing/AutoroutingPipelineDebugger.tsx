@@ -949,6 +949,16 @@ export const AutoroutingPipelineDebugger = ({
             } catch (e: any) {
               window.alert(`Unable to get constructor params: ${e.toString()}`)
             }
+
+            if (typeof params === "object") {
+              params = { ...params }
+              for (const key in params) {
+                if (params[key] instanceof Map) {
+                  params[key] = Object.fromEntries(params[key])
+                }
+              }
+            }
+
             const paramsJson = JSON.stringify(params, null, 2)
             const blob = new Blob([paramsJson], { type: "application/json" })
             const url = URL.createObjectURL(blob)
