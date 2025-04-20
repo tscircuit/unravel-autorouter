@@ -348,7 +348,7 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
       return false
     }
 
-    const { via1, via2 } = this.optimizeViaPositions(viaPositions)
+    const { via1, via2 } = this.moveViasAsCloseAsPossible(viaPositions)
     this.debugViaPositions.push({ via1, via2 })
 
     const { jPair, optimalPath } = computeDumbbellPaths({
@@ -407,15 +407,52 @@ export class TwoCrossingRoutesHighDensitySolver extends BaseSolver {
     return true
   }
 
-  private optimizeViaPositions(viaPositions: { via1: Point; via2: Point }): {
+  private pushViasFromEndpoints(viaPositions: {
+    via1: Point
+    via2: Point
+  }): {
+    via1: Point
+    via2: Point
+  } {
+    const endpoints = [
+      this.routes[0].startPort,
+      this.routes[0].endPort,
+      this.routes[1].startPort,
+      this.routes[1].endPort,
+    ]
+
+    const minDistanceBtwViaCenters = this.getMinDistanceBetweenViaCenters()
+    // Room for two traces
+    const minDistanceBtwViaAndEndpoint =
+      this.viaDiameter / 2 + this.obstacleMargin * 2 + this.traceThickness
+
+    const MAX_ITERS = 5
+
+    // TODO iterative loop where we move the via away from the endpoints if they
+    // are within minDistanceBtwViaAndEndpoint, then make sure that they are
+    // make sure that they are spaced at least minDistanceApart. If they are
+    // not, we move them further apart along the line connecting them. We decay
+    // the distance endpoints can push by 10% each iteration.
+    for (let i = 0; i < MAX_ITERS; i++) {
+      // TODO
+    }
+  }
+
+  private getMinDistanceBetweenViaCenters(): number {
+    return this.viaDiameter + this.traceThickness + this.obstacleMargin * 2
+  }
+
+  private moveViasAsCloseAsPossible(viaPositions: {
+    via1: Point
+    via2: Point
+  }): {
     via1: Point
     via2: Point
   } {
     const { via1, via2 } = viaPositions
 
     // Calculate the minimum required distance between vias
-    const minRequiredDistance =
-      this.viaDiameter + this.traceThickness + this.obstacleMargin * 2
+    const minRequiredDistance = this.getMinDistanceBetweenViaCenters()
 
     // Calculate current distance between vias
     const currentDistance = distance(via1, via2)
