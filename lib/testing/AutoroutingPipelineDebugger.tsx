@@ -6,7 +6,10 @@ import {
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
-import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
+import {
+  AutoroutingPipelineSolver,
+  CapacityMeshSolver,
+} from "lib/solvers/AutoroutingPipelineSolver"
 import { GraphicsObject, Line, Point, Rect } from "graphics-debug"
 import { limitVisualizations } from "lib/utils/limitVisualizations"
 import { getNodesNearNode } from "lib/solvers/UnravelSolver/getNodesNearNode"
@@ -365,9 +368,9 @@ export const AutoroutingPipelineDebugger = ({
         try {
           // Attempt to get rootNodeId, specific to certain solvers like UnravelSectionSolver
           const params = (deepestSolver as any).getConstructorParams()
-          if (params && params.rootNodeId) {
+          if (params?.rootNodeId) {
             rootNodeId = params.rootNodeId
-          } else if (params && params[0] && params[0].rootNodeId) {
+          } else if (params?.[0]?.rootNodeId) {
             // Handle cases where params are wrapped in an array
             rootNodeId = params[0].rootNodeId
           }
@@ -397,6 +400,30 @@ export const AutoroutingPipelineDebugger = ({
     }
 
     requestAnimationFrame(checkBreakpoint) // Start the checking loop
+  }
+
+  // Play until a specific stage
+  const handlePlayStage = (targetSolverStageKey: string) => {
+    if (solver.solved || solver.failed) return
+
+    // Stop any ongoing animation or breakpoint solving
+    setIsAnimating(false)
+    isSolvingToBreakpointRef.current = false
+
+    // Step until the target solver becomes active
+    while (
+      !solver.solved &&
+      !solver.failed &&
+      solver.activeSubSolver?.constructor.name !== targetSolverStageKey
+    ) {
+      solver.step()
+      // Check if the target solver became active *after* the step
+      if (solver?.[targetSolverStageKey as keyof AutoroutingPipelineSolver]) {
+        break
+      }
+    }
+
+    setForceUpdate((prev) => prev + 1) // Update UI
   }
 
   // Increase animation speed
@@ -852,6 +879,19 @@ export const AutoroutingPipelineDebugger = ({
                     </td>
                     <td className={`border p-2 font-bold ${statusClass}`}>
                       {status}
+                      {status === "Not Started" && (
+                        <button
+                          className="ml-2 text-xs hover:bg-gray-200 rounded px-1 py-0.5"
+                          onClick={() =>
+                            handlePlayStage(
+                              solver.pipelineDef[index].solverName,
+                            )
+                          }
+                          title={`Play until ${step.solverName} starts`}
+                        >
+                          ▶️
+                        </button>
+                      )}
                     </td>
                     <td className="border p-2">
                       {stepSolver?.iterations || 0}
