@@ -7,7 +7,12 @@ import { GraphicsObject } from "graphics-debug"
 interface Point {
   x: number
   y: number
-  z: number
+
+  // If a via, z1 is the layer of the start point, z2 is the layer of the end
+  // point
+  // If not a via, z1 and z2 are the same
+  z1: number
+  z2: number
 }
 
 export interface PolyLine {
@@ -27,7 +32,7 @@ export interface Candidate {
 }
 
 export const computePolyLineHash = (polyLine: Omit<PolyLine, "hash">) => {
-  return polyLine.mPoints.map((p) => `${p.x},${p.y},${p.z}`).join("_")
+  return polyLine.mPoints.map((p) => `${p.x},${p.y},${p.z1},${p.z2}`).join("_")
 }
 
 export const computeCandidateHash = (candidate: Omit<Candidate, "hash">) => {
@@ -61,7 +66,8 @@ export const constructMiddlePoints = (params: {
     const point = {
       x: start.x + t * dx,
       y: start.y + t * dy,
-      z: start.z,
+      z1: start.z1,
+      z2: start.z1,
     }
     middlePoints.push(point)
   }
@@ -118,11 +124,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.nodeWithPortPoints.portPoints.forEach((portPoint) => {
       if (!portPairs.has(portPoint.connectionName)) {
         portPairs.set(portPoint.connectionName, {
-          start: portPoint,
+          start: { ...portPoint, z1: portPoint.z ?? 0, z2: portPoint.z ?? 0 },
           end: null as any,
         })
       } else {
-        portPairs.get(portPoint.connectionName)!.end = portPoint
+        portPairs.get(portPoint.connectionName)!.end = {
+          ...portPoint,
+          z1: portPoint.z ?? 0,
+          z2: portPoint.z ?? 0,
+        }
       }
     })
 
