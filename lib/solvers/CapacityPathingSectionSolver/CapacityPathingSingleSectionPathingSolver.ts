@@ -43,10 +43,7 @@ export interface CapacityPathingSingleSectionPathingSolverParams {
 }
 
 export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
-  // --- Properties from CapacityPathingSolver & CapacityPathingSolver5 ---
-  GREEDY_MULTIPLIER = 2.5 // From CapacityPathingSolver5 constructor override
-  NEGATIVE_CAPACITY_PENALTY_FACTOR = 1 // From CapacityPathingSolver5
-  REDUCED_CAPACITY_PENALTY_FACTOR = 1 // From CapacityPathingSolver5
+  GREEDY_MULTIPLIER = 1.5
   sectionNodes: CapacityMeshNode[]
   sectionEdges: CapacityMeshEdge[]
   sectionConnectionTerminals: Array<{

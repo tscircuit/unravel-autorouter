@@ -93,6 +93,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
   cellSize: number
 
+  viaDiameter: number = 0.6
+  obstacleMargin: number = 0.1
+  traceWidth: number = 0.15
+
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
     colorMap?: Record<string, string>
@@ -230,7 +234,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           // If p1.z2 !== p2.z1, something is wrong in the data structure.
           const segmentLayer = p1.z2
           const isLayer0 = segmentLayer === 0
-          const segmentColor = isLayer0 ? color : `rgba(128, 0, 128, 0.6)` // Example: Dimmer/different color for layer > 0
+          const segmentColor = isLayer0 ? color : safeTransparentize(color, 0.5)
 
           graphicsObject.lines.push({
             points: [p1, p2],
@@ -250,17 +254,17 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             // Draw Via
             graphicsObject.circles.push({
               center: point,
-              radius: 0.3, // TODO: Use actual via diameter from HighDensityRoute?
-              fill: "rgba(0, 0, 255, 0.7)", // Distinct Via color
-              stroke: color, // Outline with connection color
-              strokeWidth: 0.05,
+              radius: this.viaDiameter / 2,
+              fill: color, // Distinct Via color
               label: `Via (${polyLine.connectionName} z=${point.z1} -> z=${point.z2})`,
             })
           } else {
             // Draw regular point (only draw mPoints for clarity, start/end are ports)
             if (polyLine.mPoints.includes(point)) {
               const isLayer0 = pointLayer === 0
-              const pointColor = isLayer0 ? color : `rgba(128, 0, 128, 0.6)`
+              const pointColor = isLayer0
+                ? color
+                : safeTransparentize(color, 0.5)
               graphicsObject.circles.push({
                 center: point,
                 radius: this.cellSize / 5, // Small circle for mPoints

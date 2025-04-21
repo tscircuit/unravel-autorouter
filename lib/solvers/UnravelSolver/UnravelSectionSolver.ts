@@ -565,11 +565,14 @@ export class UnravelSectionSolver extends BaseSolver {
       },
     ] of nodeProblemCounts) {
       const node = this.nodeMap.get(nodeId)!
-      const estPf = calculateNodeProbabilityOfFailure(
-        node,
-        numSameLayerCrossings,
-        numEntryExitLayerChanges,
-        numTransitionCrossings,
+      const estPf = Math.min(
+        calculateNodeProbabilityOfFailure(
+          node,
+          numSameLayerCrossings,
+          numEntryExitLayerChanges,
+          numTransitionCrossings,
+        ),
+        0.999999,
       )
 
       const log1mPf = Math.log(1 - estPf)
