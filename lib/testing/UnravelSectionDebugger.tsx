@@ -120,7 +120,6 @@ export const UnravelSectionDebugger = ({
   const visualization = useMemo(() => {
     try {
       const visualization = solver?.visualize() || { points: [], lines: [] }
-      console.log("visualization", visualization)
       return visualization
     } catch (error) {
       console.error("Visualization error:", error)

@@ -34,9 +34,11 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   MAX_NODE_ATTEMPTS = 2
 
-  MUTABLE_HOPS = 2
+  MUTABLE_HOPS = 1
 
   ACCEPTABLE_PF = 0.05
+
+  MAX_ITERATIONS_WITHOUT_IMPROVEMENT = 200
 
   /**
    * Probability of failure for each node
@@ -195,13 +197,21 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     //   lastProcessedCandidate &&
     //   lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
     const shouldEarlyStop =
-      this.activeSubSolver.iterationsSinceImprovement > 200
+      this.activeSubSolver.iterationsSinceImprovement >
+      this.MAX_ITERATIONS_WITHOUT_IMPROVEMENT
 
+    // cn90994
     if (this.activeSubSolver.solved || shouldEarlyStop) {
       // Incorporate the changes from the active solver
 
       const foundBetterSolution =
         bestCandidate && bestCandidate.g < originalCandidate!.g
+
+      if (this.activeSubSolver.rootNodeId === "cn90994") {
+        console.log("original", originalCandidate?.g)
+        console.log("best", bestCandidate?.g)
+        console.log("foundBetterSolution", foundBetterSolution)
+      }
 
       if (foundBetterSolution) {
         // Modify the points using the pointModifications of the candidate
@@ -229,6 +239,14 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         // Update node failure probabilities
         for (const nodeId of possiblyImpactedNodeIds) {
           // for (const nodeId of this.nodeMap.keys()) {
+          if (nodeId === "cn90994") {
+            console.log(
+              "New Pf",
+              this.computeNodePf(this.nodeMap.get(nodeId)!),
+              "from section with root",
+              this.activeSubSolver.rootNodeId,
+            )
+          }
           this.nodePfMap.set(
             nodeId,
             this.computeNodePf(this.nodeMap.get(nodeId)!),
