@@ -75,6 +75,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   hyperParameters: Partial<HighDensityHyperParameters>
   connMap?: ConnectivityMap
   candidates: Candidate[]
+  bounds: { minX: number; maxX: number; minY: number; maxY: number }
 
   SEGMENTS_PER_POLYLINE = 3
 
@@ -96,6 +97,18 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.cellSize = this.nodeWithPortPoints.width / 10
 
     this.candidates = []
+
+    // Calculate bounds
+    this.bounds = {
+      minX:
+        this.nodeWithPortPoints.center.x - this.nodeWithPortPoints.width / 2,
+      maxX:
+        this.nodeWithPortPoints.center.x + this.nodeWithPortPoints.width / 2,
+      minY:
+        this.nodeWithPortPoints.center.y - this.nodeWithPortPoints.height / 2,
+      maxY:
+        this.nodeWithPortPoints.center.y + this.nodeWithPortPoints.height / 2,
+    }
 
     this.setupInitialPolyLines()
   }
@@ -147,17 +160,84 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
   _step() {}
 
-  visualize() {
+  visualize(): GraphicsObject {
     const graphicsObject: Required<GraphicsObject> = {
       points: [],
       lines: [],
       rects: [],
       circles: [],
       coordinateSystem: "cartesian",
-      title: "MultiHeadPolyLineIntraNodeSolver",
+      title: "MultiHeadPolyLineIntraNodeSolver Visualization",
     }
 
-    const currentCandidates = this.candidates[0]
+    // Draw node bounds
+    graphicsObject.rects.push({
+      center: this.nodeWithPortPoints.center,
+      width: this.bounds.maxX - this.bounds.minX,
+      height: this.nodeWithPortPoints.height,
+      stroke: "gray",
+      fill: "rgba(200, 200, 200, 0.1)",
+      label: "Node Bounds",
+    })
+
+    // Draw input port points
+    for (const pt of this.nodeWithPortPoints.portPoints) {
+      graphicsObject.points.push({
+        x: pt.x,
+        y: pt.y,
+        label: `${pt.connectionName} (z=${pt.z ?? 0})`,
+        color: this.colorMap[pt.connectionName] ?? "blue",
+      })
+    }
+
+    // Visualize the polylines from the first candidate (or current best)
+    const candidateToVisualize = this.candidates[0] // Assuming the first is representative
+    if (candidateToVisualize) {
+      for (const polyLine of candidateToVisualize.polyLines) {
+        const color = this.colorMap[polyLine.connectionName] ?? "purple"
+        const pointsInPolyline = [
+          polyLine.start,
+          ...polyLine.mPoints,
+          polyLine.end,
+        ]
+
+        // Draw segments of the polyline
+        for (let i = 0; i < pointsInPolyline.length - 1; i++) {
+          const p1 = pointsInPolyline[i]
+          const p2 = pointsInPolyline[i + 1]
+          graphicsObject.lines.push({
+            points: [p1, p2],
+            strokeColor: p1.z === 0 ? color : `rgba(128, 0, 128, 0.5)`, // Dimmer for layer 1
+            strokeWidth: 0.1, // TODO: Use actual trace thickness?
+            strokeDash: p1.z !== 0 ? "5,5" : undefined,
+            label: `${polyLine.connectionName} segment (z=${p1.z})`,
+          })
+        }
+
+        // Draw middle points (mPoints)
+        for (const mPoint of polyLine.mPoints) {
+          graphicsObject.circles.push({
+            center: mPoint,
+            radius: this.cellSize / 4, // Small circle for mPoints
+            fill: mPoint.z === 0 ? color : `rgba(128, 0, 128, 0.5)`,
+            label: `mPoint (z=${mPoint.z})`,
+          })
+        }
+
+        // Draw vias if mPoints change layer (simple check)
+        for (let i = 0; i < pointsInPolyline.length - 1; i++) {
+          if (pointsInPolyline[i].z !== pointsInPolyline[i + 1].z) {
+            // Assume via is at the point where the layer changes *from*
+            graphicsObject.circles.push({
+              center: pointsInPolyline[i],
+              radius: 0.3, // TODO: Use actual via diameter
+              fill: "rgba(0, 0, 255, 0.6)",
+              label: `Via (z=${pointsInPolyline[i].z} -> z=${pointsInPolyline[i + 1].z})`,
+            })
+          }
+        }
+      }
+    }
 
     return graphicsObject
   }
