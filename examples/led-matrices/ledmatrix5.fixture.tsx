@@ -1,5 +1,5 @@
 import { AutoroutingPipelineDebugger } from "lib/testing/AutoroutingPipelineDebugger"
-import ledmatrix5 from "examples/assets/ledmatrix5.json"
+import ledmatrix5 from "examples/assets/ledmatrix5_175.json"
 import type { SimpleRouteJson } from "lib/types"
 
 export default () => {
