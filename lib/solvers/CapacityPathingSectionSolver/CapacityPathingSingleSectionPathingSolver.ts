@@ -12,6 +12,7 @@ import { distance } from "@tscircuit/math-utils" // Added import
 import { safeTransparentize } from "../colors" // Added import
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode" // Added import
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
+import { SingleRouteCandidatePriorityQueue } from "lib/data-structures/SingleRouteCandidatePriorityQueue" // Added import
 
 // Copied from CapacityPathingSolver
 export type Candidate = {
@@ -59,7 +60,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
 
   // A* state
   currentConnectionIndex = 0
-  candidates?: Array<Candidate> | null = null
+  candidates?: SingleRouteCandidatePriorityQueue<Candidate> | null = null // Updated type
   visitedNodes?: Set<CapacityMeshNodeId> | null = null
   queuedNodes?: Set<CapacityMeshNodeId> | null = null
   activeCandidateStraightLineDistance?: number
@@ -282,13 +283,14 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
 
     const candidates = this.candidates!
 
-    if (candidates.length === 0) {
+    const currentCandidate = candidates.dequeue() // Use dequeue
+
+    if (!currentCandidate) {
+      // Check if queue is empty
       this._handleCandidatesExhausted(currentTerminal)
       return
     }
 
-    candidates.sort((a, b) => a.f - b.f)
-    const currentCandidate = candidates.shift()! // Not null due to check above
     // Add the node selected for expansion to the visited/closed set
     this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId)
 
@@ -349,7 +351,7 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
         h,
       }
       this.queuedNodes?.add(neighborNode.capacityMeshNodeId)
-      candidates!.push(newCandidate)
+      candidates!.enqueue(newCandidate) // Use enqueue
       // Do NOT add to visitedNodes here. Add only when a node is popped from candidates.
     }
 
@@ -359,9 +361,17 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
   }
 
   private _setupAStar(startNode: CapacityMeshNode, endNode: CapacityMeshNode) {
-    this.candidates = [
-      { prevCandidate: null, node: startNode, f: 0, g: 0, h: 0 },
-    ]
+    const initialCandidate: Candidate = {
+      prevCandidate: null,
+      node: startNode,
+      f: 0,
+      g: 0,
+      h: 0,
+    }
+    this.candidates = new SingleRouteCandidatePriorityQueue<Candidate>([
+      initialCandidate,
+    ]) // Initialize queue with default maxNodes (10k)
+    // TODO: Consider passing a maxNodes value from hyperParameters if needed
     this.visitedNodes = new Set([startNode.capacityMeshNodeId])
     this.debug_lastNodeCostMap = new Map() // Reset costs for the new connection
     this.activeCandidateStraightLineDistance = distance(
@@ -369,12 +379,13 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       endNode.center,
     )
 
-    // Initial cost calculation for start node
+    // Initial cost calculation for start node (needs to happen before adding to queue)
     const initialH = this.computeH(null!, startNode, endNode)
-    this.candidates[0].h = initialH
-    this.candidates[0].f = initialH * this.GREEDY_MULTIPLIER // g is 0
+    initialCandidate.h = initialH
+    initialCandidate.f = initialH * this.GREEDY_MULTIPLIER // g is 0
+    // Re-enqueue or update priority if the queue supports it (current implementation doesn't, so initial calc is fine)
     this.debug_lastNodeCostMap.set(startNode.capacityMeshNodeId, {
-      f: this.candidates[0].f,
+      f: initialCandidate.f,
       g: 0,
       h: initialH,
     })
@@ -482,29 +493,26 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
       }
     }
 
-    // 2. Visualize candidate paths (top few)
-    if (this.candidates && this.candidates.length > 0) {
-      const topCandidates = this.candidates
-        .slice() // Create a copy
-        .sort((a, b) => a.f - b.f) // Ensure sorted by f-cost
-        .slice(0, 5) // Take top 5
+    // 2. Visualize the next candidate path (from the top of the queue)
+    if (this.candidates) {
+      const topCandidate = this.candidates.peek() // Get the highest priority candidate without removing
 
       const currentTerminal =
         this.sectionConnectionTerminals[this.currentConnectionIndex]
       const connectionName = currentTerminal?.connectionName ?? "unknown"
       const connectionColor = this.colorMap[connectionName] ?? "purple" // Default color
 
-      topCandidates.forEach((candidate, index) => {
-        const opacity = 0.8 * (1 - index / 5) // Decreasing opacity
-        const path = this.getBacktrackedPath(candidate)
+      if (topCandidate) {
+        const path = this.getBacktrackedPath(topCandidate)
         if (path.length > 0) {
           baseGraphics.lines!.push({
             points: path.map(({ center: { x, y } }) => ({ x, y })),
-            strokeColor: safeTransparentize(connectionColor, 1 - opacity),
+            strokeColor: safeTransparentize(connectionColor, 0.5), // Use a fixed transparency
             strokeWidth: 0.05,
+            label: `Next Candidate (f=${topCandidate.f.toFixed(1)})`,
           })
         }
-      })
+      }
     }
 
     return baseGraphics
