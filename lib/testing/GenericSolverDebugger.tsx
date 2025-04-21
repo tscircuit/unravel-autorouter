@@ -50,8 +50,17 @@ export const GenericSolverDebugger = ({
     }
   }, [mainSolver, selectedSolverKey])
 
-  const speedLevels = [1, 2, 5, 10, 100]
-  const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
+  const speedLevels = [1, 2, 5, 10, 100, 500, 1000, 2000]
+  const speedLabels = [
+    "1x",
+    "2x",
+    "5x",
+    "10x",
+    "100x",
+    "500x",
+    "1000x",
+    "2000x",
+  ]
 
   // Reset solver
   const resetSolver = () => {
