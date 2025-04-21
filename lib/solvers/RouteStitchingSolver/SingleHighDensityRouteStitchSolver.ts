@@ -82,12 +82,18 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       const firstPointInCandidate = hdRoute.route[0]
       const distToFirst = distance(lastMergedPoint, firstPointInCandidate)
       const distToLast = distance(lastMergedPoint, lastPointInCandidate)
-      if (distToFirst < closestDistance) {
+      if (
+        distToFirst < closestDistance &&
+        lastMergedPoint.z === firstPointInCandidate.z
+      ) {
         closestDistance = distToFirst
         closestRouteIndex = i
         matchedOn = "first"
       }
-      if (distToLast < closestDistance) {
+      if (
+        distToLast < closestDistance &&
+        lastMergedPoint.z === lastPointInCandidate.z
+      ) {
         closestDistance = distToLast
         closestRouteIndex = i
         matchedOn = "last"
