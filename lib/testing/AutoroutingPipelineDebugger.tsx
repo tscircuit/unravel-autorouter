@@ -897,7 +897,7 @@ export const AutoroutingPipelineDebugger = ({
                       {stepSolver?.iterations || 0}
                     </td>
                     <td className="border p-2 tabular-nums text-gray-500">
-                      {i0}
+                      {status === "Not Started" ? "" : i0}
                     </td>
                     <td className="border p-2 tabular-nums">
                       {(
