@@ -837,10 +837,11 @@ export const AutoroutingPipelineDebugger = ({
             <tr className="bg-gray-100">
               <th className="border p-2 text-left">Step</th>
               <th className="border p-2 text-left">Status</th>
-              <th className="border p-2 text-left">Iterations</th>
               <th className="border p-2 text-left">
                 i<sub>0</sub>
               </th>
+              <th className="border p-2 text-left">Iterations</th>
+              <th className="border p-2 text-left">Progress</th>
               <th className="border p-2 text-left">Time</th>
               <th className="border p-2 text-left">Input</th>
             </tr>
@@ -893,11 +894,18 @@ export const AutoroutingPipelineDebugger = ({
                     <td className={`border p-2 font-bold ${statusClass}`}>
                       {status}
                     </td>
+                    <td className="border p-2 tabular-nums text-gray-500">
+                      {status === "Not Started" ? "" : i0}
+                    </td>
                     <td className="border p-2">
                       {stepSolver?.iterations || 0}
                     </td>
-                    <td className="border p-2 tabular-nums text-gray-500">
-                      {status === "Not Started" ? "" : i0}
+                    <td className="border p-2">
+                      {status === "Solved"
+                        ? "100%"
+                        : "In Progress"
+                          ? `${((stepSolver?.progress ?? 0) * 100).toFixed(1)}%`
+                          : ""}
                     </td>
                     <td className="border p-2 tabular-nums">
                       {(
