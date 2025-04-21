@@ -45,13 +45,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
-  MAX_ATTEMPTS_PER_NODE = 10
+  MAX_ATTEMPTS_PER_NODE = 1
   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
   MAX_EXPANSION_DEGREES = 3
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
-    this.MAX_ITERATIONS = 1e6
+    this.MAX_ITERATIONS = 10e6
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
     this.edges = params.edges
@@ -75,7 +75,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   _stepInitialization() {
-    this.initialSolver?.solve()
+    this.initialSolver?.step()
     if (this.initialSolver?.failed) {
       this.failed = true
       this.error = this.initialSolver.error

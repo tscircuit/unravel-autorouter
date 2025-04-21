@@ -33,7 +33,7 @@ export class CapacityPathingGreedySolver extends CapacityPathingSolver5 {
       singleLayerUsagePenaltyFactor = 10
     }
     return (
-      (MIN_PENALTY + remainingCapacity ** 2 * mmPenaltyFactor) *
+      (MIN_PENALTY + Math.abs(remainingCapacity) * mmPenaltyFactor) *
       singleLayerUsagePenaltyFactor
     )
   }
