@@ -3,6 +3,8 @@ import { BaseSolver } from "lib/solvers/BaseSolver"
 import { HighDensityHyperParameters } from "../HighDensityHyperParameters"
 import { NodeWithPortPoints } from "lib/types/high-density-types"
 import { GraphicsObject } from "graphics-debug"
+import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
+import { safeTransparentize } from "lib/solvers/colors"
 
 interface Point {
   x: number
@@ -61,13 +63,17 @@ export const constructMiddlePoints = (params: {
 
   const middlePoints: Point[] = []
 
+  let lastZ = start.z1
   for (let i = 0; i < segmentsPerPolyline; i++) {
     const t = (i + 1) / (segmentsPerPolyline + 1)
     const point = {
       x: start.x + t * dx,
       y: start.y + t * dy,
-      z1: start.z1,
-      z2: start.z1,
+      z1: lastZ,
+      z2: t > 0.5 ? end.z1 : lastZ,
+    }
+    if (t > 0.5) {
+      lastZ = end.z1
     }
     middlePoints.push(point)
   }
@@ -95,7 +101,9 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   }) {
     super()
     this.nodeWithPortPoints = params.nodeWithPortPoints
-    this.colorMap = params.colorMap ?? {}
+    this.colorMap =
+      params.colorMap ??
+      generateColorMapFromNodeWithPortPoints(params.nodeWithPortPoints)
     this.hyperParameters = params.hyperParameters ?? {}
     this.connMap = params.connMap
 
@@ -195,7 +203,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       graphicsObject.points.push({
         x: pt.x,
         y: pt.y,
-        label: `${pt.connectionName} (z=${pt.z ?? 0})`,
+        // Assuming port points represent a single layer entry/exit, use z or default to 0
+        label: `${pt.connectionName} (Port z=${pt.z ?? 0})`,
         color: this.colorMap[pt.connectionName] ?? "blue",
       })
     }
@@ -213,39 +222,67 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
         // Draw segments of the polyline
         for (let i = 0; i < pointsInPolyline.length - 1; i++) {
-          const p1 = pointsInPolyline[i]
-          const p2 = pointsInPolyline[i + 1]
+          const p1 = pointsInPolyline[i] // Point where segment starts (or via ends)
+          const p2 = pointsInPolyline[i + 1] // Point where segment ends (or via starts)
+
+          // A segment exists between p1 and p2 on layer p1.z2 (layer after p1's potential via)
+          // which should be the same as p2.z1 (layer before p2's potential via)
+          // If p1.z2 !== p2.z1, something is wrong in the data structure.
+          const segmentLayer = p1.z2
+          const isLayer0 = segmentLayer === 0
+          const segmentColor = isLayer0 ? color : `rgba(128, 0, 128, 0.6)` // Example: Dimmer/different color for layer > 0
+
           graphicsObject.lines.push({
             points: [p1, p2],
-            strokeColor: p1.z === 0 ? color : `rgba(128, 0, 128, 0.5)`, // Dimmer for layer 1
-            strokeWidth: 0.1, // TODO: Use actual trace thickness?
-            strokeDash: p1.z !== 0 ? "5,5" : undefined,
-            label: `${polyLine.connectionName} segment (z=${p1.z})`,
+            strokeColor: segmentColor,
+            strokeWidth: 0.1, // TODO: Use actual trace thickness from HighDensityRoute?
+            strokeDash: !isLayer0 ? "5,5" : undefined, // Dashed for layers > 0
+            label: `${polyLine.connectionName} segment (z=${segmentLayer})`,
           })
         }
 
-        // Draw middle points (mPoints)
-        for (const mPoint of polyLine.mPoints) {
-          graphicsObject.circles.push({
-            center: mPoint,
-            radius: this.cellSize / 4, // Small circle for mPoints
-            fill: mPoint.z === 0 ? color : `rgba(128, 0, 128, 0.5)`,
-            label: `mPoint (z=${mPoint.z})`,
-          })
-        }
+        // Draw points (start, mPoints, end) and Vias
+        for (const point of pointsInPolyline) {
+          const isVia = point.z1 !== point.z2
+          const pointLayer = point.z1 // Layer before potential via
 
-        // Draw vias if mPoints change layer (simple check)
-        for (let i = 0; i < pointsInPolyline.length - 1; i++) {
-          if (pointsInPolyline[i].z !== pointsInPolyline[i + 1].z) {
-            // Assume via is at the point where the layer changes *from*
+          if (isVia) {
+            // Draw Via
             graphicsObject.circles.push({
-              center: pointsInPolyline[i],
-              radius: 0.3, // TODO: Use actual via diameter
-              fill: "rgba(0, 0, 255, 0.6)",
-              label: `Via (z=${pointsInPolyline[i].z} -> z=${pointsInPolyline[i + 1].z})`,
+              center: point,
+              radius: 0.3, // TODO: Use actual via diameter from HighDensityRoute?
+              fill: "rgba(0, 0, 255, 0.7)", // Distinct Via color
+              stroke: color, // Outline with connection color
+              strokeWidth: 0.05,
+              label: `Via (${polyLine.connectionName} z=${point.z1} -> z=${point.z2})`,
             })
+          } else {
+            // Draw regular point (only draw mPoints for clarity, start/end are ports)
+            if (polyLine.mPoints.includes(point)) {
+              const isLayer0 = pointLayer === 0
+              const pointColor = isLayer0 ? color : `rgba(128, 0, 128, 0.6)`
+              graphicsObject.circles.push({
+                center: point,
+                radius: this.cellSize / 5, // Small circle for mPoints
+                fill: pointColor,
+                label: `mPoint (${polyLine.connectionName} z=${pointLayer})`,
+              })
+            }
           }
         }
+
+        // // Old Via Logic (commented out/removed)
+        // for (let i = 0; i < pointsInPolyline.length - 1; i++) {
+        //   if (pointsInPolyline[i].z !== pointsInPolyline[i + 1].z) {
+        //     // Assume via is at the point where the layer changes *from*
+        //     graphicsObject.circles.push({
+        //       center: pointsInPolyline[i],
+        //       radius: 0.3, // TODO: Use actual via diameter
+        //       fill: "rgba(0, 0, 255, 0.6)",
+        //       label: `Via (z=${pointsInPolyline[i].z} -> z=${pointsInPolyline[i + 1].z})`,
+        //     })
+        //   }
+        // }
       }
     }
 
