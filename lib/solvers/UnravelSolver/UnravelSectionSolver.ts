@@ -258,6 +258,13 @@ export class UnravelSectionSolver extends BaseSolver {
       }
     }
 
+    const mutableSegmentPointIds = new Set<SegmentPointId>()
+    for (const sp of segmentPoints) {
+      if (sp.capacityMeshNodeIds.some((id) => mutableNodeIds.includes(id))) {
+        mutableSegmentPointIds.add(sp.segmentPointId)
+      }
+    }
+
     return {
       allNodeIds: allSectionNodeIds,
       mutableNodeIds,
@@ -268,6 +275,7 @@ export class UnravelSectionSolver extends BaseSolver {
       segmentPointsInNode,
       segmentPointsInSegment,
       originalPointMap: sectionPointMap,
+      mutableSegmentPointIds,
     }
   }
 
@@ -343,7 +351,7 @@ export class UnravelSectionSolver extends BaseSolver {
       )!.availableZ
 
       if (
-        this.unravelSection.mutableSegmentIds.has(pointA.segmentId) &&
+        this.unravelSection.mutableSegmentPointIds.has(APointId) &&
         aAvailableZ.includes(pointB.z)
       ) {
         operations.push({
@@ -353,7 +361,7 @@ export class UnravelSectionSolver extends BaseSolver {
         })
       }
       if (
-        this.unravelSection.mutableSegmentIds.has(pointB.segmentId) &&
+        this.unravelSection.mutableSegmentPointIds.has(BPointId) &&
         bAvailableZ.includes(pointA.z)
       ) {
         operations.push({
@@ -381,16 +389,25 @@ export class UnravelSectionSolver extends BaseSolver {
       const C = this.unravelSection.segmentPointMap.get(CPointId)!
       const D = this.unravelSection.segmentPointMap.get(DPointId)!
 
-      if (A.segmentId === C.segmentId) {
+      const AIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(APointId)
+      const BIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(BPointId)
+      const CIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(CPointId)
+      const DIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(DPointId)
+
+      if (AIsMutable && CIsMutable && A.segmentId === C.segmentId) {
         sharedSegments.push([APointId, CPointId])
       }
-      if (A.segmentId === D.segmentId) {
+      if (AIsMutable && DIsMutable && A.segmentId === D.segmentId) {
         sharedSegments.push([APointId, DPointId])
       }
-      if (B.segmentId === C.segmentId) {
+      if (BIsMutable && CIsMutable && B.segmentId === C.segmentId) {
         sharedSegments.push([BPointId, CPointId])
       }
-      if (B.segmentId === D.segmentId) {
+      if (BIsMutable && DIsMutable && B.segmentId === D.segmentId) {
         sharedSegments.push([BPointId, DPointId])
       }
 
@@ -402,12 +419,6 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // 2. CHANGE LAYER OF EACH SEGMENT ENTIRELY TO REMOVE CROSSING
-      const Amutable = this.unravelSection.mutableSegmentIds.has(A.segmentId)
-      const Bmutable = this.unravelSection.mutableSegmentIds.has(B.segmentId)
-      const Cmutable = this.unravelSection.mutableSegmentIds.has(C.segmentId)
-      const Dmutable = this.unravelSection.mutableSegmentIds.has(D.segmentId)
-
-      // Get availableZ for each segment
       const aSegment = this.dedupedSegmentMap.get(A.segmentId)!
       const bSegment = this.dedupedSegmentMap.get(B.segmentId)!
       const cSegment = this.dedupedSegmentMap.get(C.segmentId)!
@@ -419,7 +430,7 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // Only propose layer changes if both segments can use the target layer
-      if (Amutable && Bmutable) {
+      if (AIsMutable && BIsMutable) {
         const newZ = A.z === 0 ? 1 : 0
         if (isNewZAvailableForAll([aSegment, bSegment], newZ)) {
           operations.push({
@@ -430,7 +441,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Cmutable && Dmutable) {
+      if (CIsMutable && DIsMutable) {
         const newZ = C.z === 0 ? 1 : 0
         if (isNewZAvailableForAll([cSegment, dSegment], newZ)) {
           operations.push({
@@ -442,7 +453,7 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // 3. CHANGE LAYER OF EACH POINT INDIVIDUALLY TO MAKE TRANSITION CROSSING
-      if (Amutable) {
+      if (AIsMutable) {
         const newZ = A.z === 0 ? 1 : 0
         if (aSegment.availableZ.includes(newZ)) {
           operations.push({
@@ -453,7 +464,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Bmutable) {
+      if (BIsMutable) {
         const newZ = B.z === 0 ? 1 : 0
         if (bSegment.availableZ.includes(newZ)) {
           operations.push({
@@ -464,7 +475,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Cmutable) {
+      if (CIsMutable) {
         const newZ = C.z === 0 ? 1 : 0
         if (cSegment.availableZ.includes(newZ)) {
           operations.push({
@@ -475,7 +486,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Dmutable) {
+      if (DIsMutable) {
         const newZ = D.z === 0 ? 1 : 0
         if (dSegment.availableZ.includes(newZ)) {
           operations.push({

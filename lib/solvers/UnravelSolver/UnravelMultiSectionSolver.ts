@@ -207,12 +207,6 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       const foundBetterSolution =
         bestCandidate && bestCandidate.g < originalCandidate!.g
 
-      if (this.activeSubSolver.rootNodeId === "cn90994") {
-        console.log("original", originalCandidate?.g)
-        console.log("best", bestCandidate?.g)
-        console.log("foundBetterSolution", foundBetterSolution)
-      }
-
       if (foundBetterSolution) {
         // Modify the points using the pointModifications of the candidate
         for (const [
@@ -225,28 +219,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
           segmentPoint.z = pointModification.z ?? segmentPoint.z
         }
 
-        // HACK: This is time consuming but there is a bug where sometimes the
-        // UnravelSectionSolver accidentally mutates immutable nodes, so we
-        // need to go to even more neighbors to be sure we have the updated
-        // Pf values. If that bug gets fixed, you can use this.activeSubSolver.section.allNodeIds
-        const possiblyImpactedNodeIds = getNodesNearNode({
-          hops: this.activeSubSolver.MUTABLE_HOPS + 2,
-          nodeId: this.activeSubSolver.rootNodeId,
-          nodeIdToSegmentIds: this.nodeIdToSegmentIds,
-          segmentIdToNodeIds: this.segmentIdToNodeIds,
-        })
-
         // Update node failure probabilities
-        for (const nodeId of possiblyImpactedNodeIds) {
-          // for (const nodeId of this.nodeMap.keys()) {
-          if (nodeId === "cn90994") {
-            console.log(
-              "New Pf",
-              this.computeNodePf(this.nodeMap.get(nodeId)!),
-              "from section with root",
-              this.activeSubSolver.rootNodeId,
-            )
-          }
+        for (const nodeId of this.activeSubSolver.unravelSection.allNodeIds) {
           this.nodePfMap.set(
             nodeId,
             this.computeNodePf(this.nodeMap.get(nodeId)!),

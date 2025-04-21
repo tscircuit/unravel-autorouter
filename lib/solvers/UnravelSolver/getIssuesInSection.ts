@@ -11,7 +11,6 @@ import {
 } from "./types"
 import { getIntraNodeCrossingsFromSegments } from "lib/utils/getIntraNodeCrossingsFromSegments"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
-import { getLogProbability } from "./getLogProbability"
 import { doSegmentsIntersect } from "@tscircuit/math-utils"
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { hasZRangeOverlap } from "./hasZRangeOverlap"
