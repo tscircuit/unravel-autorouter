@@ -401,13 +401,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     // and if so, return it as a neighbor
     for (let i = 0; i < candidate.polyLines.length; i++) {
       for (let j = 0; j < this.SEGMENTS_PER_POLYLINE; j++) {
-        const previousMutablePoint = candidate.polyLines[i].mPoints[j]
-        const isVia = previousMutablePoint.z1 !== previousMutablePoint.z2
-
-        // HACK: We're not moving vias, as soon as a point becomes a via we
-        // consider that a leaf node for that point.
-        if (isVia) continue
-
         for (const opFn of this.NEIGHBOR_OPERATIONS) {
           const [newPolyLines, mutablePoint] = clonePolyLinesWithMutablePoint(
             candidate.polyLines,
@@ -447,7 +440,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       return
     }
 
-    // this.candidates.push(...this.getNeighbors(currentCandidate))
+    this.candidates.push(...this.getNeighbors(currentCandidate))
   }
 
   visualize(): GraphicsObject {
