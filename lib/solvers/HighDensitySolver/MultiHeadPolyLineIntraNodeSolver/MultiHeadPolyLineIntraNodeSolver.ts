@@ -141,6 +141,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     connMap?: ConnectivityMap
   }) {
     super()
+    this.MAX_ITERATIONS = 100e3
     this.nodeWithPortPoints = params.nodeWithPortPoints
     this.colorMap =
       params.colorMap ??
@@ -149,7 +150,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
-    this.cellSize = this.nodeWithPortPoints.width / 10
+    this.cellSize = this.nodeWithPortPoints.width / 5
 
     this.candidates = []
 
