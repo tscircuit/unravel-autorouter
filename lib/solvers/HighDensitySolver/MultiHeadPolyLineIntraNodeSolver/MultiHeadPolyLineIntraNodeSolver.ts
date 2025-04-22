@@ -517,9 +517,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           if (this.queuedCandidateHashes.has(neighborHash)) continue
 
           const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
-          const isSolution = minGaps.every(
-            (minGap) => minGap >= this.obstacleMargin,
-          )
 
           const g = this.computeG(newPolyLines, candidate)
           const h = this.computeH({ minGaps })
@@ -530,12 +527,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             f: g + h,
             hash: neighborHash,
             minGaps,
-          }
-
-          if (isSolution) {
-            this.solved = true
-            this.lastCandidate = newNeighbor
-            return neighbors
           }
 
           this.queuedCandidateHashes.add(neighborHash)
@@ -551,8 +542,13 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   _step() {
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()!
-    console.log(this.computeMinGapBtwPolyLines(currentCandidate.polyLines))
     this.lastCandidate = currentCandidate
+    if (
+      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
+    ) {
+      this.solved = true
+      return
+    }
     if (!currentCandidate) {
       this.failed = true
       return
