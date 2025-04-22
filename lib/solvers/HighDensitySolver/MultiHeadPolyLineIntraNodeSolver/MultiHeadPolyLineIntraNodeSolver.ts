@@ -30,6 +30,7 @@ export interface PolyLine {
   end: Point
   mPoints: Point[]
   hash: string
+  minGap?: number
 }
 
 export interface Candidate {
@@ -68,7 +69,6 @@ export const constructMiddlePoints = (params: {
   const middlePoints: Point[] = []
 
   const indicesToFlip = createSymmetricArray(segmentsPerPolyline, viaCount)
-  console.log({ viaCount, indicesToFlip })
 
   let lastZ = start.z1
   const availableZOffset = availableZ.indexOf(start.z1)
@@ -245,6 +245,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   traceWidth: number = 0.15
   availableZ: number[] = []
 
+  lastCandidate: Candidate | null = null
+
   queuedCandidateHashes: Set<string> = new Set()
 
   maxViaCount: number
@@ -291,6 +293,86 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
 
     this.setupInitialPolyLines()
+  }
+
+  computeMinGapBtwPolyLines(polyLines: PolyLine[]) {
+    const minGaps = []
+    const polyLineSegmentsByLayer: Array<Map<number, [Point, Point][]>> = []
+    const polyLineVias: Array<Point[]> = []
+    for (let i = 0; i < polyLines.length; i++) {
+      const polyLine = polyLines[i]
+      const path = [polyLine.start, ...polyLine.mPoints, polyLine.end]
+      const segmentsByLayer: Map<number, [Point, Point][]> = new Map(
+        this.availableZ.map((z) => [z, []]),
+      )
+      for (let i = 0; i < path.length - 1; i++) {
+        const segment: [Point, Point] = [path[i], path[i + 1]]
+        segmentsByLayer.get(segment[0].z2)!.push(segment)
+      }
+      polyLineSegmentsByLayer.push(segmentsByLayer)
+      polyLineVias.push(path.filter((p) => p.z1 !== p.z2))
+    }
+
+    for (let i = 0; i < polyLines.length; i++) {
+      const path1SegmentsByLayer = polyLineSegmentsByLayer[i]
+      const path1Vias = polyLineVias[i]
+      for (let j = i; j < polyLines.length; j++) {
+        const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
+        const path2Vias = polyLineVias[j]
+
+        let minGap = Infinity
+        for (const zLayer of this.availableZ) {
+          const path1Segments = path1SegmentsByLayer.get(zLayer) ?? []
+          const path2Segments = path2SegmentsByLayer.get(zLayer) ?? []
+
+          // SEGMENT TO SEGMENT DISTANCES
+          for (const segment1 of path1Segments) {
+            for (const segment2 of path2Segments) {
+              minGap = Math.min(
+                minGap,
+                segmentToSegmentMinDistance(
+                  segment1[0],
+                  segment1[1],
+                  segment2[0],
+                  segment2[1],
+                ) - this.traceWidth,
+              )
+            }
+          }
+
+          // VIA TO SEGMENT DISTANCES
+          for (const via of path1Vias) {
+            for (const segment of path2Segments) {
+              minGap = Math.min(
+                minGap,
+                pointToSegmentDistance(via, segment[0], segment[1]) -
+                  this.traceWidth / 2 -
+                  this.viaDiameter / 2,
+              )
+            }
+          }
+          for (const via of path2Vias) {
+            for (const segment of path1Segments) {
+              minGap = Math.min(
+                minGap,
+                pointToSegmentDistance(via, segment[0], segment[1]) -
+                  this.traceWidth / 2 -
+                  this.viaDiameter / 2,
+              )
+            }
+          }
+
+          // VIA TO VIA DISTANCES
+          for (const via1 of path1Vias) {
+            for (const via2 of path2Vias) {
+              minGap = Math.min(minGap, distance(via1, via2) - this.viaDiameter)
+            }
+          }
+        }
+        minGaps.push(minGap)
+      }
+    }
+    return minGaps
   }
 
   /**
@@ -378,85 +460,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    */
   computeH(polyLines: PolyLine[]) {
     let h = 0
-
-    const polyLineSegmentsByLayer: Array<Map<number, [Point, Point][]>> = []
-    const polyLineVias: Array<Point[]> = []
-    for (let i = 0; i < polyLines.length; i++) {
-      const polyLine1 = polyLines[i]
-      const path1 = [polyLine1.start, ...polyLine1.mPoints, polyLine1.end]
-      const path1SegmentsByLayer: Map<number, [Point, Point][]> = new Map(
-        this.availableZ.map((z) => [z, []]),
-      )
-      for (let i = 0; i < path1.length - 1; i++) {
-        const segment: [Point, Point] = [path1[i], path1[i + 1]]
-        path1SegmentsByLayer.get(segment[0].z2)!.push(segment)
-      }
-      polyLineSegmentsByLayer.push(path1SegmentsByLayer)
-      polyLineVias.push(path1.filter((p) => p.z1 !== p.z2))
-    }
-
-    for (let i = 0; i < polyLines.length; i++) {
-      const path1SegmentsByLayer = polyLineSegmentsByLayer[i]
-      const path1Vias = polyLineVias[i]
-      for (let j = i; j < polyLines.length; j++) {
-        const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
-        const path2Vias = polyLineVias[j]
-
-        let minGap = Infinity
-        for (const zLayer of this.availableZ) {
-          const path1Segments = path1SegmentsByLayer.get(zLayer) ?? []
-          const path2Segments = path2SegmentsByLayer.get(zLayer) ?? []
-
-          // SEGMENT TO SEGMENT DISTANCES
-          for (const segment1 of path1Segments) {
-            for (const segment2 of path2Segments) {
-              minGap = Math.min(
-                minGap,
-                segmentToSegmentMinDistance(
-                  segment1[0],
-                  segment1[1],
-                  segment2[0],
-                  segment2[1],
-                ) -
-                  this.traceWidth -
-                  this.obstacleMargin,
-              )
-            }
-          }
-
-          // VIA TO SEGMENT DISTANCES
-          for (const via of path1Vias) {
-            for (const segment of path2Segments) {
-              minGap = Math.min(
-                minGap,
-                pointToSegmentDistance(via, segment[0], segment[1]) -
-                  this.traceWidth / 2 -
-                  this.viaDiameter / 2 -
-                  this.obstacleMargin,
-              )
-            }
-          }
-          for (const via of path2Vias) {
-            for (const segment of path1Segments) {
-              minGap = Math.min(
-                minGap,
-                pointToSegmentDistance(via, segment[0], segment[1]) -
-                  this.traceWidth / 2 -
-                  this.viaDiameter / 2 -
-                  this.obstacleMargin,
-              )
-            }
-          }
-
-          // VIA TO VIA DISTANCES
-          for (const via1 of path1Vias) {
-            for (const via2 of path2Vias) {
-              minGap = Math.min(minGap, distance(via1, via2) - this.viaDiameter)
-            }
-          }
-        }
-        h -= minGap
-      }
+    for (const { minGap } of polyLines) {
+      h -= minGap!
     }
     return h
   }
@@ -499,6 +504,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           const neighborHash = computeCandidateHash(newPolyLines)
           if (this.queuedCandidateHashes.has(neighborHash)) continue
 
+          const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
+          newPolyLines.forEach((polyLine, index) => {
+            polyLine.minGap = minGaps[index]
+          })
+          const isSolution = newPolyLines.every(
+            (polyLine) => polyLine.minGap! >= this.obstacleMargin,
+          )
+          console.log({ isSolution, minGaps })
+
           const g = this.computeG(newPolyLines, candidate)
           const h = this.computeH(newPolyLines)
           const newNeighbor: Candidate = {
@@ -508,6 +522,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             f: g + h,
             hash: neighborHash,
           }
+
+          if (isSolution) {
+            this.solved = true
+            this.lastCandidate = newNeighbor
+          }
+
           this.queuedCandidateHashes.add(neighborHash)
 
           neighbors.push(newNeighbor)
@@ -521,11 +541,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   _step() {
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()!
+    console.log(this.computeMinGapBtwPolyLines(currentCandidate.polyLines))
+    this.lastCandidate = currentCandidate
     if (!currentCandidate) {
       this.failed = true
       return
     }
-
     this.candidates.push(...this.getNeighbors(currentCandidate))
   }
 
@@ -563,7 +584,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
 
     // Visualize the polylines from the first candidate (or current best)
-    const candidateToVisualize = this.candidates[0] // Assuming the first is representative
+    const candidateToVisualize = this.lastCandidate ?? this.candidates[0] // Assuming the first is representative
     if (candidateToVisualize) {
       for (const polyLine of candidateToVisualize.polyLines) {
         const color = this.colorMap[polyLine.connectionName] ?? "purple"
