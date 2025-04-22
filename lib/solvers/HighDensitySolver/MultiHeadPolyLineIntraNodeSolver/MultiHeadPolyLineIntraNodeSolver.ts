@@ -9,6 +9,7 @@ import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { createSymmetricArray } from "./createSymmetricArray"
 import {
   distance,
+  doSegmentsIntersect,
   pointToSegmentDistance,
   segmentToSegmentMinDistance,
 } from "@tscircuit/math-utils"
@@ -194,7 +195,7 @@ export const computeViaCountVariants = (
   >,
   segmentsPerPolyline: number,
   maxViaCount: number,
-  minViaCount: number = 0,
+  minViaCount: number,
 ): Array<number[]> => {
   const possibleViaCountsPerPolyline: number[][] = []
 
@@ -218,12 +219,51 @@ export const computeViaCountVariants = (
     return [[]] // No polylines, return one variant with empty counts
   }
 
-  const variants: number[][] = getCombinations(
+  let variants: number[][] = getCombinations(
     possibleViaCountsPerPolyline,
   ).filter((variant) => {
-    let sum = 0
-    for (const count of variant) sum += count
-    return sum >= minViaCount && sum <= maxViaCount
+    for (let i = 0; i < variant.length; i++) {
+      const viaCount = variant.reduce((acc, count) => acc + count, 0)
+      if (viaCount < minViaCount) return false
+    }
+    return true
+  })
+
+  // If a port pair has a z change, it must always have at least 1 via
+  variants = variants.filter((variant) => {
+    for (let i = 0; i < portPairsEntries.length; i++) {
+      const [, portPair1] = portPairsEntries[i]
+      if (portPair1.start.z1 !== portPair1.start.z2) {
+        if (variant[i] === 0) return false
+      }
+    }
+    return true
+  })
+
+  // If two port pairs intersect, the sum of their via counts must be >= 2
+  variants = variants.filter((variant) => {
+    for (let i = 0; i < portPairsEntries.length; i++) {
+      const [, portPair1] = portPairsEntries[i]
+      if (portPairsEntries[i][1].start.z1 !== portPairsEntries[i][1].start.z2)
+        continue
+      for (let j = i + 1; j < portPairsEntries.length; j++) {
+        if (portPairsEntries[j][1].start.z1 !== portPairsEntries[j][1].start.z2)
+          continue
+
+        const [, portPair2] = portPairsEntries[j]
+        if (
+          doSegmentsIntersect(
+            portPair1.start,
+            portPair1.end,
+            portPair2.start,
+            portPair2.end,
+          )
+        ) {
+          if (variant[i] + variant[j] < 2) return false
+        }
+      }
+    }
+    return true
   })
 
   return variants
@@ -330,7 +370,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
         const path2Vias = polyLineVias[j]
 
-        let minGap = Infinity
+        let minGap = 1
         for (const zLayer of this.availableZ) {
           const path1Segments = path1SegmentsByLayer.get(zLayer) ?? []
           const path2Segments = path2SegmentsByLayer.get(zLayer) ?? []
@@ -407,11 +447,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       }
     })
 
+    const portPairsEntries = Array.from(portPairs.entries())
+
     const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
       this.nodeWithPortPoints,
     )
 
-    const portPairsEntries = Array.from(portPairs.entries())
     const viaCountVariants = computeViaCountVariants(
       portPairsEntries,
       this.SEGMENTS_PER_POLYLINE,
@@ -464,6 +505,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * 1 from the parent for each operation
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
+    // return 0
     return candidate.g + 0.5 * this.cellSize
   }
 
@@ -472,11 +514,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * intersections of the polyline and proximity to vias.
    */
   computeH(candidate: Pick<Candidate, "minGaps">) {
+    return 0
     let h = 0
-    for (const minGap of candidate.minGaps) {
-      h -= minGap
-    }
-    return h
+    // for (const minGap of candidate.minGaps) {
+    //   h -= minGap
+    // }
+    // return Math.min(...candidate.minGaps)
   }
 
   /**
