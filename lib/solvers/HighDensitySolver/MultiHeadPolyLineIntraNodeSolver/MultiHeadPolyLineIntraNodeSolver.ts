@@ -30,7 +30,6 @@ export interface PolyLine {
   end: Point
   mPoints: Point[]
   hash: string
-  minGap?: number
 }
 
 export interface Candidate {
@@ -39,6 +38,7 @@ export interface Candidate {
   h: number
   f: number
   hash: string
+  minGaps: number[]
 }
 
 export const computePolyLineHash = (polyLine: Omit<PolyLine, "hash">) => {
@@ -278,7 +278,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       (this.viaDiameter + this.obstacleMargin * 2 + this.traceWidth / 2) ** 2
 
     this.maxViaCount = Math.floor(areaInsideNode / areaPerVia)
-    console.log({ maxViaCount: this.maxViaCount })
 
     // Calculate bounds
     this.bounds = {
@@ -295,6 +294,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.setupInitialPolyLines()
   }
 
+  /**
+   * minGaps is a list of distances representing the "gap" between segments
+   * on each layer.
+   *
+   * Each minGaps number represents the gap for a polyline pair, for example if
+   * you have 3 polylines, you would have 3 minGaps...
+   *
+   * [ p1 -> p2 , p1 -> p3, p2 -> p3 ]
+   */
   computeMinGapBtwPolyLines(polyLines: PolyLine[]) {
     const minGaps = []
     const polyLineSegmentsByLayer: Array<Map<number, [Point, Point][]>> = []
@@ -433,14 +441,17 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         )
       }
 
+      const minGaps = this.computeMinGapBtwPolyLines(polyLines)
+
       // TODO: Create multiple initial candidates based on viaCountVariants
       // For now, just push the one candidate
       this.candidates.push({
         polyLines: polyLines,
         hash: computeCandidateHash(polyLines),
         g: 0,
-        h: 0, // TODO: Compute initial H
+        h: this.computeH({ minGaps }),
         f: 0,
+        minGaps,
       })
     }
   }
@@ -458,10 +469,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * h is the heuristic cost of each candidate. We consider the number of
    * intersections of the polyline and proximity to vias.
    */
-  computeH(polyLines: PolyLine[]) {
+  computeH(candidate: Pick<Candidate, "minGaps">) {
     let h = 0
-    for (const { minGap } of polyLines) {
-      h -= minGap!
+    for (const minGap of candidate.minGaps) {
+      h -= minGap
     }
     return h
   }
@@ -505,27 +516,25 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           if (this.queuedCandidateHashes.has(neighborHash)) continue
 
           const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
-          newPolyLines.forEach((polyLine, index) => {
-            polyLine.minGap = minGaps[index]
-          })
-          const isSolution = newPolyLines.every(
-            (polyLine) => polyLine.minGap! >= this.obstacleMargin,
+          const isSolution = minGaps.every(
+            (minGap) => minGap >= this.obstacleMargin,
           )
-          console.log({ isSolution, minGaps })
 
           const g = this.computeG(newPolyLines, candidate)
-          const h = this.computeH(newPolyLines)
+          const h = this.computeH({ minGaps })
           const newNeighbor: Candidate = {
             polyLines: newPolyLines,
             g,
             h,
             f: g + h,
             hash: neighborHash,
+            minGaps,
           }
 
           if (isSolution) {
             this.solved = true
             this.lastCandidate = newNeighbor
+            return neighbors
           }
 
           this.queuedCandidateHashes.add(neighborHash)
@@ -541,6 +550,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   _step() {
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()!
+    console.log(currentCandidate.polyLines)
     console.log(this.computeMinGapBtwPolyLines(currentCandidate.polyLines))
     this.lastCandidate = currentCandidate
     if (!currentCandidate) {
