@@ -369,7 +369,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * 1 from the parent for each operation
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
-    return candidate.g + 1 * this.cellSize
+    return candidate.g + 0.5 * this.cellSize
   }
 
   /**
