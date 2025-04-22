@@ -324,7 +324,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     for (let i = 0; i < polyLines.length; i++) {
       const path1SegmentsByLayer = polyLineSegmentsByLayer[i]
       const path1Vias = polyLineVias[i]
-      for (let j = i; j < polyLines.length; j++) {
+      // Start j from i + 1 to compare distinct pairs only once
+      for (let j = i + 1; j < polyLines.length; j++) {
         const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
         const path2Vias = polyLineVias[j]
 
@@ -550,7 +551,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   _step() {
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()!
-    console.log(currentCandidate.polyLines)
     console.log(this.computeMinGapBtwPolyLines(currentCandidate.polyLines))
     this.lastCandidate = currentCandidate
     if (!currentCandidate) {
