@@ -478,6 +478,14 @@ export const GenericSolverDebugger = ({
           Max Iterations:{" "}
           <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
         </div>
+        {(selectedSolver as any)?.candidates !== undefined && (
+          <div className="border p-2 rounded mb-2">
+            Candidates:{" "}
+            <span className="font-bold">
+              {(selectedSolver as any).candidates.length}
+            </span>
+          </div>
+        )}
       </div>
       <div>
         <h3 className="font-bold mb-2">Advanced</h3>

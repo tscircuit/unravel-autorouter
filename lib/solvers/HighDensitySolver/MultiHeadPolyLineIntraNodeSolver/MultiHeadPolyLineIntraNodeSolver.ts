@@ -131,6 +131,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   viaDiameter: number = 0.6
   obstacleMargin: number = 0.1
   traceWidth: number = 0.15
+  availableZ: number[] = []
 
   queuedCandidateHashes: Set<string> = new Set()
 
@@ -153,6 +154,9 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.cellSize = this.nodeWithPortPoints.width / 5
 
     this.candidates = []
+    this.availableZ = Array.from(
+      new Set(this.nodeWithPortPoints.portPoints.map((pt) => pt.z)),
+    )
 
     // Calculate bounds
     this.bounds = {
@@ -222,7 +226,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     return 0
   }
 
-  XY_NEIGHBOR_OPERATIONS = [
+  /**
+   * Mutate the mutablePoint and return true if the operation is valid
+   */
+  NEIGHBOR_OPERATIONS = [
     (mutablePoint: Point) => {
       mutablePoint.x += this.cellSize
     },
@@ -235,6 +242,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     (mutablePoint: Point) => {
       mutablePoint.y -= this.cellSize
     },
+    // Make a via
+    (mutablePoint: Point) => {
+      mutablePoint.z1 = this.availableZ[0]
+      mutablePoint.z2 = this.availableZ[1]
+    },
   ]
 
   getNeighbors(candidate: Candidate) {
@@ -245,7 +257,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     // and if so, return it as a neighbor
     for (let i = 0; i < candidate.polyLines.length; i++) {
       for (let j = 0; j < this.SEGMENTS_PER_POLYLINE; j++) {
-        for (const opFn of this.XY_NEIGHBOR_OPERATIONS) {
+        const previousMutablePoint = candidate.polyLines[i].mPoints[j]
+        const isVia = previousMutablePoint.z1 !== previousMutablePoint.z2
+
+        // HACK: We're not moving vias, as soon as a point becomes a via we
+        // consider that a leaf node for that point.
+        if (isVia) continue
+
+        for (const opFn of this.NEIGHBOR_OPERATIONS) {
           const [newPolyLines, mutablePoint] = clonePolyLinesWithMutablePoint(
             candidate.polyLines,
             i,

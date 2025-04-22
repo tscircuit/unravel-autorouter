@@ -6,13 +6,13 @@ import { MultiHeadPolyLineIntraNodeSolver } from "lib/solvers/HighDensitySolver/
 const nodeWithPortPoints = {
   capacityMeshNodeId: "node1",
   center: { x: 5, y: 5 },
-  width: 10,
-  height: 10,
+  width: 2,
+  height: 2,
   portPoints: [
-    { connectionName: "A", x: 2, y: 0, z: 0 },
-    { connectionName: "A", x: 8, y: 10, z: 0 },
-    { connectionName: "B", x: 5, y: 0, z: 0 },
-    { connectionName: "B", x: 0, y: 10, z: 0 },
+    { connectionName: "A", x: 4, y: 4, z: 0 },
+    { connectionName: "A", x: 6, y: 6, z: 0 },
+    { connectionName: "B", x: 4, y: 6, z: 0 },
+    { connectionName: "B", x: 6, y: 4, z: 0 },
   ],
 }
 
