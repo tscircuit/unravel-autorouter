@@ -73,6 +73,7 @@ export const GenericSolverDebugger = ({
     bestCandidateIteration: 0,
     lastF: Infinity,
     lastG: Infinity,
+    lastH: Infinity,
   })
 
   const stepWithStats = () => {
@@ -84,6 +85,7 @@ export const GenericSolverDebugger = ({
       }
       stats.current.lastF = nextCandidate.f
       stats.current.lastG = nextCandidate.g
+      stats.current.lastH = nextCandidate.h
     }
     mainSolver.step()
   }
@@ -507,7 +509,10 @@ export const GenericSolverDebugger = ({
               </span>
             </div>
             <div>
-              Best F: <span className="font-bold">{stats.current.bestF}</span>
+              Best F:{" "}
+              <span className="font-bold">
+                {stats.current.bestF.toFixed(3)}
+              </span>
             </div>
             <div>
               Best F:{" "}
@@ -516,10 +521,22 @@ export const GenericSolverDebugger = ({
               </span>
             </div>
             <div>
-              Last F: <span className="font-bold">{stats.current.lastF}</span>
+              Last F:{" "}
+              <span className="font-bold">
+                {stats.current.lastF?.toFixed(3)}
+              </span>
             </div>
             <div>
-              Last G: <span className="font-bold">{stats.current.lastG}</span>
+              Last G:{" "}
+              <span className="font-bold">
+                {stats.current.lastG?.toFixed(3)}
+              </span>
+            </div>
+            <div>
+              Last H:{" "}
+              <span className="font-bold">
+                {stats.current.lastH?.toFixed(3)}
+              </span>
             </div>
           </div>
         )}
@@ -539,7 +556,7 @@ export const GenericSolverDebugger = ({
                   return
                 }
 
-                let params
+                let params: any
                 try {
                   params = deepestActiveSubSolver.getConstructorParams()
                 } catch (e: any) {

@@ -7,6 +7,11 @@ import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorM
 import { safeTransparentize } from "lib/solvers/colors"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { createSymmetricArray } from "./createSymmetricArray"
+import {
+  distance,
+  pointToSegmentDistance,
+  segmentToSegmentMinDistance,
+} from "@tscircuit/math-utils"
 
 interface Point {
   x: number
@@ -260,7 +265,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
-    this.cellSize = this.nodeWithPortPoints.width / 5
+    this.cellSize = this.nodeWithPortPoints.width / 8
 
     this.candidates = []
     this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
@@ -364,15 +369,96 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * 1 from the parent for each operation
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
-    return candidate.g + 1
+    return candidate.g + 1 * this.cellSize
   }
 
   /**
    * h is the heuristic cost of each candidate. We consider the number of
-   * intersections of the polyline
+   * intersections of the polyline and proximity to vias.
    */
   computeH(polyLines: PolyLine[]) {
-    return 0
+    let h = 0
+
+    const polyLineSegmentsByLayer: Array<Map<number, [Point, Point][]>> = []
+    const polyLineVias: Array<Point[]> = []
+    for (let i = 0; i < polyLines.length; i++) {
+      const polyLine1 = polyLines[i]
+      const path1 = [polyLine1.start, ...polyLine1.mPoints, polyLine1.end]
+      const path1SegmentsByLayer: Map<number, [Point, Point][]> = new Map(
+        this.availableZ.map((z) => [z, []]),
+      )
+      for (let i = 0; i < path1.length - 1; i++) {
+        const segment: [Point, Point] = [path1[i], path1[i + 1]]
+        path1SegmentsByLayer.get(segment[0].z2)!.push(segment)
+      }
+      polyLineSegmentsByLayer.push(path1SegmentsByLayer)
+      polyLineVias.push(path1.filter((p) => p.z1 !== p.z2))
+    }
+
+    for (let i = 0; i < polyLines.length; i++) {
+      const path1SegmentsByLayer = polyLineSegmentsByLayer[i]
+      const path1Vias = polyLineVias[i]
+      for (let j = i; j < polyLines.length; j++) {
+        const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
+        const path2Vias = polyLineVias[j]
+
+        let minGap = Infinity
+        for (const zLayer of this.availableZ) {
+          const path1Segments = path1SegmentsByLayer.get(zLayer) ?? []
+          const path2Segments = path2SegmentsByLayer.get(zLayer) ?? []
+
+          // SEGMENT TO SEGMENT DISTANCES
+          for (const segment1 of path1Segments) {
+            for (const segment2 of path2Segments) {
+              minGap = Math.min(
+                minGap,
+                segmentToSegmentMinDistance(
+                  segment1[0],
+                  segment1[1],
+                  segment2[0],
+                  segment2[1],
+                ) -
+                  this.traceWidth -
+                  this.obstacleMargin,
+              )
+            }
+          }
+
+          // VIA TO SEGMENT DISTANCES
+          for (const via of path1Vias) {
+            for (const segment of path2Segments) {
+              minGap = Math.min(
+                minGap,
+                pointToSegmentDistance(via, segment[0], segment[1]) -
+                  this.traceWidth / 2 -
+                  this.viaDiameter / 2 -
+                  this.obstacleMargin,
+              )
+            }
+          }
+          for (const via of path2Vias) {
+            for (const segment of path1Segments) {
+              minGap = Math.min(
+                minGap,
+                pointToSegmentDistance(via, segment[0], segment[1]) -
+                  this.traceWidth / 2 -
+                  this.viaDiameter / 2 -
+                  this.obstacleMargin,
+              )
+            }
+          }
+
+          // VIA TO VIA DISTANCES
+          for (const via1 of path1Vias) {
+            for (const via2 of path2Vias) {
+              minGap = Math.min(minGap, distance(via1, via2) - this.viaDiameter)
+            }
+          }
+        }
+        h -= minGap
+      }
+    }
+    return h
   }
 
   /**
