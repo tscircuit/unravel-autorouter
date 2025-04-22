@@ -17,6 +17,8 @@ import {
 interface Point {
   x: number
   y: number
+  xMoves: number
+  yMoves: number
 
   // If a via, z1 is the layer of the start point, z2 is the layer of the end
   // point
@@ -85,6 +87,8 @@ export const constructMiddlePoints = (params: {
       y: start.y + t * dy,
       z1: lastZ,
       z2: nextZ,
+      xMoves: 0,
+      yMoves: 0,
     }
     lastZ = nextZ
     if (isFlipped) zFlips++
@@ -115,6 +119,8 @@ export const clonePolyLinesWithMutablePoint = (
   const mutablePoint = {
     x: polyLines[lineIndex].mPoints[mPointIndex].x,
     y: polyLines[lineIndex].mPoints[mPointIndex].y,
+    xMoves: polyLines[lineIndex].mPoints[mPointIndex].xMoves,
+    yMoves: polyLines[lineIndex].mPoints[mPointIndex].yMoves,
     z1: polyLines[lineIndex].mPoints[mPointIndex].z1,
     z2: polyLines[lineIndex].mPoints[mPointIndex].z2,
   }
@@ -269,6 +275,14 @@ export const computeViaCountVariants = (
   return variants
 }
 
+/**
+ * Controls how much smaller neighbor moves are as the total number of moves
+ * increases
+ */
+const moveTaper = (moves: number) => {
+  return Math.round(4 - moves / 2)
+}
+
 export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
@@ -308,7 +322,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
-    this.cellSize = this.nodeWithPortPoints.width / 8
+    this.cellSize = this.nodeWithPortPoints.width / 16
 
     this.candidates = []
     this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
@@ -435,7 +449,13 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.nodeWithPortPoints.portPoints.forEach((portPoint) => {
       if (!portPairs.has(portPoint.connectionName)) {
         portPairs.set(portPoint.connectionName, {
-          start: { ...portPoint, z1: portPoint.z ?? 0, z2: portPoint.z ?? 0 },
+          start: {
+            ...portPoint,
+            z1: portPoint.z ?? 0,
+            z2: portPoint.z ?? 0,
+            xMoves: 0,
+            yMoves: 0,
+          },
           end: null as any,
         })
       } else {
@@ -443,6 +463,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           ...portPoint,
           z1: portPoint.z ?? 0,
           z2: portPoint.z ?? 0,
+          xMoves: 0,
+          yMoves: 0,
         }
       }
     })
@@ -505,8 +527,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * 1 from the parent for each operation
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
-    // return 0
-    return candidate.g + 0.5 * this.cellSize
+    return 0
+    // return candidate.g + 0.5 * this.cellSize
   }
 
   /**
@@ -529,16 +551,24 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    */
   NEIGHBOR_OPERATIONS = [
     (mutablePoint: Point) => {
-      mutablePoint.x += this.cellSize
+      const moveSize = Math.max(1, moveTaper(mutablePoint.xMoves))
+      mutablePoint.x += this.cellSize * moveSize
+      mutablePoint.xMoves++
     },
     (mutablePoint: Point) => {
-      mutablePoint.x -= this.cellSize
+      const moveSize = Math.max(1, moveTaper(mutablePoint.xMoves))
+      mutablePoint.x -= this.cellSize * moveSize
+      mutablePoint.xMoves++
     },
     (mutablePoint: Point) => {
-      mutablePoint.y += this.cellSize
+      const moveSize = Math.max(1, moveTaper(mutablePoint.yMoves))
+      mutablePoint.y += this.cellSize * moveSize
+      mutablePoint.yMoves++
     },
     (mutablePoint: Point) => {
-      mutablePoint.y -= this.cellSize
+      const moveSize = Math.max(1, moveTaper(mutablePoint.yMoves))
+      mutablePoint.y -= this.cellSize * moveSize
+      mutablePoint.yMoves++
     },
   ]
 
@@ -596,6 +626,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   _step() {
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()!
+    if (!currentCandidate) {
+      this.failed = true
+      return
+    }
     this.lastCandidate = currentCandidate
     if (
       currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
