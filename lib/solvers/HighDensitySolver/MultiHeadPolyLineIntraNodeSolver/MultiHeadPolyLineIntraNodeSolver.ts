@@ -6,6 +6,7 @@ import { GraphicsObject } from "graphics-debug"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { safeTransparentize } from "lib/solvers/colors"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
+import { createSymmetricArray } from "./createSymmetricArray"
 
 interface Point {
   x: number
@@ -52,30 +53,27 @@ export const constructMiddlePoints = (params: {
   end: Point
   segmentsPerPolyline: number
   viaCount: number
+  availableZ: number[]
 }) => {
-  const { start, end, segmentsPerPolyline, viaCount } = params
+  const { start, end, segmentsPerPolyline, viaCount, availableZ } = params
 
   const dx = end.x - start.x
   const dy = end.y - start.y
 
   const middlePoints: Point[] = []
 
-  const tViaInterval = 1 / (viaCount + 1)
-  console.log({ viaCount, tViaInterval })
+  const indicesToFlip = createSymmetricArray(segmentsPerPolyline, viaCount)
+  console.log({ viaCount, indicesToFlip })
 
   let lastZ = start.z1
+  const availableZOffset = availableZ.indexOf(start.z1)
   let zFlips = 0
   for (let i = 0; i < segmentsPerPolyline; i++) {
+    const isFlipped = indicesToFlip[i] === 1
+    const nextZ = isFlipped
+      ? availableZ[(availableZOffset + zFlips + 1) % availableZ.length]
+      : lastZ
     const t = (i + 1) / (segmentsPerPolyline + 1)
-    let nextZ = lastZ
-    if (t > tViaInterval * (zFlips + 1)) {
-      zFlips++
-      if (zFlips % 2 === 0) {
-        nextZ = end.z1
-      } else {
-        nextZ = start.z1
-      }
-    }
     const point = {
       x: start.x + t * dx,
       y: start.y + t * dy,
@@ -83,6 +81,7 @@ export const constructMiddlePoints = (params: {
       z2: nextZ,
     }
     lastZ = nextZ
+    if (isFlipped) zFlips++
     middlePoints.push(point)
   }
 
@@ -264,15 +263,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.cellSize = this.nodeWithPortPoints.width / 5
 
     this.candidates = []
-    this.availableZ = Array.from(
-      new Set(this.nodeWithPortPoints.portPoints.map((pt) => pt.z)),
-    )
+    this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
 
     const areaInsideNode =
       this.nodeWithPortPoints.width * this.nodeWithPortPoints.height
-    const areaPerVia = this.viaDiameter * this.viaDiameter
+    const areaPerVia =
+      (this.viaDiameter + this.obstacleMargin * 2 + this.traceWidth / 2) ** 2
 
     this.maxViaCount = Math.floor(areaInsideNode / areaPerVia)
+    console.log({ maxViaCount: this.maxViaCount })
 
     // Calculate bounds
     this.bounds = {
@@ -334,6 +333,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           end: portPair.end,
           segmentsPerPolyline: this.SEGMENTS_PER_POLYLINE,
           viaCount,
+          availableZ: this.availableZ,
         })
 
         polyLines.push(
