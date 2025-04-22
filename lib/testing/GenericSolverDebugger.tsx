@@ -68,6 +68,22 @@ export const GenericSolverDebugger = ({
     setSelectedSolverKey("main")
   }
 
+  const stats = useRef({
+    bestF: Infinity,
+    bestCandidateIteration: 0,
+  })
+
+  const stepWithStats = () => {
+    const nextCandidate = (mainSolver as any).candidates?.[0]
+    if (nextCandidate) {
+      if (nextCandidate.f < stats.current.bestF) {
+        stats.current.bestF = nextCandidate.f
+        stats.current.bestCandidateIteration = mainSolver.iterations
+      }
+    }
+    mainSolver.step()
+  }
+
   // Animation effect
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | undefined
@@ -80,7 +96,7 @@ export const GenericSolverDebugger = ({
           if (mainSolver.solved || mainSolver.failed) {
             break
           }
-          mainSolver.step()
+          stepWithStats()
         }
         setForceUpdate((prev) => prev + 1)
       }, animationSpeed)
@@ -96,7 +112,7 @@ export const GenericSolverDebugger = ({
   // Manual step function
   const handleStep = () => {
     if (!mainSolver.solved && !mainSolver.failed) {
-      mainSolver.step()
+      stepWithStats()
       setForceUpdate((prev) => prev + 1)
     }
   }
@@ -479,11 +495,22 @@ export const GenericSolverDebugger = ({
           <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
         </div>
         {(selectedSolver as any)?.candidates !== undefined && (
-          <div className="border p-2 rounded mb-2">
-            Candidates:{" "}
-            <span className="font-bold">
-              {(selectedSolver as any).candidates.length}
-            </span>
+          <div className="border p-2 rounded mb-2 flex gap-2">
+            <div>
+              Candidates:{" "}
+              <span className="font-bold">
+                {(selectedSolver as any).candidates.length}
+              </span>
+            </div>
+            <div>
+              Best F: <span className="font-bold">{stats.current.bestF}</span>
+            </div>
+            <div>
+              Best Candidate Iteration:{" "}
+              <span className="font-bold">
+                {stats.current.bestCandidateIteration}
+              </span>
+            </div>
           </div>
         )}
       </div>
