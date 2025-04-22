@@ -116,6 +116,12 @@ export const clonePolyLinesWithMutablePoint = (
   ]
 }
 
+const constructPolyLineWithSymmetricVias = (params: {
+  start: Point
+  end: Point
+  viaIndex: number
+}) => {}
+
 export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
@@ -173,6 +179,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.setupInitialPolyLines()
   }
 
+  /**
+   * Unlike most A* solvers with one initial candidate, we create a candidate
+   * for each configuration of vias we want to test, this way when computing
+   * neighbors we never consider changing layers
+   */
   setupInitialPolyLines() {
     const portPairs: Map<string, { start: Point; end: Point }> = new Map()
     this.nodeWithPortPoints.portPoints.forEach((portPoint) => {
@@ -190,7 +201,60 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       }
     })
 
-    // Conver the portPairs into PolyLines
+    // Create all the possible variations of the via counts for each port pair
+    type PossibleViaCountVariantions = Array<number>
+
+    /**
+     * Each item in viaCountVariants is an array specifying the number of vias
+     * for each polyline. If a polyline has a layer change, it will always have
+     * an odd number of vias, if it doesn't have a layer change, it will always
+     * have an even number of vias or 0
+     *
+     * e.g. if we have...
+     * SEGMENTS_PER_POLYLINE = 3
+     * polyLine0 = no layer change
+     * polyLine1 = layer change
+     *
+     * We would have these possible variants:
+     * [
+     *  [0, 1],
+     *  [0, 3],
+     *  [2, 1],
+     *  [2, 3]
+     * ]
+     *
+     * Likewise, if we have...
+     * SEGMENTS_PER_POLYLINE = 4
+     * polyLine0 = no layer change
+     * polyLine1 = layer change
+     * polyLine2 = no layer change
+     *
+     * We would have these possible variants:
+     * [
+     *  [0, 1, 0],
+     *  [0, 1, 2],
+     *  [0, 1, 4],
+     *  [0, 3, 0],
+     *  [0, 3, 2],
+     *  [0, 3, 4],
+     *  [2, 1, 0],
+     *  [2, 1, 2],
+     *  [2, 1, 4],
+     *  [2, 3, 0],
+     *  [2, 3, 2],
+     *  [2, 3, 4],
+     *  [4, 1, 0],
+     *  [4, 1, 2],
+     *  [4, 1, 4],
+     *  [4, 3, 0],
+     *  [4, 3, 2],
+     *  [4, 3, 4],
+     * ]
+     */
+    const viaCountVariants: PossibleViaCountVariantions[] = []
+    for (let i = 0; i < this.SEGMENTS_PER_POLYLINE - 1; i++) {}
+
+    // Convert the portPairs into PolyLines
     const polyLines: PolyLine[] = []
     for (const [connectionName, portPair] of portPairs.entries()) {
       const middlePoints = constructMiddlePoints({
@@ -218,10 +282,19 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     })
   }
 
+  /**
+   * g is the cost of each candidate, we consider complexity (deviation from
+   * the straight line path for # of operations). This means g increases by
+   * 1 from the parent for each operation
+   */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
     return candidate.g + 1
   }
 
+  /**
+   * h is the heuristic cost of each candidate. We consider the number of
+   * intersections of the polyline
+   */
   computeH(polyLines: PolyLine[]) {
     return 0
   }
@@ -241,11 +314,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     },
     (mutablePoint: Point) => {
       mutablePoint.y -= this.cellSize
-    },
-    // Make a via
-    (mutablePoint: Point) => {
-      mutablePoint.z1 = this.availableZ[0]
-      mutablePoint.z2 = this.availableZ[1]
     },
   ]
 
