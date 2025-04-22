@@ -122,6 +122,60 @@ const constructPolyLineWithSymmetricVias = (params: {
   viaIndex: number
 }) => {}
 
+/**
+ * Computes all valid combinations of via counts for a set of polylines.
+ *
+ * @param portPairs - A map where keys are connection names and values are objects
+ *                    containing the start and end points (with z1/z2 layers) for each connection.
+ * @param segmentsPerPolyline - The number of intermediate segments (mPoints) in each polyline.
+ *                              This determines the maximum possible number of vias.
+ * @returns An array of arrays, where each inner array represents a valid combination
+ *          of via counts for all polylines, ordered according to the input portPairs.
+ */
+export const computeViaCountVariants = (
+  portPairs: Map<string, { start: Point; end: Point }>,
+  segmentsPerPolyline: number,
+  maxViaCount: number,
+): Array<number[]> => {
+  const possibleViaCountsPerPolyline: number[][] = []
+
+  for (const [_connectionName, portPair] of portPairs.entries()) {
+    const needsLayerChange = portPair.start.z1 !== portPair.end.z1
+    const possibleCounts: number[] = []
+
+    for (let i = 0; i <= segmentsPerPolyline; i++) {
+      const isOdd = i % 2 !== 0
+      if (needsLayerChange && isOdd) {
+        possibleCounts.push(i)
+      } else if (!needsLayerChange && !isOdd) {
+        possibleCounts.push(i)
+      }
+    }
+    possibleViaCountsPerPolyline.push(possibleCounts)
+  }
+
+  // Generate Cartesian product of possible counts
+  if (possibleViaCountsPerPolyline.length === 0) {
+    return [[]] // No polylines, return one variant with empty counts
+  }
+
+  let variants: number[][] = [[]]
+  for (const possibleCounts of possibleViaCountsPerPolyline) {
+    const nextVariants: number[][] = []
+    for (const variant of variants) {
+      for (const count of possibleCounts) {
+        if (variant.reduce((acc, curr) => acc + curr, 0) > maxViaCount) {
+          continue
+        }
+        nextVariants.push([...variant, count])
+      }
+    }
+    variants = nextVariants
+  }
+
+  return variants
+}
+
 export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
@@ -259,12 +313,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
      *  [4, 3, 4],
      * ]
      */
-    const viaCountVariants: PossibleViaCountVariantions[] = []
+    const viaCountVariants = computeViaCountVariants(
+      portPairs,
+      this.SEGMENTS_PER_POLYLINE,
+      this.maxViaCount,
+    )
 
-    // TODO
-
-    // Convert the portPairs into PolyLines
-    const polyLines: PolyLine[] = []
+    // Convert the portPairs into PolyLines for the initial candidate
+    const initialPolyLines: PolyLine[] = []
     for (const [connectionName, portPair] of portPairs.entries()) {
       const middlePoints = constructMiddlePoints({
         start: portPair.start,
@@ -272,7 +328,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         segmentsPerPolyline: this.SEGMENTS_PER_POLYLINE,
       })
 
-      polyLines.push(
+      initialPolyLines.push(
         createPolyLine({
           connectionName,
           start: portPair.start,
@@ -282,11 +338,13 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       )
     }
 
+    // TODO: Create multiple initial candidates based on viaCountVariants
+    // For now, just push the one candidate
     this.candidates.push({
-      polyLines,
-      hash: computeCandidateHash(polyLines),
+      polyLines: initialPolyLines,
+      hash: computeCandidateHash(initialPolyLines),
       g: 0,
-      h: 0,
+      h: 0, // TODO: Compute initial H
       f: 0,
     })
   }
