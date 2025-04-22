@@ -60,6 +60,13 @@ export class HighDensitySolver extends BaseSolver {
       return
     }
     if (this.unsolvedNodePortPoints.length === 0) {
+      if (this.failedSolvers.length > 0) {
+        this.solved = false
+        this.failed = true
+        this.error = `Failed to solve ${this.failedSolvers.length} nodes`
+        return
+      }
+
       this.solved = true
       return
     }
