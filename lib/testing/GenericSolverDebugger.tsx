@@ -71,6 +71,8 @@ export const GenericSolverDebugger = ({
   const stats = useRef({
     bestF: Infinity,
     bestCandidateIteration: 0,
+    lastF: Infinity,
+    lastG: Infinity,
   })
 
   const stepWithStats = () => {
@@ -80,6 +82,8 @@ export const GenericSolverDebugger = ({
         stats.current.bestF = nextCandidate.f
         stats.current.bestCandidateIteration = mainSolver.iterations
       }
+      stats.current.lastF = nextCandidate.f
+      stats.current.lastG = nextCandidate.g
     }
     mainSolver.step()
   }
@@ -495,7 +499,7 @@ export const GenericSolverDebugger = ({
           <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
         </div>
         {(selectedSolver as any)?.candidates !== undefined && (
-          <div className="border p-2 rounded mb-2 flex gap-2">
+          <div className="border p-2 rounded mb-2 flex space-x-4 [&>*]:w-48">
             <div>
               Candidates:{" "}
               <span className="font-bold">
@@ -506,10 +510,16 @@ export const GenericSolverDebugger = ({
               Best F: <span className="font-bold">{stats.current.bestF}</span>
             </div>
             <div>
-              Best Candidate Iteration:{" "}
+              Best F:{" "}
               <span className="font-bold">
                 {stats.current.bestCandidateIteration}
               </span>
+            </div>
+            <div>
+              Last F: <span className="font-bold">{stats.current.lastF}</span>
+            </div>
+            <div>
+              Last G: <span className="font-bold">{stats.current.lastG}</span>
             </div>
           </div>
         )}

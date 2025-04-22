@@ -398,19 +398,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             }
           }
         }
-
-        // // Old Via Logic (commented out/removed)
-        // for (let i = 0; i < pointsInPolyline.length - 1; i++) {
-        //   if (pointsInPolyline[i].z !== pointsInPolyline[i + 1].z) {
-        //     // Assume via is at the point where the layer changes *from*
-        //     graphicsObject.circles.push({
-        //       center: pointsInPolyline[i],
-        //       radius: 0.3, // TODO: Use actual via diameter
-        //       fill: "rgba(0, 0, 255, 0.6)",
-        //       label: `Via (z=${pointsInPolyline[i].z} -> z=${pointsInPolyline[i + 1].z})`,
-        //     })
-        //   }
-        // }
       }
     }
 
