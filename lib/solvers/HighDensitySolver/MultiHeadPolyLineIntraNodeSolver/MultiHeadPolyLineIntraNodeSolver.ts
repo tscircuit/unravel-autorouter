@@ -141,6 +141,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
   queuedCandidateHashes: Set<string> = new Set()
 
+  maxViaCount: number
+
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
     colorMap?: Record<string, string>
@@ -163,6 +165,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.availableZ = Array.from(
       new Set(this.nodeWithPortPoints.portPoints.map((pt) => pt.z)),
     )
+
+    const areaInsideNode =
+      this.nodeWithPortPoints.width * this.nodeWithPortPoints.height
+    const areaPerVia = this.viaDiameter * this.viaDiameter
+
+    this.maxViaCount = Math.floor(areaInsideNode / areaPerVia)
 
     // Calculate bounds
     this.bounds = {
@@ -252,7 +260,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
      * ]
      */
     const viaCountVariants: PossibleViaCountVariantions[] = []
-    for (let i = 0; i < this.SEGMENTS_PER_POLYLINE - 1; i++) {}
+
+    // TODO
 
     // Convert the portPairs into PolyLines
     const polyLines: PolyLine[] = []
