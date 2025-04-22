@@ -37,18 +37,13 @@ export const computePolyLineHash = (polyLine: Omit<PolyLine, "hash">) => {
   return polyLine.mPoints.map((p) => `${p.x},${p.y},${p.z1},${p.z2}`).join("_")
 }
 
-export const computeCandidateHash = (candidate: Omit<Candidate, "hash">) => {
-  return candidate.polyLines.map((p) => computePolyLineHash(p)).join("|")
+export const computeCandidateHash = (polyLines: PolyLine[]) => {
+  return polyLines.map((p) => computePolyLineHash(p)).join("|")
 }
 
 export const createPolyLine = (polyLinePartial: Omit<PolyLine, "hash">) => {
   ;(polyLinePartial as any).hash = computePolyLineHash(polyLinePartial)
   return polyLinePartial as PolyLine
-}
-
-export const createCandidate = (candidatePartial: Omit<Candidate, "hash">) => {
-  ;(candidatePartial as any).hash = computeCandidateHash(candidatePartial)
-  return candidatePartial as Candidate
 }
 
 export const constructMiddlePoints = (params: {
@@ -81,6 +76,46 @@ export const constructMiddlePoints = (params: {
   return middlePoints
 }
 
+export const withinBounds = (
+  point: Point,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+) => {
+  return (
+    point.x >= bounds.minX &&
+    point.x <= bounds.maxX &&
+    point.y >= bounds.minY &&
+    point.y <= bounds.maxY
+  )
+}
+
+export const clonePolyLinesWithMutablePoint = (
+  polyLines: PolyLine[],
+  lineIndex: number,
+  mPointIndex: number,
+): [PolyLine[], Point] => {
+  const mutablePoint = {
+    x: polyLines[lineIndex].mPoints[mPointIndex].x,
+    y: polyLines[lineIndex].mPoints[mPointIndex].y,
+    z1: polyLines[lineIndex].mPoints[mPointIndex].z1,
+    z2: polyLines[lineIndex].mPoints[mPointIndex].z2,
+  }
+  return [
+    [
+      ...polyLines.slice(0, lineIndex),
+      {
+        ...polyLines[lineIndex],
+        mPoints: [
+          ...polyLines[lineIndex].mPoints.slice(0, mPointIndex),
+          mutablePoint,
+          ...polyLines[lineIndex].mPoints.slice(mPointIndex + 1),
+        ],
+      },
+      ...polyLines.slice(lineIndex + 1),
+    ],
+    mutablePoint,
+  ]
+}
+
 export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
@@ -96,6 +131,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   viaDiameter: number = 0.6
   obstacleMargin: number = 0.1
   traceWidth: number = 0.15
+
+  queuedCandidateHashes: Set<string> = new Set()
 
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
@@ -167,8 +204,37 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       )
     }
 
-    this.candidates.push(createCandidate({ polyLines, g: 0, h: 0, f: 0 }))
+    this.candidates.push({
+      polyLines,
+      hash: computeCandidateHash(polyLines),
+      g: 0,
+      h: 0,
+      f: 0,
+    })
   }
+
+  computeG(polyLines: PolyLine[], candidate: Candidate) {
+    return candidate.g + 1
+  }
+
+  computeH(polyLines: PolyLine[]) {
+    return 0
+  }
+
+  XY_NEIGHBOR_OPERATIONS = [
+    (mutablePoint: Point) => {
+      mutablePoint.x += this.cellSize
+    },
+    (mutablePoint: Point) => {
+      mutablePoint.x -= this.cellSize
+    },
+    (mutablePoint: Point) => {
+      mutablePoint.y += this.cellSize
+    },
+    (mutablePoint: Point) => {
+      mutablePoint.y -= this.cellSize
+    },
+  ]
 
   getNeighbors(candidate: Candidate) {
     const neighbors: Candidate[] = []
@@ -176,11 +242,49 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     // TODO each polyline can move it's mPoints in any direction or down as
     // a via, in this function we check if it's valid to make the movement
     // and if so, return it as a neighbor
+    for (let i = 0; i < candidate.polyLines.length; i++) {
+      for (let j = 0; j < this.SEGMENTS_PER_POLYLINE; j++) {
+        for (const opFn of this.XY_NEIGHBOR_OPERATIONS) {
+          const [newPolyLines, mutablePoint] = clonePolyLinesWithMutablePoint(
+            candidate.polyLines,
+            i,
+            j,
+          )
+          opFn(mutablePoint)
+
+          if (!withinBounds(mutablePoint, this.bounds)) continue
+          const neighborHash = computeCandidateHash(newPolyLines)
+          if (this.queuedCandidateHashes.has(neighborHash)) continue
+
+          const g = this.computeG(newPolyLines, candidate)
+          const h = this.computeH(newPolyLines)
+          const newNeighbor: Candidate = {
+            polyLines: newPolyLines,
+            g,
+            h,
+            f: g + h,
+            hash: neighborHash,
+          }
+          this.queuedCandidateHashes.add(neighborHash)
+
+          neighbors.push(newNeighbor)
+        }
+      }
+    }
 
     return neighbors
   }
 
-  _step() {}
+  _step() {
+    this.candidates.sort((a, b) => a.f - b.f)
+    const currentCandidate = this.candidates.shift()!
+    if (!currentCandidate) {
+      this.failed = true
+      return
+    }
+
+    this.candidates.push(...this.getNeighbors(currentCandidate))
+  }
 
   visualize(): GraphicsObject {
     const graphicsObject: Required<GraphicsObject> = {
