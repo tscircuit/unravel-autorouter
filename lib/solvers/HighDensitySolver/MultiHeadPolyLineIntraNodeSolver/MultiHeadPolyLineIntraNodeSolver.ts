@@ -514,12 +514,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * intersections of the polyline and proximity to vias.
    */
   computeH(candidate: Pick<Candidate, "minGaps">) {
-    return 0
     let h = 0
-    // for (const minGap of candidate.minGaps) {
-    //   h -= minGap
-    // }
-    // return Math.min(...candidate.minGaps)
+    for (const minGap of candidate.minGaps) {
+      h -= minGap
+    }
+    const avgMinGap =
+      candidate.minGaps.reduce((acc, minGap) => acc + minGap, 0) /
+      candidate.minGaps.length
+    return -avgMinGap
   }
 
   /**
