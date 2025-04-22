@@ -70,7 +70,11 @@ export const constructMiddlePoints = (params: {
     let nextZ = lastZ
     if (t > tViaInterval * (zFlips + 1)) {
       zFlips++
-      nextZ = end.z1
+      if (zFlips % 2 === 0) {
+        nextZ = end.z1
+      } else {
+        nextZ = start.z1
+      }
     }
     const point = {
       x: start.x + t * dx,
