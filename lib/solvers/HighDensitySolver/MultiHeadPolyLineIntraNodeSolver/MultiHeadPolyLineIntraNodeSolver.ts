@@ -96,12 +96,13 @@ export const constructMiddlePoints = (params: {
 export const withinBounds = (
   point: Point,
   bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  padding: number = 0,
 ) => {
   return (
-    point.x >= bounds.minX &&
-    point.x <= bounds.maxX &&
-    point.y >= bounds.minY &&
-    point.y <= bounds.maxY
+    point.x >= bounds.minX + padding &&
+    point.x <= bounds.maxX - padding &&
+    point.y >= bounds.minY + padding &&
+    point.y <= bounds.maxY - padding
   )
 }
 
@@ -512,7 +513,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           )
           opFn(mutablePoint)
 
-          if (!withinBounds(mutablePoint, this.bounds)) continue
+          const isVia = mutablePoint.z1 !== mutablePoint.z2
+          if (
+            !withinBounds(
+              mutablePoint,
+              this.bounds,
+              isVia ? this.viaDiameter / 2 : this.traceWidth / 2,
+            )
+          )
+            continue
           const neighborHash = computeCandidateHash(newPolyLines)
           if (this.queuedCandidateHashes.has(neighborHash)) continue
 
