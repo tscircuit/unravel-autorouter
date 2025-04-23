@@ -65,7 +65,9 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
    * solver
    */
   computeH(candidate: any) {
-    return 0
+    const { minGaps } = candidate
+    const worstMinGap = Math.min(...minGaps)
+    return -worstMinGap
   }
 
   _step() {
@@ -97,24 +99,14 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       return
     }
     // Apply forces iteratively to the current candidate
-    let pointsMovedTotal = false
-    for (let step = 0; step < 1000; step++) {
+    for (let step = 0; step < 10; step++) {
       const moved = this.applyForcesToPolyLines(currentCandidate.polyLines)
-      if (moved) {
-        pointsMovedTotal = true
-      }
-      // Optional: Add a check to break early if forces stabilize (no points moved)
-      // if (!moved && step > 10) break; // Example early exit
     }
 
-    // After applying forces, recompute minGaps for the modified candidate
-    if (pointsMovedTotal) {
-      currentCandidate.minGaps = this.computeMinGapBtwPolyLines(
-        currentCandidate.polyLines,
-      )
-    }
+    currentCandidate.minGaps = this.computeMinGapBtwPolyLines(
+      currentCandidate.polyLines,
+    )
 
-    // Re-check if the candidate is now solved
     if (
       currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
     ) {
@@ -122,10 +114,14 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       return
     }
 
-    // If not solved after force application, the solver fails for this candidate.
-    // Since we're not generating new candidates, if the queue becomes empty,
-    // the solver will eventually fail in the main loop.
-    // We don't push anything back onto the candidates list here.
+    currentCandidate.g = this.computeG(
+      currentCandidate.polyLines,
+      currentCandidate,
+    )
+    currentCandidate.h = this.computeH(currentCandidate)
+    currentCandidate.f = currentCandidate.g + currentCandidate.h
+    this.candidates.push(currentCandidate)
+    this.candidates.sort((a, b) => a.f - b.f)
   }
 
   /**
@@ -506,7 +502,7 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
           let boundaryForceY = 0
 
           // Use a margin appropriate for vias pushing away from the edge
-          const forceMargin = this.viaDiameter / 2 // Or perhaps obstacleMargin?
+          const forceMargin = this.viaDiameter / 2
 
           const minX = this.bounds.minX + forceMargin
           const maxX = this.bounds.maxX - forceMargin
