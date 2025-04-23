@@ -1,6 +1,7 @@
 import type { Bounds, Point } from "@tscircuit/math-utils"
 import { getCentroidsFromInnerBoxIntersections } from "./getCentroidsFromInnerBoxIntersections"
 import { generateBinaryCombinations } from "./generateBinaryCombinations"
+import { MHPoint } from "./MultiHeadPolyLineIntraNodeSolver"
 
 type ViaPositionVariantForLinesViaCountVariant = {
   viaPositions: Point[]
@@ -18,7 +19,13 @@ type ViaPositionVariantForLinesViaCountVariant = {
  */
 export const getPossibleInitialViaPositions = (params: {
   portPairsEntries: Array<
-    [connectionName: string, { start: Point; end: Point }]
+    [
+      connectionName: string,
+      {
+        start: Omit<MHPoint, "xMoves" | "yMoves">
+        end: Omit<MHPoint, "xMoves" | "yMoves">
+      },
+    ]
   >
   bounds: Bounds
   viaCountVariants: Array<number[]>
@@ -30,12 +37,6 @@ export const getPossibleInitialViaPositions = (params: {
     portPairsEntries.map(([_, portPair]) => portPair),
   )
 
-  console.log(
-    bounds,
-    portPairsEntries.map(([_, portPair]) => portPair),
-  )
-  console.log(centroids)
-
   const result: ViaPositionVariantForLinesViaCountVariant[] = []
 
   for (const viaCountVariant of viaCountVariants) {
@@ -46,17 +47,16 @@ export const getPossibleInitialViaPositions = (params: {
     )
 
     for (const viaPositionVariant of viaPositionVariants) {
+      const viaPositions: Point[] = []
       for (let i = 0; i < viaPositionVariant.length; i++) {
-        const viaPositions: Point[] = []
         if (viaPositionVariant[i] === 1) {
           viaPositions.push(centroids[i])
         }
-
-        result.push({
-          viaPositions,
-          viaCountVariant,
-        })
       }
+      result.push({
+        viaPositions,
+        viaCountVariant,
+      })
     }
   }
 

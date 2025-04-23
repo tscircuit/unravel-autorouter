@@ -15,7 +15,7 @@ import {
 } from "@tscircuit/math-utils"
 import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
 
-interface Point {
+export interface MHPoint {
   x: number
   y: number
   xMoves: number
@@ -30,9 +30,9 @@ interface Point {
 
 export interface PolyLine {
   connectionName: string
-  start: Point
-  end: Point
-  mPoints: Point[]
+  start: MHPoint
+  end: MHPoint
+  mPoints: MHPoint[]
   hash: string
 }
 
@@ -59,8 +59,8 @@ export const createPolyLine = (polyLinePartial: Omit<PolyLine, "hash">) => {
 }
 
 export const constructMiddlePointsWithViaPositions = (params: {
-  start: Point
-  end: Point
+  start: MHPoint
+  end: MHPoint
   segmentsPerPolyline: number
   viaCount: number
   availableZ: number[]
@@ -75,8 +75,11 @@ export const constructMiddlePointsWithViaPositions = (params: {
     availableZ,
   } = params
 
+  console.log("\n\nNEW MIDDLE POINTS CONSTRUCTION\n\n")
+
   const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
-  const middlePoints: (Point | null)[] = viaIndices.map(() => null)
+  console.log({ viaIndices, viaCount, viaPositions })
+  const middlePoints: (MHPoint | null)[] = viaIndices.map(() => null)
 
   let viasAdded = 0
   for (let i = 0; i < viaIndices.length; i++) {
@@ -92,36 +95,46 @@ export const constructMiddlePointsWithViaPositions = (params: {
     }
   }
 
-  let left: Point = start
+  let left: MHPoint = start
   for (let i = 0; i < middlePoints.length; i++) {
     if (middlePoints[i]) {
+      console.log({ left, newLeft: middlePoints[i] })
       left = middlePoints[i]!
       continue
     }
-    let right: Point = end
+    let right: MHPoint = end
+    let rightIndex: number = middlePoints.length
     for (let u = i + 1; u < middlePoints.length; u++) {
       if (middlePoints[u]) {
         right = middlePoints[u]!
+        rightIndex = u
         break
       }
     }
 
-    middlePoints[i] = {
-      x: (left.x + right.x) / 2,
-      y: (left.y + right.y) / 2,
-      xMoves: 0,
-      yMoves: 0,
-      z1: left.z2,
-      z2: left.z2,
+    const N = rightIndex - i
+    console.log({ i, rightIndex, N, viaCount, viaPositions })
+    const dx = right.x - left.x
+    const dy = right.y - right.y
+    for (let t = 1 / (N + 1), ti = 0; t < N; t += 1 / (N + 1), ti++) {
+      console.log({ t, i, ti, x: left.x, dx })
+      middlePoints[i + ti] = {
+        x: left.x + dx * t,
+        y: left.y + dy * t,
+        xMoves: 0,
+        yMoves: 0,
+        z1: left.z2,
+        z2: left.z2,
+      }
     }
   }
 
-  return middlePoints as unknown as Point[]
+  return middlePoints as unknown as MHPoint[]
 }
 
 export const constructMiddlePoints = (params: {
-  start: Point
-  end: Point
+  start: MHPoint
+  end: MHPoint
   segmentsPerPolyline: number
   viaCount: number
   availableZ: number[]
@@ -131,7 +144,7 @@ export const constructMiddlePoints = (params: {
   const dx = end.x - start.x
   const dy = end.y - start.y
 
-  const middlePoints: Point[] = []
+  const middlePoints: MHPoint[] = []
 
   const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
 
@@ -161,7 +174,7 @@ export const constructMiddlePoints = (params: {
 }
 
 export const withinBounds = (
-  point: Point,
+  point: MHPoint,
   bounds: { minX: number; maxX: number; minY: number; maxY: number },
   padding: number = 0,
 ) => {
@@ -177,7 +190,7 @@ export const clonePolyLinesWithMutablePoint = (
   polyLines: PolyLine[],
   lineIndex: number,
   mPointIndex: number,
-): [PolyLine[], Point] => {
+): [PolyLine[], MHPoint] => {
   const mutablePoint = {
     x: polyLines[lineIndex].mPoints[mPointIndex].x,
     y: polyLines[lineIndex].mPoints[mPointIndex].y,
@@ -259,7 +272,7 @@ function getCombinations<T>(arrays: T[][]): T[][] {
  */
 export const computeViaCountVariants = (
   portPairsEntries: Array<
-    [connectionName: string, { start: Point; end: Point }]
+    [connectionName: string, { start: MHPoint; end: MHPoint }]
   >,
   segmentsPerPolyline: number,
   maxViaCount: number,
@@ -422,16 +435,16 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    */
   computeMinGapBtwPolyLines(polyLines: PolyLine[]) {
     const minGaps = []
-    const polyLineSegmentsByLayer: Array<Map<number, [Point, Point][]>> = []
-    const polyLineVias: Array<Point[]> = []
+    const polyLineSegmentsByLayer: Array<Map<number, [MHPoint, MHPoint][]>> = []
+    const polyLineVias: Array<MHPoint[]> = []
     for (let i = 0; i < polyLines.length; i++) {
       const polyLine = polyLines[i]
       const path = [polyLine.start, ...polyLine.mPoints, polyLine.end]
-      const segmentsByLayer: Map<number, [Point, Point][]> = new Map(
+      const segmentsByLayer: Map<number, [MHPoint, MHPoint][]> = new Map(
         this.availableZ.map((z) => [z, []]),
       )
       for (let i = 0; i < path.length - 1; i++) {
-        const segment: [Point, Point] = [path[i], path[i + 1]]
+        const segment: [MHPoint, MHPoint] = [path[i], path[i + 1]]
         segmentsByLayer.get(segment[0].z2)!.push(segment)
       }
       polyLineSegmentsByLayer.push(segmentsByLayer)
@@ -507,7 +520,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * neighbors we never consider changing layers
    */
   setupInitialPolyLines() {
-    const portPairs: Map<string, { start: Point; end: Point }> = new Map()
+    const portPairs: Map<string, { start: MHPoint; end: MHPoint }> = new Map()
     this.nodeWithPortPoints.portPoints.forEach((portPoint) => {
       if (!portPairs.has(portPoint.connectionName)) {
         portPairs.set(portPoint.connectionName, {
@@ -554,6 +567,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     // Convert the portPairs into PolyLines for the initial candidate
     for (const { viaPositions, viaCountVariant } of possibleViaPositions) {
+      console.log({ viaPositions, viaCountVariant })
       const polyLines: PolyLine[] = []
       for (let i = 0; i < portPairsEntries.length; i++) {
         const [connectionName, portPair] = portPairsEntries[i]
@@ -566,6 +580,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           viaCount,
           availableZ: this.availableZ,
         })
+
+        console.log({ middlePoints })
 
         polyLines.push(
           createPolyLine({
@@ -581,6 +597,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
       // TODO: Create multiple initial candidates based on viaCountVariants
       // For now, just push the one candidate
+      console.log({ polyLines })
       this.candidates.push({
         polyLines: polyLines,
         hash: computeCandidateHash(polyLines),
@@ -589,7 +606,9 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         f: 0,
         minGaps,
       })
+      break
     }
+    console.log({ candidates: this.candidates })
   }
 
   /**
@@ -621,22 +640,22 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * Mutate the mutablePoint and return true if the operation is valid
    */
   NEIGHBOR_OPERATIONS = [
-    (mutablePoint: Point) => {
+    (mutablePoint: MHPoint) => {
       const moveSize = Math.max(1, moveTaper(mutablePoint.xMoves))
       mutablePoint.x += this.cellSize * moveSize
       mutablePoint.xMoves++
     },
-    (mutablePoint: Point) => {
+    (mutablePoint: MHPoint) => {
       const moveSize = Math.max(1, moveTaper(mutablePoint.xMoves))
       mutablePoint.x -= this.cellSize * moveSize
       mutablePoint.xMoves++
     },
-    (mutablePoint: Point) => {
+    (mutablePoint: MHPoint) => {
       const moveSize = Math.max(1, moveTaper(mutablePoint.yMoves))
       mutablePoint.y += this.cellSize * moveSize
       mutablePoint.yMoves++
     },
-    (mutablePoint: Point) => {
+    (mutablePoint: MHPoint) => {
       const moveSize = Math.max(1, moveTaper(mutablePoint.yMoves))
       mutablePoint.y -= this.cellSize * moveSize
       mutablePoint.yMoves++
@@ -750,6 +769,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     // Visualize the polylines from the first candidate (or current best)
     const candidateToVisualize = this.lastCandidate ?? this.candidates[0] // Assuming the first is representative
+    console.log({ candidateToVisualize })
     if (candidateToVisualize) {
       for (const polyLine of candidateToVisualize.polyLines) {
         const color = this.colorMap[polyLine.connectionName] ?? "purple"
