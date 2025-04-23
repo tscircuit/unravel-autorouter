@@ -12,6 +12,8 @@ import {
   doSegmentsIntersect,
   pointToSegmentDistance,
   segmentToSegmentMinDistance,
+  pointToSegmentClosestPoint,
+  distSq,
 } from "@tscircuit/math-utils"
 import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
 import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
@@ -684,6 +686,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const numPolyLines = polyLines.length
     const FORCE_MAGNITUDE = this.cellSize * 0.5 // Tunable parameter for force strength
     const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
+    const SEGMENT_FORCE_MULTIPLIER = 1.0
     const EPSILON = 1e-6 // To avoid division by zero
 
     // 1. Initialize forces for each mPoint
@@ -696,7 +699,25 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         })),
     )
 
-    // 2. Calculate forces between all pairs of points from different polylines
+    // Helper to apply force to an mPoint if it exists
+    const applyForce = (
+      lineIndex: number,
+      pointIndexInFullPath: number, // Index in [start, ...mPoints, end]
+      fx: number,
+      fy: number,
+    ) => {
+      // Only apply force if the point is an mPoint (not start or end)
+      if (
+        pointIndexInFullPath > 0 &&
+        pointIndexInFullPath < polyLines[lineIndex].mPoints.length + 1
+      ) {
+        const mPointIndex = pointIndexInFullPath - 1
+        forces[lineIndex][mPointIndex].fx += fx
+        forces[lineIndex][mPointIndex].fy += fy
+      }
+    }
+
+    // 2. Calculate forces between all pairs of polylines
     for (let i = 0; i < numPolyLines; i++) {
       for (let j = i + 1; j < numPolyLines; j++) {
         const polyLine1 = polyLines[i]
@@ -705,78 +726,172 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         const points1 = [polyLine1.start, ...polyLine1.mPoints, polyLine1.end]
         const points2 = [polyLine2.start, ...polyLine2.mPoints, polyLine2.end]
 
-        for (let p1Idx = 0; p1Idx < points1.length; p1Idx++) {
-          const p1 = points1[p1Idx]
-          const isP1MPoint = p1Idx > 0 && p1Idx < points1.length - 1
-          const isVia1 = p1.z1 !== p1.z2
-          const layers1 = isVia1 ? [p1.z1, p1.z2] : [p1.z1]
+        // Extract segments and vias for easier processing
+        const segments1: Array<{
+          p1: MHPoint
+          p2: MHPoint
+          layer: number
+          p1Idx: number
+          p2Idx: number
+        }> = []
+        const vias1: Array<{
+          point: MHPoint
+          layers: number[]
+          index: number
+        }> = []
+        for (let k = 0; k < points1.length - 1; k++) {
+          segments1.push({
+            p1: points1[k],
+            p2: points1[k + 1],
+            layer: points1[k].z2,
+            p1Idx: k,
+            p2Idx: k + 1,
+          })
+        }
+        points1.forEach((p, k) => {
+          if (p.z1 !== p.z2)
+            vias1.push({ point: p, layers: [p.z1, p.z2], index: k })
+        })
 
-          for (let p2Idx = 0; p2Idx < points2.length; p2Idx++) {
-            const p2 = points2[p2Idx]
-            const isP2MPoint = p2Idx > 0 && p2Idx < points2.length - 1
-            const isVia2 = p2.z1 !== p2.z2
-            const layers1 = isVia1 ? [p1.z1, p1.z2] : [p1.z1]
-            const layers2 = isVia2 ? [p2.z1, p2.z2] : [p2.z1]
+        const segments2: Array<{
+          p1: MHPoint
+          p2: MHPoint
+          layer: number
+          p1Idx: number
+          p2Idx: number
+        }> = []
+        const vias2: Array<{
+          point: MHPoint
+          layers: number[]
+          index: number
+        }> = []
+        for (let k = 0; k < points2.length - 1; k++) {
+          segments2.push({
+            p1: points2[k],
+            p2: points2[k + 1],
+            layer: points2[k].z2,
+            p1Idx: k,
+            p2Idx: k + 1,
+          })
+        }
+        points2.forEach((p, k) => {
+          if (p.z1 !== p.z2)
+            vias2.push({ point: p, layers: [p.z1, p.z2], index: k })
+        })
 
-            const dx = p1.x - p2.x
-            const dy = p1.y - p2.y
-            const distSq = dx * dx + dy * dy
+        // --- Interaction Calculations ---
 
-            if (distSq > EPSILON) {
-              const dist = Math.sqrt(distSq)
-              const ux = dx / dist // Unit vector x
-              const uy = dy / dist // Unit vector y
+        // a) Segment <-> Segment
+        for (const seg1 of segments1) {
+          for (const seg2 of segments2) {
+            if (seg1.layer === seg2.layer) {
+              const minDist = segmentToSegmentMinDistance(
+                seg1.p1,
+                seg1.p2,
+                seg2.p1,
+                seg2.p2,
+              )
+              if (minDist < EPSILON) continue // Avoid division by zero if segments overlap significantly
 
-              let multiplier = 0.0 // Start with zero force multiplier
-
-              // 1. Check for standard interaction (common layers, including vias)
-              const commonLayers = layers1.filter((z) => layers2.includes(z))
-              const standardInteract = commonLayers.length > 0
-              if (standardInteract) {
-                multiplier = isVia1 || isVia2 ? VIA_FORCE_MULTIPLIER : 1.0
+              // Simple repulsive force based on center-to-center distance for now
+              // TODO: A more sophisticated segment-segment force might be needed
+              const center1 = {
+                x: (seg1.p1.x + seg1.p2.x) / 2,
+                y: (seg1.p1.y + seg1.p2.y) / 2,
               }
-
-              // 2. Check for start/end point specific layer interaction
-              const isP1StartEnd = p1Idx === 0 || p1Idx === points1.length - 1
-              const isP2StartEnd = p2Idx === 0 || p2Idx === points2.length - 1
-
-              if (isP1StartEnd) {
-                const p1Layer = p1.z1 // Start/end points have z1=z2
-                const p2OnP1Layer = layers2.includes(p1Layer)
-                if (p2OnP1Layer) {
-                  // Apply at least base force if p1 is start/end and p2 is on its layer
-                  multiplier = Math.max(multiplier, 1.0)
-                }
+              const center2 = {
+                x: (seg2.p1.x + seg2.p2.x) / 2,
+                y: (seg2.p1.y + seg2.p2.y) / 2,
               }
-              if (isP2StartEnd) {
-                const p2Layer = p2.z1 // Start/end points have z1=z2
-                const p1OnP2Layer = layers1.includes(p2Layer)
-                if (p1OnP2Layer) {
-                  // Apply at least base force if p2 is start/end and p1 is on its layer
-                  multiplier = Math.max(multiplier, 1.0)
-                }
+              const dx = center1.x - center2.x
+              const dy = center1.y - center2.y
+              const dSq = dx * dx + dy * dy
+
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                const forceMag =
+                  (SEGMENT_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist // Inverse distance
+                const fx = (dx / dist) * forceMag
+                const fy = (dy / dist) * forceMag
+
+                // Apply force equally to both endpoints of each segment (if they are mPoints)
+                applyForce(i, seg1.p1Idx, fx / 2, fy / 2)
+                applyForce(i, seg1.p2Idx, fx / 2, fy / 2)
+                applyForce(j, seg2.p1Idx, -fx / 2, -fy / 2)
+                applyForce(j, seg2.p2Idx, -fx / 2, -fy / 2)
               }
+            }
+          }
+        }
 
-              // 3. Apply force if any interaction occurred
-              if (multiplier > 0) {
-                // Force magnitude inversely proportional to distance (1/dist)
-                const forceMag = (multiplier * FORCE_MAGNITUDE) / dist
-                const fx = ux * forceMag
-                const fy = uy * forceMag
+        // b) Via <-> Segment
+        for (const via1 of vias1) {
+          for (const seg2 of segments2) {
+            if (via1.layers.includes(seg2.layer)) {
+              const closestPointOnSeg = pointToSegmentClosestPoint(
+                via1.point,
+                seg2.p1,
+                seg2.p2,
+              )
+              const dx = via1.point.x - closestPointOnSeg.x
+              const dy = via1.point.y - closestPointOnSeg.y
+              const dSq = dx * dx + dy * dy
 
-                // Apply force to p1 if it's an mPoint
-                if (isP1MPoint) {
-                  const mPointIndex1 = p1Idx - 1
-                  forces[i][mPointIndex1].fx += fx
-                  forces[i][mPointIndex1].fy += fy
-                }
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                // Force applied ONLY to the via, based on closest point on segment
+                const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
+                const fx = (dx / dist) * forceMag
+                const fy = (dy / dist) * forceMag
+                applyForce(i, via1.index, fx, fy)
+                // No force applied back to the segment from this interaction
+              }
+            }
+          }
+        }
+        for (const via2 of vias2) {
+          for (const seg1 of segments1) {
+            if (via2.layers.includes(seg1.layer)) {
+              const closestPointOnSeg = pointToSegmentClosestPoint(
+                via2.point,
+                seg1.p1,
+                seg1.p2,
+              )
+              const dx = via2.point.x - closestPointOnSeg.x
+              const dy = via2.point.y - closestPointOnSeg.y
+              const dSq = dx * dx + dy * dy
 
-                // Apply opposite force to p2 if it's an mPoint
-                if (isP2MPoint) {
-                  const mPointIndex2 = p2Idx - 1
-                  forces[j][mPointIndex2].fx -= fx
-                  forces[j][mPointIndex2].fy -= fy
-                }
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                // Force applied ONLY to the via
+                const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
+                const fx = (dx / dist) * forceMag
+                const fy = (dy / dist) * forceMag
+                applyForce(j, via2.index, fx, fy)
+                // No force applied back to the segment
+              }
+            }
+          }
+        }
+
+        // c) Via <-> Via
+        for (const via1 of vias1) {
+          for (const via2 of vias2) {
+            const commonLayers = via1.layers.filter((z) =>
+              via2.layers.includes(z),
+            )
+            if (commonLayers.length > 0) {
+              const dx = via1.point.x - via2.point.x
+              const dy = via1.point.y - via2.point.y
+              const dSq = dx * dx + dy * dy
+
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
+                const fx = (dx / dist) * forceMag
+                const fy = (dy / dist) * forceMag
+                applyForce(i, via1.index, fx, fy)
+                applyForce(j, via2.index, -fx, -fy)
               }
             }
           }
@@ -797,12 +912,22 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         const mPoint = newPolyLines[i].mPoints[k]
         const force = forces[i][k]
 
+        // Dampen force? Add friction? (Optional)
+
         if (Math.abs(force.fx) < EPSILON && Math.abs(force.fy) < EPSILON) {
           continue // No significant force, skip update
         }
 
-        const newX = mPoint.x + force.fx
-        const newY = mPoint.y + force.fy
+        // Limit maximum movement per step? (Optional)
+        // const maxMove = this.cellSize;
+        // const forceMag = Math.sqrt(force.fx * force.fx + force.fy * force.fy);
+        // const moveX = (forceMag > maxMove) ? (force.fx / forceMag) * maxMove : force.fx;
+        // const moveY = (forceMag > maxMove) ? (force.fy / forceMag) * maxMove : force.fy;
+        const moveX = force.fx
+        const moveY = force.fy
+
+        const newX = mPoint.x + moveX
+        const newY = mPoint.y + moveY
 
         const isVia = mPoint.z1 !== mPoint.z2
         const radius = isVia ? this.viaDiameter / 2 : this.traceWidth / 2
@@ -835,6 +960,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     // If no points moved significantly, don't generate a redundant neighbor
     if (!pointsMoved) {
+      // console.log("No points moved significantly, skipping neighbor generation.");
       return []
     }
 
@@ -842,6 +968,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     // Avoid adding redundant states or cycles
     if (this.queuedCandidateHashes.has(neighborHash)) {
+      // console.log("Neighbor hash already queued, skipping.");
       return []
     }
 
@@ -859,6 +986,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
 
     this.queuedCandidateHashes.add(neighborHash)
+    // console.log(`Generated neighbor ${neighborHash.substring(0, 10)}... f=${newNeighbor.f.toFixed(3)}`);
 
     return [newNeighbor]
   }
@@ -953,19 +1081,20 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         pointsInPolyline.forEach((point, pointIndex) => {
           const isVia = point.z1 !== point.z2
           const pointLayer = point.z1 // Layer before potential via
-          const isMPoint = pointIndex > 0 && pointIndex < pointsInPolyline.length - 1
+          const isMPoint =
+            pointIndex > 0 && pointIndex < pointsInPolyline.length - 1
 
           let label = ""
           let forceLabel = ""
 
           if (isMPoint) {
             const mPointIndex = pointIndex - 1
-            const force = candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
+            const force =
+              candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
             if (force) {
               forceLabel = `\nForce: (${force.fx.toFixed(3)}, ${force.fy.toFixed(3)})`
             }
           }
-
 
           if (isVia) {
             // Draw Via
