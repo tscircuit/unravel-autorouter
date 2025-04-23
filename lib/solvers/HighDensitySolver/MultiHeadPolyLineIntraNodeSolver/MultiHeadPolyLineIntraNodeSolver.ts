@@ -71,6 +71,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
   cellSize: number
 
+  MAX_CANDIDATES = 50e3
+
   viaDiameter: number = 0.6
   obstacleMargin: number = 0.1
   traceWidth: number = 0.15
@@ -368,6 +370,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       }
 
       this.candidates.push(newCandidate)
+
+      // NOTE: Might make sense to move this to ._step() so we can
+      // keep generating
+      if (this.candidates.length > this.MAX_CANDIDATES) {
+        return
+      }
     }
   }
 
