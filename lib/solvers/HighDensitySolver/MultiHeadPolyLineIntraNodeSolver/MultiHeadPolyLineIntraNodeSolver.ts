@@ -449,7 +449,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     this.setupInitialPolyLines()
     // TEMPORARY
-    this.candidates = [this.candidates[29]]
+    // this.candidates = [this.candidates[29]]
   }
 
   /**
@@ -659,8 +659,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * 1 from the parent for each operation
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
-    return 0
-    // return candidate.g + 0.5 * this.cellSize
+    // return 0
+    return candidate.g + 0.001
   }
 
   /**
