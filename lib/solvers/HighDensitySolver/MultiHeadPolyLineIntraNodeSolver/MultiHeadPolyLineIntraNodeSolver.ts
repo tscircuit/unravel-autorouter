@@ -357,7 +357,8 @@ export const computeViaCountVariants = (
  * increases
  */
 const moveTaper = (moves: number) => {
-  return Math.round(4 - moves / 2)
+  return 1
+  // return Math.round(4 - moves / 2)
 }
 
 export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
@@ -399,7 +400,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
-    this.cellSize = this.nodeWithPortPoints.width / 16
+    this.cellSize = this.nodeWithPortPoints.width / 32
 
     this.candidates = []
     this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
@@ -614,8 +615,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * 1 from the parent for each operation
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
-    return 0
-    // return candidate.g + 0.5 * this.cellSize
+    return candidate.g + 0.5 * this.cellSize
   }
 
   /**
@@ -623,6 +623,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * intersections of the polyline and proximity to vias.
    */
   computeH(candidate: Pick<Candidate, "minGaps">) {
+    return 0
     let h = 0
     for (const minGap of candidate.minGaps) {
       h -= minGap
@@ -630,7 +631,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const avgMinGap =
       candidate.minGaps.reduce((acc, minGap) => acc + minGap, 0) /
       candidate.minGaps.length
-    return -avgMinGap
+    return -avgMinGap * 0.1
   }
 
   /**
@@ -728,7 +729,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.failed = true
       return
     }
-    // this.candidates.push(...this.getNeighbors(currentCandidate))
+    this.candidates.push(...this.getNeighbors(currentCandidate))
   }
 
   visualize(): GraphicsObject {
@@ -766,7 +767,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     // Visualize the polylines from the first candidate (or current best)
     const candidateToVisualize = this.lastCandidate ?? this.candidates[0] // Assuming the first is representative
-    console.log({ candidateToVisualize })
     if (candidateToVisualize) {
       for (const polyLine of candidateToVisualize.polyLines) {
         const color = this.colorMap[polyLine.connectionName] ?? "purple"
