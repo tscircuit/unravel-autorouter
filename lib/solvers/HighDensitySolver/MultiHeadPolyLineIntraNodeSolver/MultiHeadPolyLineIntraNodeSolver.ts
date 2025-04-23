@@ -75,22 +75,24 @@ export const constructMiddlePointsWithViaPositions = (params: {
     availableZ,
   } = params
 
-  console.log("\n\nNEW MIDDLE POINTS CONSTRUCTION\n\n")
-
   const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
-  console.log({ viaIndices, viaCount, viaPositions })
   const middlePoints: (MHPoint | null)[] = viaIndices.map(() => null)
 
   let viasAdded = 0
+  let lastZ = start.z1
+  const availableZOffset = availableZ.indexOf(start.z1)
   for (let i = 0; i < viaIndices.length; i++) {
     if (viaIndices[i] === 1) {
+      const nextZ =
+        availableZ[(availableZOffset + viasAdded + 1) % availableZ.length]
       middlePoints[i] = {
         ...viaPositions[viasAdded],
         xMoves: 0,
         yMoves: 0,
-        z1: viasAdded % 2 === 1 ? start.z1 : end.z1,
-        z2: viasAdded % 2 === 1 ? end.z1 : start.z1,
+        z1: lastZ,
+        z2: nextZ,
       }
+      lastZ = nextZ
       viasAdded++
     }
   }
@@ -113,11 +115,10 @@ export const constructMiddlePointsWithViaPositions = (params: {
     }
 
     const N = rightIndex - i
-    console.log({ i, rightIndex, N, viaCount, viaPositions })
     const dx = right.x - left.x
-    const dy = right.y - right.y
-    for (let t = 1 / (N + 1), ti = 0; t < N; t += 1 / (N + 1), ti++) {
-      console.log({ t, i, ti, x: left.x, dx })
+    const dy = right.y - left.y
+    for (let t = 1 / (N + 1), ti = 0; ; t += 1 / (N + 1), ti++) {
+      if (i + ti === rightIndex) break
       middlePoints[i + ti] = {
         x: left.x + dx * t,
         y: left.y + dy * t,
@@ -597,7 +598,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
       // TODO: Create multiple initial candidates based on viaCountVariants
       // For now, just push the one candidate
-      console.log({ polyLines })
       this.candidates.push({
         polyLines: polyLines,
         hash: computeCandidateHash(polyLines),
@@ -606,7 +606,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         f: 0,
         minGaps,
       })
-      break
     }
     console.log({ candidates: this.candidates })
   }
