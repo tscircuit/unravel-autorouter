@@ -65,6 +65,7 @@ export const constructMiddlePointsWithViaPositions = (params: {
   viaCount: number
   availableZ: number[]
   viaPositions: Array<{ x: number; y: number }>
+  viaPositionIndexOffset: number
 }) => {
   const {
     start,
@@ -73,6 +74,7 @@ export const constructMiddlePointsWithViaPositions = (params: {
     viaPositions,
     viaCount,
     availableZ,
+    viaPositionIndexOffset,
   } = params
 
   const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
@@ -86,7 +88,7 @@ export const constructMiddlePointsWithViaPositions = (params: {
       const nextZ =
         availableZ[(availableZOffset + viasAdded + 1) % availableZ.length]
       middlePoints[i] = {
-        ...viaPositions[viasAdded],
+        ...viaPositions[viasAdded + viaPositionIndexOffset],
         xMoves: 0,
         yMoves: 0,
         z1: lastZ,
@@ -570,6 +572,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     for (const { viaPositions, viaCountVariant } of possibleViaPositions) {
       console.log({ viaPositions, viaCountVariant })
       const polyLines: PolyLine[] = []
+      let viaPositionIndicesUsed = 0
       for (let i = 0; i < portPairsEntries.length; i++) {
         const [connectionName, portPair] = portPairsEntries[i]
         const viaCount = viaCountVariant[i]
@@ -578,11 +581,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           end: portPair.end,
           segmentsPerPolyline: this.SEGMENTS_PER_POLYLINE,
           viaPositions,
+          viaPositionIndexOffset: viaPositionIndicesUsed,
           viaCount,
           availableZ: this.availableZ,
         })
-
-        console.log({ middlePoints })
+        viaPositionIndicesUsed += viaCount
 
         polyLines.push(
           createPolyLine({
