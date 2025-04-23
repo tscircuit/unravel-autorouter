@@ -47,8 +47,9 @@ export interface Candidate {
   f: number
   hash: string
   minGaps: number[]
-  // Store forces applied TO mPoints, keyed by the index of the polyline APPLYING the force
-  forces?: Array<Array<Map<number, { fx: number; fy: number }>>>
+  // Store forces applied TO mPoints, keyed by a string identifying the source
+  // e.g., "via:lineIdx:pointIdx", "seg:lineIdx:p1Idx:p2Idx"
+  forces?: Array<Array<Map<string, { fx: number; fy: number }>>>
 }
 
 export const computePolyLineHash = (polyLine: Omit<PolyLine, "hash">) => {
@@ -689,12 +690,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
     const SEGMENT_FORCE_MULTIPLIER = 1.0
     // const FORCE_DECAY_RATE = 1.0 / this.cellSize // Controls how quickly force falls off with distance (adjust as needed)
-    const FORCE_DECAY_RATE = 2
-    const BOUNDARY_FORCE_STRENGTH = 0.01 // How strongly points are pushed back into bounds
+    const FORCE_DECAY_RATE = 4
+    const BOUNDARY_FORCE_STRENGTH = 0.005 // How strongly points are pushed back into bounds
     const EPSILON = 1e-6 // To avoid division by zero
 
-    // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<applyingLineIdx, {fx, fy}>
-    const forces: Array<Array<Map<number, { fx: number; fy: number }>>> =
+    // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<sourceId, {fx, fy}>
+    const forces: Array<Array<Map<string, { fx: number; fy: number }>>> =
       Array.from({ length: numPolyLines }, (_, i) =>
         Array.from({ length: polyLines[i].mPoints.length }, () => new Map()),
       )
@@ -703,7 +704,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const addForceContribution = (
       targetLineIndex: number,
       targetPointIndexInFullPath: number, // Index in [start, ...mPoints, end]
-      applyingLineIndex: number,
+      sourceId: string, // Identifier for the source of the force
       fx: number,
       fy: number,
     ) => {
@@ -715,11 +716,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       ) {
         const targetMPointIndex = targetPointIndexInFullPath - 1
         const forceMap = forces[targetLineIndex][targetMPointIndex]
-        const existingForce = forceMap.get(applyingLineIndex) || {
-          fx: 0,
-          fy: 0,
-        }
-        forceMap.set(applyingLineIndex, {
+        const existingForce = forceMap.get(sourceId) || { fx: 0, fy: 0 }
+        forceMap.set(sourceId, {
           fx: existingForce.fx + fx,
           fy: existingForce.fy + fy,
         })
@@ -826,13 +824,40 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                 const fx = (dx / dist) * forceMag
                 const fy = (dy / dist) * forceMag
 
-                // Add force contributions: j applies force to i, i applies force to j
-                // Force from j onto i (applied to endpoints of seg1)
-                addForceContribution(i, seg1.p1Idx, j, fx / 2, fy / 2)
-                addForceContribution(i, seg1.p2Idx, j, fx / 2, fy / 2)
-                // Force from i onto j (applied to endpoints of seg2) - opposite direction
-                addForceContribution(j, seg2.p1Idx, i, -fx / 2, -fy / 2)
-                addForceContribution(j, seg2.p2Idx, i, -fx / 2, -fy / 2)
+                // Add force contributions: seg2 (j) applies force to seg1 (i), seg1 (i) applies force to seg2 (j)
+                const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
+                const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
+
+                // Force from seg2 onto i (applied to endpoints of seg1)
+                addForceContribution(
+                  i,
+                  seg1.p1Idx,
+                  sourceIdSeg2,
+                  fx / 2,
+                  fy / 2,
+                )
+                addForceContribution(
+                  i,
+                  seg1.p2Idx,
+                  sourceIdSeg2,
+                  fx / 2,
+                  fy / 2,
+                )
+                // Force from seg1 onto j (applied to endpoints of seg2) - opposite direction
+                addForceContribution(
+                  j,
+                  seg2.p1Idx,
+                  sourceIdSeg1,
+                  -fx / 2,
+                  -fy / 2,
+                )
+                addForceContribution(
+                  j,
+                  seg2.p2Idx,
+                  sourceIdSeg1,
+                  -fx / 2,
+                  -fy / 2,
+                )
               }
             }
           }
@@ -860,10 +885,16 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                   Math.exp(-FORCE_DECAY_RATE * dist)
                 const fx_j_on_i = (dx / dist) * forceMag
                 const fy_j_on_i = (dy / dist) * forceMag
-                addForceContribution(i, via1.index, j, fx_j_on_i, fy_j_on_i)
-                // Segment endpoints (j) feel an opposing force distributed?
-                // For simplicity, let's assume the segment feels the opposite force at the closest point,
-                // and distribute it to endpoints based on proximity? Or just apply to via for now.
+                const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
+                addForceContribution(
+                  i,
+                  via1.index,
+                  sourceIdSeg2,
+                  fx_j_on_i,
+                  fy_j_on_i,
+                )
+                // Force from via1 (i) onto seg2 (j) - currently not applied
+                // If applied, sourceId would be `via:${i}:${via1.index}`
                 // Let's stick to only applying force TO the via FROM the segment for now.
               }
             }
@@ -891,8 +922,16 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                   Math.exp(-FORCE_DECAY_RATE * dist2)
                 const fx_i_on_j = (dx / dist) * forceMag
                 const fy_i_on_j = (dy / dist) * forceMag
-                addForceContribution(j, via2.index, i, fx_i_on_j, fy_i_on_j)
-                // Segment endpoints (i) feel an opposing force? Stick to via only for now.
+                const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
+                addForceContribution(
+                  j,
+                  via2.index,
+                  sourceIdSeg1,
+                  fx_i_on_j,
+                  fy_i_on_j,
+                )
+                // Force from via2 (j) onto seg1 (i) - currently not applied
+                // If applied, sourceId would be `via:${j}:${via2.index}`
               }
             }
           }
@@ -917,10 +956,24 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                   VIA_FORCE_MULTIPLIER *
                   FORCE_MAGNITUDE *
                   Math.exp(-FORCE_DECAY_RATE * dist2)
-                const fx_j_on_i = (dx / dist) * forceMag // Force applied by j onto i
+                const fx_j_on_i = (dx / dist) * forceMag // Force applied by via2 (j) onto via1 (i)
                 const fy_j_on_i = (dy / dist) * forceMag
-                addForceContribution(i, via1.index, j, fx_j_on_i, fy_j_on_i)
-                addForceContribution(j, via2.index, i, -fx_j_on_i, -fy_j_on_i) // Force applied by i onto j
+                const sourceIdVia2 = `via:${j}:${via2.index}`
+                const sourceIdVia1 = `via:${i}:${via1.index}`
+                addForceContribution(
+                  i,
+                  via1.index,
+                  sourceIdVia2,
+                  fx_j_on_i,
+                  fy_j_on_i,
+                )
+                addForceContribution(
+                  j,
+                  via2.index,
+                  sourceIdVia1,
+                  -fx_j_on_i,
+                  -fy_j_on_i,
+                ) // Force applied by via1 (i) onto via2 (j)
               }
             }
           }
@@ -1175,14 +1228,17 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
               candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
 
             if (forceMap && forceMap.size > 0) {
-              let netForce = { fx: 0, fy: 0 } // Calculate net force for label
-              forceMap.forEach((force, applyingPolylineIndex) => {
+              let netForce = { fx: 0, fy: 0 }
+              forceMap.forEach((force, sourceId) => {
                 netForce.fx += force.fx
                 netForce.fy += force.fy
 
                 if (Math.abs(force.fx) > 1e-6 || Math.abs(force.fy) > 1e-6) {
+                  const parts = sourceId.split(":")
+                  const sourceType = parts[0] // "via" or "seg"
+                  const applyingLineIndex = parseInt(parts[1], 10)
                   const applyingPolyline =
-                    candidateToVisualize.polyLines[applyingPolylineIndex]
+                    candidateToVisualize.polyLines[applyingLineIndex]
                   const applyingColor =
                     this.colorMap[applyingPolyline.connectionName] ?? "gray"
                   const forceScale = 20 // Adjust scale for visibility
@@ -1190,12 +1246,23 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                     x: point.x + force.fx * forceScale,
                     y: point.y + force.fy * forceScale,
                   }
+
+                  let sourceLabel = applyingPolyline.connectionName
+                  if (sourceType === "via") {
+                    const pointIdx = parseInt(parts[2], 10)
+                    sourceLabel += ` Via ${pointIdx}`
+                  } else if (sourceType === "seg") {
+                    const p1Idx = parseInt(parts[2], 10)
+                    const p2Idx = parseInt(parts[3], 10)
+                    sourceLabel += ` Seg ${p1Idx}-${p2Idx}`
+                  }
+
                   graphicsObject.lines.push({
                     points: [point, forceEndPoint],
                     strokeColor: applyingColor, // Color by applying polyline
                     strokeWidth: 0.02,
                     strokeDash: "2,2", // Dashed line for force
-                    label: `Force by ${applyingPolyline.connectionName} on ${polyLine.connectionName} mPoint ${mPointIndex}`,
+                    label: `Force by ${sourceLabel} on ${polyLine.connectionName} mPoint ${mPointIndex}`,
                   })
                 }
               })
