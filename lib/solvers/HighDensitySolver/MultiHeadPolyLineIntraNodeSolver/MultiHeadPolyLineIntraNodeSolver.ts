@@ -80,8 +80,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
   lastCandidate: Candidate | null = null
 
-  queuedCandidateHashes: Set<string> = new Set()
-
   maxViaCount: number
   minViaCount: number
 
@@ -124,8 +122,18 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       Math.floor(areaInsideNode / areaPerVia),
       Math.ceil(uniqueConnections * 1.5),
     )
+
     if (this.maxViaCount < this.minViaCount) {
       this.maxViaCount = this.minViaCount
+    }
+
+    if (this.minViaCount > this.SEGMENTS_PER_POLYLINE) {
+      this.failed = true
+      this.error = `Not possible to solve problem with given SEGMENTS_PER_POLYLINE (${this.SEGMENTS_PER_POLYLINE}), atleast ${this.minViaCount} vias are required`
+      return
+    }
+    if (this.maxViaCount > this.SEGMENTS_PER_POLYLINE) {
+      this.maxViaCount = this.SEGMENTS_PER_POLYLINE
     }
 
     // Calculate bounds
@@ -264,8 +272,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             ...portPoint,
             z1: portPoint.z ?? 0,
             z2: portPoint.z ?? 0,
-            xMoves: 0,
-            yMoves: 0,
           },
           end: null as any,
         })
@@ -274,8 +280,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           ...portPoint,
           z1: portPoint.z ?? 0,
           z2: portPoint.z ?? 0,
-          xMoves: 0,
-          yMoves: 0,
         }
       }
     })
@@ -340,23 +344,17 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         })
         viaPositionIndicesUsed += viaCount
 
-        polyLines.push(
-          createPolyLineWithHash(
-            {
-              connectionName,
-              start: portPair.start,
-              end: portPair.end,
-              mPoints: middlePoints,
-            },
-            this.cellSize,
-          ),
-        )
+        polyLines.push({
+          connectionName,
+          start: portPair.start,
+          end: portPair.end,
+          mPoints: middlePoints,
+        })
       }
       const minGaps = this.computeMinGapBtwPolyLines(polyLines)
       const h = this.computeH({ minGaps, forces: [] })
       const newCandidate = {
         polyLines,
-        hash: computeCandidateHash(polyLines, this.cellSize),
         g: 0,
         h: h,
         f: h,
@@ -950,27 +948,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         ) {
           mPoint.x = newX
           mPoint.y = newY
-          // Reset moves count as position is recalculated based on force, not discrete steps
-          mPoint.xMoves = 0 // Or maybe keep track of total displacement?
-          mPoint.yMoves = 0
           pointsMoved = true
         }
       }
-      // Recompute hash after potential modifications
-      newPolyLines[i].hash = computePolyLineHash(newPolyLines[i], this.cellSize)
     }
 
     // If no points moved significantly, don't generate a redundant neighbor
     if (!pointsMoved) {
       // console.log("No points moved significantly, skipping neighbor generation.");
-      return []
-    }
-
-    const neighborHash = computeCandidateHash(newPolyLines, this.cellSize)
-
-    // Avoid adding redundant states or cycles
-    if (this.queuedCandidateHashes.has(neighborHash)) {
-      // console.log("Neighbor hash already queued, skipping.");
       return []
     }
 
@@ -983,13 +968,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       h,
       // The rounding of g is for fun animations (prevents flashing btw multiple candidate paths)
       f: Math.round(g * 5) / 5 + h,
-      hash: neighborHash,
       minGaps,
       forces: forces, // Store the calculated forces
       viaCount: candidate.viaCount,
     }
 
-    this.queuedCandidateHashes.add(neighborHash)
     // console.log(`Generated neighbor ${neighborHash.substring(0, 10)}... f=${newNeighbor.f.toFixed(3)}`);
 
     return [newNeighbor]
