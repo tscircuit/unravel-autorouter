@@ -106,7 +106,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const areaPerVia =
       (this.viaDiameter + this.obstacleMargin * 2 + this.traceWidth / 2) ** 2
 
-    this.maxViaCount = Math.floor(areaInsideNode / areaPerVia)
+    const uniqueConnections = new Set(
+      this.nodeWithPortPoints.portPoints.map((pp) => pp.connectionName),
+    ).size
+
+    this.maxViaCount = Math.min(
+      Math.floor(areaInsideNode / areaPerVia),
+      Math.ceil(uniqueConnections * 1.5),
+    )
 
     // Calculate bounds
     this.bounds = {
@@ -931,7 +938,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       polyLines: newPolyLines,
       g,
       h,
-      f: g + h,
+      // The rounding of g is for fun animations (prevents flashing btw multiple candidate paths)
+      f: Math.round(g * 5) / 5 + h,
       hash: neighborHash,
       minGaps,
       forces: forces, // Store the calculated forces

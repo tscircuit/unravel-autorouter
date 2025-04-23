@@ -144,33 +144,31 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
     const BOUNDARY_FORCE_STRENGTH = 0.008 // How strongly points are pushed back into bounds
     const EPSILON = 1e-6 // To avoid division by zero
 
-    // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<sourceId, {fx, fy}>
-    const forces: Array<Array<Map<string, { fx: number; fy: number }>>> =
-      Array.from({ length: numPolyLines }, (_, i) =>
-        Array.from({ length: polyLines[i].mPoints.length }, () => new Map()),
-      )
+    // 1. Initialize net forces structure: netForces[lineIdx][mPointIdx] = {fx, fy}
+    const netForces: Array<Array<{ fx: number; fy: number }>> = Array.from(
+      { length: numPolyLines },
+      (_, i) =>
+        Array.from({ length: polyLines[i].mPoints.length }, () => ({
+          fx: 0,
+          fy: 0,
+        })),
+    )
 
-    // Helper to add a specific force contribution to an mPoint if it exists
-    const addForceContribution = (
-      targetLineIndex: number,
-      targetPointIndexInFullPath: number, // Index in [start, ...mPoints, end]
-      sourceId: string, // Identifier for the source of the force
+    // Helper to add force directly to the netForces array for a given mPoint index
+    const addNetForce = (
+      lineIndex: number,
+      pointIndexInFullPath: number, // Index in [start, ...mPoints, end]
       fx: number,
       fy: number,
     ) => {
       // Only apply force if the target point is an mPoint (not start or end)
       if (
-        targetPointIndexInFullPath > 0 &&
-        targetPointIndexInFullPath <
-          polyLines[targetLineIndex].mPoints.length + 1
+        pointIndexInFullPath > 0 &&
+        pointIndexInFullPath < polyLines[lineIndex].mPoints.length + 1
       ) {
-        const targetMPointIndex = targetPointIndexInFullPath - 1
-        const forceMap = forces[targetLineIndex][targetMPointIndex]
-        const existingForce = forceMap.get(sourceId) || { fx: 0, fy: 0 }
-        forceMap.set(sourceId, {
-          fx: existingForce.fx + fx,
-          fy: existingForce.fy + fy,
-        })
+        const mPointIndex = pointIndexInFullPath - 1
+        netForces[lineIndex][mPointIndex].fx += fx
+        netForces[lineIndex][mPointIndex].fy += fy
       }
     }
 
@@ -274,40 +272,13 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
                 const fx = (dx / dist) * forceMag
                 const fy = (dy / dist) * forceMag
 
-                // Add force contributions: seg2 (j) applies force to seg1 (i), seg1 (i) applies force to seg2 (j)
-                const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
-                const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
-
+                // Add force contributions directly to netForces
                 // Force from seg2 onto i (applied to endpoints of seg1)
-                addForceContribution(
-                  i,
-                  seg1.p1Idx,
-                  sourceIdSeg2,
-                  fx / 2,
-                  fy / 2,
-                )
-                addForceContribution(
-                  i,
-                  seg1.p2Idx,
-                  sourceIdSeg2,
-                  fx / 2,
-                  fy / 2,
-                )
+                addNetForce(i, seg1.p1Idx, fx / 2, fy / 2)
+                addNetForce(i, seg1.p2Idx, fx / 2, fy / 2)
                 // Force from seg1 onto j (applied to endpoints of seg2) - opposite direction
-                addForceContribution(
-                  j,
-                  seg2.p1Idx,
-                  sourceIdSeg1,
-                  -fx / 2,
-                  -fy / 2,
-                )
-                addForceContribution(
-                  j,
-                  seg2.p2Idx,
-                  sourceIdSeg1,
-                  -fx / 2,
-                  -fy / 2,
-                )
+                addNetForce(j, seg2.p1Idx, -fx / 2, -fy / 2)
+                addNetForce(j, seg2.p2Idx, -fx / 2, -fy / 2)
               }
             }
           }
@@ -352,30 +323,13 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
                   Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
                 const fx_j_on_i = (dx / dist) * forceMag // Direction is still based on center-to-point vector
                 const fy_j_on_i = (dy / dist) * forceMag
-                const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
-                addForceContribution(
-                  i,
-                  via1.index,
-                  sourceIdSeg2,
-                  fx_j_on_i,
-                  fy_j_on_i,
-                )
+
+                // Force applied ONLY to the via (i) by the segment (j)
+                addNetForce(i, via1.index, fx_j_on_i, fy_j_on_i)
+
                 // Force from via1 (i) onto seg2 (j) - Apply opposite force to segment endpoints
-                const sourceIdVia1 = `via:${i}:${via1.index}`
-                addForceContribution(
-                  j,
-                  seg2.p1Idx,
-                  sourceIdVia1,
-                  -fx_j_on_i / 2,
-                  -fy_j_on_i / 2,
-                )
-                addForceContribution(
-                  j,
-                  seg2.p2Idx,
-                  sourceIdVia1,
-                  -fx_j_on_i / 2,
-                  -fy_j_on_i / 2,
-                )
+                addNetForce(j, seg2.p1Idx, -fx_j_on_i / 2, -fy_j_on_i / 2)
+                addNetForce(j, seg2.p2Idx, -fx_j_on_i / 2, -fy_j_on_i / 2)
               }
             }
           }
@@ -418,30 +372,13 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
                   Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
                 const fx_i_on_j = (dx / dist) * forceMag // Direction is still based on center-to-point vector
                 const fy_i_on_j = (dy / dist) * forceMag
-                const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
-                addForceContribution(
-                  j,
-                  via2.index,
-                  sourceIdSeg1,
-                  fx_i_on_j,
-                  fy_i_on_j,
-                )
+
+                // Force applied ONLY to the via (j) by the segment (i)
+                addNetForce(j, via2.index, fx_i_on_j, fy_i_on_j)
+
                 // Force from via2 (j) onto seg1 (i) - Apply opposite force to segment endpoints
-                const sourceIdVia2 = `via:${j}:${via2.index}`
-                addForceContribution(
-                  i,
-                  seg1.p1Idx,
-                  sourceIdVia2,
-                  -fx_i_on_j / 2,
-                  -fy_i_on_j / 2,
-                )
-                addForceContribution(
-                  i,
-                  seg1.p2Idx,
-                  sourceIdVia2,
-                  -fx_i_on_j / 2,
-                  -fy_i_on_j / 2,
-                )
+                addNetForce(i, seg1.p1Idx, -fx_i_on_j / 2, -fy_i_on_j / 2)
+                addNetForce(i, seg1.p2Idx, -fx_i_on_j / 2, -fy_i_on_j / 2)
               }
             }
           }
@@ -481,22 +418,11 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
                   Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
                 const fx_j_on_i = (dx / dist) * forceMag // Force applied by via2 (j) onto via1 (i)
                 const fy_j_on_i = (dy / dist) * forceMag
-                const sourceIdVia2 = `via:${j}:${via2.index}`
-                const sourceIdVia1 = `via:${i}:${via1.index}`
-                addForceContribution(
-                  i,
-                  via1.index,
-                  sourceIdVia2,
-                  fx_j_on_i,
-                  fy_j_on_i,
-                )
-                addForceContribution(
-                  j,
-                  via2.index,
-                  sourceIdVia1,
-                  -fx_j_on_i,
-                  -fy_j_on_i,
-                ) // Force applied by via1 (i) onto via2 (j)
+
+                // Apply force from via2 (j) onto via1 (i)
+                addNetForce(i, via1.index, fx_j_on_i, fy_j_on_i)
+                // Apply force from via1 (i) onto via2 (j)
+                addNetForce(j, via2.index, -fx_j_on_i, -fy_j_on_i)
               }
             }
           }
@@ -548,25 +474,11 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
               Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
             const fx_2_on_1 = (dx / dist) * forceMag // Force applied by via2 onto via1
             const fy_2_on_1 = (dy / dist) * forceMag
-            const sourceIdVia2 = `via:${i}:${via2.index}` // Source is via2 on line i
-            const sourceIdVia1 = `via:${i}:${via1.index}` // Source is via1 on line i
 
             // Apply force from via2 onto via1 (both on line i)
-            addForceContribution(
-              i,
-              via1.index,
-              sourceIdVia2,
-              fx_2_on_1,
-              fy_2_on_1,
-            )
+            addNetForce(i, via1.index, fx_2_on_1, fy_2_on_1)
             // Apply force from via1 onto via2 (both on line i) - opposite direction
-            addForceContribution(
-              i,
-              via2.index,
-              sourceIdVia1,
-              -fx_2_on_1,
-              -fy_2_on_1,
-            )
+            addNetForce(i, via2.index, -fx_2_on_1, -fy_2_on_1)
           }
         }
       }
@@ -576,20 +488,16 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
     let pointsMoved = false
     for (let i = 0; i < numPolyLines; i++) {
       for (let k = 0; k < polyLines[i].mPoints.length; k++) {
-        // Use polyLines directly
-        const mPoint = polyLines[i].mPoints[k] // Use polyLines directly
-        const forceMap = forces[i][k]
+        const mPoint = polyLines[i].mPoints[k]
+        const netForce = netForces[i][k] // Get the pre-calculated net force
 
-        // Calculate the net force by summing contributions
-        const netForce = { fx: 0, fy: 0 }
-        for (const force of forceMap.values()) {
-          netForce.fx += force.fx
-          netForce.fy += force.fy
-        }
+        // No need to sum contributions here anymore
 
         const isVia = mPoint.z1 !== mPoint.z2
-        let newX = mPoint.x + netForce.fx
-        let newY = mPoint.y + netForce.fy
+        let currentForceX = netForce.fx // Start with the repulsive/attractive force
+        let currentForceY = netForce.fy
+        let newX = mPoint.x + currentForceX
+        let newY = mPoint.y + currentForceY
 
         if (isVia) {
           // Apply exponential boundary force ONLY to vias
@@ -630,11 +538,11 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
               (Math.exp(distOutsideMaxY / (this.obstacleMargin * 2)) - 1)
           }
 
-          // Add boundary force to net force and recalculate potential position
-          netForce.fx += boundaryForceX
-          netForce.fy += boundaryForceY
-          newX = mPoint.x + netForce.fx
-          newY = mPoint.y + netForce.fy
+          // Add boundary force to the current force being considered for this step
+          currentForceX += boundaryForceX
+          currentForceY += boundaryForceY
+          newX = mPoint.x + currentForceX
+          newY = mPoint.y + currentForceY
 
           // Optional: Clamp via position as a hard stop if force isn't enough?
           // newX = Math.max(this.bounds.minX + radius, Math.min(this.bounds.maxX - radius, newX));
@@ -654,16 +562,17 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
 
         // Dampen force? Add friction? (Optional) - Applied before clamping/boundary force
 
+        // Check if the *total applied force* (including boundary) is significant
         if (
-          Math.abs(netForce.fx) < EPSILON &&
-          Math.abs(netForce.fy) < EPSILON
+          Math.abs(currentForceX) < EPSILON &&
+          Math.abs(currentForceY) < EPSILON
         ) {
-          continue // No significant net force, skip update
+          continue // No significant force applied in this step, skip update
         }
 
         // Limit maximum movement per step? (Optional)
         // const maxMove = this.cellSize;
-        // const forceMag = Math.sqrt(netForce.fx * netForce.fx + netForce.fy * netForce.fy);
+        // const forceMag = Math.sqrt(currentForceX * currentForceX + currentForceY * currentForceY);
         // Update position if moved significantly from original position
         // Use the calculated (and potentially clamped/boundary-forced) newX, newY
         if (

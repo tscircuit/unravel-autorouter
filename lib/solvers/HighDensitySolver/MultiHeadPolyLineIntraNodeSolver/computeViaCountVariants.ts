@@ -115,5 +115,11 @@ export const computeViaCountVariants = (
     return true
   })
 
+  variants = variants.filter((variant) => {
+    const viaCount = variant.reduce((acc, count) => acc + count, 0)
+    if (viaCount > maxViaCount) return false
+    return true
+  })
+
   return variants
 }
