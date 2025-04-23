@@ -678,55 +678,159 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     },
   ]
 
-  getNeighbors(candidate: Candidate) {
-    const neighbors: Candidate[] = []
+  getNeighbors(candidate: Candidate): Candidate[] {
+    const { polyLines } = candidate
+    const numPolyLines = polyLines.length
+    const FORCE_MAGNITUDE = this.cellSize * 0.5 // Tunable parameter for force strength
+    const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
+    const EPSILON = 1e-6 // To avoid division by zero
 
-    // TODO each polyline can move it's mPoints in any direction or down as
-    // a via, in this function we check if it's valid to make the movement
-    // and if so, return it as a neighbor
-    for (let i = 0; i < candidate.polyLines.length; i++) {
-      for (let j = 0; j < this.SEGMENTS_PER_POLYLINE; j++) {
-        for (const opFn of this.NEIGHBOR_OPERATIONS) {
-          const [newPolyLines, mutablePoint] = clonePolyLinesWithMutablePoint(
-            candidate.polyLines,
-            i,
-            j,
-          )
-          opFn(mutablePoint)
+    // 1. Initialize forces for each mPoint
+    const forces: Array<Array<{ fx: number; fy: number }>> = Array.from(
+      { length: numPolyLines },
+      (_, i) =>
+        Array.from({ length: polyLines[i].mPoints.length }, () => ({
+          fx: 0,
+          fy: 0,
+        })),
+    )
 
-          const isVia = mutablePoint.z1 !== mutablePoint.z2
-          if (
-            !withinBounds(
-              mutablePoint,
-              this.bounds,
-              isVia ? this.viaDiameter / 2 : this.traceWidth / 2,
-            )
-          )
-            continue
-          const neighborHash = computeCandidateHash(newPolyLines)
-          if (this.queuedCandidateHashes.has(neighborHash)) continue
+    // 2. Calculate forces between all pairs of points from different polylines
+    for (let i = 0; i < numPolyLines; i++) {
+      for (let j = i + 1; j < numPolyLines; j++) {
+        const polyLine1 = polyLines[i]
+        const polyLine2 = polyLines[j]
 
-          const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
+        const points1 = [polyLine1.start, ...polyLine1.mPoints, polyLine1.end]
+        const points2 = [polyLine2.start, ...polyLine2.mPoints, polyLine2.end]
 
-          const g = this.computeG(newPolyLines, candidate)
-          const h = this.computeH({ minGaps })
-          const newNeighbor: Candidate = {
-            polyLines: newPolyLines,
-            g,
-            h,
-            f: g + h,
-            hash: neighborHash,
-            minGaps,
+        for (let p1Idx = 0; p1Idx < points1.length; p1Idx++) {
+          const p1 = points1[p1Idx]
+          const isP1MPoint = p1Idx > 0 && p1Idx < points1.length - 1
+          const isVia1 = p1.z1 !== p1.z2
+          const layers1 = isVia1 ? [p1.z1, p1.z2] : [p1.z1]
+
+          for (let p2Idx = 0; p2Idx < points2.length; p2Idx++) {
+            const p2 = points2[p2Idx]
+            const isP2MPoint = p2Idx > 0 && p2Idx < points2.length - 1
+            const isVia2 = p2.z1 !== p2.z2
+            const layers2 = isVia2 ? [p2.z1, p2.z2] : [p2.z1]
+
+            // Check for interaction: common layers OR one is a via interacting with the other's layer(s)
+            const commonLayers = layers1.filter((z) => layers2.includes(z))
+            const interact = commonLayers.length > 0
+
+            if (interact) {
+              const dx = p1.x - p2.x
+              const dy = p1.y - p2.y
+              const distSq = dx * dx + dy * dy
+
+              if (distSq > EPSILON) {
+                const dist = Math.sqrt(distSq)
+                const multiplier = isVia1 || isVia2 ? VIA_FORCE_MULTIPLIER : 1.0
+                // Force magnitude inversely proportional to distance (1/dist)
+                // Using 1/dist instead of 1/distSq for potentially more stable behavior
+                const forceMag = (multiplier * FORCE_MAGNITUDE) / dist
+
+                const fx = (dx / dist) * forceMag
+                const fy = (dy / dist) * forceMag
+
+                // Apply force to p1 if it's an mPoint
+                if (isP1MPoint) {
+                  const mPointIndex1 = p1Idx - 1
+                  forces[i][mPointIndex1].fx += fx
+                  forces[i][mPointIndex1].fy += fy
+                }
+
+                // Apply opposite force to p2 if it's an mPoint
+                if (isP2MPoint) {
+                  const mPointIndex2 = p2Idx - 1
+                  forces[j][mPointIndex2].fx -= fx
+                  forces[j][mPointIndex2].fy -= fy
+                }
+              }
+            }
           }
-
-          this.queuedCandidateHashes.add(neighborHash)
-
-          neighbors.push(newNeighbor)
         }
       }
     }
 
-    return neighbors
+    // 3. Apply forces and create the new neighbor candidate
+    // Deep clone polylines to modify them
+    const newPolyLines = polyLines.map((pl) => ({
+      ...pl,
+      mPoints: pl.mPoints.map((mp) => ({ ...mp })),
+    }))
+
+    let pointsMoved = false
+    for (let i = 0; i < numPolyLines; i++) {
+      for (let k = 0; k < newPolyLines[i].mPoints.length; k++) {
+        const mPoint = newPolyLines[i].mPoints[k]
+        const force = forces[i][k]
+
+        if (Math.abs(force.fx) < EPSILON && Math.abs(force.fy) < EPSILON) {
+          continue // No significant force, skip update
+        }
+
+        const newX = mPoint.x + force.fx
+        const newY = mPoint.y + force.fy
+
+        const isVia = mPoint.z1 !== mPoint.z2
+        const radius = isVia ? this.viaDiameter / 2 : this.traceWidth / 2
+
+        // Clamp position within bounds
+        const clampedX = Math.max(
+          this.bounds.minX + radius,
+          Math.min(this.bounds.maxX - radius, newX),
+        )
+        const clampedY = Math.max(
+          this.bounds.minY + radius,
+          Math.min(this.bounds.maxY - radius, newY),
+        )
+
+        if (
+          Math.abs(mPoint.x - clampedX) > EPSILON ||
+          Math.abs(mPoint.y - clampedY) > EPSILON
+        ) {
+          mPoint.x = clampedX
+          mPoint.y = clampedY
+          // Reset moves count as position is recalculated based on force, not discrete steps
+          mPoint.xMoves = 0
+          mPoint.yMoves = 0
+          pointsMoved = true
+        }
+      }
+      // Recompute hash after potential modifications
+      newPolyLines[i].hash = computePolyLineHash(newPolyLines[i])
+    }
+
+    // If no points moved significantly, don't generate a redundant neighbor
+    if (!pointsMoved) {
+      return []
+    }
+
+    const neighborHash = computeCandidateHash(newPolyLines)
+
+    // Avoid adding redundant states or cycles
+    if (this.queuedCandidateHashes.has(neighborHash)) {
+      return []
+    }
+
+    const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
+    const g = this.computeG(newPolyLines, candidate) // G might represent something else now, e.g., total displacement or just step count
+    const h = this.computeH({ minGaps })
+    const newNeighbor: Candidate = {
+      polyLines: newPolyLines,
+      g,
+      h,
+      f: g + h,
+      hash: neighborHash,
+      minGaps,
+    }
+
+    this.queuedCandidateHashes.add(neighborHash)
+
+    return [newNeighbor]
   }
 
   _step() {
@@ -747,7 +851,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.failed = true
       return
     }
-    // this.candidates.push(...this.getNeighbors(currentCandidate))
+    this.candidates.push(...this.getNeighbors(currentCandidate))
   }
 
   visualize(): GraphicsObject {
