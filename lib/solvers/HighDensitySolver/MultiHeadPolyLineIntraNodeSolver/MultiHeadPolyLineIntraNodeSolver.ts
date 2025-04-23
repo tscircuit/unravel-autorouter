@@ -641,7 +641,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.failed = true
       return
     }
-    this.candidates.push(...this.getNeighbors(currentCandidate))
+    // this.candidates.push(...this.getNeighbors(currentCandidate))
   }
 
   visualize(): GraphicsObject {
