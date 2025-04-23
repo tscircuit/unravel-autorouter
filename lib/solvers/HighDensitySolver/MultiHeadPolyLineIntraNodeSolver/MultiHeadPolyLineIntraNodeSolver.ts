@@ -52,16 +52,34 @@ export interface Candidate {
   forces?: Array<Array<Map<string, { fx: number; fy: number }>>>
 }
 
-export const computePolyLineHash = (polyLine: Omit<PolyLine, "hash">) => {
-  return polyLine.mPoints.map((p) => `${p.x},${p.y},${p.z1},${p.z2}`).join("_")
+export const computePolyLineHash = (
+  polyLine: Omit<PolyLine, "hash">,
+  cellSize: number,
+) => {
+  return polyLine.mPoints
+    .map(
+      (p) =>
+        // `${Math.floor(p.x / cellSize)},${Math.floor(p.y / cellSize)},${p.z1},${p.z2}`,
+        `${p.x},${p.y},${p.z1},${p.z2}`,
+    )
+    .join("_")
 }
 
-export const computeCandidateHash = (polyLines: PolyLine[]) => {
-  return polyLines.map((p) => computePolyLineHash(p)).join("|")
+export const computeCandidateHash = (
+  polyLines: PolyLine[],
+  cellSize: number,
+) => {
+  return polyLines.map((p) => computePolyLineHash(p, cellSize)).join("|")
 }
 
-export const createPolyLine = (polyLinePartial: Omit<PolyLine, "hash">) => {
-  ;(polyLinePartial as any).hash = computePolyLineHash(polyLinePartial)
+export const createPolyLine = (
+  polyLinePartial: Omit<PolyLine, "hash">,
+  cellSize: number,
+) => {
+  ;(polyLinePartial as any).hash = computePolyLineHash(
+    polyLinePartial,
+    cellSize,
+  )
   return polyLinePartial as PolyLine
 }
 
@@ -396,7 +414,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     connMap?: ConnectivityMap
   }) {
     super()
-    this.MAX_ITERATIONS = 100e3
+    this.MAX_ITERATIONS = 1e6
     this.nodeWithPortPoints = params.nodeWithPortPoints
     this.colorMap =
       params.colorMap ??
@@ -405,7 +423,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
-    this.cellSize = this.nodeWithPortPoints.width / 32
+    this.cellSize = this.nodeWithPortPoints.width / 1024
 
     this.candidates = []
     this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
@@ -430,6 +448,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
 
     this.setupInitialPolyLines()
+    // TEMPORARY
+    this.candidates = [this.candidates[29]]
   }
 
   /**
@@ -607,12 +627,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         viaPositionIndicesUsed += viaCount
 
         polyLines.push(
-          createPolyLine({
-            connectionName,
-            start: portPair.start,
-            end: portPair.end,
-            mPoints: middlePoints,
-          }),
+          createPolyLine(
+            {
+              connectionName,
+              start: portPair.start,
+              end: portPair.end,
+              mPoints: middlePoints,
+            },
+            this.cellSize,
+          ),
         )
       }
       const minGaps = this.computeMinGapBtwPolyLines(polyLines)
@@ -621,15 +644,13 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       // For now, just push the one candidate
       this.candidates.push({
         polyLines,
-        hash: computeCandidateHash(polyLines),
+        hash: computeCandidateHash(polyLines, this.cellSize),
         g: 0,
-        h: this.computeH({ minGaps }),
+        h: this.computeH({ minGaps, forces: [] }),
         f: 0,
         minGaps,
       })
     }
-    // TEMPORARY
-    this.candidates = [this.candidates[29]]
   }
 
   /**
@@ -638,15 +659,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    * 1 from the parent for each operation
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
-    return candidate.g + 0.5 * this.cellSize
+    return 0
+    // return candidate.g + 0.5 * this.cellSize
   }
 
   /**
    * h is the heuristic cost of each candidate. We consider the number of
    * intersections of the polyline and proximity to vias.
    */
-  computeH(candidate: Pick<Candidate, "minGaps">) {
-    return 0
+  computeH(candidate: Pick<Candidate, "minGaps" | "forces">) {
     let h = 0
     for (const minGap of candidate.minGaps) {
       h -= minGap
@@ -686,13 +707,13 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   getNeighbors(candidate: Candidate): Candidate[] {
     const { polyLines } = candidate
     const numPolyLines = polyLines.length
-    const FORCE_MAGNITUDE = this.cellSize * 0.5 // Tunable parameter for force strength
+    const FORCE_MAGNITUDE = 0.02 // Tunable parameter for force strength
     const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
     const INSIDE_VIA_FORCE_MULTIPLIER = 4.0 // Extra multiplier when inside a via
     const SEGMENT_FORCE_MULTIPLIER = 1.0
     // const FORCE_DECAY_RATE = 1.0 / this.cellSize // Controls how quickly force falls off with distance (adjust as needed)
     const FORCE_DECAY_RATE = 4
-    const BOUNDARY_FORCE_STRENGTH = 0.01 // How strongly points are pushed back into bounds
+    const BOUNDARY_FORCE_STRENGTH = 0.008 // How strongly points are pushed back into bounds
     const EPSILON = 1e-6 // To avoid division by zero
 
     // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<sourceId, {fx, fy}>
@@ -1140,7 +1161,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         }
       }
       // Recompute hash after potential modifications
-      newPolyLines[i].hash = computePolyLineHash(newPolyLines[i])
+      newPolyLines[i].hash = computePolyLineHash(newPolyLines[i], this.cellSize)
     }
 
     // If no points moved significantly, don't generate a redundant neighbor
@@ -1149,7 +1170,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       return []
     }
 
-    const neighborHash = computeCandidateHash(newPolyLines)
+    const neighborHash = computeCandidateHash(newPolyLines, this.cellSize)
 
     // Avoid adding redundant states or cycles
     if (this.queuedCandidateHashes.has(neighborHash)) {
@@ -1159,7 +1180,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
     const g = this.computeG(newPolyLines, candidate) // G might represent something else now, e.g., total displacement or just step count
-    const h = this.computeH({ minGaps })
+    const h = this.computeH({ minGaps, forces })
     const newNeighbor: Candidate = {
       polyLines: newPolyLines,
       g,
