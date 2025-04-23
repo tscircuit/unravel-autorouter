@@ -104,6 +104,17 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.candidates = []
     this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
 
+    this.bounds = {
+      minX:
+        this.nodeWithPortPoints.center.x - this.nodeWithPortPoints.width / 2,
+      maxX:
+        this.nodeWithPortPoints.center.x + this.nodeWithPortPoints.width / 2,
+      minY:
+        this.nodeWithPortPoints.center.y - this.nodeWithPortPoints.height / 2,
+      maxY:
+        this.nodeWithPortPoints.center.y + this.nodeWithPortPoints.height / 2,
+    }
+
     const areaInsideNode =
       this.nodeWithPortPoints.width * this.nodeWithPortPoints.height
     const areaPerVia =
@@ -134,18 +145,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
     if (this.maxViaCount > this.SEGMENTS_PER_POLYLINE) {
       this.maxViaCount = this.SEGMENTS_PER_POLYLINE
-    }
-
-    // Calculate bounds
-    this.bounds = {
-      minX:
-        this.nodeWithPortPoints.center.x - this.nodeWithPortPoints.width / 2,
-      maxX:
-        this.nodeWithPortPoints.center.x + this.nodeWithPortPoints.width / 2,
-      minY:
-        this.nodeWithPortPoints.center.y - this.nodeWithPortPoints.height / 2,
-      maxY:
-        this.nodeWithPortPoints.center.y + this.nodeWithPortPoints.height / 2,
     }
 
     this.setupInitialPolyLines()
