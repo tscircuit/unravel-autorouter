@@ -58,6 +58,67 @@ export const createPolyLine = (polyLinePartial: Omit<PolyLine, "hash">) => {
   return polyLinePartial as PolyLine
 }
 
+export const constructMiddlePointsWithViaPositions = (params: {
+  start: Point
+  end: Point
+  segmentsPerPolyline: number
+  viaCount: number
+  availableZ: number[]
+  viaPositions: Array<{ x: number; y: number }>
+}) => {
+  const {
+    start,
+    end,
+    segmentsPerPolyline,
+    viaPositions,
+    viaCount,
+    availableZ,
+  } = params
+
+  const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
+  const middlePoints: (Point | null)[] = viaIndices.map(() => null)
+
+  let viasAdded = 0
+  for (let i = 0; i < viaIndices.length; i++) {
+    if (viaIndices[i] === 1) {
+      middlePoints[i] = {
+        ...viaPositions[viasAdded],
+        xMoves: 0,
+        yMoves: 0,
+        z1: viasAdded % 2 === 1 ? start.z1 : end.z1,
+        z2: viasAdded % 2 === 1 ? end.z1 : start.z1,
+      }
+      viasAdded++
+    }
+  }
+
+  let left: Point = start
+  for (let i = 0; i < middlePoints.length; i++) {
+    if (middlePoints[i]) {
+      left = middlePoints[i]!
+      continue
+    }
+    let right: Point = end
+    for (let u = i + 1; u < middlePoints.length; u++) {
+      if (middlePoints[u]) {
+        right = middlePoints[u]!
+        break
+      }
+    }
+
+    middlePoints[i] = {
+      x: (left.x + right.x) / 2,
+      y: (left.y + right.y) / 2,
+      xMoves: 0,
+      yMoves: 0,
+      z1: left.z2,
+      z2: left.z2,
+    }
+  }
+
+  return middlePoints as unknown as Point[]
+}
+
 export const constructMiddlePoints = (params: {
   start: Point
   end: Point
@@ -72,13 +133,13 @@ export const constructMiddlePoints = (params: {
 
   const middlePoints: Point[] = []
 
-  const indicesToFlip = createSymmetricArray(segmentsPerPolyline, viaCount)
+  const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
 
   let lastZ = start.z1
   const availableZOffset = availableZ.indexOf(start.z1)
   let zFlips = 0
   for (let i = 0; i < segmentsPerPolyline; i++) {
-    const isFlipped = indicesToFlip[i] === 1
+    const isFlipped = viaIndices[i] === 1
     const nextZ = isFlipped
       ? availableZ[(availableZOffset + zFlips + 1) % availableZ.length]
       : lastZ
@@ -489,18 +550,19 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       bounds: this.bounds,
     })
 
-    // In addition to all
+    console.log(possibleViaPositions)
 
     // Convert the portPairs into PolyLines for the initial candidate
-    for (const viaCountVariant of viaCountVariants) {
+    for (const { viaPositions, viaCountVariant } of possibleViaPositions) {
       const polyLines: PolyLine[] = []
       for (let i = 0; i < portPairsEntries.length; i++) {
         const [connectionName, portPair] = portPairsEntries[i]
         const viaCount = viaCountVariant[i]
-        const middlePoints = constructMiddlePoints({
+        const middlePoints = constructMiddlePointsWithViaPositions({
           start: portPair.start,
           end: portPair.end,
           segmentsPerPolyline: this.SEGMENTS_PER_POLYLINE,
+          viaPositions,
           viaCount,
           availableZ: this.availableZ,
         })

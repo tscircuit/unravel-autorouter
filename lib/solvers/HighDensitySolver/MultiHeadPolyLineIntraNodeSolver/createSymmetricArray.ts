@@ -1,6 +1,9 @@
-export function createSymmetricArray(length: number, oneCount: number) {
+export function createSymmetricArray(
+  length: number,
+  oneCount: number,
+): number[] {
   // Initialize array with all zeros
-  const result = new Array(length).fill(0)
+  const result: number[] = new Array(length).fill(0)
 
   // If oneCount is 0, return array of all zeros
   if (oneCount === 0) return result
@@ -12,7 +15,7 @@ export function createSymmetricArray(length: number, oneCount: number) {
   if (oneCount <= length / 2) {
     // Place 1s symmetrically
     const gap = Math.floor(length / oneCount)
-    let start = Math.floor((length - (gap * (oneCount - 1) + 1)) / 2)
+    const start = Math.floor((length - (gap * (oneCount - 1) + 1)) / 2)
 
     for (let i = 0; i < oneCount; i++) {
       result[start + i * gap] = 1

@@ -1,4 +1,11 @@
 import type { Bounds, Point } from "@tscircuit/math-utils"
+import { getCentroidsFromInnerBoxIntersections } from "./getCentroidsFromInnerBoxIntersections"
+import { generateBinaryCombinations } from "./generateBinaryCombinations"
+
+type ViaPositionVariantForLinesViaCountVariant = {
+  viaPositions: Point[]
+  viaCountVariant: number[]
+}
 
 /**
  * Get the all possible via positions if you consider the centroids of shapes
@@ -15,11 +22,43 @@ export const getPossibleInitialViaPositions = (params: {
   >
   bounds: Bounds
   viaCountVariants: Array<number[]>
-}): Array<{
-  viaPositionsForEachLine: Array<{
-    viaPositions: Point[]
-  }>
-  viaCountVariant: number[]
-}> => {
-  // TODO
+}): Array<ViaPositionVariantForLinesViaCountVariant> => {
+  const { bounds, portPairsEntries, viaCountVariants } = params
+
+  const { centroids } = getCentroidsFromInnerBoxIntersections(
+    bounds,
+    portPairsEntries.map(([_, portPair]) => portPair),
+  )
+
+  console.log(
+    bounds,
+    portPairsEntries.map(([_, portPair]) => portPair),
+  )
+  console.log(centroids)
+
+  const result: ViaPositionVariantForLinesViaCountVariant[] = []
+
+  for (const viaCountVariant of viaCountVariants) {
+    const viaCount = viaCountVariant.reduce((acc, count) => acc + count, 0)
+    const viaPositionVariants = generateBinaryCombinations(
+      viaCount,
+      centroids.length,
+    )
+
+    for (const viaPositionVariant of viaPositionVariants) {
+      for (let i = 0; i < viaPositionVariant.length; i++) {
+        const viaPositions: Point[] = []
+        if (viaPositionVariant[i] === 1) {
+          viaPositions.push(centroids[i])
+        }
+
+        result.push({
+          viaPositions,
+          viaCountVariant,
+        })
+      }
+    }
+  }
+
+  return result
 }
