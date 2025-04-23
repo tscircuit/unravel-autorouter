@@ -13,6 +13,7 @@ import {
   pointToSegmentDistance,
   segmentToSegmentMinDistance,
 } from "@tscircuit/math-utils"
+import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
 
 interface Point {
   x: number
@@ -481,6 +482,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.maxViaCount,
       numSameLayerCrossings * 2 + numTransitions,
     )
+
+    const possibleViaPositions = getPossibleInitialViaPositions({
+      portPairsEntries,
+      viaCountVariants,
+      bounds: this.bounds,
+    })
+
+    // In addition to all
 
     // Convert the portPairs into PolyLines for the initial candidate
     for (const viaCountVariant of viaCountVariants) {
