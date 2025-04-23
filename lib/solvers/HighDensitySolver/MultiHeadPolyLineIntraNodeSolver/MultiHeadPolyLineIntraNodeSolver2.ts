@@ -69,6 +69,9 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
   }
 
   _step() {
+    if (this.candidates.length > 100) {
+      this.candidates = [this.candidates[29]]
+    }
     const currentCandidate = this.candidates.shift()!
     if (!currentCandidate) {
       this.failed = true
@@ -96,6 +99,9 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       this.solved = true
       return
     }
+    this.candidates.push(
+      ...(this.computeNewCandidateWithForceApplied(currentCandidate) as any),
+    )
   }
 
   computeNewCandidateWithForceApplied(candidate: Candidate2): Candidate2[] {
