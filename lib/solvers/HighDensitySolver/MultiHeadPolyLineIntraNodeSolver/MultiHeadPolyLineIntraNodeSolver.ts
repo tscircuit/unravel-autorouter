@@ -712,7 +712,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const INSIDE_VIA_FORCE_MULTIPLIER = 4.0 // Extra multiplier when inside a via
     const SEGMENT_FORCE_MULTIPLIER = 1.0
     // const FORCE_DECAY_RATE = 1.0 / this.cellSize // Controls how quickly force falls off with distance (adjust as needed)
-    const FORCE_DECAY_RATE = 4
+    const FORCE_DECAY_RATE = 8
     const BOUNDARY_FORCE_STRENGTH = 0.008 // How strongly points are pushed back into bounds
     const EPSILON = 1e-6 // To avoid division by zero
 
@@ -1049,6 +1049,74 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       }
     }
 
+    // 2.5 Calculate forces between vias WITHIN the SAME polyline
+    for (let i = 0; i < numPolyLines; i++) {
+      const polyLine = polyLines[i]
+      const points = [polyLine.start, ...polyLine.mPoints, polyLine.end]
+      const vias: Array<{ point: MHPoint; layers: number[]; index: number }> =
+        []
+      points.forEach((p, k) => {
+        if (p.z1 !== p.z2)
+          vias.push({ point: p, layers: [p.z1, p.z2], index: k })
+      })
+
+      if (vias.length < 2) continue // Need at least two vias to interact
+
+      for (let v1Idx = 0; v1Idx < vias.length; v1Idx++) {
+        for (let v2Idx = v1Idx + 1; v2Idx < vias.length; v2Idx++) {
+          const via1 = vias[v1Idx]
+          const via2 = vias[v2Idx]
+
+          // Vias on the same polyline always interact (repel) regardless of layer
+          const dx = via1.point.x - via2.point.x
+          const dy = via1.point.y - via2.point.y
+          const dSq = dx * dx + dy * dy
+
+          if (dSq > EPSILON) {
+            const dist = Math.sqrt(dSq)
+            let forceMultiplier = VIA_FORCE_MULTIPLIER
+            let effectiveDistance = dist
+
+            if (dist < this.viaDiameter) {
+              // Vias overlap
+              forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+              effectiveDistance = Math.max(EPSILON, dist)
+            } else {
+              // Vias do not overlap
+              effectiveDistance = Math.max(EPSILON, dist - this.viaDiameter)
+            }
+
+            // Exponential falloff
+            const forceMag =
+              forceMultiplier *
+              FORCE_MAGNITUDE *
+              Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
+            const fx_2_on_1 = (dx / dist) * forceMag // Force applied by via2 onto via1
+            const fy_2_on_1 = (dy / dist) * forceMag
+            const sourceIdVia2 = `via:${i}:${via2.index}` // Source is via2 on line i
+            const sourceIdVia1 = `via:${i}:${via1.index}` // Source is via1 on line i
+
+            // Apply force from via2 onto via1 (both on line i)
+            addForceContribution(
+              i,
+              via1.index,
+              sourceIdVia2,
+              fx_2_on_1,
+              fy_2_on_1,
+            )
+            // Apply force from via1 onto via2 (both on line i) - opposite direction
+            addForceContribution(
+              i,
+              via2.index,
+              sourceIdVia1,
+              -fx_2_on_1,
+              -fy_2_on_1,
+            )
+          }
+        }
+      }
+    }
+
     // 3. Apply forces and create the new neighbor candidate
     // Deep clone polylines to modify them
     const newPolyLines = polyLines.map((pl) => ({
@@ -1206,20 +1274,18 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
     this.lastCandidate = currentCandidate
     if (
-      currentCandidate.minGaps.every(
-        (minGap) => minGap >= this.obstacleMargin,
-      ) &&
+      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
       // All points are within bounds
-      currentCandidate.polyLines.every((polyLine) => {
-        return polyLine.mPoints.every((mPoint) => {
-          return (
-            mPoint.x >= this.bounds.minX &&
-            mPoint.x <= this.bounds.maxX &&
-            mPoint.y >= this.bounds.minY &&
-            mPoint.y <= this.bounds.maxY
-          )
-        })
-      })
+      // currentCandidate.polyLines.every((polyLine) => {
+      //   return polyLine.mPoints.every((mPoint) => {
+      //     return (
+      //       mPoint.x >= this.bounds.minX &&
+      //       mPoint.x <= this.bounds.maxX &&
+      //       mPoint.y >= this.bounds.minY &&
+      //       mPoint.y <= this.bounds.maxY
+      //     )
+      //   })
+      // })
     ) {
       this.solved = true
       return
@@ -1290,7 +1356,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           graphicsObject.lines.push({
             points: [p1, p2],
             strokeColor: segmentColor,
-            strokeWidth: 0.1, // TODO: Use actual trace thickness from HighDensityRoute?
+            strokeWidth: this.traceWidth, // TODO: Use actual trace thickness from HighDensityRoute?
             strokeDash: !isLayer0 ? "5,5" : undefined, // Dashed for layers > 0
             label: `${polyLine.connectionName} segment (z=${segmentLayer})`,
           })
