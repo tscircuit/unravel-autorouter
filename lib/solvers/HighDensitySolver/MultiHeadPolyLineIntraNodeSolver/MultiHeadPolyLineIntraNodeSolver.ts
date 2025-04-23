@@ -81,6 +81,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   queuedCandidateHashes: Set<string> = new Set()
 
   maxViaCount: number
+  minViaCount: number
 
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
@@ -112,10 +113,18 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.nodeWithPortPoints.portPoints.map((pp) => pp.connectionName),
     ).size
 
+    const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
+      this.nodeWithPortPoints,
+    )
+
+    this.minViaCount = numSameLayerCrossings * 2 + numTransitions
     this.maxViaCount = Math.min(
       Math.floor(areaInsideNode / areaPerVia),
       Math.ceil(uniqueConnections * 1.5),
     )
+    if (this.maxViaCount < this.minViaCount) {
+      this.maxViaCount = this.minViaCount
+    }
 
     // Calculate bounds
     this.bounds = {
@@ -130,8 +139,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
 
     this.setupInitialPolyLines()
-    // TEMPORARY
-    // this.candidates = [this.candidates[29]]
     this.candidates.sort((a, b) => a.f - b.f)
   }
 
@@ -273,22 +280,28 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     const portPairsEntries = Array.from(portPairs.entries())
 
-    const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
-      this.nodeWithPortPoints,
-    )
-
     const viaCountVariants = computeViaCountVariants(
       portPairsEntries,
       this.SEGMENTS_PER_POLYLINE,
       this.maxViaCount,
-      numSameLayerCrossings * 2 + numTransitions,
+      this.minViaCount,
     )
+
+    console.log({
+      viaCountVariants,
+      portPairsEntries,
+      SEGMENTS_PER_POLYLINE: this.SEGMENTS_PER_POLYLINE,
+      maxViaCount: this.maxViaCount,
+      minViaCount: this.minViaCount,
+    })
 
     const possibleViaPositions = getPossibleInitialViaPositions({
       portPairsEntries,
       viaCountVariants,
       bounds: this.bounds,
     })
+
+    console.log({ possibleViaPositions })
 
     const possibleViaPositionsWithReorderings = []
     for (const { viaCountVariant, viaPositions } of possibleViaPositions) {
@@ -975,7 +988,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       candidate.polyLines.every((polyLine) => {
         return polyLine.mPoints.every((mPoint) => {
           const padding =
-            mPoint.z1 !== mPoint.z2 ? this.viaDiameter / 2 : this.traceWidth / 2
+            (mPoint.z1 !== mPoint.z2
+              ? this.viaDiameter / 2
+              : this.traceWidth / 2) *
+            // Forgiveness outside bounds
+            0.9
           return withinBounds(mPoint, this.bounds, padding)
         })
       })

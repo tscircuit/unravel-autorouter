@@ -1,7 +1,7 @@
 import type { Bounds, Point } from "@tscircuit/math-utils"
 import { getCentroidsFromInnerBoxIntersections } from "./getCentroidsFromInnerBoxIntersections"
 import { generateBinaryCombinations } from "./generateBinaryCombinations"
-import { MHPoint } from "./MultiHeadPolyLineIntraNodeSolver"
+import { MHPoint } from "./types1"
 
 type ViaPositionVariantForLinesViaCountVariant = {
   viaPositions: Point[]
