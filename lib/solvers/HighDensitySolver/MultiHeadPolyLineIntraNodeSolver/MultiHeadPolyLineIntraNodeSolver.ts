@@ -688,10 +688,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const numPolyLines = polyLines.length
     const FORCE_MAGNITUDE = this.cellSize * 0.5 // Tunable parameter for force strength
     const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
+    const INSIDE_VIA_FORCE_MULTIPLIER = 4.0 // Extra multiplier when inside a via
     const SEGMENT_FORCE_MULTIPLIER = 1.0
     // const FORCE_DECAY_RATE = 1.0 / this.cellSize // Controls how quickly force falls off with distance (adjust as needed)
     const FORCE_DECAY_RATE = 4
-    const BOUNDARY_FORCE_STRENGTH = 0.005 // How strongly points are pushed back into bounds
+    const BOUNDARY_FORCE_STRENGTH = 0.01 // How strongly points are pushed back into bounds
     const EPSILON = 1e-6 // To avoid division by zero
 
     // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<sourceId, {fx, fy}>
@@ -878,12 +879,29 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
+                let forceMultiplier = VIA_FORCE_MULTIPLIER
+                let effectiveDistance = dist
+
+                if (dist < this.viaDiameter / 2) {
+                  // Point is inside the via radius
+                  forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+                  // Use distance from center directly for decay calculation
+                  effectiveDistance = Math.max(EPSILON, dist)
+                } else {
+                  // Point is outside the via radius
+                  // Calculate distance from the edge
+                  effectiveDistance = Math.max(
+                    EPSILON,
+                    dist - this.viaDiameter / 2,
+                  )
+                }
+
                 // Force applied ONLY to the via (i) by the segment (j) - Exponential falloff
                 const forceMag =
-                  VIA_FORCE_MULTIPLIER *
+                  forceMultiplier *
                   FORCE_MAGNITUDE *
-                  Math.exp(-FORCE_DECAY_RATE * dist)
-                const fx_j_on_i = (dx / dist) * forceMag
+                  Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
+                const fx_j_on_i = (dx / dist) * forceMag // Direction is still based on center-to-point vector
                 const fy_j_on_i = (dy / dist) * forceMag
                 const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
                 addForceContribution(
@@ -914,13 +932,29 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
-                const dist2 = Math.max(0.0001, dist - this.viaDiameter / 2)
+                let forceMultiplier = VIA_FORCE_MULTIPLIER
+                let effectiveDistance = dist
+
+                if (dist < this.viaDiameter / 2) {
+                  // Point is inside the via radius
+                  forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+                  // Use distance from center directly for decay calculation
+                  effectiveDistance = Math.max(EPSILON, dist)
+                } else {
+                  // Point is outside the via radius
+                  // Calculate distance from the edge
+                  effectiveDistance = Math.max(
+                    EPSILON,
+                    dist - this.viaDiameter / 2,
+                  )
+                }
+
                 // Force applied ONLY to the via (j) by the segment (i) - Exponential falloff
                 const forceMag =
-                  VIA_FORCE_MULTIPLIER *
+                  forceMultiplier *
                   FORCE_MAGNITUDE *
-                  Math.exp(-FORCE_DECAY_RATE * dist2)
-                const fx_i_on_j = (dx / dist) * forceMag
+                  Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
+                const fx_i_on_j = (dx / dist) * forceMag // Direction is still based on center-to-point vector
                 const fy_i_on_j = (dy / dist) * forceMag
                 const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
                 addForceContribution(
@@ -950,12 +984,25 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
-                const dist2 = Math.max(0.0001, dist - this.viaDiameter / 2)
+                let forceMultiplier = VIA_FORCE_MULTIPLIER
+                let effectiveDistance = dist
+
+                if (dist < this.viaDiameter) {
+                  // Vias overlap
+                  forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+                  // Use center-to-center distance directly for decay calculation
+                  effectiveDistance = Math.max(EPSILON, dist)
+                } else {
+                  // Vias do not overlap
+                  // Calculate distance between edges
+                  effectiveDistance = Math.max(EPSILON, dist - this.viaDiameter)
+                }
+
                 // Exponential falloff
                 const forceMag =
-                  VIA_FORCE_MULTIPLIER *
+                  forceMultiplier *
                   FORCE_MAGNITUDE *
-                  Math.exp(-FORCE_DECAY_RATE * dist2)
+                  Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
                 const fx_j_on_i = (dx / dist) * forceMag // Force applied by via2 (j) onto via1 (i)
                 const fy_j_on_i = (dy / dist) * forceMag
                 const sourceIdVia2 = `via:${j}:${via2.index}`
