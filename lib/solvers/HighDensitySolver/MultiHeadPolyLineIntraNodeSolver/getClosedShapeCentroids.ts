@@ -1,20 +1,43 @@
+// Define basic types
+interface Point {
+  x: number
+  y: number
+}
+
+interface Segment {
+  a: Point
+  b: Point
+}
+
+interface Rectangle {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+}
+
 // EPS is used for floating point comparisons
 const EPS = 1e-9
 
-export function almostEqual(a, b, eps = EPS) {
+export function almostEqual(a: number, b: number, eps: number = EPS): boolean {
   return Math.abs(a - b) < eps
 }
 
-export function pointKey(p, eps = EPS) {
+export function pointKey(p: Point, eps: number = EPS): string {
   // Hashable key for deduplication
   return `${Math.round(p.x / eps)}:${Math.round(p.y / eps)}`
 }
 
-export function cross(ax, ay, bx, by) {
+export function cross(ax: number, ay: number, bx: number, by: number): number {
   return ax * by - ay * bx
 }
 
-export function segmentIntersection(p, p2, q, q2) {
+export function segmentIntersection(
+  p: Point,
+  p2: Point,
+  q: Point,
+  q2: Point,
+): Point | null {
   // Returns intersection point of segments pp2 and qq2 or null if none
   const r = { x: p2.x - p.x, y: p2.y - p.y }
   const s = { x: q2.x - q.x, y: q2.y - q.y }
@@ -27,7 +50,7 @@ export function segmentIntersection(p, p2, q, q2) {
   return { x: p.x + t * r.x, y: p.y + t * r.y }
 }
 
-export function polygonArea(points) {
+export function polygonArea(points: Point[]): number {
   let a = 0
   for (let i = 0, n = points.length; i < n; ++i) {
     const j = (i + 1) % n
@@ -36,16 +59,16 @@ export function polygonArea(points) {
   return 0.5 * a
 }
 
-export function polygonCentroid(points) {
+export function polygonCentroid(points: Point[]): Point | null {
   let a = 0,
     cx = 0,
     cy = 0
   for (let i = 0, n = points.length; i < n; ++i) {
     const j = (i + 1) % n
-    const cross = points[i].x * points[j].y - points[j].x * points[i].y
-    a += cross
-    cx += (points[i].x + points[j].x) * cross
-    cy += (points[i].y + points[j].y) * cross
+    const crossVal = points[i].x * points[j].y - points[j].x * points[i].y
+    a += crossVal
+    cx += (points[i].x + points[j].x) * crossVal
+    cy += (points[i].y + points[j].y) * crossVal
   }
   a *= 0.5
   if (almostEqual(a, 0)) return null
@@ -55,27 +78,51 @@ export function polygonCentroid(points) {
 }
 
 // DCEL structures
-export class Vertex {
-  constructor(x, y) {
+export class Vertex implements Point {
+  x: number
+  y: number
+  out: number[] // Outgoing half-edge indices
+
+  constructor(x: number, y: number) {
     this.x = x
     this.y = y
-    this.out = [] // Outgoing half-edges
+    this.out = []
   }
 }
 
 export class HalfEdge {
-  constructor(orig, dest) {
-    this.orig = orig // Vertex index
-    this.dest = dest // Vertex index
-    this.twin = null // Half-edge index
-    this.next = null // Half-edge index (around left face)
+  orig: number // Vertex index
+  dest: number // Vertex index
+  twin: number | null // Half-edge index
+  next: number | null // Half-edge index (around left face)
+  visited: boolean
+
+  constructor(orig: number, dest: number) {
+    this.orig = orig
+    this.dest = dest
+    this.twin = null
+    this.next = null
     this.visited = false
   }
 }
 
-export function computeRegionCentroids(rectangle, userSegments) {
+interface Face {
+  vertices: Point[]
+  centroid: Point
+}
+
+interface ComputeRegionCentroidsResult {
+  centroids: Point[]
+  faces: Face[]
+  allVertices: Vertex[]
+}
+
+export function computeRegionCentroids(
+  rectangle: Rectangle,
+  userSegments: Segment[],
+): ComputeRegionCentroidsResult {
   // 1. Build full segment list (user + rectangle perimeter)
-  const rectEdges = [
+  const rectEdges: Segment[] = [
     {
       a: { x: rectangle.minX, y: rectangle.minY },
       b: { x: rectangle.maxX, y: rectangle.minY },
@@ -93,10 +140,10 @@ export function computeRegionCentroids(rectangle, userSegments) {
       b: { x: rectangle.minX, y: rectangle.minY },
     },
   ]
-  const segments = [...userSegments, ...rectEdges]
+  const segments: Segment[] = [...userSegments, ...rectEdges]
 
   // 2. Collect breakpoints on each segment (endpoints + intersections)
-  const breakMap = segments.map(() => []) // Array of arrays of points per segment
+  const breakMap: Point[][] = segments.map(() => []) // Array of arrays of points per segment
 
   // Add endpoints
   for (let i = 0; i < segments.length; ++i) {
@@ -107,7 +154,7 @@ export function computeRegionCentroids(rectangle, userSegments) {
   // Intersections between segments
   for (let i = 0; i < segments.length; ++i) {
     for (let j = i + 1; j < segments.length; ++j) {
-      const p = segmentIntersection(
+      const p: Point | null = segmentIntersection(
         segments[i].a,
         segments[i].b,
         segments[j].a,
@@ -121,10 +168,10 @@ export function computeRegionCentroids(rectangle, userSegments) {
   }
 
   // 3. Deduplicate global vertices, assign ids
-  const vertexId = new Map()
-  const vertices = []
+  const vertexId = new Map<string, number>()
+  const vertices: Vertex[] = []
 
-  function getVertexId(p) {
+  function getVertexId(p: Point): number {
     const key = pointKey(p)
     if (!vertexId.has(key)) {
       const id = vertices.length
@@ -132,16 +179,16 @@ export function computeRegionCentroids(rectangle, userSegments) {
       vertices.push(new Vertex(p.x, p.y))
       return id
     }
-    return vertexId.get(key)
+    return vertexId.get(key)!
   }
 
   // Sort breakpoint lists along each segment and create sub-edges
-  const undirectedEdges = []
+  const undirectedEdges: [number, number][] = []
   for (let i = 0; i < segments.length; ++i) {
     const s = segments[i]
-    const list = breakMap[i].slice()
+    const list: Point[] = breakMap[i].slice()
     // Parametric position t along segment
-    list.sort((p1, p2) => {
+    list.sort((p1: Point, p2: Point) => {
       const dx = s.b.x - s.a.x
       const dy = s.b.y - s.a.y
       const t1 = almostEqual(Math.abs(dx), 0)
@@ -160,7 +207,7 @@ export function computeRegionCentroids(rectangle, userSegments) {
   }
 
   // 4. Build half-edges
-  const halfEdges = []
+  const halfEdges: HalfEdge[] = []
   for (const [v1, v2] of undirectedEdges) {
     const he1 = new HalfEdge(v1, v2)
     const he2 = new HalfEdge(v2, v1)
@@ -176,36 +223,43 @@ export function computeRegionCentroids(rectangle, userSegments) {
   // 5. Sort outgoing edges CCW around each vertex & set next pointers
   for (let vid = 0; vid < vertices.length; ++vid) {
     const v = vertices[vid]
-    v.out.sort((e1, e2) => {
-      const d1 = vertices[halfEdges[e1].dest]
-      const d2 = vertices[halfEdges[e2].dest]
+    v.out.sort((e1Idx: number, e2Idx: number) => {
+      const e1 = halfEdges[e1Idx]
+      const e2 = halfEdges[e2Idx]
+      const d1 = vertices[e1.dest]
+      const d2 = vertices[e2.dest]
       const a1 = Math.atan2(d1.y - v.y, d1.x - v.x)
       const a2 = Math.atan2(d2.y - v.y, d2.x - v.x)
       return a1 - a2
     })
     const m = v.out.length
     for (let i = 0; i < m; ++i) {
-      const heOut = v.out[i]
-      const hePrev = v.out[(i - 1 + m) % m] // CW predecessor
-      halfEdges[halfEdges[heOut].twin].next = hePrev // twin.next = CW-prev to keep left face on our left
+      const heOutIdx = v.out[i]
+      const hePrevIdx = v.out[(i - 1 + m) % m] // CW predecessor
+      const heOut = halfEdges[heOutIdx]
+      if (heOut.twin !== null) {
+        halfEdges[heOut.twin].next = hePrevIdx // twin.next = CW-prev to keep left face on our left
+      }
     }
   }
 
   // 6. Walk faces and compute centroids
-  const centroids = []
-  const faces = []
+  const centroids: Point[] = []
+  const faces: Face[] = []
 
   for (let h = 0; h < halfEdges.length; ++h) {
     if (halfEdges[h].visited) continue
-    let walk = h
-    const poly = []
-    const faceEdges = []
+    let walk: number | null = h
+    const poly: Vertex[] = []
+    const faceEdges: number[] = []
 
     do {
-      halfEdges[walk].visited = true
-      poly.push(vertices[halfEdges[walk].orig])
+      if (walk === null) break // Should not happen in a well-formed DCEL
+      const currentEdge = halfEdges[walk]
+      currentEdge.visited = true
+      poly.push(vertices[currentEdge.orig])
       faceEdges.push(walk)
-      walk = halfEdges[walk].next
+      walk = currentEdge.next
     } while (walk !== null && walk !== h && !halfEdges[walk].visited)
 
     if (poly.length < 3) continue
@@ -216,7 +270,7 @@ export function computeRegionCentroids(rectangle, userSegments) {
       if (c) {
         centroids.push(c)
         faces.push({
-          vertices: poly.map((p) => ({ x: p.x, y: p.y })),
+          vertices: poly.map((p) => ({ x: p.x, y: p.y })), // Convert Vertex back to simple Point
           centroid: c,
         })
       }
