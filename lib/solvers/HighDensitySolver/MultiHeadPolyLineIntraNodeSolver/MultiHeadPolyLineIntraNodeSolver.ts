@@ -712,7 +712,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const INSIDE_VIA_FORCE_MULTIPLIER = 4.0 // Extra multiplier when inside a via
     const SEGMENT_FORCE_MULTIPLIER = 1.0
     // const FORCE_DECAY_RATE = 1.0 / this.cellSize // Controls how quickly force falls off with distance (adjust as needed)
-    const FORCE_DECAY_RATE = 8
+    const FORCE_DECAY_RATE = 6
     const BOUNDARY_FORCE_STRENGTH = 0.008 // How strongly points are pushed back into bounds
     const EPSILON = 1e-6 // To avoid division by zero
 
@@ -932,9 +932,22 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                   fx_j_on_i,
                   fy_j_on_i,
                 )
-                // Force from via1 (i) onto seg2 (j) - currently not applied
-                // If applied, sourceId would be `via:${i}:${via1.index}`
-                // Let's stick to only applying force TO the via FROM the segment for now.
+                // Force from via1 (i) onto seg2 (j) - Apply opposite force to segment endpoints
+                const sourceIdVia1 = `via:${i}:${via1.index}`
+                addForceContribution(
+                  j,
+                  seg2.p1Idx,
+                  sourceIdVia1,
+                  -fx_j_on_i / 2,
+                  -fy_j_on_i / 2,
+                )
+                addForceContribution(
+                  j,
+                  seg2.p2Idx,
+                  sourceIdVia1,
+                  -fx_j_on_i / 2,
+                  -fy_j_on_i / 2,
+                )
               }
             }
           }
@@ -985,8 +998,22 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                   fx_i_on_j,
                   fy_i_on_j,
                 )
-                // Force from via2 (j) onto seg1 (i) - currently not applied
-                // If applied, sourceId would be `via:${j}:${via2.index}`
+                // Force from via2 (j) onto seg1 (i) - Apply opposite force to segment endpoints
+                const sourceIdVia2 = `via:${j}:${via2.index}`
+                addForceContribution(
+                  i,
+                  seg1.p1Idx,
+                  sourceIdVia2,
+                  -fx_i_on_j / 2,
+                  -fy_i_on_j / 2,
+                )
+                addForceContribution(
+                  i,
+                  seg1.p2Idx,
+                  sourceIdVia2,
+                  -fx_i_on_j / 2,
+                  -fy_i_on_j / 2,
+                )
               }
             }
           }
