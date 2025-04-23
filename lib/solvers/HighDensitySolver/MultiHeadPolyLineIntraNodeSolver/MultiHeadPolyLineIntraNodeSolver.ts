@@ -45,6 +45,7 @@ export interface Candidate {
   f: number
   hash: string
   minGaps: number[]
+  forces?: Array<Array<{ fx: number; fy: number }>> // Store forces applied to mPoints
 }
 
 export const computePolyLineHash = (polyLine: Omit<PolyLine, "hash">) => {
@@ -854,6 +855,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       f: g + h,
       hash: neighborHash,
       minGaps,
+      forces: forces, // Store the calculated forces
     }
 
     this.queuedCandidateHashes.add(neighborHash)
@@ -915,10 +917,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       })
     }
 
-    // Visualize the polylines from the first candidate (or current best)
-    const candidateToVisualize = this.lastCandidate ?? this.candidates[0] // Assuming the first is representative
+    // Visualize the polylines from the last evaluated candidate (or initial if none evaluated)
+    const candidateToVisualize = this.lastCandidate ?? this.candidates[0]
     if (candidateToVisualize) {
-      for (const polyLine of candidateToVisualize.polyLines) {
+      candidateToVisualize.polyLines.forEach((polyLine, polyLineIndex) => {
         const color = this.colorMap[polyLine.connectionName] ?? "purple"
         const pointsInPolyline = [
           polyLine.start,
@@ -948,35 +950,51 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         }
 
         // Draw points (start, mPoints, end) and Vias
-        for (const point of pointsInPolyline) {
+        pointsInPolyline.forEach((point, pointIndex) => {
           const isVia = point.z1 !== point.z2
           const pointLayer = point.z1 // Layer before potential via
+          const isMPoint = pointIndex > 0 && pointIndex < pointsInPolyline.length - 1
+
+          let label = ""
+          let forceLabel = ""
+
+          if (isMPoint) {
+            const mPointIndex = pointIndex - 1
+            const force = candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
+            if (force) {
+              forceLabel = `\nForce: (${force.fx.toFixed(3)}, ${force.fy.toFixed(3)})`
+            }
+          }
+
 
           if (isVia) {
             // Draw Via
+            label = `Via (${polyLine.connectionName} z=${point.z1} -> z=${point.z2})${forceLabel}`
             graphicsObject.circles.push({
               center: point,
               radius: this.viaDiameter / 2,
               fill: color, // Distinct Via color
-              label: `Via (${polyLine.connectionName} z=${point.z1} -> z=${point.z2})`,
+              label: label,
             })
           } else {
             // Draw regular point (only draw mPoints for clarity, start/end are ports)
-            if (polyLine.mPoints.includes(point)) {
+            if (isMPoint) {
               const isLayer0 = pointLayer === 0
               const pointColor = isLayer0
                 ? color
                 : safeTransparentize(color, 0.5)
+              label = `mPoint (${polyLine.connectionName} z=${pointLayer})${forceLabel}`
               graphicsObject.circles.push({
                 center: point,
                 radius: this.cellSize / 5, // Small circle for mPoints
                 fill: pointColor,
-                label: `mPoint (${polyLine.connectionName} z=${pointLayer})`,
+                label: label,
               })
             }
+            // Start/End points are visualized by the port points loop earlier
           }
-        }
-      }
+        })
+      })
     }
 
     return graphicsObject
