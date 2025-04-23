@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from "react"
-import { computeRegionCentroids } from "lib/solvers/HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/getClosedShapeCentroids"
+import {
+  getCentroidsFromInnerBoxIntersections,
+  type Segment,
+} from "lib/solvers/HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/getCentroidsFromInnerBoxIntersections"
+import { Bounds } from "@tscircuit/math-utils"
 
-function generateRandomSegments(rect, count) {
+function generateRandomSegments(rect: Bounds, count: number): Segment[] {
   const segments = []
   const sides = [
     {
@@ -51,7 +55,7 @@ function generateRandomSegments(rect, count) {
       y: side2.start.y + t2 * (side2.end.y - side2.start.y),
     }
 
-    segments.push({ a: point1, b: point2 })
+    segments.push({ start: point1, end: point2 })
   }
 
   return segments
@@ -59,7 +63,7 @@ function generateRandomSegments(rect, count) {
 
 function BoxVisualization() {
   const [numLines, setNumLines] = useState(5)
-  const [segments, setSegments] = useState([])
+  const [segments, setSegments] = useState([] as Segment[])
   const [result, setResult] = useState(null)
   const [boxSize, setBoxSize] = useState({ width: 500, height: 500 })
   const [rect, setRect] = useState({ minX: 50, minY: 50, maxX: 450, maxY: 450 })
@@ -74,7 +78,7 @@ function BoxVisualization() {
   // Compute centroids when segments change
   useEffect(() => {
     if (segments.length > 0) {
-      const res = computeRegionCentroids(rect, segments)
+      const res = getCentroidsFromInnerBoxIntersections(rect, segments)
       setResult(res)
     }
   }, [segments, rect])
@@ -102,8 +106,8 @@ function BoxVisualization() {
     ctx.lineWidth = 1.5
     segments.forEach((segment) => {
       ctx.beginPath()
-      ctx.moveTo(segment.a.x, segment.a.y)
-      ctx.lineTo(segment.b.x, segment.b.y)
+      ctx.moveTo(segment.start.x, segment.start.y)
+      ctx.lineTo(segment.end.x, segment.end.y)
       ctx.stroke()
     })
 

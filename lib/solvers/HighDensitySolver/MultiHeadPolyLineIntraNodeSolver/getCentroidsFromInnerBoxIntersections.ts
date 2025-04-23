@@ -1,19 +1,14 @@
+import type { Bounds } from "@tscircuit/math-utils"
+
 // Define basic types
 interface Point {
   x: number
   y: number
 }
 
-interface Segment {
-  a: Point
-  b: Point
-}
-
-interface Rectangle {
-  minX: number
-  minY: number
-  maxX: number
-  maxY: number
+export interface Segment {
+  start: Point
+  end: Point
 }
 
 // EPS is used for floating point comparisons
@@ -117,27 +112,27 @@ interface ComputeRegionCentroidsResult {
   allVertices: Vertex[]
 }
 
-export function computeRegionCentroids(
-  rectangle: Rectangle,
+export function getCentroidsFromInnerBoxIntersections(
+  rectangle: Bounds,
   userSegments: Segment[],
 ): ComputeRegionCentroidsResult {
   // 1. Build full segment list (user + rectangle perimeter)
   const rectEdges: Segment[] = [
     {
-      a: { x: rectangle.minX, y: rectangle.minY },
-      b: { x: rectangle.maxX, y: rectangle.minY },
+      start: { x: rectangle.minX, y: rectangle.minY },
+      end: { x: rectangle.maxX, y: rectangle.minY },
     },
     {
-      a: { x: rectangle.maxX, y: rectangle.minY },
-      b: { x: rectangle.maxX, y: rectangle.maxY },
+      start: { x: rectangle.maxX, y: rectangle.minY },
+      end: { x: rectangle.maxX, y: rectangle.maxY },
     },
     {
-      a: { x: rectangle.maxX, y: rectangle.maxY },
-      b: { x: rectangle.minX, y: rectangle.maxY },
+      start: { x: rectangle.maxX, y: rectangle.maxY },
+      end: { x: rectangle.minX, y: rectangle.maxY },
     },
     {
-      a: { x: rectangle.minX, y: rectangle.maxY },
-      b: { x: rectangle.minX, y: rectangle.minY },
+      start: { x: rectangle.minX, y: rectangle.maxY },
+      end: { x: rectangle.minX, y: rectangle.minY },
     },
   ]
   const segments: Segment[] = [...userSegments, ...rectEdges]
@@ -148,17 +143,17 @@ export function computeRegionCentroids(
   // Add endpoints
   for (let i = 0; i < segments.length; ++i) {
     const s = segments[i]
-    breakMap[i].push(s.a, s.b)
+    breakMap[i].push(s.start, s.end)
   }
 
   // Intersections between segments
   for (let i = 0; i < segments.length; ++i) {
     for (let j = i + 1; j < segments.length; ++j) {
       const p: Point | null = segmentIntersection(
-        segments[i].a,
-        segments[i].b,
-        segments[j].a,
-        segments[j].b,
+        segments[i].start,
+        segments[i].end,
+        segments[j].start,
+        segments[j].end,
       )
       if (p) {
         breakMap[i].push(p)
@@ -189,14 +184,14 @@ export function computeRegionCentroids(
     const list: Point[] = breakMap[i].slice()
     // Parametric position t along segment
     list.sort((p1: Point, p2: Point) => {
-      const dx = s.b.x - s.a.x
-      const dy = s.b.y - s.a.y
+      const dx = s.end.x - s.start.x
+      const dy = s.end.y - s.start.y
       const t1 = almostEqual(Math.abs(dx), 0)
-        ? (p1.y - s.a.y) / dy
-        : (p1.x - s.a.x) / dx
+        ? (p1.y - s.start.y) / dy
+        : (p1.x - s.start.x) / dx
       const t2 = almostEqual(Math.abs(dx), 0)
-        ? (p2.y - s.a.y) / dy
-        : (p2.x - s.a.x) / dx
+        ? (p2.y - s.start.y) / dy
+        : (p2.x - s.start.x) / dx
       return t1 - t2
     })
     for (let k = 0; k < list.length - 1; ++k) {
