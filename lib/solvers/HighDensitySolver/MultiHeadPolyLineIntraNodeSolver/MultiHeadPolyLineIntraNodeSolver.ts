@@ -50,6 +50,7 @@ export interface Candidate {
   // Store forces applied TO mPoints, keyed by a string identifying the source
   // e.g., "via:lineIdx:pointIdx", "seg:lineIdx:p1Idx:p2Idx"
   forces?: Array<Array<Map<string, { fx: number; fy: number }>>>
+  viaCount: number
 }
 
 export const computePolyLineHash = (
@@ -648,6 +649,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         g: 0,
         h: this.computeH({ minGaps, forces: [] }),
         f: 0,
+        viaCount: viaCountVariant.reduce((acc, count) => acc + count, 0),
         minGaps,
       })
     }
@@ -660,7 +662,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
     // return 0
-    return candidate.g + 0.000001
+    return candidate.g + 0.000005 + candidate.viaCount * 0.000005 * 500
   }
 
   /**
@@ -677,7 +679,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         }
       }
     }
-    return -totalForceMagnitude
+    return totalForceMagnitude
   }
 
   /**
@@ -1160,7 +1162,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         const forceMap = forces[i][k]
 
         // Calculate the net force by summing contributions
-        let netForce = { fx: 0, fy: 0 }
+        const netForce = { fx: 0, fy: 0 }
         for (const force of forceMap.values()) {
           netForce.fx += force.fx
           netForce.fy += force.fy
@@ -1286,6 +1288,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       hash: neighborHash,
       minGaps,
       forces: forces, // Store the calculated forces
+      viaCount: candidate.viaCount,
     }
 
     this.queuedCandidateHashes.add(neighborHash)
@@ -1407,7 +1410,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
               candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
 
             if (forceMap && forceMap.size > 0) {
-              let netForce = { fx: 0, fy: 0 }
+              const netForce = { fx: 0, fy: 0 }
               forceMap.forEach((force, sourceId) => {
                 netForce.fx += force.fx
                 netForce.fy += force.fy
