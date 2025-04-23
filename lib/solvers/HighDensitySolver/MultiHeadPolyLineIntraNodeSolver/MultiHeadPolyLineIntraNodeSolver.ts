@@ -18,71 +18,12 @@ import {
 import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
 import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
 import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
-
-export interface MHPoint {
-  x: number
-  y: number
-  xMoves: number
-  yMoves: number
-
-  // If a via, z1 is the layer of the start point, z2 is the layer of the end
-  // point
-  // If not a via, z1 and z2 are the same
-  z1: number
-  z2: number
-}
-
-export interface PolyLine {
-  connectionName: string
-  start: MHPoint
-  end: MHPoint
-  mPoints: MHPoint[]
-  hash: string
-}
-
-export interface Candidate {
-  polyLines: PolyLine[]
-  g: number
-  h: number
-  f: number
-  hash: string
-  minGaps: number[]
-  // Store forces applied TO mPoints, keyed by a string identifying the source
-  // e.g., "via:lineIdx:pointIdx", "seg:lineIdx:p1Idx:p2Idx"
-  forces?: Array<Array<Map<string, { fx: number; fy: number }>>>
-  viaCount: number
-}
-
-export const computePolyLineHash = (
-  polyLine: Omit<PolyLine, "hash">,
-  cellSize: number,
-) => {
-  return polyLine.mPoints
-    .map(
-      (p) =>
-        // `${Math.floor(p.x / cellSize)},${Math.floor(p.y / cellSize)},${p.z1},${p.z2}`,
-        `${p.x},${p.y},${p.z1},${p.z2}`,
-    )
-    .join("_")
-}
-
-export const computeCandidateHash = (
-  polyLines: PolyLine[],
-  cellSize: number,
-) => {
-  return polyLines.map((p) => computePolyLineHash(p, cellSize)).join("|")
-}
-
-export const createPolyLine = (
-  polyLinePartial: Omit<PolyLine, "hash">,
-  cellSize: number,
-) => {
-  ;(polyLinePartial as any).hash = computePolyLineHash(
-    polyLinePartial,
-    cellSize,
-  )
-  return polyLinePartial as PolyLine
-}
+import { PolyLine, MHPoint, Candidate } from "./types"
+import {
+  computePolyLineHash,
+  computeCandidateHash,
+  createPolyLineWithHash,
+} from "./hashing"
 
 export const constructMiddlePointsWithViaPositions = (params: {
   start: MHPoint
@@ -628,7 +569,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         viaPositionIndicesUsed += viaCount
 
         polyLines.push(
-          createPolyLine(
+          createPolyLineWithHash(
             {
               connectionName,
               start: portPair.start,
