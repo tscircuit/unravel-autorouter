@@ -101,6 +101,9 @@ export const computeViaCountVariants = (
 
         const [, portPair2] = portPairsEntries[j]
         if (
+          portPair1.start.z1 === portPair1.end.z1 &&
+          portPair2.start.z1 === portPair2.end.z1 &&
+          portPair1.start.z1 === portPair2.start.z1 &&
           doSegmentsIntersect(
             portPair1.start,
             portPair1.end,
