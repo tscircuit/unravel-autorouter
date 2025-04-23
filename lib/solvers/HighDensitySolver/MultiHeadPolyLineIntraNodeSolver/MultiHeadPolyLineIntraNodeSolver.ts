@@ -351,18 +351,23 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         )
       }
       const minGaps = this.computeMinGapBtwPolyLines(polyLines)
-
-      // TODO: Create multiple initial candidates based on viaCountVariants
-      // For now, just push the one candidate
-      this.candidates.push({
+      const h = this.computeH({ minGaps, forces: [] })
+      const newCandidate = {
         polyLines,
         hash: computeCandidateHash(polyLines, this.cellSize),
         g: 0,
-        h: this.computeH({ minGaps, forces: [] }),
-        f: 0,
+        h: h,
+        f: h,
         viaCount: viaCountVariant.reduce((acc, count) => acc + count, 0),
         minGaps,
-      })
+      }
+
+      if (this.checkIfSolved(newCandidate)) {
+        this.candidates = [newCandidate]
+        return
+      }
+
+      this.candidates.push(newCandidate)
     }
   }
 
@@ -982,7 +987,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     return [newNeighbor]
   }
 
-  checkIfSolved(candidate: Candidate) {
+  checkIfSolved(candidate: Pick<Candidate, "polyLines" | "minGaps">) {
     return (
       candidate.minGaps.every((minGap) => minGap >= this.obstacleMargin) &&
       candidate.polyLines.every((polyLine) => {
