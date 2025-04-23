@@ -662,7 +662,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
     // return 0
-    return candidate.g + 0.000005 + candidate.viaCount * 0.000005 * 500
+    return candidate.g + 0.000005 + candidate.viaCount * 0.000005 * 100
   }
 
   /**
@@ -671,7 +671,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   computeH(candidate: Pick<Candidate, "minGaps" | "forces">) {
     // Compute the total force magnitude
     let totalForceMagnitude = 0
-    console.log(candidate.forces)
     for (const force of candidate.forces ?? []) {
       for (const forceMap of force) {
         for (const force of forceMap.values()) {
