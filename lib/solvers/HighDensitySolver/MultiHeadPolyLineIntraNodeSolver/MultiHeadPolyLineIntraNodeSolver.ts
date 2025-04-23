@@ -13,6 +13,7 @@ import {
   segmentToSegmentMinDistance,
   pointToSegmentClosestPoint,
   distSq,
+  clamp,
 } from "@tscircuit/math-utils"
 import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
 import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
@@ -26,6 +27,7 @@ import {
 import { constructMiddlePointsWithViaPositions } from "./constructMiddlePointsWithViaPositions"
 import { computeViaCountVariants } from "./computeViaCountVariants"
 import { MHPoint2, PolyLine2 } from "./types2"
+import { withinBounds } from "./withinBounds"
 
 export const clonePolyLinesWithMutablePoint = (
   polyLines: PolyLine[],
@@ -967,6 +969,19 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     return [newNeighbor]
   }
 
+  checkIfSolved(candidate: Candidate) {
+    return (
+      candidate.minGaps.every((minGap) => minGap >= this.obstacleMargin) &&
+      candidate.polyLines.every((polyLine) => {
+        return polyLine.mPoints.every((mPoint) => {
+          const padding =
+            mPoint.z1 !== mPoint.z2 ? this.viaDiameter / 2 : this.traceWidth / 2
+          return withinBounds(mPoint, this.bounds, padding)
+        })
+      })
+    )
+  }
+
   _step() {
     const currentCandidate = this.candidates.shift()!
     if (!currentCandidate) {
@@ -974,20 +989,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       return
     }
     this.lastCandidate = currentCandidate
-    if (
-      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
-      // All points are within bounds
-      // currentCandidate.polyLines.every((polyLine) => {
-      //   return polyLine.mPoints.every((mPoint) => {
-      //     return (
-      //       mPoint.x >= this.bounds.minX &&
-      //       mPoint.x <= this.bounds.maxX &&
-      //       mPoint.y >= this.bounds.minY &&
-      //       mPoint.y <= this.bounds.maxY
-      //     )
-      //   })
-      // })
-    ) {
+    if (this.checkIfSolved(currentCandidate)) {
       this.solved = true
       return
     }

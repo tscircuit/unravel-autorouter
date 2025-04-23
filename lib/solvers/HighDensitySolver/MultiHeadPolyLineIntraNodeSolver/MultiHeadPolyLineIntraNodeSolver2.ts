@@ -109,9 +109,7 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       currentCandidate.polyLines,
     )
 
-    if (
-      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
-    ) {
+    if (this.checkIfSolved(currentCandidate)) {
       this.solved = true
       return
     }
