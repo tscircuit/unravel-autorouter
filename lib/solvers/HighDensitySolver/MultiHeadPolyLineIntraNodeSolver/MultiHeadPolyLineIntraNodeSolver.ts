@@ -102,7 +102,6 @@ export const constructMiddlePointsWithViaPositions = (params: {
   let left: MHPoint = start
   for (let i = 0; i < middlePoints.length; i++) {
     if (middlePoints[i]) {
-      console.log({ left, newLeft: middlePoints[i] })
       left = middlePoints[i]!
       continue
     }
@@ -566,11 +565,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       bounds: this.bounds,
     })
 
-    console.log(possibleViaPositions)
-
     // Convert the portPairs into PolyLines for the initial candidate
     for (const { viaPositions, viaCountVariant } of possibleViaPositions) {
-      console.log({ viaPositions, viaCountVariant })
       const polyLines: PolyLine[] = []
       let viaPositionIndicesUsed = 0
       for (let i = 0; i < portPairsEntries.length; i++) {
@@ -610,7 +606,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         minGaps,
       })
     }
-    console.log({ candidates: this.candidates })
   }
 
   /**
