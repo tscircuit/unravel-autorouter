@@ -688,6 +688,9 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const FORCE_MAGNITUDE = this.cellSize * 0.5 // Tunable parameter for force strength
     const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
     const SEGMENT_FORCE_MULTIPLIER = 1.0
+    // const FORCE_DECAY_RATE = 1.0 / this.cellSize // Controls how quickly force falls off with distance (adjust as needed)
+    const FORCE_DECAY_RATE = 2
+    const BOUNDARY_FORCE_STRENGTH = 0.01 // How strongly points are pushed back into bounds
     const EPSILON = 1e-6 // To avoid division by zero
 
     // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<applyingLineIdx, {fx, fy}>
@@ -712,7 +715,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       ) {
         const targetMPointIndex = targetPointIndexInFullPath - 1
         const forceMap = forces[targetLineIndex][targetMPointIndex]
-        const existingForce = forceMap.get(applyingLineIndex) || { fx: 0, fy: 0 }
+        const existingForce = forceMap.get(applyingLineIndex) || {
+          fx: 0,
+          fy: 0,
+        }
         forceMap.set(applyingLineIndex, {
           fx: existingForce.fx + fx,
           fy: existingForce.fy + fy,
@@ -812,8 +818,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
+                // Exponential falloff: force = base * exp(-decay_rate * distance)
                 const forceMag =
-                  (SEGMENT_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist // Inverse distance
+                  SEGMENT_FORCE_MULTIPLIER *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * dist)
                 const fx = (dx / dist) * forceMag
                 const fy = (dy / dist) * forceMag
 
@@ -844,8 +853,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
-                // Force applied ONLY to the via (i) by the segment (j)
-                const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
+                // Force applied ONLY to the via (i) by the segment (j) - Exponential falloff
+                const forceMag =
+                  VIA_FORCE_MULTIPLIER *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * dist)
                 const fx_j_on_i = (dx / dist) * forceMag
                 const fy_j_on_i = (dy / dist) * forceMag
                 addForceContribution(i, via1.index, j, fx_j_on_i, fy_j_on_i)
@@ -871,8 +883,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
-                // Force applied ONLY to the via (j) by the segment (i)
-                const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
+                const dist2 = Math.max(0.0001, dist - this.viaDiameter / 2)
+                // Force applied ONLY to the via (j) by the segment (i) - Exponential falloff
+                const forceMag =
+                  VIA_FORCE_MULTIPLIER *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * dist2)
                 const fx_i_on_j = (dx / dist) * forceMag
                 const fy_i_on_j = (dy / dist) * forceMag
                 addForceContribution(j, via2.index, i, fx_i_on_j, fy_i_on_j)
@@ -895,7 +911,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
-                const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
+                const dist2 = Math.max(0.0001, dist - this.viaDiameter / 2)
+                // Exponential falloff
+                const forceMag =
+                  VIA_FORCE_MULTIPLIER *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * dist2)
                 const fx_j_on_i = (dx / dist) * forceMag // Force applied by j onto i
                 const fy_j_on_i = (dy / dist) * forceMag
                 addForceContribution(i, via1.index, j, fx_j_on_i, fy_j_on_i)
@@ -927,9 +948,54 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           netForce.fy += force.fy
         }
 
+        // Calculate boundary force
+        const isVia = mPoint.z1 !== mPoint.z2
+        const radius = isVia ? this.viaDiameter / 2 : this.traceWidth / 2
+        let boundaryForceX = 0
+        let boundaryForceY = 0
+
+        const forceMargin = this.viaDiameter / 2
+
+        const minX = this.bounds.minX + forceMargin
+        const maxX = this.bounds.maxX - forceMargin
+        const minY = this.bounds.minY + forceMargin
+        const maxY = this.bounds.maxY - forceMargin
+
+        const distOutsideMinX = minX + radius - mPoint.x
+        const distOutsideMaxX = mPoint.x - (maxX - radius)
+        const distOutsideMinY = minY + radius - mPoint.y
+        const distOutsideMaxY = mPoint.y - (maxY - radius)
+
+        if (distOutsideMinX > 0) {
+          boundaryForceX =
+            BOUNDARY_FORCE_STRENGTH *
+            (Math.exp(distOutsideMinX / (this.obstacleMargin * 2)) - 1)
+        } else if (distOutsideMaxX > 0) {
+          boundaryForceX =
+            -BOUNDARY_FORCE_STRENGTH *
+            (Math.exp(distOutsideMaxX / (this.obstacleMargin * 2)) - 1)
+        }
+
+        if (distOutsideMinY > 0) {
+          boundaryForceY =
+            BOUNDARY_FORCE_STRENGTH *
+            (Math.exp(distOutsideMinY / (this.obstacleMargin * 2)) - 1)
+        } else if (distOutsideMaxY > 0) {
+          boundaryForceY =
+            -BOUNDARY_FORCE_STRENGTH *
+            (Math.exp(distOutsideMaxY / (this.obstacleMargin * 2)) - 1)
+        }
+
+        // Add boundary force to net force
+        netForce.fx += boundaryForceX
+        netForce.fy += boundaryForceY
+
         // Dampen force? Add friction? (Optional)
 
-        if (Math.abs(netForce.fx) < EPSILON && Math.abs(netForce.fy) < EPSILON) {
+        if (
+          Math.abs(netForce.fx) < EPSILON &&
+          Math.abs(netForce.fy) < EPSILON
+        ) {
           continue // No significant net force, skip update
         }
 
@@ -944,27 +1010,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         const newX = mPoint.x + moveX
         const newY = mPoint.y + moveY
 
-        const isVia = mPoint.z1 !== mPoint.z2
-        const radius = isVia ? this.viaDiameter / 2 : this.traceWidth / 2
-
-        // Clamp position within bounds
-        const clampedX = Math.max(
-          this.bounds.minX + radius,
-          Math.min(this.bounds.maxX - radius, newX),
-        )
-        const clampedY = Math.max(
-          this.bounds.minY + radius,
-          Math.min(this.bounds.maxY - radius, newY),
-        )
-
+        // Update position if moved significantly
         if (
-          Math.abs(mPoint.x - clampedX) > EPSILON ||
-          Math.abs(mPoint.y - clampedY) > EPSILON
+          Math.abs(mPoint.x - newX) > EPSILON ||
+          Math.abs(mPoint.y - newY) > EPSILON
         ) {
-          mPoint.x = clampedX
-          mPoint.y = clampedY
+          mPoint.x = newX
+          mPoint.y = newY
           // Reset moves count as position is recalculated based on force, not discrete steps
-          mPoint.xMoves = 0
+          mPoint.xMoves = 0 // Or maybe keep track of total displacement?
           mPoint.yMoves = 0
           pointsMoved = true
         }
@@ -1015,7 +1069,20 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
     this.lastCandidate = currentCandidate
     if (
-      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
+      currentCandidate.minGaps.every(
+        (minGap) => minGap >= this.obstacleMargin,
+      ) &&
+      // All points are within bounds
+      currentCandidate.polyLines.every((polyLine) => {
+        return polyLine.mPoints.every((mPoint) => {
+          return (
+            mPoint.x >= this.bounds.minX &&
+            mPoint.x <= this.bounds.maxX &&
+            mPoint.y >= this.bounds.minY &&
+            mPoint.y <= this.bounds.maxY
+          )
+        })
+      })
     ) {
       this.solved = true
       return
@@ -1118,7 +1185,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                     candidateToVisualize.polyLines[applyingPolylineIndex]
                   const applyingColor =
                     this.colorMap[applyingPolyline.connectionName] ?? "gray"
-                  const forceScale = 5 // Adjust scale for visibility
+                  const forceScale = 20 // Adjust scale for visibility
                   const forceEndPoint = {
                     x: point.x + force.fx * forceScale,
                     y: point.y + force.fy * forceScale,
@@ -1133,8 +1200,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                 }
               })
               // Update the label to show the net force
-              if (Math.abs(netForce.fx) > 1e-6 || Math.abs(netForce.fy) > 1e-6) {
-                 forceLabel = `\nNet Force: (${netForce.fx.toFixed(3)}, ${netForce.fy.toFixed(3)})`
+              if (
+                Math.abs(netForce.fx) > 1e-6 ||
+                Math.abs(netForce.fy) > 1e-6
+              ) {
+                forceLabel = `\nNet Force: (${netForce.fx.toFixed(3)}, ${netForce.fy.toFixed(3)})`
               }
             }
           }
@@ -1145,7 +1215,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             graphicsObject.circles.push({
               center: point,
               radius: this.viaDiameter / 2,
-              fill: color, // Distinct Via color
+              fill: safeTransparentize(color, 0.5), // Distinct Via color
               label: label,
             })
           } else {
