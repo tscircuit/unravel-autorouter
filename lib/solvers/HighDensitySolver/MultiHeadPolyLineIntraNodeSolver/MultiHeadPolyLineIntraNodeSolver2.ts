@@ -17,7 +17,7 @@ import {
 import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
 import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
 import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
-import { PolyLine, MHPoint, Candidate } from "./types"
+import { PolyLine2, MHPoint2, Candidate2 } from "./types2"
 import {
   computePolyLineHash,
   computeCandidateHash,
@@ -25,17 +25,16 @@ import {
 } from "./hashing"
 import { constructMiddlePointsWithViaPositions } from "./constructMiddlePointsWithViaPositions"
 import { computeViaCountVariants } from "./computeViaCountVariants"
+import { MultiHeadPolyLineIntraNodeSolver } from "./MultiHeadPolyLineIntraNodeSolver"
 
 export const clonePolyLinesWithMutablePoint = (
-  polyLines: PolyLine[],
+  polyLines: PolyLine2[],
   lineIndex: number,
   mPointIndex: number,
-): [PolyLine[], MHPoint] => {
+): [PolyLine2[], MHPoint2] => {
   const mutablePoint = {
     x: polyLines[lineIndex].mPoints[mPointIndex].x,
     y: polyLines[lineIndex].mPoints[mPointIndex].y,
-    xMoves: polyLines[lineIndex].mPoints[mPointIndex].xMoves,
-    yMoves: polyLines[lineIndex].mPoints[mPointIndex].yMoves,
     z1: polyLines[lineIndex].mPoints[mPointIndex].z1,
     z2: polyLines[lineIndex].mPoints[mPointIndex].z2,
   }
@@ -56,303 +55,50 @@ export const clonePolyLinesWithMutablePoint = (
   ]
 }
 
-export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
-  nodeWithPortPoints: NodeWithPortPoints
-  colorMap: Record<string, string>
-  hyperParameters: Partial<HighDensityHyperParameters>
-  connMap?: ConnectivityMap
-  candidates: Candidate[]
-  bounds: { minX: number; maxX: number; minY: number; maxY: number }
-
-  SEGMENTS_PER_POLYLINE = 3
-
-  cellSize: number
-
-  viaDiameter: number = 0.6
-  obstacleMargin: number = 0.1
-  traceWidth: number = 0.15
-  availableZ: number[] = []
-
-  lastCandidate: Candidate | null = null
-
-  queuedCandidateHashes: Set<string> = new Set()
-
-  maxViaCount: number
-
-  constructor(params: {
-    nodeWithPortPoints: NodeWithPortPoints
-    colorMap?: Record<string, string>
-    hyperParameters?: Partial<HighDensityHyperParameters>
-    connMap?: ConnectivityMap
-  }) {
-    super()
-    this.MAX_ITERATIONS = 1e6
-    this.nodeWithPortPoints = params.nodeWithPortPoints
-    this.colorMap =
-      params.colorMap ??
-      generateColorMapFromNodeWithPortPoints(params.nodeWithPortPoints)
-    this.hyperParameters = params.hyperParameters ?? {}
-    this.connMap = params.connMap
-
-    // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
-    this.cellSize = this.nodeWithPortPoints.width / 1024
-
-    this.candidates = []
-    this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
-
-    const areaInsideNode =
-      this.nodeWithPortPoints.width * this.nodeWithPortPoints.height
-    const areaPerVia =
-      (this.viaDiameter + this.obstacleMargin * 2 + this.traceWidth / 2) ** 2
-
-    this.maxViaCount = Math.floor(areaInsideNode / areaPerVia)
-
-    // Calculate bounds
-    this.bounds = {
-      minX:
-        this.nodeWithPortPoints.center.x - this.nodeWithPortPoints.width / 2,
-      maxX:
-        this.nodeWithPortPoints.center.x + this.nodeWithPortPoints.width / 2,
-      minY:
-        this.nodeWithPortPoints.center.y - this.nodeWithPortPoints.height / 2,
-      maxY:
-        this.nodeWithPortPoints.center.y + this.nodeWithPortPoints.height / 2,
-    }
-
-    this.setupInitialPolyLines()
-    // TEMPORARY
-    // this.candidates = [this.candidates[29]]
-  }
-
-  /**
-   * minGaps is a list of distances representing the "gap" between segments
-   * on each layer.
-   *
-   * Each minGaps number represents the gap for a polyline pair, for example if
-   * you have 3 polylines, you would have 3 minGaps...
-   *
-   * [ p1 -> p2 , p1 -> p3, p2 -> p3 ]
-   */
-  computeMinGapBtwPolyLines(polyLines: PolyLine[]) {
-    const minGaps = []
-    const polyLineSegmentsByLayer: Array<Map<number, [MHPoint, MHPoint][]>> = []
-    const polyLineVias: Array<MHPoint[]> = []
-    for (let i = 0; i < polyLines.length; i++) {
-      const polyLine = polyLines[i]
-      const path = [polyLine.start, ...polyLine.mPoints, polyLine.end]
-      const segmentsByLayer: Map<number, [MHPoint, MHPoint][]> = new Map(
-        this.availableZ.map((z) => [z, []]),
-      )
-      for (let i = 0; i < path.length - 1; i++) {
-        const segment: [MHPoint, MHPoint] = [path[i], path[i + 1]]
-        segmentsByLayer.get(segment[0].z2)!.push(segment)
-      }
-      polyLineSegmentsByLayer.push(segmentsByLayer)
-      polyLineVias.push(path.filter((p) => p.z1 !== p.z2))
-    }
-
-    for (let i = 0; i < polyLines.length; i++) {
-      const path1SegmentsByLayer = polyLineSegmentsByLayer[i]
-      const path1Vias = polyLineVias[i]
-      // Start j from i + 1 to compare distinct pairs only once
-      for (let j = i + 1; j < polyLines.length; j++) {
-        const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
-        const path2Vias = polyLineVias[j]
-
-        let minGap = 1
-        for (const zLayer of this.availableZ) {
-          const path1Segments = path1SegmentsByLayer.get(zLayer) ?? []
-          const path2Segments = path2SegmentsByLayer.get(zLayer) ?? []
-
-          // SEGMENT TO SEGMENT DISTANCES
-          for (const segment1 of path1Segments) {
-            for (const segment2 of path2Segments) {
-              minGap = Math.min(
-                minGap,
-                segmentToSegmentMinDistance(
-                  segment1[0],
-                  segment1[1],
-                  segment2[0],
-                  segment2[1],
-                ) - this.traceWidth,
-              )
-            }
-          }
-
-          // VIA TO SEGMENT DISTANCES
-          for (const via of path1Vias) {
-            for (const segment of path2Segments) {
-              minGap = Math.min(
-                minGap,
-                pointToSegmentDistance(via, segment[0], segment[1]) -
-                  this.traceWidth / 2 -
-                  this.viaDiameter / 2,
-              )
-            }
-          }
-          for (const via of path2Vias) {
-            for (const segment of path1Segments) {
-              minGap = Math.min(
-                minGap,
-                pointToSegmentDistance(via, segment[0], segment[1]) -
-                  this.traceWidth / 2 -
-                  this.viaDiameter / 2,
-              )
-            }
-          }
-
-          // VIA TO VIA DISTANCES
-          for (const via1 of path1Vias) {
-            for (const via2 of path2Vias) {
-              minGap = Math.min(minGap, distance(via1, via2) - this.viaDiameter)
-            }
-          }
-        }
-        minGaps.push(minGap)
-      }
-    }
-    return minGaps
-  }
-
-  /**
-   * Unlike most A* solvers with one initial candidate, we create a candidate
-   * for each configuration of vias we want to test, this way when computing
-   * neighbors we never consider changing layers
-   */
-  setupInitialPolyLines() {
-    const portPairs: Map<string, { start: MHPoint; end: MHPoint }> = new Map()
-    this.nodeWithPortPoints.portPoints.forEach((portPoint) => {
-      if (!portPairs.has(portPoint.connectionName)) {
-        portPairs.set(portPoint.connectionName, {
-          start: {
-            ...portPoint,
-            z1: portPoint.z ?? 0,
-            z2: portPoint.z ?? 0,
-            xMoves: 0,
-            yMoves: 0,
-          },
-          end: null as any,
-        })
-      } else {
-        portPairs.get(portPoint.connectionName)!.end = {
-          ...portPoint,
-          z1: portPoint.z ?? 0,
-          z2: portPoint.z ?? 0,
-          xMoves: 0,
-          yMoves: 0,
-        }
-      }
-    })
-
-    const portPairsEntries = Array.from(portPairs.entries())
-
-    const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
-      this.nodeWithPortPoints,
-    )
-
-    const viaCountVariants = computeViaCountVariants(
-      portPairsEntries,
-      this.SEGMENTS_PER_POLYLINE,
-      this.maxViaCount,
-      numSameLayerCrossings * 2 + numTransitions,
-    )
-
-    const possibleViaPositions = getPossibleInitialViaPositions({
-      portPairsEntries,
-      viaCountVariants,
-      bounds: this.bounds,
-    })
-
-    const possibleViaPositionsWithReorderings = []
-    for (const { viaCountVariant, viaPositions } of possibleViaPositions) {
-      const viaPositionsWithReorderings = getEveryPossibleOrdering(viaPositions)
-      for (const viaPositions of viaPositionsWithReorderings) {
-        possibleViaPositionsWithReorderings.push({
-          viaCountVariant,
-          viaPositions,
-        })
-      }
-    }
-
-    // Convert the portPairs into PolyLines for the initial candidate
-    for (const {
-      viaPositions,
-      viaCountVariant,
-    } of possibleViaPositionsWithReorderings) {
-      const polyLines: PolyLine[] = []
-      let viaPositionIndicesUsed = 0
-      for (let i = 0; i < portPairsEntries.length; i++) {
-        const [connectionName, portPair] = portPairsEntries[i]
-        const viaCount = viaCountVariant[i]
-        const viaPositionsForPolyline = viaPositions.slice(
-          viaPositionIndicesUsed,
-          viaPositionIndicesUsed + viaCount,
-        )
-        const middlePoints = constructMiddlePointsWithViaPositions({
-          start: portPair.start,
-          end: portPair.end,
-          segmentsPerPolyline: this.SEGMENTS_PER_POLYLINE,
-          viaPositions: viaPositionsForPolyline,
-          viaCount,
-          availableZ: this.availableZ,
-        })
-        viaPositionIndicesUsed += viaCount
-
-        polyLines.push(
-          createPolyLineWithHash(
-            {
-              connectionName,
-              start: portPair.start,
-              end: portPair.end,
-              mPoints: middlePoints,
-            },
-            this.cellSize,
-          ),
-        )
-      }
-      const minGaps = this.computeMinGapBtwPolyLines(polyLines)
-
-      // TODO: Create multiple initial candidates based on viaCountVariants
-      // For now, just push the one candidate
-      this.candidates.push({
-        polyLines,
-        hash: computeCandidateHash(polyLines, this.cellSize),
-        g: 0,
-        h: this.computeH({ minGaps, forces: [] }),
-        f: 0,
-        viaCount: viaCountVariant.reduce((acc, count) => acc + count, 0),
-        minGaps,
-      })
-    }
-  }
-
-  /**
-   * g is the cost of each candidate, we consider complexity (deviation from
-   * the straight line path for # of operations). This means g increases by
-   * 1 from the parent for each operation
-   */
-  computeG(polyLines: PolyLine[], candidate: Candidate) {
-    // return 0
+export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNodeSolver {
+  computeG(polyLines: any, candidate: any) {
     return candidate.g + 0.000005 + candidate.viaCount * 0.000005 * 100
   }
 
   /**
-   * h is the heuristic cost of each candidate.
+   * We don't use the heuristic because we don't queue new candidates with this
+   * solver
    */
-  computeH(candidate: Pick<Candidate, "minGaps" | "forces">) {
-    // Compute the total force magnitude
-    let totalForceMagnitude = 0
-    for (const force of candidate.forces ?? []) {
-      for (const forceMap of force) {
-        for (const force of forceMap.values()) {
-          totalForceMagnitude += force.fx * force.fx + force.fy * force.fy
-        }
-      }
-    }
-    return totalForceMagnitude
+  computeH(candidate: any) {
+    return 0
   }
 
-  getNeighbors(candidate: Candidate): Candidate[] {
+  _step() {
+    const currentCandidate = this.candidates.shift()!
+    if (!currentCandidate) {
+      this.failed = true
+      return
+    }
+    this.lastCandidate = currentCandidate
+    if (!currentCandidate) {
+      this.failed = true
+      return
+    }
+    if (
+      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
+      // All points are within bounds
+      // currentCandidate.polyLines.every((polyLine) => {
+      //   return polyLine.mPoints.every((mPoint) => {
+      //     return (
+      //       mPoint.x >= this.bounds.minX &&
+      //       mPoint.x <= this.bounds.maxX &&
+      //       mPoint.y >= this.bounds.minY &&
+      //       mPoint.y <= this.bounds.maxY
+      //     )
+      //   })
+      // })
+    ) {
+      this.solved = true
+      return
+    }
+  }
+
+  computeNewCandidateWithForceApplied(candidate: Candidate2): Candidate2[] {
     const { polyLines } = candidate
     const numPolyLines = polyLines.length
     const FORCE_MAGNITUDE = 0.02 // Tunable parameter for force strength
@@ -405,14 +151,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
         // Extract segments and vias for easier processing
         const segments1: Array<{
-          p1: MHPoint
-          p2: MHPoint
+          p1: MHPoint2
+          p2: MHPoint2
           layer: number
           p1Idx: number
           p2Idx: number
         }> = []
         const vias1: Array<{
-          point: MHPoint
+          point: MHPoint2
           layers: number[]
           index: number
         }> = []
@@ -431,14 +177,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         })
 
         const segments2: Array<{
-          p1: MHPoint
-          p2: MHPoint
+          p1: MHPoint2
+          p2: MHPoint2
           layer: number
           p1Idx: number
           p2Idx: number
         }> = []
         const vias2: Array<{
-          point: MHPoint
+          point: MHPoint2
           layers: number[]
           index: number
         }> = []
@@ -728,7 +474,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     for (let i = 0; i < numPolyLines; i++) {
       const polyLine = polyLines[i]
       const points = [polyLine.start, ...polyLine.mPoints, polyLine.end]
-      const vias: Array<{ point: MHPoint; layers: number[]; index: number }> =
+      const vias: Array<{ point: MHPoint2; layers: number[]; index: number }> =
         []
       points.forEach((p, k) => {
         if (p.z1 !== p.z2)
@@ -897,14 +643,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         ) {
           mPoint.x = newX
           mPoint.y = newY
-          // Reset moves count as position is recalculated based on force, not discrete steps
-          mPoint.xMoves = 0 // Or maybe keep track of total displacement?
-          mPoint.yMoves = 0
           pointsMoved = true
         }
       }
       // Recompute hash after potential modifications
-      newPolyLines[i].hash = computePolyLineHash(newPolyLines[i], this.cellSize)
     }
 
     // If no points moved significantly, don't generate a redundant neighbor
@@ -924,14 +666,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
     const g = this.computeG(newPolyLines, candidate) // G might represent something else now, e.g., total displacement or just step count
     const h = this.computeH({ minGaps, forces })
-    const newNeighbor: Candidate = {
+    const newNeighbor: Candidate2 = {
       polyLines: newPolyLines,
       g,
       h,
       f: g + h,
-      hash: neighborHash,
       minGaps,
-      forces: forces, // Store the calculated forces
       viaCount: candidate.viaCount,
     }
 
@@ -939,203 +679,5 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     // console.log(`Generated neighbor ${neighborHash.substring(0, 10)}... f=${newNeighbor.f.toFixed(3)}`);
 
     return [newNeighbor]
-  }
-
-  _step() {
-    this.candidates.sort((a, b) => a.f - b.f)
-    const currentCandidate = this.candidates.shift()!
-    if (!currentCandidate) {
-      this.failed = true
-      return
-    }
-    this.lastCandidate = currentCandidate
-    if (
-      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
-      // All points are within bounds
-      // currentCandidate.polyLines.every((polyLine) => {
-      //   return polyLine.mPoints.every((mPoint) => {
-      //     return (
-      //       mPoint.x >= this.bounds.minX &&
-      //       mPoint.x <= this.bounds.maxX &&
-      //       mPoint.y >= this.bounds.minY &&
-      //       mPoint.y <= this.bounds.maxY
-      //     )
-      //   })
-      // })
-    ) {
-      this.solved = true
-      return
-    }
-    if (!currentCandidate) {
-      this.failed = true
-      return
-    }
-    this.candidates.push(...this.getNeighbors(currentCandidate))
-  }
-
-  visualize(): GraphicsObject {
-    const graphicsObject: Required<GraphicsObject> = {
-      points: [],
-      lines: [],
-      rects: [],
-      circles: [],
-      coordinateSystem: "cartesian",
-      title: "MultiHeadPolyLineIntraNodeSolver Visualization",
-    }
-
-    // Draw node bounds
-    graphicsObject.lines.push({
-      points: [
-        { x: this.bounds.minX, y: this.bounds.minY },
-        { x: this.bounds.maxX, y: this.bounds.minY },
-        { x: this.bounds.maxX, y: this.bounds.maxY },
-        { x: this.bounds.minX, y: this.bounds.maxY },
-        { x: this.bounds.minX, y: this.bounds.minY },
-      ],
-      strokeColor: "gray",
-    })
-
-    // Draw input port points
-    for (const pt of this.nodeWithPortPoints.portPoints) {
-      graphicsObject.points.push({
-        x: pt.x,
-        y: pt.y,
-        // Assuming port points represent a single layer entry/exit, use z or default to 0
-        label: `${pt.connectionName} (Port z=${pt.z ?? 0})`,
-        color: this.colorMap[pt.connectionName] ?? "blue",
-      })
-    }
-
-    // Visualize the polylines from the last evaluated candidate (or initial if none evaluated)
-    const candidateToVisualize = this.lastCandidate ?? this.candidates[0]
-    if (candidateToVisualize) {
-      candidateToVisualize.polyLines.forEach((polyLine, polyLineIndex) => {
-        const color = this.colorMap[polyLine.connectionName] ?? "purple"
-        const pointsInPolyline = [
-          polyLine.start,
-          ...polyLine.mPoints,
-          polyLine.end,
-        ]
-
-        // Draw segments of the polyline
-        for (let i = 0; i < pointsInPolyline.length - 1; i++) {
-          const p1 = pointsInPolyline[i] // Point where segment starts (or via ends)
-          const p2 = pointsInPolyline[i + 1] // Point where segment ends (or via starts)
-
-          // A segment exists between p1 and p2 on layer p1.z2 (layer after p1's potential via)
-          // which should be the same as p2.z1 (layer before p2's potential via)
-          // If p1.z2 !== p2.z1, something is wrong in the data structure.
-          const segmentLayer = p1.z2
-          const isLayer0 = segmentLayer === 0
-          const segmentColor = isLayer0 ? color : safeTransparentize(color, 0.5)
-
-          graphicsObject.lines.push({
-            points: [p1, p2],
-            strokeColor: segmentColor,
-            strokeWidth: this.traceWidth, // TODO: Use actual trace thickness from HighDensityRoute?
-            strokeDash: !isLayer0 ? "5,5" : undefined, // Dashed for layers > 0
-            label: `${polyLine.connectionName} segment (z=${segmentLayer})`,
-          })
-        }
-
-        // Draw points (start, mPoints, end) and Vias
-        pointsInPolyline.forEach((point, pointIndex) => {
-          const isVia = point.z1 !== point.z2
-          const pointLayer = point.z1 // Layer before potential via
-          const isMPoint =
-            pointIndex > 0 && pointIndex < pointsInPolyline.length - 1
-
-          let label = ""
-          let forceLabel = ""
-
-          if (isMPoint) {
-            const mPointIndex = pointIndex - 1
-            const forceMap =
-              candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
-
-            if (forceMap && forceMap.size > 0) {
-              const netForce = { fx: 0, fy: 0 }
-              forceMap.forEach((force, sourceId) => {
-                netForce.fx += force.fx
-                netForce.fy += force.fy
-
-                if (Math.abs(force.fx) > 1e-6 || Math.abs(force.fy) > 1e-6) {
-                  const parts = sourceId.split(":")
-                  const sourceType = parts[0] // "via" or "seg"
-                  const applyingLineIndex = parseInt(parts[1], 10)
-                  const applyingPolyline =
-                    candidateToVisualize.polyLines[applyingLineIndex]
-                  const applyingColor =
-                    this.colorMap[applyingPolyline.connectionName] ?? "gray"
-                  const forceScale = 20 // Adjust scale for visibility
-                  const forceEndPoint = {
-                    x: point.x + force.fx * forceScale,
-                    y: point.y + force.fy * forceScale,
-                  }
-
-                  let sourceLabel = applyingPolyline.connectionName
-                  if (sourceType === "via") {
-                    const pointIdx = parseInt(parts[2], 10)
-                    sourceLabel += ` Via ${pointIdx}`
-                  } else if (sourceType === "seg") {
-                    const p1Idx = parseInt(parts[2], 10)
-                    const p2Idx = parseInt(parts[3], 10)
-                    sourceLabel += ` Seg ${p1Idx}-${p2Idx}`
-                  }
-
-                  graphicsObject.lines.push({
-                    points: [point, forceEndPoint],
-                    strokeColor: applyingColor, // Color by applying polyline
-                    strokeWidth: 0.02,
-                    strokeDash: "2,2", // Dashed line for force
-                    label: `Force by ${sourceLabel} on ${polyLine.connectionName} mPoint ${mPointIndex}`,
-                  })
-                }
-              })
-              // Update the label to show the net force
-              if (
-                Math.abs(netForce.fx) > 1e-6 ||
-                Math.abs(netForce.fy) > 1e-6
-              ) {
-                forceLabel = `\nNet Force: (${netForce.fx.toFixed(3)}, ${netForce.fy.toFixed(3)})`
-              }
-            }
-          }
-
-          if (isVia) {
-            // Draw Via
-            label = `Via (${polyLine.connectionName} z=${point.z1} -> z=${point.z2})${forceLabel}`
-            graphicsObject.circles.push({
-              center: point,
-              radius: this.viaDiameter / 2,
-              fill: safeTransparentize(color, 0.5), // Distinct Via color
-              label: label,
-            })
-          } else {
-            // Draw regular point (only draw mPoints for clarity, start/end are ports)
-            if (isMPoint) {
-              const isLayer0 = pointLayer === 0
-              // Regular mPoint (not a via)
-              // const isLayer0 = pointLayer === 0 // Removed duplicate declaration
-              const pointColor = isLayer0
-                ? color
-                : safeTransparentize(color, 0.5)
-              label = `mPoint (${polyLine.connectionName} z=${pointLayer})${forceLabel}`
-
-              // Draw the circle for the mPoint itself
-              graphicsObject.circles.push({
-                center: point,
-                radius: this.cellSize / 8, // Smaller circle for mPoints
-                fill: pointColor,
-                label: label,
-              })
-            }
-            // Start/End points are visualized by the port points loop earlier
-          }
-        })
-      })
-    }
-
-    return graphicsObject
   }
 }

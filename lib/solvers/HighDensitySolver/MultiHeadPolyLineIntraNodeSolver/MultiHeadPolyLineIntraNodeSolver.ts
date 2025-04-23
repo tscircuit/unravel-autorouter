@@ -17,7 +17,7 @@ import {
 import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
 import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
 import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
-import { PolyLine, MHPoint, Candidate } from "./types"
+import { PolyLine, MHPoint, Candidate } from "./types1"
 import {
   computePolyLineHash,
   computeCandidateHash,
@@ -25,6 +25,7 @@ import {
 } from "./hashing"
 import { constructMiddlePointsWithViaPositions } from "./constructMiddlePointsWithViaPositions"
 import { computeViaCountVariants } from "./computeViaCountVariants"
+import { MHPoint2, PolyLine2 } from "./types2"
 
 export const clonePolyLinesWithMutablePoint = (
   polyLines: PolyLine[],
@@ -122,6 +123,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.setupInitialPolyLines()
     // TEMPORARY
     // this.candidates = [this.candidates[29]]
+    this.candidates.sort((a, b) => a.f - b.f)
   }
 
   /**
@@ -133,18 +135,19 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    *
    * [ p1 -> p2 , p1 -> p3, p2 -> p3 ]
    */
-  computeMinGapBtwPolyLines(polyLines: PolyLine[]) {
+  computeMinGapBtwPolyLines(polyLines: PolyLine2[]) {
     const minGaps = []
-    const polyLineSegmentsByLayer: Array<Map<number, [MHPoint, MHPoint][]>> = []
-    const polyLineVias: Array<MHPoint[]> = []
+    const polyLineSegmentsByLayer: Array<Map<number, [MHPoint2, MHPoint2][]>> =
+      []
+    const polyLineVias: Array<MHPoint2[]> = []
     for (let i = 0; i < polyLines.length; i++) {
       const polyLine = polyLines[i]
       const path = [polyLine.start, ...polyLine.mPoints, polyLine.end]
-      const segmentsByLayer: Map<number, [MHPoint, MHPoint][]> = new Map(
+      const segmentsByLayer: Map<number, [MHPoint2, MHPoint2][]> = new Map(
         this.availableZ.map((z) => [z, []]),
       )
       for (let i = 0; i < path.length - 1; i++) {
-        const segment: [MHPoint, MHPoint] = [path[i], path[i + 1]]
+        const segment: [MHPoint2, MHPoint2] = [path[i], path[i + 1]]
         segmentsByLayer.get(segment[0].z2)!.push(segment)
       }
       polyLineSegmentsByLayer.push(segmentsByLayer)

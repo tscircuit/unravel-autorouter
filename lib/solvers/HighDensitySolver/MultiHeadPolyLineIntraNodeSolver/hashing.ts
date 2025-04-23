@@ -1,4 +1,4 @@
-import { PolyLine } from "./types"
+import { PolyLine } from "./types2"
 
 export const computePolyLineHash = (
   polyLine: Omit<PolyLine, "hash">,

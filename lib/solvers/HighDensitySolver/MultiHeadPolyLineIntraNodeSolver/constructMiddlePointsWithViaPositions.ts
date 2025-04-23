@@ -1,4 +1,4 @@
-import { MHPoint } from "./types"
+import { MHPoint } from "./types2"
 import { createSymmetricArray } from "./createSymmetricArray"
 
 export const constructMiddlePointsWithViaPositions = (params: {

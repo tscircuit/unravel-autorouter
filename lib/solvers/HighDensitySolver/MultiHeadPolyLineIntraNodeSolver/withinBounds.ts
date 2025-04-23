@@ -1,4 +1,4 @@
-import { MHPoint } from "./types"
+import { MHPoint } from "./types2"
 
 export const withinBounds = (
   point: MHPoint,

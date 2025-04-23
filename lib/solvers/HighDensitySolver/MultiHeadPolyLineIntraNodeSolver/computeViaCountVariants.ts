@@ -1,4 +1,4 @@
-import { MHPoint } from "./types"
+import { MHPoint } from "./types2"
 import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
 import { doSegmentsIntersect } from "@tscircuit/math-utils"
 
