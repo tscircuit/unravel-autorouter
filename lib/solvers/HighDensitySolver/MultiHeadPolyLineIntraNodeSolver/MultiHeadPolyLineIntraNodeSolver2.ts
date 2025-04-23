@@ -69,16 +69,16 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
   }
 
   _step() {
+    // TEMPORARY: helps us debug by starting on the solution candidate
+    if (this.candidates.length > 100) {
+      this.candidates = [this.candidates[29]]
+    }
     const currentCandidate = this.candidates.shift()!
     if (!currentCandidate) {
       this.failed = true
       return
     }
     this.lastCandidate = currentCandidate
-    if (!currentCandidate) {
-      this.failed = true
-      return
-    }
     if (
       currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
       // All points are within bounds
@@ -96,13 +96,44 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       this.solved = true
       return
     }
-    this.candidates.push(
-      ...(this.computeNewCandidateWithForceApplied(currentCandidate) as any),
-    )
+    // Apply forces iteratively to the current candidate
+    let pointsMovedTotal = false
+    for (let step = 0; step < 1000; step++) {
+      const moved = this.applyForcesToPolyLines(currentCandidate.polyLines)
+      if (moved) {
+        pointsMovedTotal = true
+      }
+      // Optional: Add a check to break early if forces stabilize (no points moved)
+      // if (!moved && step > 10) break; // Example early exit
+    }
+
+    // After applying forces, recompute minGaps for the modified candidate
+    if (pointsMovedTotal) {
+      currentCandidate.minGaps = this.computeMinGapBtwPolyLines(
+        currentCandidate.polyLines,
+      )
+    }
+
+    // Re-check if the candidate is now solved
+    if (
+      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
+    ) {
+      this.solved = true
+      return
+    }
+
+    // If not solved after force application, the solver fails for this candidate.
+    // Since we're not generating new candidates, if the queue becomes empty,
+    // the solver will eventually fail in the main loop.
+    // We don't push anything back onto the candidates list here.
   }
 
-  computeNewCandidateWithForceApplied(candidate: Candidate2): Candidate2[] {
-    const { polyLines } = candidate
+  /**
+   * Applies repulsive forces between polylines (segments and vias) and boundary forces
+   * directly modifying the input polyLines array.
+   * Returns true if any mPoint was moved, false otherwise.
+   */
+  applyForcesToPolyLines(polyLines: PolyLine2[]): boolean {
     const numPolyLines = polyLines.length
     const FORCE_MAGNITUDE = 0.02 // Tunable parameter for force strength
     const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
@@ -652,35 +683,7 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       // Recompute hash after potential modifications
     }
 
-    // If no points moved significantly, don't generate a redundant neighbor
-    if (!pointsMoved) {
-      // console.log("No points moved significantly, skipping neighbor generation.");
-      return []
-    }
-
-    const neighborHash = computeCandidateHash(newPolyLines, this.cellSize)
-
-    // Avoid adding redundant states or cycles
-    if (this.queuedCandidateHashes.has(neighborHash)) {
-      // console.log("Neighbor hash already queued, skipping.");
-      return []
-    }
-
-    const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
-    const g = this.computeG(newPolyLines, candidate) // G might represent something else now, e.g., total displacement or just step count
-    const h = this.computeH({ minGaps, forces })
-    const newNeighbor: Candidate2 = {
-      polyLines: newPolyLines,
-      g,
-      h,
-      f: g + h,
-      minGaps,
-      viaCount: candidate.viaCount,
-    }
-
-    this.queuedCandidateHashes.add(neighborHash)
-    // console.log(`Generated neighbor ${neighborHash.substring(0, 10)}... f=${newNeighbor.f.toFixed(3)}`);
-
-    return [newNeighbor]
+    // Return whether any points actually moved
+    return pointsMoved
   }
 }
