@@ -660,22 +660,24 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
    */
   computeG(polyLines: PolyLine[], candidate: Candidate) {
     // return 0
-    return candidate.g + 0.001
+    return candidate.g + 0.000001
   }
 
   /**
-   * h is the heuristic cost of each candidate. We consider the number of
-   * intersections of the polyline and proximity to vias.
+   * h is the heuristic cost of each candidate.
    */
   computeH(candidate: Pick<Candidate, "minGaps" | "forces">) {
-    let h = 0
-    for (const minGap of candidate.minGaps) {
-      h -= minGap
+    // Compute the total force magnitude
+    let totalForceMagnitude = 0
+    console.log(candidate.forces)
+    for (const force of candidate.forces ?? []) {
+      for (const forceMap of force) {
+        for (const force of forceMap.values()) {
+          totalForceMagnitude += force.fx * force.fx + force.fy * force.fy
+        }
+      }
     }
-    const avgMinGap =
-      candidate.minGaps.reduce((acc, minGap) => acc + minGap, 0) /
-      candidate.minGaps.length
-    return -avgMinGap * 0.1
+    return -totalForceMagnitude
   }
 
   /**
