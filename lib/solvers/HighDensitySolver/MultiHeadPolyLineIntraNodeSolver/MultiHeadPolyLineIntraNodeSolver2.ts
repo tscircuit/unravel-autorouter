@@ -1,0 +1,1141 @@
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
+import { BaseSolver } from "lib/solvers/BaseSolver"
+import { HighDensityHyperParameters } from "../HighDensityHyperParameters"
+import { NodeWithPortPoints } from "lib/types/high-density-types"
+import { GraphicsObject } from "graphics-debug"
+import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
+import { safeTransparentize } from "lib/solvers/colors"
+import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
+import {
+  distance,
+  doSegmentsIntersect,
+  pointToSegmentDistance,
+  segmentToSegmentMinDistance,
+  pointToSegmentClosestPoint,
+  distSq,
+} from "@tscircuit/math-utils"
+import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
+import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
+import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
+import { PolyLine, MHPoint, Candidate } from "./types"
+import {
+  computePolyLineHash,
+  computeCandidateHash,
+  createPolyLineWithHash,
+} from "./hashing"
+import { constructMiddlePointsWithViaPositions } from "./constructMiddlePointsWithViaPositions"
+import { computeViaCountVariants } from "./computeViaCountVariants"
+
+export const clonePolyLinesWithMutablePoint = (
+  polyLines: PolyLine[],
+  lineIndex: number,
+  mPointIndex: number,
+): [PolyLine[], MHPoint] => {
+  const mutablePoint = {
+    x: polyLines[lineIndex].mPoints[mPointIndex].x,
+    y: polyLines[lineIndex].mPoints[mPointIndex].y,
+    xMoves: polyLines[lineIndex].mPoints[mPointIndex].xMoves,
+    yMoves: polyLines[lineIndex].mPoints[mPointIndex].yMoves,
+    z1: polyLines[lineIndex].mPoints[mPointIndex].z1,
+    z2: polyLines[lineIndex].mPoints[mPointIndex].z2,
+  }
+  return [
+    [
+      ...polyLines.slice(0, lineIndex),
+      {
+        ...polyLines[lineIndex],
+        mPoints: [
+          ...polyLines[lineIndex].mPoints.slice(0, mPointIndex),
+          mutablePoint,
+          ...polyLines[lineIndex].mPoints.slice(mPointIndex + 1),
+        ],
+      },
+      ...polyLines.slice(lineIndex + 1),
+    ],
+    mutablePoint,
+  ]
+}
+
+export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
+  nodeWithPortPoints: NodeWithPortPoints
+  colorMap: Record<string, string>
+  hyperParameters: Partial<HighDensityHyperParameters>
+  connMap?: ConnectivityMap
+  candidates: Candidate[]
+  bounds: { minX: number; maxX: number; minY: number; maxY: number }
+
+  SEGMENTS_PER_POLYLINE = 3
+
+  cellSize: number
+
+  viaDiameter: number = 0.6
+  obstacleMargin: number = 0.1
+  traceWidth: number = 0.15
+  availableZ: number[] = []
+
+  lastCandidate: Candidate | null = null
+
+  queuedCandidateHashes: Set<string> = new Set()
+
+  maxViaCount: number
+
+  constructor(params: {
+    nodeWithPortPoints: NodeWithPortPoints
+    colorMap?: Record<string, string>
+    hyperParameters?: Partial<HighDensityHyperParameters>
+    connMap?: ConnectivityMap
+  }) {
+    super()
+    this.MAX_ITERATIONS = 1e6
+    this.nodeWithPortPoints = params.nodeWithPortPoints
+    this.colorMap =
+      params.colorMap ??
+      generateColorMapFromNodeWithPortPoints(params.nodeWithPortPoints)
+    this.hyperParameters = params.hyperParameters ?? {}
+    this.connMap = params.connMap
+
+    // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
+    this.cellSize = this.nodeWithPortPoints.width / 1024
+
+    this.candidates = []
+    this.availableZ = this.nodeWithPortPoints.availableZ ?? [0, 1]
+
+    const areaInsideNode =
+      this.nodeWithPortPoints.width * this.nodeWithPortPoints.height
+    const areaPerVia =
+      (this.viaDiameter + this.obstacleMargin * 2 + this.traceWidth / 2) ** 2
+
+    this.maxViaCount = Math.floor(areaInsideNode / areaPerVia)
+
+    // Calculate bounds
+    this.bounds = {
+      minX:
+        this.nodeWithPortPoints.center.x - this.nodeWithPortPoints.width / 2,
+      maxX:
+        this.nodeWithPortPoints.center.x + this.nodeWithPortPoints.width / 2,
+      minY:
+        this.nodeWithPortPoints.center.y - this.nodeWithPortPoints.height / 2,
+      maxY:
+        this.nodeWithPortPoints.center.y + this.nodeWithPortPoints.height / 2,
+    }
+
+    this.setupInitialPolyLines()
+    // TEMPORARY
+    // this.candidates = [this.candidates[29]]
+  }
+
+  /**
+   * minGaps is a list of distances representing the "gap" between segments
+   * on each layer.
+   *
+   * Each minGaps number represents the gap for a polyline pair, for example if
+   * you have 3 polylines, you would have 3 minGaps...
+   *
+   * [ p1 -> p2 , p1 -> p3, p2 -> p3 ]
+   */
+  computeMinGapBtwPolyLines(polyLines: PolyLine[]) {
+    const minGaps = []
+    const polyLineSegmentsByLayer: Array<Map<number, [MHPoint, MHPoint][]>> = []
+    const polyLineVias: Array<MHPoint[]> = []
+    for (let i = 0; i < polyLines.length; i++) {
+      const polyLine = polyLines[i]
+      const path = [polyLine.start, ...polyLine.mPoints, polyLine.end]
+      const segmentsByLayer: Map<number, [MHPoint, MHPoint][]> = new Map(
+        this.availableZ.map((z) => [z, []]),
+      )
+      for (let i = 0; i < path.length - 1; i++) {
+        const segment: [MHPoint, MHPoint] = [path[i], path[i + 1]]
+        segmentsByLayer.get(segment[0].z2)!.push(segment)
+      }
+      polyLineSegmentsByLayer.push(segmentsByLayer)
+      polyLineVias.push(path.filter((p) => p.z1 !== p.z2))
+    }
+
+    for (let i = 0; i < polyLines.length; i++) {
+      const path1SegmentsByLayer = polyLineSegmentsByLayer[i]
+      const path1Vias = polyLineVias[i]
+      // Start j from i + 1 to compare distinct pairs only once
+      for (let j = i + 1; j < polyLines.length; j++) {
+        const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
+        const path2Vias = polyLineVias[j]
+
+        let minGap = 1
+        for (const zLayer of this.availableZ) {
+          const path1Segments = path1SegmentsByLayer.get(zLayer) ?? []
+          const path2Segments = path2SegmentsByLayer.get(zLayer) ?? []
+
+          // SEGMENT TO SEGMENT DISTANCES
+          for (const segment1 of path1Segments) {
+            for (const segment2 of path2Segments) {
+              minGap = Math.min(
+                minGap,
+                segmentToSegmentMinDistance(
+                  segment1[0],
+                  segment1[1],
+                  segment2[0],
+                  segment2[1],
+                ) - this.traceWidth,
+              )
+            }
+          }
+
+          // VIA TO SEGMENT DISTANCES
+          for (const via of path1Vias) {
+            for (const segment of path2Segments) {
+              minGap = Math.min(
+                minGap,
+                pointToSegmentDistance(via, segment[0], segment[1]) -
+                  this.traceWidth / 2 -
+                  this.viaDiameter / 2,
+              )
+            }
+          }
+          for (const via of path2Vias) {
+            for (const segment of path1Segments) {
+              minGap = Math.min(
+                minGap,
+                pointToSegmentDistance(via, segment[0], segment[1]) -
+                  this.traceWidth / 2 -
+                  this.viaDiameter / 2,
+              )
+            }
+          }
+
+          // VIA TO VIA DISTANCES
+          for (const via1 of path1Vias) {
+            for (const via2 of path2Vias) {
+              minGap = Math.min(minGap, distance(via1, via2) - this.viaDiameter)
+            }
+          }
+        }
+        minGaps.push(minGap)
+      }
+    }
+    return minGaps
+  }
+
+  /**
+   * Unlike most A* solvers with one initial candidate, we create a candidate
+   * for each configuration of vias we want to test, this way when computing
+   * neighbors we never consider changing layers
+   */
+  setupInitialPolyLines() {
+    const portPairs: Map<string, { start: MHPoint; end: MHPoint }> = new Map()
+    this.nodeWithPortPoints.portPoints.forEach((portPoint) => {
+      if (!portPairs.has(portPoint.connectionName)) {
+        portPairs.set(portPoint.connectionName, {
+          start: {
+            ...portPoint,
+            z1: portPoint.z ?? 0,
+            z2: portPoint.z ?? 0,
+            xMoves: 0,
+            yMoves: 0,
+          },
+          end: null as any,
+        })
+      } else {
+        portPairs.get(portPoint.connectionName)!.end = {
+          ...portPoint,
+          z1: portPoint.z ?? 0,
+          z2: portPoint.z ?? 0,
+          xMoves: 0,
+          yMoves: 0,
+        }
+      }
+    })
+
+    const portPairsEntries = Array.from(portPairs.entries())
+
+    const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
+      this.nodeWithPortPoints,
+    )
+
+    const viaCountVariants = computeViaCountVariants(
+      portPairsEntries,
+      this.SEGMENTS_PER_POLYLINE,
+      this.maxViaCount,
+      numSameLayerCrossings * 2 + numTransitions,
+    )
+
+    const possibleViaPositions = getPossibleInitialViaPositions({
+      portPairsEntries,
+      viaCountVariants,
+      bounds: this.bounds,
+    })
+
+    const possibleViaPositionsWithReorderings = []
+    for (const { viaCountVariant, viaPositions } of possibleViaPositions) {
+      const viaPositionsWithReorderings = getEveryPossibleOrdering(viaPositions)
+      for (const viaPositions of viaPositionsWithReorderings) {
+        possibleViaPositionsWithReorderings.push({
+          viaCountVariant,
+          viaPositions,
+        })
+      }
+    }
+
+    // Convert the portPairs into PolyLines for the initial candidate
+    for (const {
+      viaPositions,
+      viaCountVariant,
+    } of possibleViaPositionsWithReorderings) {
+      const polyLines: PolyLine[] = []
+      let viaPositionIndicesUsed = 0
+      for (let i = 0; i < portPairsEntries.length; i++) {
+        const [connectionName, portPair] = portPairsEntries[i]
+        const viaCount = viaCountVariant[i]
+        const viaPositionsForPolyline = viaPositions.slice(
+          viaPositionIndicesUsed,
+          viaPositionIndicesUsed + viaCount,
+        )
+        const middlePoints = constructMiddlePointsWithViaPositions({
+          start: portPair.start,
+          end: portPair.end,
+          segmentsPerPolyline: this.SEGMENTS_PER_POLYLINE,
+          viaPositions: viaPositionsForPolyline,
+          viaCount,
+          availableZ: this.availableZ,
+        })
+        viaPositionIndicesUsed += viaCount
+
+        polyLines.push(
+          createPolyLineWithHash(
+            {
+              connectionName,
+              start: portPair.start,
+              end: portPair.end,
+              mPoints: middlePoints,
+            },
+            this.cellSize,
+          ),
+        )
+      }
+      const minGaps = this.computeMinGapBtwPolyLines(polyLines)
+
+      // TODO: Create multiple initial candidates based on viaCountVariants
+      // For now, just push the one candidate
+      this.candidates.push({
+        polyLines,
+        hash: computeCandidateHash(polyLines, this.cellSize),
+        g: 0,
+        h: this.computeH({ minGaps, forces: [] }),
+        f: 0,
+        viaCount: viaCountVariant.reduce((acc, count) => acc + count, 0),
+        minGaps,
+      })
+    }
+  }
+
+  /**
+   * g is the cost of each candidate, we consider complexity (deviation from
+   * the straight line path for # of operations). This means g increases by
+   * 1 from the parent for each operation
+   */
+  computeG(polyLines: PolyLine[], candidate: Candidate) {
+    // return 0
+    return candidate.g + 0.000005 + candidate.viaCount * 0.000005 * 100
+  }
+
+  /**
+   * h is the heuristic cost of each candidate.
+   */
+  computeH(candidate: Pick<Candidate, "minGaps" | "forces">) {
+    // Compute the total force magnitude
+    let totalForceMagnitude = 0
+    for (const force of candidate.forces ?? []) {
+      for (const forceMap of force) {
+        for (const force of forceMap.values()) {
+          totalForceMagnitude += force.fx * force.fx + force.fy * force.fy
+        }
+      }
+    }
+    return totalForceMagnitude
+  }
+
+  getNeighbors(candidate: Candidate): Candidate[] {
+    const { polyLines } = candidate
+    const numPolyLines = polyLines.length
+    const FORCE_MAGNITUDE = 0.02 // Tunable parameter for force strength
+    const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
+    const INSIDE_VIA_FORCE_MULTIPLIER = 4.0 // Extra multiplier when inside a via
+    const SEGMENT_FORCE_MULTIPLIER = 1.0
+    // const FORCE_DECAY_RATE = 1.0 / this.cellSize // Controls how quickly force falls off with distance (adjust as needed)
+    const FORCE_DECAY_RATE = 6
+    const BOUNDARY_FORCE_STRENGTH = 0.008 // How strongly points are pushed back into bounds
+    const EPSILON = 1e-6 // To avoid division by zero
+
+    // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<sourceId, {fx, fy}>
+    const forces: Array<Array<Map<string, { fx: number; fy: number }>>> =
+      Array.from({ length: numPolyLines }, (_, i) =>
+        Array.from({ length: polyLines[i].mPoints.length }, () => new Map()),
+      )
+
+    // Helper to add a specific force contribution to an mPoint if it exists
+    const addForceContribution = (
+      targetLineIndex: number,
+      targetPointIndexInFullPath: number, // Index in [start, ...mPoints, end]
+      sourceId: string, // Identifier for the source of the force
+      fx: number,
+      fy: number,
+    ) => {
+      // Only apply force if the target point is an mPoint (not start or end)
+      if (
+        targetPointIndexInFullPath > 0 &&
+        targetPointIndexInFullPath <
+          polyLines[targetLineIndex].mPoints.length + 1
+      ) {
+        const targetMPointIndex = targetPointIndexInFullPath - 1
+        const forceMap = forces[targetLineIndex][targetMPointIndex]
+        const existingForce = forceMap.get(sourceId) || { fx: 0, fy: 0 }
+        forceMap.set(sourceId, {
+          fx: existingForce.fx + fx,
+          fy: existingForce.fy + fy,
+        })
+      }
+    }
+
+    // 2. Calculate forces between all pairs of polylines
+    for (let i = 0; i < numPolyLines; i++) {
+      for (let j = i + 1; j < numPolyLines; j++) {
+        const polyLine1 = polyLines[i]
+        const polyLine2 = polyLines[j]
+
+        const points1 = [polyLine1.start, ...polyLine1.mPoints, polyLine1.end]
+        const points2 = [polyLine2.start, ...polyLine2.mPoints, polyLine2.end]
+
+        // Extract segments and vias for easier processing
+        const segments1: Array<{
+          p1: MHPoint
+          p2: MHPoint
+          layer: number
+          p1Idx: number
+          p2Idx: number
+        }> = []
+        const vias1: Array<{
+          point: MHPoint
+          layers: number[]
+          index: number
+        }> = []
+        for (let k = 0; k < points1.length - 1; k++) {
+          segments1.push({
+            p1: points1[k],
+            p2: points1[k + 1],
+            layer: points1[k].z2,
+            p1Idx: k,
+            p2Idx: k + 1,
+          })
+        }
+        points1.forEach((p, k) => {
+          if (p.z1 !== p.z2)
+            vias1.push({ point: p, layers: [p.z1, p.z2], index: k })
+        })
+
+        const segments2: Array<{
+          p1: MHPoint
+          p2: MHPoint
+          layer: number
+          p1Idx: number
+          p2Idx: number
+        }> = []
+        const vias2: Array<{
+          point: MHPoint
+          layers: number[]
+          index: number
+        }> = []
+        for (let k = 0; k < points2.length - 1; k++) {
+          segments2.push({
+            p1: points2[k],
+            p2: points2[k + 1],
+            layer: points2[k].z2,
+            p1Idx: k,
+            p2Idx: k + 1,
+          })
+        }
+        points2.forEach((p, k) => {
+          if (p.z1 !== p.z2)
+            vias2.push({ point: p, layers: [p.z1, p.z2], index: k })
+        })
+
+        // --- Interaction Calculations ---
+
+        // a) Segment <-> Segment
+        for (const seg1 of segments1) {
+          for (const seg2 of segments2) {
+            if (seg1.layer === seg2.layer) {
+              const minDist = segmentToSegmentMinDistance(
+                seg1.p1,
+                seg1.p2,
+                seg2.p1,
+                seg2.p2,
+              )
+              if (minDist < EPSILON) continue // Avoid division by zero if segments overlap significantly
+
+              // Simple repulsive force based on center-to-center distance for now
+              // TODO: A more sophisticated segment-segment force might be needed
+              const center1 = {
+                x: (seg1.p1.x + seg1.p2.x) / 2,
+                y: (seg1.p1.y + seg1.p2.y) / 2,
+              }
+              const center2 = {
+                x: (seg2.p1.x + seg2.p2.x) / 2,
+                y: (seg2.p1.y + seg2.p2.y) / 2,
+              }
+              const dx = center1.x - center2.x
+              const dy = center1.y - center2.y
+              const dSq = dx * dx + dy * dy
+
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                // Exponential falloff: force = base * exp(-decay_rate * distance)
+                const forceMag =
+                  SEGMENT_FORCE_MULTIPLIER *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * dist)
+                const fx = (dx / dist) * forceMag
+                const fy = (dy / dist) * forceMag
+
+                // Add force contributions: seg2 (j) applies force to seg1 (i), seg1 (i) applies force to seg2 (j)
+                const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
+                const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
+
+                // Force from seg2 onto i (applied to endpoints of seg1)
+                addForceContribution(
+                  i,
+                  seg1.p1Idx,
+                  sourceIdSeg2,
+                  fx / 2,
+                  fy / 2,
+                )
+                addForceContribution(
+                  i,
+                  seg1.p2Idx,
+                  sourceIdSeg2,
+                  fx / 2,
+                  fy / 2,
+                )
+                // Force from seg1 onto j (applied to endpoints of seg2) - opposite direction
+                addForceContribution(
+                  j,
+                  seg2.p1Idx,
+                  sourceIdSeg1,
+                  -fx / 2,
+                  -fy / 2,
+                )
+                addForceContribution(
+                  j,
+                  seg2.p2Idx,
+                  sourceIdSeg1,
+                  -fx / 2,
+                  -fy / 2,
+                )
+              }
+            }
+          }
+        }
+
+        // b) Via <-> Segment
+        for (const via1 of vias1) {
+          for (const seg2 of segments2) {
+            if (via1.layers.includes(seg2.layer)) {
+              const closestPointOnSeg = pointToSegmentClosestPoint(
+                via1.point,
+                seg2.p1,
+                seg2.p2,
+              )
+              const dx = via1.point.x - closestPointOnSeg.x
+              const dy = via1.point.y - closestPointOnSeg.y
+              const dSq = dx * dx + dy * dy
+
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                let forceMultiplier = VIA_FORCE_MULTIPLIER
+                let effectiveDistance = dist
+
+                if (dist < this.viaDiameter / 2) {
+                  // Point is inside the via radius
+                  forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+                  // Use distance from center directly for decay calculation
+                  effectiveDistance = Math.max(EPSILON, dist)
+                } else {
+                  // Point is outside the via radius
+                  // Calculate distance from the edge
+                  effectiveDistance = Math.max(
+                    EPSILON,
+                    dist - this.viaDiameter / 2,
+                  )
+                }
+
+                // Force applied ONLY to the via (i) by the segment (j) - Exponential falloff
+                const forceMag =
+                  forceMultiplier *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
+                const fx_j_on_i = (dx / dist) * forceMag // Direction is still based on center-to-point vector
+                const fy_j_on_i = (dy / dist) * forceMag
+                const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
+                addForceContribution(
+                  i,
+                  via1.index,
+                  sourceIdSeg2,
+                  fx_j_on_i,
+                  fy_j_on_i,
+                )
+                // Force from via1 (i) onto seg2 (j) - Apply opposite force to segment endpoints
+                const sourceIdVia1 = `via:${i}:${via1.index}`
+                addForceContribution(
+                  j,
+                  seg2.p1Idx,
+                  sourceIdVia1,
+                  -fx_j_on_i / 2,
+                  -fy_j_on_i / 2,
+                )
+                addForceContribution(
+                  j,
+                  seg2.p2Idx,
+                  sourceIdVia1,
+                  -fx_j_on_i / 2,
+                  -fy_j_on_i / 2,
+                )
+              }
+            }
+          }
+        }
+        for (const via2 of vias2) {
+          for (const seg1 of segments1) {
+            if (via2.layers.includes(seg1.layer)) {
+              const closestPointOnSeg = pointToSegmentClosestPoint(
+                via2.point,
+                seg1.p1,
+                seg1.p2,
+              )
+              const dx = via2.point.x - closestPointOnSeg.x
+              const dy = via2.point.y - closestPointOnSeg.y
+              const dSq = dx * dx + dy * dy
+
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                let forceMultiplier = VIA_FORCE_MULTIPLIER
+                let effectiveDistance = dist
+
+                if (dist < this.viaDiameter / 2) {
+                  // Point is inside the via radius
+                  forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+                  // Use distance from center directly for decay calculation
+                  effectiveDistance = Math.max(EPSILON, dist)
+                } else {
+                  // Point is outside the via radius
+                  // Calculate distance from the edge
+                  effectiveDistance = Math.max(
+                    EPSILON,
+                    dist - this.viaDiameter / 2,
+                  )
+                }
+
+                // Force applied ONLY to the via (j) by the segment (i) - Exponential falloff
+                const forceMag =
+                  forceMultiplier *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
+                const fx_i_on_j = (dx / dist) * forceMag // Direction is still based on center-to-point vector
+                const fy_i_on_j = (dy / dist) * forceMag
+                const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
+                addForceContribution(
+                  j,
+                  via2.index,
+                  sourceIdSeg1,
+                  fx_i_on_j,
+                  fy_i_on_j,
+                )
+                // Force from via2 (j) onto seg1 (i) - Apply opposite force to segment endpoints
+                const sourceIdVia2 = `via:${j}:${via2.index}`
+                addForceContribution(
+                  i,
+                  seg1.p1Idx,
+                  sourceIdVia2,
+                  -fx_i_on_j / 2,
+                  -fy_i_on_j / 2,
+                )
+                addForceContribution(
+                  i,
+                  seg1.p2Idx,
+                  sourceIdVia2,
+                  -fx_i_on_j / 2,
+                  -fy_i_on_j / 2,
+                )
+              }
+            }
+          }
+        }
+
+        // c) Via <-> Via
+        for (const via1 of vias1) {
+          for (const via2 of vias2) {
+            const commonLayers = via1.layers.filter((z) =>
+              via2.layers.includes(z),
+            )
+            if (commonLayers.length > 0) {
+              const dx = via1.point.x - via2.point.x
+              const dy = via1.point.y - via2.point.y
+              const dSq = dx * dx + dy * dy
+
+              if (dSq > EPSILON) {
+                const dist = Math.sqrt(dSq)
+                let forceMultiplier = VIA_FORCE_MULTIPLIER
+                let effectiveDistance = dist
+
+                if (dist < this.viaDiameter) {
+                  // Vias overlap
+                  forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+                  // Use center-to-center distance directly for decay calculation
+                  effectiveDistance = Math.max(EPSILON, dist)
+                } else {
+                  // Vias do not overlap
+                  // Calculate distance between edges
+                  effectiveDistance = Math.max(EPSILON, dist - this.viaDiameter)
+                }
+
+                // Exponential falloff
+                const forceMag =
+                  forceMultiplier *
+                  FORCE_MAGNITUDE *
+                  Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
+                const fx_j_on_i = (dx / dist) * forceMag // Force applied by via2 (j) onto via1 (i)
+                const fy_j_on_i = (dy / dist) * forceMag
+                const sourceIdVia2 = `via:${j}:${via2.index}`
+                const sourceIdVia1 = `via:${i}:${via1.index}`
+                addForceContribution(
+                  i,
+                  via1.index,
+                  sourceIdVia2,
+                  fx_j_on_i,
+                  fy_j_on_i,
+                )
+                addForceContribution(
+                  j,
+                  via2.index,
+                  sourceIdVia1,
+                  -fx_j_on_i,
+                  -fy_j_on_i,
+                ) // Force applied by via1 (i) onto via2 (j)
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 2.5 Calculate forces between vias WITHIN the SAME polyline
+    for (let i = 0; i < numPolyLines; i++) {
+      const polyLine = polyLines[i]
+      const points = [polyLine.start, ...polyLine.mPoints, polyLine.end]
+      const vias: Array<{ point: MHPoint; layers: number[]; index: number }> =
+        []
+      points.forEach((p, k) => {
+        if (p.z1 !== p.z2)
+          vias.push({ point: p, layers: [p.z1, p.z2], index: k })
+      })
+
+      if (vias.length < 2) continue // Need at least two vias to interact
+
+      for (let v1Idx = 0; v1Idx < vias.length; v1Idx++) {
+        for (let v2Idx = v1Idx + 1; v2Idx < vias.length; v2Idx++) {
+          const via1 = vias[v1Idx]
+          const via2 = vias[v2Idx]
+
+          // Vias on the same polyline always interact (repel) regardless of layer
+          const dx = via1.point.x - via2.point.x
+          const dy = via1.point.y - via2.point.y
+          const dSq = dx * dx + dy * dy
+
+          if (dSq > EPSILON) {
+            const dist = Math.sqrt(dSq)
+            let forceMultiplier = VIA_FORCE_MULTIPLIER
+            let effectiveDistance = dist
+
+            if (dist < this.viaDiameter) {
+              // Vias overlap
+              forceMultiplier *= INSIDE_VIA_FORCE_MULTIPLIER // Apply stronger force
+              effectiveDistance = Math.max(EPSILON, dist)
+            } else {
+              // Vias do not overlap
+              effectiveDistance = Math.max(EPSILON, dist - this.viaDiameter)
+            }
+
+            // Exponential falloff
+            const forceMag =
+              forceMultiplier *
+              FORCE_MAGNITUDE *
+              Math.exp(-FORCE_DECAY_RATE * effectiveDistance)
+            const fx_2_on_1 = (dx / dist) * forceMag // Force applied by via2 onto via1
+            const fy_2_on_1 = (dy / dist) * forceMag
+            const sourceIdVia2 = `via:${i}:${via2.index}` // Source is via2 on line i
+            const sourceIdVia1 = `via:${i}:${via1.index}` // Source is via1 on line i
+
+            // Apply force from via2 onto via1 (both on line i)
+            addForceContribution(
+              i,
+              via1.index,
+              sourceIdVia2,
+              fx_2_on_1,
+              fy_2_on_1,
+            )
+            // Apply force from via1 onto via2 (both on line i) - opposite direction
+            addForceContribution(
+              i,
+              via2.index,
+              sourceIdVia1,
+              -fx_2_on_1,
+              -fy_2_on_1,
+            )
+          }
+        }
+      }
+    }
+
+    // 3. Apply forces and create the new neighbor candidate
+    // Deep clone polylines to modify them
+    const newPolyLines = polyLines.map((pl) => ({
+      ...pl,
+      mPoints: pl.mPoints.map((mp) => ({ ...mp })),
+    }))
+
+    let pointsMoved = false
+    for (let i = 0; i < numPolyLines; i++) {
+      for (let k = 0; k < newPolyLines[i].mPoints.length; k++) {
+        const mPoint = newPolyLines[i].mPoints[k]
+        const forceMap = forces[i][k]
+
+        // Calculate the net force by summing contributions
+        const netForce = { fx: 0, fy: 0 }
+        for (const force of forceMap.values()) {
+          netForce.fx += force.fx
+          netForce.fy += force.fy
+        }
+
+        const isVia = mPoint.z1 !== mPoint.z2
+        let newX = mPoint.x + netForce.fx
+        let newY = mPoint.y + netForce.fy
+
+        if (isVia) {
+          // Apply exponential boundary force ONLY to vias
+          const radius = this.viaDiameter / 2
+          let boundaryForceX = 0
+          let boundaryForceY = 0
+
+          // Use a margin appropriate for vias pushing away from the edge
+          const forceMargin = this.viaDiameter / 2 // Or perhaps obstacleMargin?
+
+          const minX = this.bounds.minX + forceMargin
+          const maxX = this.bounds.maxX - forceMargin
+          const minY = this.bounds.minY + forceMargin
+          const maxY = this.bounds.maxY - forceMargin
+
+          const distOutsideMinX = minX + radius - mPoint.x // How far the via *center* is past the allowed edge
+          const distOutsideMaxX = mPoint.x - (maxX - radius)
+          const distOutsideMinY = minY + radius - mPoint.y
+          const distOutsideMaxY = mPoint.y - (maxY - radius)
+
+          if (distOutsideMinX > 0) {
+            boundaryForceX =
+              BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMinX / (this.obstacleMargin * 2)) - 1)
+          } else if (distOutsideMaxX > 0) {
+            boundaryForceX =
+              -BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMaxX / (this.obstacleMargin * 2)) - 1)
+          }
+
+          if (distOutsideMinY > 0) {
+            boundaryForceY =
+              BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMinY / (this.obstacleMargin * 2)) - 1)
+          } else if (distOutsideMaxY > 0) {
+            boundaryForceY =
+              -BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMaxY / (this.obstacleMargin * 2)) - 1)
+          }
+
+          // Add boundary force to net force and recalculate potential position
+          netForce.fx += boundaryForceX
+          netForce.fy += boundaryForceY
+          newX = mPoint.x + netForce.fx
+          newY = mPoint.y + netForce.fy
+
+          // Optional: Clamp via position as a hard stop if force isn't enough?
+          // newX = Math.max(this.bounds.minX + radius, Math.min(this.bounds.maxX - radius, newX));
+          // newY = Math.max(this.bounds.minY + radius, Math.min(this.bounds.maxY - radius, newY));
+        } else {
+          // For regular points, CLAMP position to bounds + traceWidth/2 padding
+          const padding = this.traceWidth / 2
+          newX = Math.max(
+            this.bounds.minX + padding,
+            Math.min(this.bounds.maxX - padding, newX),
+          )
+          newY = Math.max(
+            this.bounds.minY + padding,
+            Math.min(this.bounds.maxY - padding, newY),
+          )
+        }
+
+        // Dampen force? Add friction? (Optional) - Applied before clamping/boundary force
+
+        if (
+          Math.abs(netForce.fx) < EPSILON &&
+          Math.abs(netForce.fy) < EPSILON
+        ) {
+          continue // No significant net force, skip update
+        }
+
+        // Limit maximum movement per step? (Optional)
+        // const maxMove = this.cellSize;
+        // const forceMag = Math.sqrt(netForce.fx * netForce.fx + netForce.fy * netForce.fy);
+        // Update position if moved significantly from original position
+        // Use the calculated (and potentially clamped/boundary-forced) newX, newY
+        if (
+          Math.abs(mPoint.x - newX) > EPSILON ||
+          Math.abs(mPoint.y - newY) > EPSILON
+        ) {
+          mPoint.x = newX
+          mPoint.y = newY
+          // Reset moves count as position is recalculated based on force, not discrete steps
+          mPoint.xMoves = 0 // Or maybe keep track of total displacement?
+          mPoint.yMoves = 0
+          pointsMoved = true
+        }
+      }
+      // Recompute hash after potential modifications
+      newPolyLines[i].hash = computePolyLineHash(newPolyLines[i], this.cellSize)
+    }
+
+    // If no points moved significantly, don't generate a redundant neighbor
+    if (!pointsMoved) {
+      // console.log("No points moved significantly, skipping neighbor generation.");
+      return []
+    }
+
+    const neighborHash = computeCandidateHash(newPolyLines, this.cellSize)
+
+    // Avoid adding redundant states or cycles
+    if (this.queuedCandidateHashes.has(neighborHash)) {
+      // console.log("Neighbor hash already queued, skipping.");
+      return []
+    }
+
+    const minGaps = this.computeMinGapBtwPolyLines(newPolyLines)
+    const g = this.computeG(newPolyLines, candidate) // G might represent something else now, e.g., total displacement or just step count
+    const h = this.computeH({ minGaps, forces })
+    const newNeighbor: Candidate = {
+      polyLines: newPolyLines,
+      g,
+      h,
+      f: g + h,
+      hash: neighborHash,
+      minGaps,
+      forces: forces, // Store the calculated forces
+      viaCount: candidate.viaCount,
+    }
+
+    this.queuedCandidateHashes.add(neighborHash)
+    // console.log(`Generated neighbor ${neighborHash.substring(0, 10)}... f=${newNeighbor.f.toFixed(3)}`);
+
+    return [newNeighbor]
+  }
+
+  _step() {
+    this.candidates.sort((a, b) => a.f - b.f)
+    const currentCandidate = this.candidates.shift()!
+    if (!currentCandidate) {
+      this.failed = true
+      return
+    }
+    this.lastCandidate = currentCandidate
+    if (
+      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
+      // All points are within bounds
+      // currentCandidate.polyLines.every((polyLine) => {
+      //   return polyLine.mPoints.every((mPoint) => {
+      //     return (
+      //       mPoint.x >= this.bounds.minX &&
+      //       mPoint.x <= this.bounds.maxX &&
+      //       mPoint.y >= this.bounds.minY &&
+      //       mPoint.y <= this.bounds.maxY
+      //     )
+      //   })
+      // })
+    ) {
+      this.solved = true
+      return
+    }
+    if (!currentCandidate) {
+      this.failed = true
+      return
+    }
+    this.candidates.push(...this.getNeighbors(currentCandidate))
+  }
+
+  visualize(): GraphicsObject {
+    const graphicsObject: Required<GraphicsObject> = {
+      points: [],
+      lines: [],
+      rects: [],
+      circles: [],
+      coordinateSystem: "cartesian",
+      title: "MultiHeadPolyLineIntraNodeSolver Visualization",
+    }
+
+    // Draw node bounds
+    graphicsObject.lines.push({
+      points: [
+        { x: this.bounds.minX, y: this.bounds.minY },
+        { x: this.bounds.maxX, y: this.bounds.minY },
+        { x: this.bounds.maxX, y: this.bounds.maxY },
+        { x: this.bounds.minX, y: this.bounds.maxY },
+        { x: this.bounds.minX, y: this.bounds.minY },
+      ],
+      strokeColor: "gray",
+    })
+
+    // Draw input port points
+    for (const pt of this.nodeWithPortPoints.portPoints) {
+      graphicsObject.points.push({
+        x: pt.x,
+        y: pt.y,
+        // Assuming port points represent a single layer entry/exit, use z or default to 0
+        label: `${pt.connectionName} (Port z=${pt.z ?? 0})`,
+        color: this.colorMap[pt.connectionName] ?? "blue",
+      })
+    }
+
+    // Visualize the polylines from the last evaluated candidate (or initial if none evaluated)
+    const candidateToVisualize = this.lastCandidate ?? this.candidates[0]
+    if (candidateToVisualize) {
+      candidateToVisualize.polyLines.forEach((polyLine, polyLineIndex) => {
+        const color = this.colorMap[polyLine.connectionName] ?? "purple"
+        const pointsInPolyline = [
+          polyLine.start,
+          ...polyLine.mPoints,
+          polyLine.end,
+        ]
+
+        // Draw segments of the polyline
+        for (let i = 0; i < pointsInPolyline.length - 1; i++) {
+          const p1 = pointsInPolyline[i] // Point where segment starts (or via ends)
+          const p2 = pointsInPolyline[i + 1] // Point where segment ends (or via starts)
+
+          // A segment exists between p1 and p2 on layer p1.z2 (layer after p1's potential via)
+          // which should be the same as p2.z1 (layer before p2's potential via)
+          // If p1.z2 !== p2.z1, something is wrong in the data structure.
+          const segmentLayer = p1.z2
+          const isLayer0 = segmentLayer === 0
+          const segmentColor = isLayer0 ? color : safeTransparentize(color, 0.5)
+
+          graphicsObject.lines.push({
+            points: [p1, p2],
+            strokeColor: segmentColor,
+            strokeWidth: this.traceWidth, // TODO: Use actual trace thickness from HighDensityRoute?
+            strokeDash: !isLayer0 ? "5,5" : undefined, // Dashed for layers > 0
+            label: `${polyLine.connectionName} segment (z=${segmentLayer})`,
+          })
+        }
+
+        // Draw points (start, mPoints, end) and Vias
+        pointsInPolyline.forEach((point, pointIndex) => {
+          const isVia = point.z1 !== point.z2
+          const pointLayer = point.z1 // Layer before potential via
+          const isMPoint =
+            pointIndex > 0 && pointIndex < pointsInPolyline.length - 1
+
+          let label = ""
+          let forceLabel = ""
+
+          if (isMPoint) {
+            const mPointIndex = pointIndex - 1
+            const forceMap =
+              candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
+
+            if (forceMap && forceMap.size > 0) {
+              const netForce = { fx: 0, fy: 0 }
+              forceMap.forEach((force, sourceId) => {
+                netForce.fx += force.fx
+                netForce.fy += force.fy
+
+                if (Math.abs(force.fx) > 1e-6 || Math.abs(force.fy) > 1e-6) {
+                  const parts = sourceId.split(":")
+                  const sourceType = parts[0] // "via" or "seg"
+                  const applyingLineIndex = parseInt(parts[1], 10)
+                  const applyingPolyline =
+                    candidateToVisualize.polyLines[applyingLineIndex]
+                  const applyingColor =
+                    this.colorMap[applyingPolyline.connectionName] ?? "gray"
+                  const forceScale = 20 // Adjust scale for visibility
+                  const forceEndPoint = {
+                    x: point.x + force.fx * forceScale,
+                    y: point.y + force.fy * forceScale,
+                  }
+
+                  let sourceLabel = applyingPolyline.connectionName
+                  if (sourceType === "via") {
+                    const pointIdx = parseInt(parts[2], 10)
+                    sourceLabel += ` Via ${pointIdx}`
+                  } else if (sourceType === "seg") {
+                    const p1Idx = parseInt(parts[2], 10)
+                    const p2Idx = parseInt(parts[3], 10)
+                    sourceLabel += ` Seg ${p1Idx}-${p2Idx}`
+                  }
+
+                  graphicsObject.lines.push({
+                    points: [point, forceEndPoint],
+                    strokeColor: applyingColor, // Color by applying polyline
+                    strokeWidth: 0.02,
+                    strokeDash: "2,2", // Dashed line for force
+                    label: `Force by ${sourceLabel} on ${polyLine.connectionName} mPoint ${mPointIndex}`,
+                  })
+                }
+              })
+              // Update the label to show the net force
+              if (
+                Math.abs(netForce.fx) > 1e-6 ||
+                Math.abs(netForce.fy) > 1e-6
+              ) {
+                forceLabel = `\nNet Force: (${netForce.fx.toFixed(3)}, ${netForce.fy.toFixed(3)})`
+              }
+            }
+          }
+
+          if (isVia) {
+            // Draw Via
+            label = `Via (${polyLine.connectionName} z=${point.z1} -> z=${point.z2})${forceLabel}`
+            graphicsObject.circles.push({
+              center: point,
+              radius: this.viaDiameter / 2,
+              fill: safeTransparentize(color, 0.5), // Distinct Via color
+              label: label,
+            })
+          } else {
+            // Draw regular point (only draw mPoints for clarity, start/end are ports)
+            if (isMPoint) {
+              const isLayer0 = pointLayer === 0
+              // Regular mPoint (not a via)
+              // const isLayer0 = pointLayer === 0 // Removed duplicate declaration
+              const pointColor = isLayer0
+                ? color
+                : safeTransparentize(color, 0.5)
+              label = `mPoint (${polyLine.connectionName} z=${pointLayer})${forceLabel}`
+
+              // Draw the circle for the mPoint itself
+              graphicsObject.circles.push({
+                center: point,
+                radius: this.cellSize / 8, // Smaller circle for mPoints
+                fill: pointColor,
+                label: label,
+              })
+            }
+            // Start/End points are visualized by the port points loop earlier
+          }
+        })
+      })
+    }
+
+    return graphicsObject
+  }
+}
