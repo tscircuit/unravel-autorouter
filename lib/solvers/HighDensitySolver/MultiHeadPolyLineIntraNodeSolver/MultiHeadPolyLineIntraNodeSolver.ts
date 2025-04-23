@@ -1001,49 +1001,72 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           netForce.fy += force.fy
         }
 
-        // Calculate boundary force
         const isVia = mPoint.z1 !== mPoint.z2
-        const radius = isVia ? this.viaDiameter / 2 : this.traceWidth / 2
-        let boundaryForceX = 0
-        let boundaryForceY = 0
+        let newX = mPoint.x + netForce.fx
+        let newY = mPoint.y + netForce.fy
 
-        const forceMargin = this.viaDiameter / 2
+        if (isVia) {
+          // Apply exponential boundary force ONLY to vias
+          const radius = this.viaDiameter / 2
+          let boundaryForceX = 0
+          let boundaryForceY = 0
 
-        const minX = this.bounds.minX + forceMargin
-        const maxX = this.bounds.maxX - forceMargin
-        const minY = this.bounds.minY + forceMargin
-        const maxY = this.bounds.maxY - forceMargin
+          // Use a margin appropriate for vias pushing away from the edge
+          const forceMargin = this.viaDiameter / 2 // Or perhaps obstacleMargin?
 
-        const distOutsideMinX = minX + radius - mPoint.x
-        const distOutsideMaxX = mPoint.x - (maxX - radius)
-        const distOutsideMinY = minY + radius - mPoint.y
-        const distOutsideMaxY = mPoint.y - (maxY - radius)
+          const minX = this.bounds.minX + forceMargin
+          const maxX = this.bounds.maxX - forceMargin
+          const minY = this.bounds.minY + forceMargin
+          const maxY = this.bounds.maxY - forceMargin
 
-        if (distOutsideMinX > 0) {
-          boundaryForceX =
-            BOUNDARY_FORCE_STRENGTH *
-            (Math.exp(distOutsideMinX / (this.obstacleMargin * 2)) - 1)
-        } else if (distOutsideMaxX > 0) {
-          boundaryForceX =
-            -BOUNDARY_FORCE_STRENGTH *
-            (Math.exp(distOutsideMaxX / (this.obstacleMargin * 2)) - 1)
+          const distOutsideMinX = minX + radius - mPoint.x // How far the via *center* is past the allowed edge
+          const distOutsideMaxX = mPoint.x - (maxX - radius)
+          const distOutsideMinY = minY + radius - mPoint.y
+          const distOutsideMaxY = mPoint.y - (maxY - radius)
+
+          if (distOutsideMinX > 0) {
+            boundaryForceX =
+              BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMinX / (this.obstacleMargin * 2)) - 1)
+          } else if (distOutsideMaxX > 0) {
+            boundaryForceX =
+              -BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMaxX / (this.obstacleMargin * 2)) - 1)
+          }
+
+          if (distOutsideMinY > 0) {
+            boundaryForceY =
+              BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMinY / (this.obstacleMargin * 2)) - 1)
+          } else if (distOutsideMaxY > 0) {
+            boundaryForceY =
+              -BOUNDARY_FORCE_STRENGTH *
+              (Math.exp(distOutsideMaxY / (this.obstacleMargin * 2)) - 1)
+          }
+
+          // Add boundary force to net force and recalculate potential position
+          netForce.fx += boundaryForceX
+          netForce.fy += boundaryForceY
+          newX = mPoint.x + netForce.fx
+          newY = mPoint.y + netForce.fy
+
+          // Optional: Clamp via position as a hard stop if force isn't enough?
+          // newX = Math.max(this.bounds.minX + radius, Math.min(this.bounds.maxX - radius, newX));
+          // newY = Math.max(this.bounds.minY + radius, Math.min(this.bounds.maxY - radius, newY));
+        } else {
+          // For regular points, CLAMP position to bounds + traceWidth/2 padding
+          const padding = this.traceWidth / 2
+          newX = Math.max(
+            this.bounds.minX + padding,
+            Math.min(this.bounds.maxX - padding, newX),
+          )
+          newY = Math.max(
+            this.bounds.minY + padding,
+            Math.min(this.bounds.maxY - padding, newY),
+          )
         }
 
-        if (distOutsideMinY > 0) {
-          boundaryForceY =
-            BOUNDARY_FORCE_STRENGTH *
-            (Math.exp(distOutsideMinY / (this.obstacleMargin * 2)) - 1)
-        } else if (distOutsideMaxY > 0) {
-          boundaryForceY =
-            -BOUNDARY_FORCE_STRENGTH *
-            (Math.exp(distOutsideMaxY / (this.obstacleMargin * 2)) - 1)
-        }
-
-        // Add boundary force to net force
-        netForce.fx += boundaryForceX
-        netForce.fy += boundaryForceY
-
-        // Dampen force? Add friction? (Optional)
+        // Dampen force? Add friction? (Optional) - Applied before clamping/boundary force
 
         if (
           Math.abs(netForce.fx) < EPSILON &&
@@ -1055,15 +1078,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         // Limit maximum movement per step? (Optional)
         // const maxMove = this.cellSize;
         // const forceMag = Math.sqrt(netForce.fx * netForce.fx + netForce.fy * netForce.fy);
-        // const moveX = (forceMag > maxMove) ? (netForce.fx / forceMag) * maxMove : netForce.fx;
-        // const moveY = (forceMag > maxMove) ? (netForce.fy / forceMag) * maxMove : netForce.fy;
-        const moveX = netForce.fx
-        const moveY = netForce.fy
-
-        const newX = mPoint.x + moveX
-        const newY = mPoint.y + moveY
-
-        // Update position if moved significantly
+        // Update position if moved significantly from original position
+        // Use the calculated (and potentially clamped/boundary-forced) newX, newY
         if (
           Math.abs(mPoint.x - newX) > EPSILON ||
           Math.abs(mPoint.y - newY) > EPSILON
