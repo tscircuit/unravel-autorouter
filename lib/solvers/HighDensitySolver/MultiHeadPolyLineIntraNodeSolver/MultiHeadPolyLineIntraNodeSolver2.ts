@@ -99,8 +99,10 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       return
     }
     // Apply forces iteratively to the current candidate
+    let lastStepMoved = false
     for (let step = 0; step < 10; step++) {
-      const moved = this.applyForcesToPolyLines(currentCandidate.polyLines)
+      lastStepMoved = this.applyForcesToPolyLines(currentCandidate.polyLines)
+      if (!lastStepMoved) break
     }
 
     currentCandidate.minGaps = this.computeMinGapBtwPolyLines(
@@ -120,8 +122,10 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
     )
     currentCandidate.h = this.computeH(currentCandidate)
     currentCandidate.f = currentCandidate.g + currentCandidate.h
-    this.candidates.push(currentCandidate)
-    this.candidates.sort((a, b) => a.f - b.f)
+
+    if (lastStepMoved) {
+      this.insertCandidate(currentCandidate)
+    }
   }
 
   /**

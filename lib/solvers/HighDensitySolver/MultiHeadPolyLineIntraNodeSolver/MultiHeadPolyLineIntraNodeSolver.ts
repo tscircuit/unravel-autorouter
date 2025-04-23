@@ -224,6 +224,21 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     return minGaps
   }
 
+  insertCandidate(candidate: any) {
+    // Binary search to find the correct position
+    let low = 0
+    let high = this.candidates.length - 1
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2)
+      if (this.candidates[mid].f < candidate.f) {
+        low = mid + 1
+      } else {
+        high = mid - 1
+      }
+    }
+    this.candidates.splice(low, 0, candidate)
+  }
+
   /**
    * Unlike most A* solvers with one initial candidate, we create a candidate
    * for each configuration of vias we want to test, this way when computing
@@ -953,7 +968,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   }
 
   _step() {
-    this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()!
     if (!currentCandidate) {
       this.failed = true
@@ -981,7 +995,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.failed = true
       return
     }
-    this.candidates.push(...this.getNeighbors(currentCandidate))
+    const neighbors = this.getNeighbors(currentCandidate)
+    for (const neighbor of neighbors) {
+      this.insertCandidate(neighbor)
+    }
   }
 
   visualize(): GraphicsObject {
