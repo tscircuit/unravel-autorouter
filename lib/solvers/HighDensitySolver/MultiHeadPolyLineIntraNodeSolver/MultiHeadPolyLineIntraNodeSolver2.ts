@@ -70,9 +70,9 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
 
   _step() {
     // TEMPORARY: helps us debug by starting on the solution candidate
-    if (this.candidates.length > 100) {
-      this.candidates = [this.candidates[29]]
-    }
+    // if (this.candidates.length > 100) {
+    //   this.candidates = [this.candidates[29]]
+    // }
     const currentCandidate = this.candidates.shift()!
     if (!currentCandidate) {
       this.failed = true
@@ -572,17 +572,12 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       }
     }
 
-    // 3. Apply forces and create the new neighbor candidate
-    // Deep clone polylines to modify them
-    const newPolyLines = polyLines.map((pl) => ({
-      ...pl,
-      mPoints: pl.mPoints.map((mp) => ({ ...mp })),
-    }))
-
+    // 3. Apply forces directly to the input polyLines
     let pointsMoved = false
     for (let i = 0; i < numPolyLines; i++) {
-      for (let k = 0; k < newPolyLines[i].mPoints.length; k++) {
-        const mPoint = newPolyLines[i].mPoints[k]
+      for (let k = 0; k < polyLines[i].mPoints.length; k++) {
+        // Use polyLines directly
+        const mPoint = polyLines[i].mPoints[k] // Use polyLines directly
         const forceMap = forces[i][k]
 
         // Calculate the net force by summing contributions
