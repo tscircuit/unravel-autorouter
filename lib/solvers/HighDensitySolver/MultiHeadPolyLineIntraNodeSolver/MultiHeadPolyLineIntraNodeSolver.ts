@@ -14,6 +14,8 @@ import {
   segmentToSegmentMinDistance,
 } from "@tscircuit/math-utils"
 import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
+import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
+import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
 
 export interface MHPoint {
   x: number
@@ -65,7 +67,6 @@ export const constructMiddlePointsWithViaPositions = (params: {
   viaCount: number
   availableZ: number[]
   viaPositions: Array<{ x: number; y: number }>
-  viaPositionIndexOffset: number
 }) => {
   const {
     start,
@@ -74,7 +75,6 @@ export const constructMiddlePointsWithViaPositions = (params: {
     viaPositions,
     viaCount,
     availableZ,
-    viaPositionIndexOffset,
   } = params
 
   const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
@@ -88,7 +88,7 @@ export const constructMiddlePointsWithViaPositions = (params: {
       const nextZ =
         availableZ[(availableZOffset + viasAdded + 1) % availableZ.length]
       middlePoints[i] = {
-        ...viaPositions[viasAdded + viaPositionIndexOffset],
+        ...viaPositions[viasAdded],
         xMoves: 0,
         yMoves: 0,
         z1: lastZ,
@@ -566,19 +566,36 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       bounds: this.bounds,
     })
 
+    const possibleViaPositionsWithReorderings = []
+    for (const { viaCountVariant, viaPositions } of possibleViaPositions) {
+      const viaPositionsWithReorderings = getEveryPossibleOrdering(viaPositions)
+      for (const viaPositions of viaPositionsWithReorderings) {
+        possibleViaPositionsWithReorderings.push({
+          viaCountVariant,
+          viaPositions,
+        })
+      }
+    }
+
     // Convert the portPairs into PolyLines for the initial candidate
-    for (const { viaPositions, viaCountVariant } of possibleViaPositions) {
+    for (const {
+      viaPositions,
+      viaCountVariant,
+    } of possibleViaPositionsWithReorderings) {
       const polyLines: PolyLine[] = []
       let viaPositionIndicesUsed = 0
       for (let i = 0; i < portPairsEntries.length; i++) {
         const [connectionName, portPair] = portPairsEntries[i]
         const viaCount = viaCountVariant[i]
+        const viaPositionsForPolyline = viaPositions.slice(
+          viaPositionIndicesUsed,
+          viaPositionIndicesUsed + viaCount,
+        )
         const middlePoints = constructMiddlePointsWithViaPositions({
           start: portPair.start,
           end: portPair.end,
           segmentsPerPolyline: this.SEGMENTS_PER_POLYLINE,
-          viaPositions,
-          viaPositionIndexOffset: viaPositionIndicesUsed,
+          viaPositions: viaPositionsForPolyline,
           viaCount,
           availableZ: this.availableZ,
         })
@@ -593,13 +610,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           }),
         )
       }
-
       const minGaps = this.computeMinGapBtwPolyLines(polyLines)
 
       // TODO: Create multiple initial candidates based on viaCountVariants
       // For now, just push the one candidate
       this.candidates.push({
-        polyLines: polyLines,
+        polyLines,
         hash: computeCandidateHash(polyLines),
         g: 0,
         h: this.computeH({ minGaps }),
@@ -607,6 +623,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         minGaps,
       })
     }
+    // TEMPORARY
+    this.candidates = [this.candidates[29]]
   }
 
   /**
@@ -729,7 +747,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.failed = true
       return
     }
-    this.candidates.push(...this.getNeighbors(currentCandidate))
+    // this.candidates.push(...this.getNeighbors(currentCandidate))
   }
 
   visualize(): GraphicsObject {
