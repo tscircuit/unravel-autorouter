@@ -47,7 +47,8 @@ export interface Candidate {
   f: number
   hash: string
   minGaps: number[]
-  forces?: Array<Array<{ fx: number; fy: number }>> // Store forces applied to mPoints
+  // Store forces applied TO mPoints, keyed by the index of the polyline APPLYING the force
+  forces?: Array<Array<Map<number, { fx: number; fy: number }>>>
 }
 
 export const computePolyLineHash = (polyLine: Omit<PolyLine, "hash">) => {
@@ -689,31 +690,33 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const SEGMENT_FORCE_MULTIPLIER = 1.0
     const EPSILON = 1e-6 // To avoid division by zero
 
-    // 1. Initialize forces for each mPoint
-    const forces: Array<Array<{ fx: number; fy: number }>> = Array.from(
-      { length: numPolyLines },
-      (_, i) =>
-        Array.from({ length: polyLines[i].mPoints.length }, () => ({
-          fx: 0,
-          fy: 0,
-        })),
-    )
+    // 1. Initialize forces structure: forces[targetLineIdx][targetMPointIdx] = Map<applyingLineIdx, {fx, fy}>
+    const forces: Array<Array<Map<number, { fx: number; fy: number }>>> =
+      Array.from({ length: numPolyLines }, (_, i) =>
+        Array.from({ length: polyLines[i].mPoints.length }, () => new Map()),
+      )
 
-    // Helper to apply force to an mPoint if it exists
-    const applyForce = (
-      lineIndex: number,
-      pointIndexInFullPath: number, // Index in [start, ...mPoints, end]
+    // Helper to add a specific force contribution to an mPoint if it exists
+    const addForceContribution = (
+      targetLineIndex: number,
+      targetPointIndexInFullPath: number, // Index in [start, ...mPoints, end]
+      applyingLineIndex: number,
       fx: number,
       fy: number,
     ) => {
-      // Only apply force if the point is an mPoint (not start or end)
+      // Only apply force if the target point is an mPoint (not start or end)
       if (
-        pointIndexInFullPath > 0 &&
-        pointIndexInFullPath < polyLines[lineIndex].mPoints.length + 1
+        targetPointIndexInFullPath > 0 &&
+        targetPointIndexInFullPath <
+          polyLines[targetLineIndex].mPoints.length + 1
       ) {
-        const mPointIndex = pointIndexInFullPath - 1
-        forces[lineIndex][mPointIndex].fx += fx
-        forces[lineIndex][mPointIndex].fy += fy
+        const targetMPointIndex = targetPointIndexInFullPath - 1
+        const forceMap = forces[targetLineIndex][targetMPointIndex]
+        const existingForce = forceMap.get(applyingLineIndex) || { fx: 0, fy: 0 }
+        forceMap.set(applyingLineIndex, {
+          fx: existingForce.fx + fx,
+          fy: existingForce.fy + fy,
+        })
       }
     }
 
@@ -814,11 +817,13 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                 const fx = (dx / dist) * forceMag
                 const fy = (dy / dist) * forceMag
 
-                // Apply force equally to both endpoints of each segment (if they are mPoints)
-                applyForce(i, seg1.p1Idx, fx / 2, fy / 2)
-                applyForce(i, seg1.p2Idx, fx / 2, fy / 2)
-                applyForce(j, seg2.p1Idx, -fx / 2, -fy / 2)
-                applyForce(j, seg2.p2Idx, -fx / 2, -fy / 2)
+                // Add force contributions: j applies force to i, i applies force to j
+                // Force from j onto i (applied to endpoints of seg1)
+                addForceContribution(i, seg1.p1Idx, j, fx / 2, fy / 2)
+                addForceContribution(i, seg1.p2Idx, j, fx / 2, fy / 2)
+                // Force from i onto j (applied to endpoints of seg2) - opposite direction
+                addForceContribution(j, seg2.p1Idx, i, -fx / 2, -fy / 2)
+                addForceContribution(j, seg2.p2Idx, i, -fx / 2, -fy / 2)
               }
             }
           }
@@ -839,12 +844,15 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
-                // Force applied ONLY to the via, based on closest point on segment
+                // Force applied ONLY to the via (i) by the segment (j)
                 const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
-                const fx = (dx / dist) * forceMag
-                const fy = (dy / dist) * forceMag
-                applyForce(i, via1.index, fx, fy)
-                // No force applied back to the segment from this interaction
+                const fx_j_on_i = (dx / dist) * forceMag
+                const fy_j_on_i = (dy / dist) * forceMag
+                addForceContribution(i, via1.index, j, fx_j_on_i, fy_j_on_i)
+                // Segment endpoints (j) feel an opposing force distributed?
+                // For simplicity, let's assume the segment feels the opposite force at the closest point,
+                // and distribute it to endpoints based on proximity? Or just apply to via for now.
+                // Let's stick to only applying force TO the via FROM the segment for now.
               }
             }
           }
@@ -863,12 +871,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
-                // Force applied ONLY to the via
+                // Force applied ONLY to the via (j) by the segment (i)
                 const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
-                const fx = (dx / dist) * forceMag
-                const fy = (dy / dist) * forceMag
-                applyForce(j, via2.index, fx, fy)
-                // No force applied back to the segment
+                const fx_i_on_j = (dx / dist) * forceMag
+                const fy_i_on_j = (dy / dist) * forceMag
+                addForceContribution(j, via2.index, i, fx_i_on_j, fy_i_on_j)
+                // Segment endpoints (i) feel an opposing force? Stick to via only for now.
               }
             }
           }
@@ -888,10 +896,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
               if (dSq > EPSILON) {
                 const dist = Math.sqrt(dSq)
                 const forceMag = (VIA_FORCE_MULTIPLIER * FORCE_MAGNITUDE) / dist
-                const fx = (dx / dist) * forceMag
-                const fy = (dy / dist) * forceMag
-                applyForce(i, via1.index, fx, fy)
-                applyForce(j, via2.index, -fx, -fy)
+                const fx_j_on_i = (dx / dist) * forceMag // Force applied by j onto i
+                const fy_j_on_i = (dy / dist) * forceMag
+                addForceContribution(i, via1.index, j, fx_j_on_i, fy_j_on_i)
+                addForceContribution(j, via2.index, i, -fx_j_on_i, -fy_j_on_i) // Force applied by i onto j
               }
             }
           }
@@ -910,21 +918,28 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     for (let i = 0; i < numPolyLines; i++) {
       for (let k = 0; k < newPolyLines[i].mPoints.length; k++) {
         const mPoint = newPolyLines[i].mPoints[k]
-        const force = forces[i][k]
+        const forceMap = forces[i][k]
+
+        // Calculate the net force by summing contributions
+        let netForce = { fx: 0, fy: 0 }
+        for (const force of forceMap.values()) {
+          netForce.fx += force.fx
+          netForce.fy += force.fy
+        }
 
         // Dampen force? Add friction? (Optional)
 
-        if (Math.abs(force.fx) < EPSILON && Math.abs(force.fy) < EPSILON) {
-          continue // No significant force, skip update
+        if (Math.abs(netForce.fx) < EPSILON && Math.abs(netForce.fy) < EPSILON) {
+          continue // No significant net force, skip update
         }
 
         // Limit maximum movement per step? (Optional)
         // const maxMove = this.cellSize;
-        // const forceMag = Math.sqrt(force.fx * force.fx + force.fy * force.fy);
-        // const moveX = (forceMag > maxMove) ? (force.fx / forceMag) * maxMove : force.fx;
-        // const moveY = (forceMag > maxMove) ? (force.fy / forceMag) * maxMove : force.fy;
-        const moveX = force.fx
-        const moveY = force.fy
+        // const forceMag = Math.sqrt(netForce.fx * netForce.fx + netForce.fy * netForce.fy);
+        // const moveX = (forceMag > maxMove) ? (netForce.fx / forceMag) * maxMove : netForce.fx;
+        // const moveY = (forceMag > maxMove) ? (netForce.fy / forceMag) * maxMove : netForce.fy;
+        const moveX = netForce.fx
+        const moveY = netForce.fy
 
         const newX = mPoint.x + moveX
         const newY = mPoint.y + moveY
@@ -1089,10 +1104,38 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
           if (isMPoint) {
             const mPointIndex = pointIndex - 1
-            const force =
+            const forceMap =
               candidateToVisualize.forces?.[polyLineIndex]?.[mPointIndex]
-            if (force) {
-              forceLabel = `\nForce: (${force.fx.toFixed(3)}, ${force.fy.toFixed(3)})`
+
+            if (forceMap && forceMap.size > 0) {
+              let netForce = { fx: 0, fy: 0 } // Calculate net force for label
+              forceMap.forEach((force, applyingPolylineIndex) => {
+                netForce.fx += force.fx
+                netForce.fy += force.fy
+
+                if (Math.abs(force.fx) > 1e-6 || Math.abs(force.fy) > 1e-6) {
+                  const applyingPolyline =
+                    candidateToVisualize.polyLines[applyingPolylineIndex]
+                  const applyingColor =
+                    this.colorMap[applyingPolyline.connectionName] ?? "gray"
+                  const forceScale = 5 // Adjust scale for visibility
+                  const forceEndPoint = {
+                    x: point.x + force.fx * forceScale,
+                    y: point.y + force.fy * forceScale,
+                  }
+                  graphicsObject.lines.push({
+                    points: [point, forceEndPoint],
+                    strokeColor: applyingColor, // Color by applying polyline
+                    strokeWidth: 0.02,
+                    strokeDash: "2,2", // Dashed line for force
+                    label: `Force by ${applyingPolyline.connectionName} on ${polyLine.connectionName} mPoint ${mPointIndex}`,
+                  })
+                }
+              })
+              // Update the label to show the net force
+              if (Math.abs(netForce.fx) > 1e-6 || Math.abs(netForce.fy) > 1e-6) {
+                 forceLabel = `\nNet Force: (${netForce.fx.toFixed(3)}, ${netForce.fy.toFixed(3)})`
+              }
             }
           }
 
@@ -1109,13 +1152,17 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             // Draw regular point (only draw mPoints for clarity, start/end are ports)
             if (isMPoint) {
               const isLayer0 = pointLayer === 0
+              // Regular mPoint (not a via)
+              // const isLayer0 = pointLayer === 0 // Removed duplicate declaration
               const pointColor = isLayer0
                 ? color
                 : safeTransparentize(color, 0.5)
               label = `mPoint (${polyLine.connectionName} z=${pointLayer})${forceLabel}`
+
+              // Draw the circle for the mPoint itself
               graphicsObject.circles.push({
                 center: point,
-                radius: this.cellSize / 5, // Small circle for mPoints
+                radius: this.cellSize / 8, // Smaller circle for mPoints
                 fill: pointColor,
                 label: label,
               })
