@@ -714,26 +714,54 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             const p2 = points2[p2Idx]
             const isP2MPoint = p2Idx > 0 && p2Idx < points2.length - 1
             const isVia2 = p2.z1 !== p2.z2
+            const layers1 = isVia1 ? [p1.z1, p1.z2] : [p1.z1]
             const layers2 = isVia2 ? [p2.z1, p2.z2] : [p2.z1]
 
-            // Check for interaction: common layers OR one is a via interacting with the other's layer(s)
-            const commonLayers = layers1.filter((z) => layers2.includes(z))
-            const interact = commonLayers.length > 0
+            const dx = p1.x - p2.x
+            const dy = p1.y - p2.y
+            const distSq = dx * dx + dy * dy
 
-            if (interact) {
-              const dx = p1.x - p2.x
-              const dy = p1.y - p2.y
-              const distSq = dx * dx + dy * dy
+            if (distSq > EPSILON) {
+              const dist = Math.sqrt(distSq)
+              const ux = dx / dist // Unit vector x
+              const uy = dy / dist // Unit vector y
 
-              if (distSq > EPSILON) {
-                const dist = Math.sqrt(distSq)
-                const multiplier = isVia1 || isVia2 ? VIA_FORCE_MULTIPLIER : 1.0
+              let multiplier = 0.0 // Start with zero force multiplier
+
+              // 1. Check for standard interaction (common layers, including vias)
+              const commonLayers = layers1.filter((z) => layers2.includes(z))
+              const standardInteract = commonLayers.length > 0
+              if (standardInteract) {
+                multiplier = isVia1 || isVia2 ? VIA_FORCE_MULTIPLIER : 1.0
+              }
+
+              // 2. Check for start/end point specific layer interaction
+              const isP1StartEnd = p1Idx === 0 || p1Idx === points1.length - 1
+              const isP2StartEnd = p2Idx === 0 || p2Idx === points2.length - 1
+
+              if (isP1StartEnd) {
+                const p1Layer = p1.z1 // Start/end points have z1=z2
+                const p2OnP1Layer = layers2.includes(p1Layer)
+                if (p2OnP1Layer) {
+                  // Apply at least base force if p1 is start/end and p2 is on its layer
+                  multiplier = Math.max(multiplier, 1.0)
+                }
+              }
+              if (isP2StartEnd) {
+                const p2Layer = p2.z1 // Start/end points have z1=z2
+                const p1OnP2Layer = layers1.includes(p2Layer)
+                if (p1OnP2Layer) {
+                  // Apply at least base force if p2 is start/end and p1 is on its layer
+                  multiplier = Math.max(multiplier, 1.0)
+                }
+              }
+
+              // 3. Apply force if any interaction occurred
+              if (multiplier > 0) {
                 // Force magnitude inversely proportional to distance (1/dist)
-                // Using 1/dist instead of 1/distSq for potentially more stable behavior
                 const forceMag = (multiplier * FORCE_MAGNITUDE) / dist
-
-                const fx = (dx / dist) * forceMag
-                const fy = (dy / dist) * forceMag
+                const fx = ux * forceMag
+                const fy = uy * forceMag
 
                 // Apply force to p1 if it's an mPoint
                 if (isP1MPoint) {
