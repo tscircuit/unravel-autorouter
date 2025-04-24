@@ -101,6 +101,7 @@ export const HyperHighDensityDebugger = ({
               <th>unsolved routes</th>
               <th>solved routes</th>
               <th>hyper params</th>
+              <th>error</th>
             </tr>
           </thead>
           <tbody>
@@ -151,6 +152,12 @@ export const HyperHighDensityDebugger = ({
                         2,
                       )}
                     </pre>
+                  </details>
+                </td>
+                <td>
+                  <details>
+                    <summary>error</summary>
+                    <pre>{supervisedSolver.solver.error}</pre>
                   </details>
                 </td>
               </tr>

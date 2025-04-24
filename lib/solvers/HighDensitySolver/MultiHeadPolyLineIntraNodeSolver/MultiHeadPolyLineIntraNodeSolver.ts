@@ -99,6 +99,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.nodeWithPortPoints.portPoints.map((pp) => pp.connectionName),
     ).size
 
+    if (uniqueConnections > 5) {
+      this.failed = true
+      this.error = `Limit is currently set to 5 unique connections, ${uniqueConnections} found`
+      return
+    }
+
     const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
       this.nodeWithPortPoints,
     )
