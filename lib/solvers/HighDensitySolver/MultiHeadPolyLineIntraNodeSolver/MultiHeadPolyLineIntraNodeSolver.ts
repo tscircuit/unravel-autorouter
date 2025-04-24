@@ -1,7 +1,10 @@
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { HighDensityHyperParameters } from "../HighDensityHyperParameters"
-import { NodeWithPortPoints } from "lib/types/high-density-types"
+import {
+  HighDensityIntraNodeRoute,
+  NodeWithPortPoints,
+} from "lib/types/high-density-types"
 import { GraphicsObject } from "graphics-debug"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { safeTransparentize } from "lib/solvers/colors"
@@ -1179,5 +1182,55 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     }
 
     return graphicsObject
+  }
+
+  getSolvedRoutes(): HighDensityIntraNodeRoute[] {
+    if (!this.solved || !this.lastCandidate) {
+      return []
+    }
+
+    const solvedRoutes: HighDensityIntraNodeRoute[] = []
+
+    for (const polyLine of this.lastCandidate.polyLines) {
+      const routePoints: Array<{ x: number; y: number; z: number }> = []
+      const vias: Array<{ x: number; y: number }> = []
+      const fullPath = [polyLine.start, ...polyLine.mPoints, polyLine.end]
+
+      for (let i = 0; i < fullPath.length; i++) {
+        const currentPoint = fullPath[i]
+
+        // Add the point on its starting layer (z1)
+        routePoints.push({
+          x: currentPoint.x,
+          y: currentPoint.y,
+          z: currentPoint.z1,
+        })
+
+        // If it's a via (layer transition)
+        if (currentPoint.z1 !== currentPoint.z2) {
+          // Add the via location
+          vias.push({ x: currentPoint.x, y: currentPoint.y })
+          // Add the point again on the ending layer (z2)
+          // This creates the vertical segment in the route representation
+          routePoints.push({
+            x: currentPoint.x,
+            y: currentPoint.y,
+            z: currentPoint.z2,
+          })
+        }
+      }
+
+      // TODO: Optimize the route points (remove collinear points on the same layer)
+
+      solvedRoutes.push({
+        connectionName: polyLine.connectionName,
+        traceThickness: this.traceWidth,
+        viaDiameter: this.viaDiameter,
+        route: routePoints,
+        vias: vias,
+      })
+    }
+
+    return solvedRoutes
   }
 }
