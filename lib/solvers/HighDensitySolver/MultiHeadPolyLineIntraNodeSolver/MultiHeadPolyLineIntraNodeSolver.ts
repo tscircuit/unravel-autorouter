@@ -42,11 +42,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   solvedRoutes: HighDensityIntraNodeRoute[] = []
   unsolvedConnections: any[] = []
 
-  SEGMENTS_PER_POLYLINE = 3
+  SEGMENTS_PER_POLYLINE: number
 
   cellSize: number
 
-  MAX_CANDIDATES = 50e3
+  MAX_CANDIDATES = 200e3
 
   viaDiameter: number = 0.6
   obstacleMargin: number = 0.1
@@ -68,12 +68,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     connMap?: ConnectivityMap
   }) {
     super()
-    this.MAX_ITERATIONS = 10e3
+    this.MAX_ITERATIONS = 1000e3
     this.nodeWithPortPoints = params.nodeWithPortPoints
     this.colorMap =
       params.colorMap ??
       generateColorMapFromNodeWithPortPoints(params.nodeWithPortPoints)
     this.hyperParameters = params.hyperParameters ?? {}
+    this.SEGMENTS_PER_POLYLINE =
+      params.hyperParameters?.SEGMENTS_PER_POLYLINE ?? 3
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
@@ -122,7 +124,10 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       return
     }
 
-    if (this.minViaCount > this.SEGMENTS_PER_POLYLINE) {
+    if (
+      this.minViaCount >
+      this.SEGMENTS_PER_POLYLINE * (uniqueConnections / 2)
+    ) {
       this.failed = true
       this.error = `Not possible to solve problem with given SEGMENTS_PER_POLYLINE (${this.SEGMENTS_PER_POLYLINE}), atleast ${this.minViaCount} vias are required`
       return

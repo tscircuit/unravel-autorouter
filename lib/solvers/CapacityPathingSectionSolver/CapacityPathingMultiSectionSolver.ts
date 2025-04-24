@@ -46,8 +46,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   sectionSolver?: CapacityPathingSingleSectionSolver | null = null
 
   MAX_ATTEMPTS_PER_NODE = 1
-  MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
-  MAX_EXPANSION_DEGREES = 3
+  MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.03
+  MAX_EXPANSION_DEGREES = 5
 
   constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
     super()
