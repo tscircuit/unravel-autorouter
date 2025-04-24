@@ -31,6 +31,7 @@ import { constructMiddlePointsWithViaPositions } from "./constructMiddlePointsWi
 import { computeViaCountVariants } from "./computeViaCountVariants"
 import { MHPoint2, PolyLine2 } from "./types2"
 import { withinBounds } from "./withinBounds"
+import { detectMultiConnectionClosedFacesWithoutVias } from "./detectMultiConnectionClosedFacesWithoutVias"
 
 export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
@@ -46,7 +47,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
   cellSize: number
 
-  MAX_CANDIDATES = 200e3
+  MAX_CANDIDATES = 50e3
 
   viaDiameter: number = 0.6
   obstacleMargin: number = 0.1
@@ -68,7 +69,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     connMap?: ConnectivityMap
   }) {
     super()
-    this.MAX_ITERATIONS = 1000e3
+    this.MAX_ITERATIONS = 50e3
     this.nodeWithPortPoints = params.nodeWithPortPoints
     this.colorMap =
       params.colorMap ??
@@ -308,6 +309,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       }
     }
 
+    // MAJOR OPTIMIZATION ISSUE:
+    // We currently generate a lot of redundant or invalid viaPositions because
+    // we don't specify that only certain connectionNames should occupy a via
+    // position. We later detect when there's a "single-layer closed face" and
+    // discard these candidates- but they should never be generated! For 5
+    // connections you can easily have 80,000 via position variants, with over
+    // ~90% being invalid from empirical testing.
+
     // Convert the portPairs into PolyLines for the initial candidate
     for (const {
       viaPositions,
@@ -339,6 +348,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           mPoints: middlePoints,
         })
       }
+      const hasClosedSameLayerFace =
+        detectMultiConnectionClosedFacesWithoutVias(polyLines, this.bounds)
+
+      if (hasClosedSameLayerFace) continue
+
       const minGaps = this.computeMinGapBtwPolyLines(polyLines)
       const h = this.computeH({ minGaps, forces: [] })
       const newCandidate = {
@@ -348,6 +362,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
         f: h,
         viaCount: viaCountVariant.reduce((acc, count) => acc + count, 0),
         minGaps,
+        // hasClosedSameLayerFace
       }
 
       if (this.checkIfSolved(newCandidate)) {
@@ -1033,6 +1048,25 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       strokeColor: "gray",
     })
 
+    // Visualize the polylines from the last evaluated candidate (or initial if none evaluated)
+    const candidateToVisualize = this.lastCandidate ?? this.candidates[0]
+
+    // Add indicator for closed face
+    if (candidateToVisualize?.hasClosedSameLayerFace) {
+      const rectWidth = (this.bounds.maxX - this.bounds.minX) * 0.1
+      const rectHeight = (this.bounds.maxY - this.bounds.minY) * 0.1
+      graphicsObject.rects.push({
+        center: {
+          x: this.bounds.maxX + rectWidth * 0.6, // Position slightly outside top-right
+          y: this.bounds.maxY + rectHeight * 0.6,
+        },
+        width: rectWidth,
+        height: rectHeight,
+        fill: "red",
+        label: "HAS CLOSED FACE",
+      })
+    }
+
     // Draw input port points
     for (const pt of this.nodeWithPortPoints.portPoints) {
       graphicsObject.points.push({
@@ -1044,8 +1078,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       })
     }
 
-    // Visualize the polylines from the last evaluated candidate (or initial if none evaluated)
-    const candidateToVisualize = this.lastCandidate ?? this.candidates[0]
+    // Visualize the polylines (if a candidate exists)
     if (candidateToVisualize) {
       candidateToVisualize.polyLines.forEach((polyLine, polyLineIndex) => {
         const color = this.colorMap[polyLine.connectionName] ?? "purple"
