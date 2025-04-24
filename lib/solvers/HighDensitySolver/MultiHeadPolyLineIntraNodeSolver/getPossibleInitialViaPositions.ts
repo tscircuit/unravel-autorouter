@@ -31,7 +31,6 @@ export const getPossibleInitialViaPositions = (params: {
   viaCountVariants: Array<number[]>
 }): Array<ViaPositionVariantForLinesViaCountVariant> => {
   const { bounds, portPairsEntries, viaCountVariants } = params
-  console.log(params)
 
   const { centroids } = getCentroidsFromInnerBoxIntersections(
     bounds,

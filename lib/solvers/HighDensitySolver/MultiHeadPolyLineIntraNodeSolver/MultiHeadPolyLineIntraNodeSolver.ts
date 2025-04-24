@@ -258,6 +258,19 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       }
     })
 
+    // Remove port pairs with only one point
+    for (const [connectionName, portPair] of portPairs.entries()) {
+      if (portPair.end === null) {
+        portPairs.delete(connectionName)
+      }
+    }
+
+    if (portPairs.size === 0) {
+      this.failed = true
+      this.error = "No port pairs found, can't solve"
+      return
+    }
+
     const portPairsEntries = Array.from(portPairs.entries())
 
     const viaCountVariants = computeViaCountVariants(

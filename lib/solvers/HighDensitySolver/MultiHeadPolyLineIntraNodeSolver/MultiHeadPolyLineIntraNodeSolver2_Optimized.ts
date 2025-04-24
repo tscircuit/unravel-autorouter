@@ -81,23 +81,13 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       return
     }
     this.lastCandidate = currentCandidate
-    if (
-      currentCandidate.minGaps.every((minGap) => minGap >= this.obstacleMargin)
-      // All points are within bounds
-      // currentCandidate.polyLines.every((polyLine) => {
-      //   return polyLine.mPoints.every((mPoint) => {
-      //     return (
-      //       mPoint.x >= this.bounds.minX &&
-      //       mPoint.x <= this.bounds.maxX &&
-      //       mPoint.y >= this.bounds.minY &&
-      //       mPoint.y <= this.bounds.maxY
-      //     )
-      //   })
-      // })
-    ) {
+
+    if (this.checkIfSolved(currentCandidate)) {
       this.solved = true
+      this._setSolvedRoutes()
       return
     }
+
     // Apply forces iteratively to the current candidate
     let lastStepMoved = false
     for (let step = 0; step < 10; step++) {
@@ -111,6 +101,7 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
 
     if (this.checkIfSolved(currentCandidate)) {
       this.solved = true
+      this._setSolvedRoutes()
       return
     }
 
