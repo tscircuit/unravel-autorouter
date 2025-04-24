@@ -139,7 +139,7 @@ export const HyperHighDensityDebugger = ({
                   {supervisedSolver.solver?.unsolvedConnections?.length}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {supervisedSolver.solver.solvedRoutes.length}
+                  {supervisedSolver.solver.solvedRoutes?.length}
                 </td>
                 <td>
                   <details>

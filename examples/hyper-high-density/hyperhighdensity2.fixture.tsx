@@ -265,10 +265,10 @@ export default () => {
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
                   {/* @ts-ignore */}
-                  {solver.solver?.activeSolver?.unsolvedConnections.length}
+                  {solver.solver?.activeSolver?.unsolvedConnections?.length}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {solver.solver.solvedRoutes.length}
+                  {solver.solver.solvedRoutes?.length}
                 </td>
                 <td>
                   <details>

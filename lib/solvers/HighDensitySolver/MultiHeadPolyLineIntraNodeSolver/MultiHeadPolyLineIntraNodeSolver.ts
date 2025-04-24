@@ -32,36 +32,6 @@ import { computeViaCountVariants } from "./computeViaCountVariants"
 import { MHPoint2, PolyLine2 } from "./types2"
 import { withinBounds } from "./withinBounds"
 
-export const clonePolyLinesWithMutablePoint = (
-  polyLines: PolyLine[],
-  lineIndex: number,
-  mPointIndex: number,
-): [PolyLine[], MHPoint] => {
-  const mutablePoint = {
-    x: polyLines[lineIndex].mPoints[mPointIndex].x,
-    y: polyLines[lineIndex].mPoints[mPointIndex].y,
-    xMoves: polyLines[lineIndex].mPoints[mPointIndex].xMoves,
-    yMoves: polyLines[lineIndex].mPoints[mPointIndex].yMoves,
-    z1: polyLines[lineIndex].mPoints[mPointIndex].z1,
-    z2: polyLines[lineIndex].mPoints[mPointIndex].z2,
-  }
-  return [
-    [
-      ...polyLines.slice(0, lineIndex),
-      {
-        ...polyLines[lineIndex],
-        mPoints: [
-          ...polyLines[lineIndex].mPoints.slice(0, mPointIndex),
-          mutablePoint,
-          ...polyLines[lineIndex].mPoints.slice(mPointIndex + 1),
-        ],
-      },
-      ...polyLines.slice(lineIndex + 1),
-    ],
-    mutablePoint,
-  ]
-}
-
 export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   nodeWithPortPoints: NodeWithPortPoints
   colorMap: Record<string, string>
@@ -69,6 +39,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   connMap?: ConnectivityMap
   candidates: Candidate[]
   bounds: { minX: number; maxX: number; minY: number; maxY: number }
+  solvedRoutes: HighDensityIntraNodeRoute[] = []
+  unsolvedConnections: any[] = []
 
   SEGMENTS_PER_POLYLINE = 3
 
@@ -295,21 +267,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.minViaCount,
     )
 
-    console.log({
-      viaCountVariants,
-      portPairsEntries,
-      SEGMENTS_PER_POLYLINE: this.SEGMENTS_PER_POLYLINE,
-      maxViaCount: this.maxViaCount,
-      minViaCount: this.minViaCount,
-    })
-
     const possibleViaPositions = getPossibleInitialViaPositions({
       portPairsEntries,
       viaCountVariants,
       bounds: this.bounds,
     })
-
-    console.log({ possibleViaPositions })
 
     const possibleViaPositionsWithReorderings = []
     for (const { viaCountVariant, viaPositions } of possibleViaPositions) {
@@ -1006,6 +968,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.lastCandidate = currentCandidate
     if (this.checkIfSolved(currentCandidate)) {
       this.solved = true
+      this._setSolvedRoutes()
       return
     }
     if (!currentCandidate) {
@@ -1184,7 +1147,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     return graphicsObject
   }
 
-  getSolvedRoutes(): HighDensityIntraNodeRoute[] {
+  _setSolvedRoutes() {
     if (!this.solved || !this.lastCandidate) {
       return []
     }
@@ -1231,6 +1194,6 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       })
     }
 
-    return solvedRoutes
+    this.solvedRoutes = solvedRoutes
   }
 }

@@ -10,6 +10,7 @@ import {
 import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 import { TwoCrossingRoutesHighDensitySolver } from "../HighDensitySolver/TwoRouteHighDensitySolver/TwoCrossingRoutesHighDensitySolver"
 import { SingleTransitionCrossingRouteSolver } from "../HighDensitySolver/TwoRouteHighDensitySolver/SingleTransitionCrossingRouteSolver"
+import { MultiHeadPolyLineIntraNodeSolver2 } from "../HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/MultiHeadPolyLineIntraNodeSolver2_Optimized"
 
 export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
   IntraNodeRouteSolver | TwoCrossingRoutesHighDensitySolver
@@ -30,6 +31,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
   getCombinationDefs() {
     return [
       ["closedFormTwoTrace"],
+      ["multiHeadPolyLine"],
       ["majorCombinations", "orderings6", "cellSizeFactor"],
       ["noVias"],
       ["orderings50"],
@@ -131,6 +133,15 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
           },
         ],
       },
+      {
+        name: "multiHeadPolyLine",
+        possibleValues: [
+          {
+            MULTI_HEAD_POLYLINE_SOLVER: true,
+            SEGMENTS_PER_POLYLINE: 3,
+          },
+        ],
+      },
     ]
   }
 
@@ -153,6 +164,12 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
     if (hyperParameters.CLOSED_FORM_TWO_TRACE_TRANSITION_CROSSING) {
       return new SingleTransitionCrossingRouteSolver({
         nodeWithPortPoints: this.nodeWithPortPoints,
+      }) as any
+    }
+    if (hyperParameters.MULTI_HEAD_POLYLINE_SOLVER) {
+      return new MultiHeadPolyLineIntraNodeSolver2({
+        nodeWithPortPoints: this.nodeWithPortPoints,
+        hyperParameters: hyperParameters,
       }) as any
     }
     return new IntraNodeRouteSolver({
