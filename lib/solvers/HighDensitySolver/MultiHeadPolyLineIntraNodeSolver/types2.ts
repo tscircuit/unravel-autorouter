@@ -23,4 +23,6 @@ export interface Candidate2 {
   f: number
   minGaps: number[]
   viaCount: number
+
+  magForceApplied?: number
 }

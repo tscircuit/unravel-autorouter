@@ -65,9 +65,10 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
    * solver
    */
   computeH(candidate: any) {
-    const { minGaps } = candidate
-    const worstMinGap = Math.min(...minGaps)
-    return -worstMinGap
+    // const { minGaps } = candidate
+    // const worstMinGap = Math.min(...minGaps)
+    // return -worstMinGap
+    return candidate.magForceApplied ?? 0
   }
 
   _step() {
@@ -92,10 +93,17 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
 
     // Apply forces iteratively to the current candidate
     let lastStepMoved = false
-    for (let step = 0; step < 10; step++) {
-      lastStepMoved = this.applyForcesToPolyLines(currentCandidate.polyLines)
-      if (!lastStepMoved) break
+    let magForceApplied = 0
+    // First run we just do a single step to get the force applied for h
+    // computation
+    const stepsToRun = currentCandidate.magForceApplied === undefined ? 1 : 10
+    for (let step = 0; step < stepsToRun; step++) {
+      const result = this.applyForcesToPolyLines(currentCandidate.polyLines)
+      magForceApplied += result.magForceApplied
+      lastStepMoved = result.lastStepMoved
+      if (!result.lastStepMoved) break
     }
+    currentCandidate.magForceApplied = magForceApplied
 
     currentCandidate.minGaps = this.computeMinGapBtwPolyLines(
       currentCandidate.polyLines,
@@ -124,7 +132,11 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
    * directly modifying the input polyLines array.
    * Returns true if any mPoint was moved, false otherwise.
    */
-  applyForcesToPolyLines(polyLines: PolyLine2[]): boolean {
+  applyForcesToPolyLines(polyLines: PolyLine2[]): {
+    lastStepMoved: boolean
+    magForceApplied: number
+  } {
+    let magForceApplied = 0
     const numPolyLines = polyLines.length
     const FORCE_MAGNITUDE = 0.02 // Tunable parameter for force strength
     const VIA_FORCE_MULTIPLIER = 2.0 // Vias push harder
@@ -563,7 +575,10 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
 
         // Limit maximum movement per step? (Optional)
         // const maxMove = this.cellSize;
-        // const forceMag = Math.sqrt(currentForceX * currentForceX + currentForceY * currentForceY);
+        const forceMag = Math.sqrt(
+          currentForceX * currentForceX + currentForceY * currentForceY,
+        )
+        magForceApplied += forceMag
         // Update position if moved significantly from original position
         // Use the calculated (and potentially clamped/boundary-forced) newX, newY
         if (
@@ -579,6 +594,6 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
     }
 
     // Return whether any points actually moved
-    return pointsMoved
+    return { lastStepMoved: pointsMoved, magForceApplied }
   }
 }

@@ -25,6 +25,7 @@ export interface Candidate {
   // e.g., "via:lineIdx:pointIdx", "seg:lineIdx:p1Idx:p2Idx"
   forces?: Array<Array<Map<string, { fx: number; fy: number }>>>
   viaCount: number
+  magForceApplied?: number
 
   // Temporary/optional for debugging early candidate elimination
   hasClosedSameLayerFace?: boolean
