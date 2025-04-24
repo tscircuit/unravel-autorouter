@@ -92,26 +92,21 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     const areaInsideNode =
       this.nodeWithPortPoints.width * this.nodeWithPortPoints.height
-    const areaPerVia =
-      (this.viaDiameter + this.obstacleMargin * 2 + this.traceWidth / 2) ** 2
+    const areaPerVia = (this.viaDiameter + this.obstacleMargin) ** 2
 
     const uniqueConnections = new Set(
       this.nodeWithPortPoints.portPoints.map((pp) => pp.connectionName),
     ).size
 
-    if (uniqueConnections > 5) {
-      this.failed = true
-      this.error = `Limit is currently set to 5 unique connections, ${uniqueConnections} found`
-      return
-    }
-
     const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
       this.nodeWithPortPoints,
     )
 
+    const maxViasThatCanFit = Math.ceil(areaInsideNode / areaPerVia)
+
     this.minViaCount = numSameLayerCrossings * 2 + numTransitions
     this.maxViaCount = Math.min(
-      Math.floor(areaInsideNode / areaPerVia),
+      maxViasThatCanFit,
       Math.ceil(uniqueConnections * 1.5),
     )
 
@@ -124,8 +119,25 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.error = `Not possible to solve problem with given SEGMENTS_PER_POLYLINE (${this.SEGMENTS_PER_POLYLINE}), atleast ${this.minViaCount} vias are required`
       return
     }
-    if (this.maxViaCount > this.SEGMENTS_PER_POLYLINE) {
-      this.maxViaCount = this.SEGMENTS_PER_POLYLINE
+    if (
+      this.maxViaCount >
+      this.SEGMENTS_PER_POLYLINE * (uniqueConnections / 2)
+    ) {
+      this.maxViaCount = Math.ceil(
+        this.SEGMENTS_PER_POLYLINE * (uniqueConnections / 2),
+      )
+    }
+
+    console.log({
+      maxViaCount: this.maxViaCount,
+      minViaCount: this.minViaCount,
+      uniqueConnections,
+    })
+
+    if (uniqueConnections > 5) {
+      this.failed = true
+      this.error = `Limit is currently set to 5 unique connections, ${uniqueConnections} found`
+      return
     }
 
     this.setupInitialPolyLines()
