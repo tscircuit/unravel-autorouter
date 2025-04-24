@@ -66,7 +66,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
   }) {
     super()
 
-    this.MAX_ITERATIONS = 100_000
+    this.MAX_ITERATIONS = 1e6
 
     this.dedupedSegments = getDedupedSegments(assignedSegments)
     this.dedupedSegmentMap = new Map()

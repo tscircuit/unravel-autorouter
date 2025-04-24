@@ -59,6 +59,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   minViaCount: number
 
   phase: "setup" | "solving" = "setup"
+  progress = 0
 
   constructor(params: {
     nodeWithPortPoints: NodeWithPortPoints
@@ -67,7 +68,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     connMap?: ConnectivityMap
   }) {
     super()
-    this.MAX_ITERATIONS = 1e6
+    this.MAX_ITERATIONS = 10e3
     this.nodeWithPortPoints = params.nodeWithPortPoints
     this.colorMap =
       params.colorMap ??
