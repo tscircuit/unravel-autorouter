@@ -71,10 +71,12 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
   }
 
   _step() {
-    // TEMPORARY: helps us debug by starting on the solution candidate
-    // if (this.candidates.length > 100) {
-    //   this.candidates = [this.candidates[29]]
-    // }
+    if (this.phase === "setup") {
+      this.setupInitialPolyLines()
+      this.phase = "solving"
+      return
+    }
+
     const currentCandidate = this.candidates.shift()!
     if (!currentCandidate) {
       this.failed = true

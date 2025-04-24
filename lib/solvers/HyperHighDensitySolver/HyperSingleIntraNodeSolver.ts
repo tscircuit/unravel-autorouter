@@ -146,6 +146,9 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
   }
 
   computeG(solver: IntraNodeRouteSolver) {
+    if (solver?.hyperParameters?.MULTI_HEAD_POLYLINE_SOLVER) {
+      return 1000 + solver.iterations / 10_000
+    }
     return (
       solver.iterations / 10_000 // + solver.hyperParameters.SHUFFLE_SEED! * 0.05
     )
