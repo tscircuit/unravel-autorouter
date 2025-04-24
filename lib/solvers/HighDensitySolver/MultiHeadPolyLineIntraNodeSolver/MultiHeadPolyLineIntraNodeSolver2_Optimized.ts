@@ -65,10 +65,18 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
    * solver
    */
   computeH(candidate: any) {
-    // const { minGaps } = candidate
-    // const worstMinGap = Math.min(...minGaps)
-    // return -worstMinGap
-    return candidate.magForceApplied ?? 0
+    const { minGaps } = candidate
+    let collisionScore = 0
+    for (const gap of minGaps) {
+      if (gap < 0) {
+        collisionScore += this.obstacleMargin
+      }
+      if (gap < this.obstacleMargin) {
+        collisionScore += this.obstacleMargin - gap
+      }
+    }
+    return collisionScore * 0.00001
+    // return 1 / (candidate.magForceApplied ?? 0.01)
   }
 
   _step() {
