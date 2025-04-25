@@ -903,7 +903,7 @@ export const AutoroutingPipelineDebugger = ({
                     <td className="border p-2">
                       {status === "Solved"
                         ? "100%"
-                        : "In Progress"
+                        : status === "In Progress"
                           ? `${((stepSolver?.progress ?? 0) * 100).toFixed(1)}%`
                           : ""}
                     </td>

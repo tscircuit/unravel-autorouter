@@ -22,11 +22,6 @@ import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions
 import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
 import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
 import { PolyLine, MHPoint, Candidate } from "./types1"
-import {
-  computePolyLineHash,
-  computeCandidateHash,
-  createPolyLineWithHash,
-} from "./hashing"
 import { constructMiddlePointsWithViaPositions } from "./constructMiddlePointsWithViaPositions"
 import { computeViaCountVariants } from "./computeViaCountVariants"
 import { MHPoint2, PolyLine2 } from "./types2"

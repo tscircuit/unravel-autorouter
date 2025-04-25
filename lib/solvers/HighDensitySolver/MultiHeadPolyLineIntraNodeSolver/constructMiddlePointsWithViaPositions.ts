@@ -1,9 +1,9 @@
-import { MHPoint } from "./types2"
+import { MHPoint2 } from "./types2"
 import { createSymmetricArray } from "./createSymmetricArray"
 
 export const constructMiddlePointsWithViaPositions = (params: {
-  start: MHPoint
-  end: MHPoint
+  start: MHPoint2
+  end: MHPoint2
   segmentsPerPolyline: number
   viaCount: number
   availableZ: number[]
@@ -19,7 +19,7 @@ export const constructMiddlePointsWithViaPositions = (params: {
   } = params
 
   const viaIndices = createSymmetricArray(segmentsPerPolyline, viaCount)
-  const middlePoints: (MHPoint | null)[] = viaIndices.map(() => null)
+  const middlePoints: (MHPoint2 | null)[] = viaIndices.map(() => null)
 
   let viasAdded = 0
   let lastZ = start.z1
@@ -30,8 +30,6 @@ export const constructMiddlePointsWithViaPositions = (params: {
         availableZ[(availableZOffset + viasAdded + 1) % availableZ.length]
       middlePoints[i] = {
         ...viaPositions[viasAdded],
-        xMoves: 0,
-        yMoves: 0,
         z1: lastZ,
         z2: nextZ,
       }
@@ -40,13 +38,13 @@ export const constructMiddlePointsWithViaPositions = (params: {
     }
   }
 
-  let left: MHPoint = start
+  let left: MHPoint2 = start
   for (let i = 0; i < middlePoints.length; i++) {
     if (middlePoints[i]) {
       left = middlePoints[i]!
       continue
     }
-    let right: MHPoint = end
+    let right: MHPoint2 = end
     let rightIndex: number = middlePoints.length
     for (let u = i + 1; u < middlePoints.length; u++) {
       if (middlePoints[u]) {
@@ -64,13 +62,11 @@ export const constructMiddlePointsWithViaPositions = (params: {
       middlePoints[i + ti] = {
         x: left.x + dx * t,
         y: left.y + dy * t,
-        xMoves: 0,
-        yMoves: 0,
         z1: left.z2,
         z2: left.z2,
       }
     }
   }
 
-  return middlePoints as unknown as MHPoint[]
+  return middlePoints as unknown as MHPoint2[]
 }

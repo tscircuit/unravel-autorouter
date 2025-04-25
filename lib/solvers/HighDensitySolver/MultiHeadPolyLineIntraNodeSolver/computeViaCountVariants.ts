@@ -1,4 +1,4 @@
-import { MHPoint } from "./types2"
+import { MHPoint2 } from "./types2"
 import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
 import { doSegmentsIntersect } from "@tscircuit/math-utils"
 
@@ -40,7 +40,7 @@ import { doSegmentsIntersect } from "@tscircuit/math-utils"
  */
 export const computeViaCountVariants = (
   portPairsEntries: Array<
-    [connectionName: string, { start: MHPoint; end: MHPoint }]
+    [connectionName: string, { start: MHPoint2; end: MHPoint2 }]
   >,
   segmentsPerPolyline: number,
   maxViaCount: number,

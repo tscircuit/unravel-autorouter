@@ -55,9 +55,9 @@ export function polygonArea(points: Point[]): number {
 }
 
 export function polygonCentroid(points: Point[]): Point | null {
-  let a = 0,
-    cx = 0,
-    cy = 0
+  let a = 0
+  let cx = 0
+  let cy = 0
   for (let i = 0, n = points.length; i < n; ++i) {
     const j = (i + 1) % n
     const crossVal = points[i].x * points[j].y - points[j].x * points[i].y
@@ -250,7 +250,7 @@ export function getCentroidsFromInnerBoxIntersections(
 
     do {
       if (walk === null) break // Should not happen in a well-formed DCEL
-      const currentEdge = halfEdges[walk]
+      const currentEdge: any = halfEdges[walk]
       currentEdge.visited = true
       poly.push(vertices[currentEdge.orig])
       faceEdges.push(walk)

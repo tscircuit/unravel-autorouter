@@ -1,59 +1,9 @@
-import { ConnectivityMap } from "circuit-json-to-connectivity-map"
-import { BaseSolver } from "lib/solvers/BaseSolver"
-import { HighDensityHyperParameters } from "../HighDensityHyperParameters"
-import { NodeWithPortPoints } from "lib/types/high-density-types"
-import { GraphicsObject } from "graphics-debug"
-import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
-import { safeTransparentize } from "lib/solvers/colors"
-import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import {
-  distance,
-  doSegmentsIntersect,
-  pointToSegmentDistance,
   segmentToSegmentMinDistance,
   pointToSegmentClosestPoint,
-  distSq,
 } from "@tscircuit/math-utils"
-import { getPossibleInitialViaPositions } from "./getPossibleInitialViaPositions"
-import { getEveryPossibleOrdering } from "./getEveryPossibleOrdering"
-import { getEveryCombinationFromChoiceArray } from "./getEveryCombinationFromChoiceArray"
 import { PolyLine2, MHPoint2, Candidate2 } from "./types2"
-import {
-  computePolyLineHash,
-  computeCandidateHash,
-  createPolyLineWithHash,
-} from "./hashing"
-import { constructMiddlePointsWithViaPositions } from "./constructMiddlePointsWithViaPositions"
-import { computeViaCountVariants } from "./computeViaCountVariants"
 import { MultiHeadPolyLineIntraNodeSolver } from "./MultiHeadPolyLineIntraNodeSolver"
-
-export const clonePolyLinesWithMutablePoint = (
-  polyLines: PolyLine2[],
-  lineIndex: number,
-  mPointIndex: number,
-): [PolyLine2[], MHPoint2] => {
-  const mutablePoint = {
-    x: polyLines[lineIndex].mPoints[mPointIndex].x,
-    y: polyLines[lineIndex].mPoints[mPointIndex].y,
-    z1: polyLines[lineIndex].mPoints[mPointIndex].z1,
-    z2: polyLines[lineIndex].mPoints[mPointIndex].z2,
-  }
-  return [
-    [
-      ...polyLines.slice(0, lineIndex),
-      {
-        ...polyLines[lineIndex],
-        mPoints: [
-          ...polyLines[lineIndex].mPoints.slice(0, mPointIndex),
-          mutablePoint,
-          ...polyLines[lineIndex].mPoints.slice(mPointIndex + 1),
-        ],
-      },
-      ...polyLines.slice(lineIndex + 1),
-    ],
-    mutablePoint,
-  ]
-}
 
 export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNodeSolver {
   computeG(polyLines: any, candidate: any) {
