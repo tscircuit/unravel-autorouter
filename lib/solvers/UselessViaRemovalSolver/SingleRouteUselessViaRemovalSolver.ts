@@ -1,4 +1,4 @@
-import { ObstacleTree } from "lib/data-structures/ObstacleTree"
+import { ObstacleSpatialHashIndex } from "lib/data-structures/ObstacleTree"
 import { BaseSolver } from "../BaseSolver"
 import {
   HighDensityRoute,
@@ -15,7 +15,7 @@ interface RouteSection {
 }
 
 export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
-  obstacleSHI: ObstacleTree
+  obstacleSHI: ObstacleSpatialHashIndex
   hdRouteSHI: HighDensityRouteSpatialIndex
   unsimplifiedRoute: HighDensityRoute
 
@@ -27,7 +27,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
   OBSTACLE_MARGIN = 0.1
 
   constructor(params: {
-    obstacleSHI: ObstacleTree
+    obstacleSHI: ObstacleSpatialHashIndex
     hdRouteSHI: HighDensityRouteSpatialIndex
     unsimplifiedRoute: HighDensityRoute
   }) {

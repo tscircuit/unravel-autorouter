@@ -11,7 +11,7 @@ export type BucketCoordinate = `${number}x${number}`
  * - 'rbush': dynamic R-tree via rbush
  * - 'flatbush': static index via flatbush
  */
-export class ObstacleTree {
+export class ObstacleSpatialHashIndex {
   private idx: ISpatialIndex<Obstacle>
   private storage: Obstacle[] = []
 

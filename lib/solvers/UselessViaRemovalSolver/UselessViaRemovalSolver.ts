@@ -1,4 +1,4 @@
-import { ObstacleTree } from "lib/data-structures/ObstacleTree"
+import { ObstacleSpatialHashIndex } from "lib/data-structures/ObstacleTree"
 import { SegmentTree } from "lib/data-structures/SegmentTree"
 import { BaseSolver } from "../BaseSolver"
 import { HighDensityRoute } from "lib/types/high-density-types"
@@ -22,7 +22,7 @@ export class UselessViaRemovalSolver extends BaseSolver {
 
   activeSubSolver?: SingleRouteUselessViaRemovalSolver | null | undefined = null
 
-  obstacleSHI: ObstacleTree | null = null
+  obstacleSHI: ObstacleSpatialHashIndex | null = null
   hdRouteSHI: HighDensityRouteSpatialIndex | null = null
 
   constructor(private input: UselessViaRemovalSolverInput) {
@@ -31,7 +31,7 @@ export class UselessViaRemovalSolver extends BaseSolver {
     this.optimizedHdRoutes = []
     this.unprocessedRoutes = [...input.unsimplifiedHdRoutes]
 
-    this.obstacleSHI = new ObstacleTree("flatbush", input.obstacles)
+    this.obstacleSHI = new ObstacleSpatialHashIndex("flatbush", input.obstacles)
     this.hdRouteSHI = new HighDensityRouteSpatialIndex(
       this.unsimplifiedHdRoutes,
     )
