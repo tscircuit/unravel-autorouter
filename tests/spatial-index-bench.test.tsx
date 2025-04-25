@@ -1,7 +1,6 @@
 import { test } from "bun:test"
 import RBush from "rbush"
 import Flatbush from "flatbush"
-import { ObstacleTree } from "../lib/data-structures/ObstacleTree"
 import { Obstacle } from "../lib/types"
 
 const N = 100_000
@@ -35,10 +34,6 @@ const rawBoxes = Array.from({ length: N }, () => ({
   maxX: Math.random() * 1000 + 1,
   maxY: Math.random() * 1000 + 1,
 }))
-const rawLegacy = rawBoxes.slice(0, N_LEGACY)
-
-const obstacles = rawBoxes.map(makeObstacle)
-const legacyObstacles = rawLegacy.map(makeObstacle)
 
 function randBox() {
   const x = Math.random() * 900

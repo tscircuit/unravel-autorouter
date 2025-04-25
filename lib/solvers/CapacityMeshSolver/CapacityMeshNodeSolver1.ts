@@ -91,7 +91,10 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     ]
     this.finishedNodes = []
     this.nodeToXYOverlappingObstaclesMap = new Map()
-    this.obstacleTree = new ObstacleSpatialHashIndex("flatbush", this.srj.obstacles)
+    this.obstacleTree = new ObstacleSpatialHashIndex(
+      "flatbush",
+      this.srj.obstacles,
+    )
     this.targets = this.computeTargets()
     this.targetTree = new TargetTree(this.targets)
   }
