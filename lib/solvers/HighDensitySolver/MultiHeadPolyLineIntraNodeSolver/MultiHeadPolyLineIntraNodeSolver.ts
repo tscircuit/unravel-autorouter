@@ -115,13 +115,9 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       Math.ceil(uniqueConnections * 1.5),
     )
 
-    if (this.maxViaCount < this.minViaCount) {
-      this.maxViaCount = this.minViaCount
-    }
-
     if (uniqueConnections > 5) {
       this.failed = true
-      this.error = `Limit is currently set to 5 unique connections, ${uniqueConnections} found`
+      this.error = `Limit is currently set to 6 unique connections, ${uniqueConnections} found`
       return
     }
 
@@ -133,8 +129,13 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       this.error = `Not possible to solve problem with given SEGMENTS_PER_POLYLINE (${this.SEGMENTS_PER_POLYLINE}), atleast ${this.minViaCount} vias are required`
       return
     }
+
     if (this.maxViaCount > this.SEGMENTS_PER_POLYLINE) {
       this.maxViaCount = this.SEGMENTS_PER_POLYLINE
+    }
+
+    if (this.maxViaCount < this.minViaCount) {
+      this.maxViaCount = this.minViaCount
     }
   }
 
@@ -1008,6 +1009,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const currentCandidate = this.candidates.shift()!
     if (!currentCandidate) {
       this.failed = true
+      this.error = "No candidates left"
       return
     }
     this.lastCandidate = currentCandidate
