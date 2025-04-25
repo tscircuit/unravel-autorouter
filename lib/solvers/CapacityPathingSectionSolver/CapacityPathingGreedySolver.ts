@@ -10,11 +10,10 @@ export class CapacityPathingGreedySolver extends CapacityPathingSolver5 {
   }
 
   getNodeCapacityPenalty(node: CapacityMeshNode): number {
-    if (!this.nodeMap.has(node.capacityMeshNodeId)) return Infinity // Penalize leaving section heavily
     /**
      * Roughly, -1 remaining capacity is penalized to this much distance
      */
-    const mmPenaltyFactor = 4
+    const mmPenaltyFactor = 2
     const MIN_PENALTY = 0.05
     const totalCapacity = this.getTotalCapacity(node)
     const usedCapacity =
@@ -33,7 +32,7 @@ export class CapacityPathingGreedySolver extends CapacityPathingSolver5 {
       singleLayerUsagePenaltyFactor = 10
     }
     return (
-      (MIN_PENALTY + remainingCapacity ** 2 * mmPenaltyFactor) *
+      (MIN_PENALTY + Math.abs(remainingCapacity) * mmPenaltyFactor) *
       singleLayerUsagePenaltyFactor
     )
   }

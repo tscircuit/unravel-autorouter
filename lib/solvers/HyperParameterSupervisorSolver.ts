@@ -84,12 +84,13 @@ export class HyperParameterSupervisorSolver<
 
       for (const hyperParameters of hyperParameterCombinations) {
         const solver = this.generateSolver(hyperParameters)
+        const g = this.computeG(solver)
         this.supervisedSolvers.push({
           hyperParameters,
           solver,
           h: 0,
-          g: 0,
-          f: 0,
+          g,
+          f: g,
         })
       }
     }

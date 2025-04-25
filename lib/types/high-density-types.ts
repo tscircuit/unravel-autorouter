@@ -11,6 +11,7 @@ export type NodeWithPortPoints = {
   width: number
   height: number
   portPoints: PortPoint[]
+  availableZ?: number[]
 }
 
 /**

@@ -60,6 +60,13 @@ export class HighDensitySolver extends BaseSolver {
       return
     }
     if (this.unsolvedNodePortPoints.length === 0) {
+      if (this.failedSolvers.length > 0) {
+        this.solved = false
+        this.failed = true
+        this.error = `Failed to solve ${this.failedSolvers.length} nodes`
+        return
+      }
+
       this.solved = true
       return
     }
@@ -111,6 +118,21 @@ export class HighDensitySolver extends BaseSolver {
     }
     for (const solver of this.failedSolvers) {
       const node = solver.nodeWithPortPoints
+
+      // Add a small rectangle in the center for failed nodes
+      const rectWidth = node.width * 0.1
+      const rectHeight = node.height * 0.1
+      graphics.rects!.push({
+        center: {
+          x: node.center.x - rectWidth / 2,
+          y: node.center.y - rectHeight / 2,
+        },
+        width: rectWidth,
+        height: rectHeight,
+        fill: "red",
+        label: `Failed: ${node.capacityMeshNodeId}`,
+      })
+
       // Group port points by connectionName
       const connectionGroups: Record<
         string,

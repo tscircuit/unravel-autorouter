@@ -120,7 +120,6 @@ export const UnravelSectionDebugger = ({
   const visualization = useMemo(() => {
     try {
       const visualization = solver?.visualize() || { points: [], lines: [] }
-      console.log("visualization", visualization)
       return visualization
     } catch (error) {
       console.error("Visualization error:", error)
@@ -228,7 +227,8 @@ export const UnravelSectionDebugger = ({
               solver.selectedCandidateIndex === null ? "bg-blue-100" : ""
             }`}
           >
-            last {solver.lastProcessedCandidate?.candidateHash.slice(-10)}
+            last {solver.lastProcessedCandidate?.g?.toFixed(3)}{" "}
+            {solver.lastProcessedCandidate?.operationsPerformed}
           </button>
           <button
             onClick={() => {
@@ -244,7 +244,7 @@ export const UnravelSectionDebugger = ({
             }`}
           >
             best {solver.bestCandidate?.g.toFixed(3)}{" "}
-            {solver.bestCandidate?.candidateHash.slice(-10)}
+            {solver.bestCandidate?.operationsPerformed}
           </button>
           <button
             className={`ml-1 text-xs border rounded-md px-2 py-1 hover:bg-gray-100 ${

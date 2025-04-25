@@ -67,6 +67,7 @@ export interface UnravelSection {
   mutableSegmentIds: Set<string>
   immutableNodeIds: CapacityMeshNodeId[]
   segmentPointMap: SegmentPointMap
+  mutableSegmentPointIds: Set<SegmentPointId>
   segmentPairsInNode: Map<
     CapacityMeshNodeId,
     Array<[SegmentPointId, SegmentPointId]>

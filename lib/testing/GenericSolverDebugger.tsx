@@ -50,13 +50,44 @@ export const GenericSolverDebugger = ({
     }
   }, [mainSolver, selectedSolverKey])
 
-  const speedLevels = [1, 2, 5, 10, 100]
-  const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
+  const speedLevels = [1, 2, 5, 10, 100, 500, 1000, 2000]
+  const speedLabels = [
+    "1x",
+    "2x",
+    "5x",
+    "10x",
+    "100x",
+    "500x",
+    "1000x",
+    "2000x",
+  ]
 
   // Reset solver
   const resetSolver = () => {
     setMainSolver(createSolver())
     setSelectedSolverKey("main")
+  }
+
+  const stats = useRef({
+    bestF: Infinity,
+    bestCandidateIteration: 0,
+    lastF: Infinity,
+    lastG: Infinity,
+    lastH: Infinity,
+  })
+
+  const stepWithStats = () => {
+    const nextCandidate = (mainSolver as any).candidates?.[0]
+    if (nextCandidate) {
+      if (nextCandidate.f < stats.current.bestF) {
+        stats.current.bestF = nextCandidate.f
+        stats.current.bestCandidateIteration = mainSolver.iterations
+      }
+      stats.current.lastF = nextCandidate.f
+      stats.current.lastG = nextCandidate.g
+      stats.current.lastH = nextCandidate.h
+    }
+    mainSolver.step()
   }
 
   // Animation effect
@@ -71,7 +102,7 @@ export const GenericSolverDebugger = ({
           if (mainSolver.solved || mainSolver.failed) {
             break
           }
-          mainSolver.step()
+          stepWithStats()
         }
         setForceUpdate((prev) => prev + 1)
       }, animationSpeed)
@@ -87,7 +118,7 @@ export const GenericSolverDebugger = ({
   // Manual step function
   const handleStep = () => {
     if (!mainSolver.solved && !mainSolver.failed) {
-      mainSolver.step()
+      stepWithStats()
       setForceUpdate((prev) => prev + 1)
     }
   }
@@ -469,6 +500,46 @@ export const GenericSolverDebugger = ({
           Max Iterations:{" "}
           <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
         </div>
+        {(selectedSolver as any)?.candidates !== undefined && (
+          <div className="border p-2 rounded mb-2 flex space-x-4 [&>*]:w-48">
+            <div>
+              Candidates:{" "}
+              <span className="font-bold">
+                {(selectedSolver as any).candidates.length}
+              </span>
+            </div>
+            <div>
+              Best F:{" "}
+              <span className="font-bold">
+                {stats.current.bestF.toFixed(3)}
+              </span>
+            </div>
+            <div>
+              Best F:{" "}
+              <span className="font-bold">
+                {stats.current.bestCandidateIteration}
+              </span>
+            </div>
+            <div>
+              Last F:{" "}
+              <span className="font-bold">
+                {stats.current.lastF?.toFixed(3)}
+              </span>
+            </div>
+            <div>
+              Last G:{" "}
+              <span className="font-bold">
+                {stats.current.lastG?.toFixed(3)}
+              </span>
+            </div>
+            <div>
+              Last H:{" "}
+              <span className="font-bold">
+                {stats.current.lastH?.toFixed(3)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
       <div>
         <h3 className="font-bold mb-2">Advanced</h3>
@@ -485,7 +556,7 @@ export const GenericSolverDebugger = ({
                   return
                 }
 
-                let params
+                let params: any
                 try {
                   params = deepestActiveSubSolver.getConstructorParams()
                 } catch (e: any) {

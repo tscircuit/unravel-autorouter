@@ -178,8 +178,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     ),
     definePipelineStep(
       "pathingSolver",
-      CapacityPathingSolver5,
-      // CapacityPathingMultiSectionSolver,
+      // CapacityPathingSolver5,
+      CapacityPathingMultiSectionSolver,
       (cms) => [
         // Replaced solver class
         {
@@ -327,7 +327,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     public opts: CapacityMeshSolverOptions = {},
   ) {
     super()
-    this.MAX_ITERATIONS = 1e6
+    this.MAX_ITERATIONS = 10e6
 
     // If capacityDepth is not provided, calculate it automatically
     if (opts.capacityDepth === undefined) {

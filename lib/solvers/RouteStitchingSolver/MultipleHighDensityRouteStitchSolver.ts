@@ -160,13 +160,13 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
           x: unsolvedRoute.start.x,
           y: unsolvedRoute.start.y,
           color: routeColor,
-          label: `${unsolvedRoute.connectionName} Start`,
+          label: `${unsolvedRoute.connectionName} Start (z=${unsolvedRoute.start.z})`,
         },
         {
           x: unsolvedRoute.end.x,
           y: unsolvedRoute.end.y,
           color: routeColor,
-          label: `${unsolvedRoute.connectionName} End`,
+          label: `${unsolvedRoute.connectionName} End (z=${unsolvedRoute.end.z})`,
         },
       )
 

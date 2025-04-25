@@ -43,10 +43,7 @@ export interface CapacityPathingSingleSectionPathingSolverParams {
 }
 
 export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
-  // --- Properties from CapacityPathingSolver & CapacityPathingSolver5 ---
-  GREEDY_MULTIPLIER = 2.5 // From CapacityPathingSolver5 constructor override
-  NEGATIVE_CAPACITY_PENALTY_FACTOR = 1 // From CapacityPathingSolver5
-  REDUCED_CAPACITY_PENALTY_FACTOR = 1 // From CapacityPathingSolver5
+  GREEDY_MULTIPLIER = 1.5
   sectionNodes: CapacityMeshNode[]
   sectionEdges: CapacityMeshEdge[]
   sectionConnectionTerminals: Array<{
@@ -59,6 +56,8 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]> // Edges *within the section*
   colorMap: Record<string, string>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number> // Tracks capacity usage *within this solver's run*
+
+  MAX_CANDIDATES_IN_MEMORY = 10_000
 
   // A* state
   currentConnectionIndex = 0
@@ -292,6 +291,13 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
 
     candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = candidates.shift()! // Not null due to check above
+    if (candidates.length > this.MAX_CANDIDATES_IN_MEMORY) {
+      candidates.splice(
+        this.MAX_CANDIDATES_IN_MEMORY,
+        candidates.length - this.MAX_CANDIDATES_IN_MEMORY,
+      )
+    }
+
     // Add the node selected for expansion to the visited/closed set
     this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId)
 

@@ -19,12 +19,26 @@ import {
 } from "./createPointModificationsHash"
 import { getIssuesInSection } from "./getIssuesInSection"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
-import { getLogProbability } from "./getLogProbability"
 import { applyOperationToPointModifications } from "./applyOperationToPointModifications"
 import {
   createSegmentPointMap,
   SegmentPointMapAndReverseMaps,
 } from "./createSegmentPointMap"
+import { calculateNodeProbabilityOfFailure } from "./calculateCrossingProbabilityOfFailure"
+
+interface UnravelSectionSolverParams {
+  rootNodeId: CapacityMeshNodeId
+  colorMap?: Record<string, string>
+  MUTABLE_HOPS?: number
+  nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
+  dedupedSegments: SegmentWithAssignedPoints[]
+  dedupedSegmentMap?: Map<SegmentId, SegmentWithAssignedPoints>
+  nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
+  segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
+  segmentPointMap?: SegmentPointMap
+  nodeToSegmentPointMap?: Map<CapacityMeshNodeId, SegmentPointId[]>
+  segmentToSegmentPointMap?: Map<SegmentId, SegmentPointId[]>
+}
 
 /**
  * The UntangleSectionSolver optimizes a section of connected capacity nodes
@@ -80,20 +94,12 @@ export class UnravelSectionSolver extends BaseSolver {
 
   queuedOrExploredCandidatePointModificationHashes: Set<string> = new Set()
 
-  constructor(params: {
-    rootNodeId: CapacityMeshNodeId
-    colorMap?: Record<string, string>
-    MUTABLE_HOPS?: number
-    nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
-    dedupedSegments: SegmentWithAssignedPoints[]
-    dedupedSegmentMap?: Map<SegmentId, SegmentWithAssignedPoints>
-    nodeIdToSegmentIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
-    segmentIdToNodeIds: Map<CapacityMeshNodeId, CapacityMeshNodeId[]>
-    segmentPointMap?: SegmentPointMap
-    nodeToSegmentPointMap?: Map<CapacityMeshNodeId, SegmentPointId[]>
-    segmentToSegmentPointMap?: Map<SegmentId, SegmentPointId[]>
-  }) {
+  constructorParams: UnravelSectionSolverParams
+
+  constructor(params: UnravelSectionSolverParams) {
     super()
+
+    this.constructorParams = params
 
     this.MUTABLE_HOPS = params.MUTABLE_HOPS ?? this.MUTABLE_HOPS
     this.MAX_ITERATIONS = 50_000
@@ -126,6 +132,16 @@ export class UnravelSectionSolver extends BaseSolver {
     }
     this.originalCandidate = this.createInitialCandidate()
     this.candidates = [this.originalCandidate]
+  }
+
+  getConstructorParams(): UnravelSectionSolverParams {
+    return {
+      ...this.constructorParams,
+      // use the section maps instead of the global maps
+      segmentPointMap: this.unravelSection.segmentPointMap,
+      nodeToSegmentPointMap: this.unravelSection.segmentPointsInNode,
+      segmentToSegmentPointMap: this.unravelSection.segmentPointsInSegment,
+    }
   }
 
   createUnravelSection(
@@ -242,6 +258,13 @@ export class UnravelSectionSolver extends BaseSolver {
       }
     }
 
+    const mutableSegmentPointIds = new Set<SegmentPointId>()
+    for (const sp of segmentPoints) {
+      if (sp.capacityMeshNodeIds.some((id) => mutableNodeIds.includes(id))) {
+        mutableSegmentPointIds.add(sp.segmentPointId)
+      }
+    }
+
     return {
       allNodeIds: allSectionNodeIds,
       mutableNodeIds,
@@ -252,6 +275,7 @@ export class UnravelSectionSolver extends BaseSolver {
       segmentPointsInNode,
       segmentPointsInSegment,
       originalPointMap: sectionPointMap,
+      mutableSegmentPointIds,
     }
   }
 
@@ -327,7 +351,7 @@ export class UnravelSectionSolver extends BaseSolver {
       )!.availableZ
 
       if (
-        this.unravelSection.mutableSegmentIds.has(pointA.segmentId) &&
+        this.unravelSection.mutableSegmentPointIds.has(APointId) &&
         aAvailableZ.includes(pointB.z)
       ) {
         operations.push({
@@ -337,7 +361,7 @@ export class UnravelSectionSolver extends BaseSolver {
         })
       }
       if (
-        this.unravelSection.mutableSegmentIds.has(pointB.segmentId) &&
+        this.unravelSection.mutableSegmentPointIds.has(BPointId) &&
         bAvailableZ.includes(pointA.z)
       ) {
         operations.push({
@@ -365,16 +389,25 @@ export class UnravelSectionSolver extends BaseSolver {
       const C = this.unravelSection.segmentPointMap.get(CPointId)!
       const D = this.unravelSection.segmentPointMap.get(DPointId)!
 
-      if (A.segmentId === C.segmentId) {
+      const AIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(APointId)
+      const BIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(BPointId)
+      const CIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(CPointId)
+      const DIsMutable =
+        this.unravelSection.mutableSegmentPointIds.has(DPointId)
+
+      if (AIsMutable && CIsMutable && A.segmentId === C.segmentId) {
         sharedSegments.push([APointId, CPointId])
       }
-      if (A.segmentId === D.segmentId) {
+      if (AIsMutable && DIsMutable && A.segmentId === D.segmentId) {
         sharedSegments.push([APointId, DPointId])
       }
-      if (B.segmentId === C.segmentId) {
+      if (BIsMutable && CIsMutable && B.segmentId === C.segmentId) {
         sharedSegments.push([BPointId, CPointId])
       }
-      if (B.segmentId === D.segmentId) {
+      if (BIsMutable && DIsMutable && B.segmentId === D.segmentId) {
         sharedSegments.push([BPointId, DPointId])
       }
 
@@ -386,12 +419,6 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // 2. CHANGE LAYER OF EACH SEGMENT ENTIRELY TO REMOVE CROSSING
-      const Amutable = this.unravelSection.mutableSegmentIds.has(A.segmentId)
-      const Bmutable = this.unravelSection.mutableSegmentIds.has(B.segmentId)
-      const Cmutable = this.unravelSection.mutableSegmentIds.has(C.segmentId)
-      const Dmutable = this.unravelSection.mutableSegmentIds.has(D.segmentId)
-
-      // Get availableZ for each segment
       const aSegment = this.dedupedSegmentMap.get(A.segmentId)!
       const bSegment = this.dedupedSegmentMap.get(B.segmentId)!
       const cSegment = this.dedupedSegmentMap.get(C.segmentId)!
@@ -403,7 +430,7 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // Only propose layer changes if both segments can use the target layer
-      if (Amutable && Bmutable) {
+      if (AIsMutable && BIsMutable) {
         const newZ = A.z === 0 ? 1 : 0
         if (isNewZAvailableForAll([aSegment, bSegment], newZ)) {
           operations.push({
@@ -414,7 +441,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Cmutable && Dmutable) {
+      if (CIsMutable && DIsMutable) {
         const newZ = C.z === 0 ? 1 : 0
         if (isNewZAvailableForAll([cSegment, dSegment], newZ)) {
           operations.push({
@@ -426,7 +453,7 @@ export class UnravelSectionSolver extends BaseSolver {
       }
 
       // 3. CHANGE LAYER OF EACH POINT INDIVIDUALLY TO MAKE TRANSITION CROSSING
-      if (Amutable) {
+      if (AIsMutable) {
         const newZ = A.z === 0 ? 1 : 0
         if (aSegment.availableZ.includes(newZ)) {
           operations.push({
@@ -437,7 +464,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Bmutable) {
+      if (BIsMutable) {
         const newZ = B.z === 0 ? 1 : 0
         if (bSegment.availableZ.includes(newZ)) {
           operations.push({
@@ -448,7 +475,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Cmutable) {
+      if (CIsMutable) {
         const newZ = C.z === 0 ? 1 : 0
         if (cSegment.availableZ.includes(newZ)) {
           operations.push({
@@ -459,7 +486,7 @@ export class UnravelSectionSolver extends BaseSolver {
         }
       }
 
-      if (Dmutable) {
+      if (DIsMutable) {
         const newZ = D.z === 0 ? 1 : 0
         if (dSegment.availableZ.includes(newZ)) {
           operations.push({
@@ -522,7 +549,12 @@ export class UnravelSectionSolver extends BaseSolver {
       }
     }
 
-    let cost = 0
+    function log1mexp(x: number): number {
+      if (x < -Math.LN2) return Math.log(1 - Math.exp(x))
+      else return Math.log(-Math.expm1(x)) // more accurate when x ~ 0
+    }
+
+    let logSuccess = 0 // log(probability all nodes succeed)
 
     for (const [
       nodeId,
@@ -532,21 +564,24 @@ export class UnravelSectionSolver extends BaseSolver {
         numTransitionCrossings,
       },
     ] of nodeProblemCounts) {
-      const estNumVias =
-        numSameLayerCrossings * 0.82 +
-        numEntryExitLayerChanges * 0.41 +
-        numTransitionCrossings * 0.2
+      const node = this.nodeMap.get(nodeId)!
+      const estPf = Math.min(
+        calculateNodeProbabilityOfFailure(
+          node,
+          numSameLayerCrossings,
+          numEntryExitLayerChanges,
+          numTransitionCrossings,
+        ),
+        0.999999,
+      )
 
-      const estUsedCapacity = (estNumVias / 2) ** 1.1
-
-      const totalCapacity = this.tunedNodeCapacityMap.get(nodeId)!
-
-      const estPf = estUsedCapacity / totalCapacity
-
-      cost += getLogProbability(estPf)
+      const log1mPf = Math.log(1 - estPf)
+      logSuccess += log1mPf
     }
 
-    return cost
+    const logPf = log1mexp(logSuccess)
+
+    return logPf
   }
 
   getUnexploredNeighborByApplyingOperation(
@@ -732,14 +767,70 @@ export class UnravelSectionSolver extends BaseSolver {
       })
     }
 
-    // Visualize nodes
+    // Calculate node stats for the selected candidate
+    const nodeStatsMap = new Map<
+      CapacityMeshNodeId,
+      {
+        numTransitionCrossings: number
+        numSameLayerCrossings: number
+        numEntryExitLayerChanges: number
+        estPf: number
+      }
+    >()
+
+    for (const nodeId of this.unravelSection.allNodeIds) {
+      nodeStatsMap.set(nodeId, {
+        numTransitionCrossings: 0,
+        numSameLayerCrossings: 0,
+        numEntryExitLayerChanges: 0,
+        estPf: 0,
+      })
+    }
+
+    for (const issue of candidate.issues) {
+      const stats = nodeStatsMap.get(issue.capacityMeshNodeId)!
+      if (issue.type === "transition_via") {
+        stats.numTransitionCrossings++
+      } else if (issue.type === "same_layer_crossing") {
+        stats.numSameLayerCrossings++
+      } else if (
+        issue.type === "double_transition_crossing" ||
+        issue.type === "single_transition_crossing"
+      ) {
+        stats.numEntryExitLayerChanges++
+      }
+      // TODO: Handle same_layer_trace_imbalance_with_low_capacity if needed for stats
+    }
+
+    // Calculate Pf for each node
+    for (const [nodeId, stats] of nodeStatsMap.entries()) {
+      const node = this.nodeMap.get(nodeId)!
+      stats.estPf = calculateNodeProbabilityOfFailure(
+        node,
+        stats.numSameLayerCrossings,
+        stats.numEntryExitLayerChanges,
+        stats.numTransitionCrossings,
+      )
+    }
+
+    // Visualize nodes with stats
     for (const nodeId of this.unravelSection.allNodeIds) {
       const node = this.nodeMap.get(nodeId)!
       const isMutable = this.unravelSection.mutableNodeIds.includes(nodeId)
+      const stats = nodeStatsMap.get(nodeId)!
+
+      const label = [
+        `${nodeId} (${isMutable ? "MUT" : "IMM"})`,
+        `${node.width.toFixed(2)}x${node.height.toFixed(2)}`,
+        `Pf: ${stats.estPf.toFixed(3)}`,
+        `TC: ${stats.numTransitionCrossings}`, // Transition Crossings (Vias)
+        `SLC: ${stats.numSameLayerCrossings}`, // Same Layer Crossings
+        `EELC: ${stats.numEntryExitLayerChanges}`, // Entry/Exit Layer Changes
+      ].join("\n")
 
       graphics.rects.push({
         center: node.center,
-        label: `${nodeId}\n${node.width.toFixed(2)}x${node.height.toFixed(2)}\n${isMutable ? "MUTABLE" : "IMMUTABLE"}`,
+        label: label,
         color: isMutable ? "green" : "red",
         width: node.width / 8,
         height: node.height / 8,

@@ -27,6 +27,7 @@ export class UselessViaRemovalSolver extends BaseSolver {
 
   constructor(private input: UselessViaRemovalSolverInput) {
     super()
+    this.MAX_ITERATIONS = 1e6
     this.unsimplifiedHdRoutes = input.unsimplifiedHdRoutes
     this.optimizedHdRoutes = []
     this.unprocessedRoutes = [...input.unsimplifiedHdRoutes]

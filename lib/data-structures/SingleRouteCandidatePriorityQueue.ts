@@ -10,10 +10,10 @@ export type Node = {
   parent: Node | null
 }
 
-export class SingleRouteCandidatePriorityQueue {
-  private heap: Node[] = []
+export class SingleRouteCandidatePriorityQueue<T extends Node = Node> {
+  private heap: T[] = []
 
-  constructor(nodes: Node[]) {
+  constructor(nodes: T[]) {
     this.heap = []
 
     for (const node of nodes) {
@@ -45,15 +45,15 @@ export class SingleRouteCandidatePriorityQueue {
     return this.getParentIndex(index) >= 0
   }
 
-  private leftChild(index: number): Node {
+  private leftChild(index: number): T {
     return this.heap[this.getLeftChildIndex(index)]
   }
 
-  private rightChild(index: number): Node {
+  private rightChild(index: number): T {
     return this.heap[this.getRightChildIndex(index)]
   }
 
-  private parent(index: number): Node {
+  private parent(index: number): T {
     return this.heap[this.getParentIndex(index)]
   }
 
@@ -66,7 +66,7 @@ export class SingleRouteCandidatePriorityQueue {
   // Removing an element will remove the
   // top element with highest priority then
   // heapifyDown will be called
-  dequeue(): Node | null {
+  dequeue(): T | null {
     if (this.heap.length === 0) {
       return null
     }
@@ -77,14 +77,14 @@ export class SingleRouteCandidatePriorityQueue {
     return item
   }
 
-  peek(): Node | null {
+  peek(): T | null {
     if (this.heap.length === 0) {
       return null
     }
     return this.heap[0]
   }
 
-  enqueue(item: Node) {
+  enqueue(item: T) {
     this.heap.push(item)
     this.heapifyUp()
   }

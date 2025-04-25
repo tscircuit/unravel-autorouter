@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import {
   InteractiveGraphics,
   InteractiveGraphicsCanvas,
@@ -6,7 +6,10 @@ import {
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { SimpleRouteJson } from "lib/types"
-import { CapacityMeshSolver } from "lib/solvers/AutoroutingPipelineSolver"
+import {
+  AutoroutingPipelineSolver,
+  CapacityMeshSolver,
+} from "lib/solvers/AutoroutingPipelineSolver"
 import { GraphicsObject, Line, Point, Rect } from "graphics-debug"
 import { limitVisualizations } from "lib/utils/limitVisualizations"
 import { getNodesNearNode } from "lib/solvers/UnravelSolver/getNodesNearNode"
@@ -14,6 +17,7 @@ import { filterUnravelMultiSectionInput } from "./utils/filterUnravelMultiSectio
 import { convertToCircuitJson } from "./utils/convertToCircuitJson"
 import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
 import { addVisualizationToLastStep } from "lib/utils/addVisualizationToLastStep"
+import { SolveBreakpointDialog } from "./SolveBreakpointDialog"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -50,15 +54,21 @@ export const AutoroutingPipelineDebugger = ({
   const [drcErrorCount, setDrcErrorCount] = useState<number>(0)
   const [showDeepestVisualization, setShowDeepestVisualization] =
     useState(false)
+  const [isBreakpointDialogOpen, setIsBreakpointDialogOpen] = useState(false)
+  const [breakpointNodeId, setBreakpointNodeId] = useState<string>(
+    () => window.localStorage.getItem("lastBreakpointNodeId") || "",
+  )
+  const isSolvingToBreakpointRef = useRef(false) // Ref to track breakpoint solving state
 
-  const speedLevels = [1, 2, 5, 10, 100, 500]
-  const speedLabels = ["1x", "2x", "5x", "10x", "100x", "500x"]
+  const speedLevels = [1, 2, 5, 10, 100, 500, 5000]
+  const speedLabels = ["1x", "2x", "5x", "10x", "100x", "500x", "5000x"]
 
   // Reset solver
   const resetSolver = () => {
     setSolver(createSolver(srj))
     setDrcErrors(null) // Clear DRC errors when resetting
     setDrcErrorCount(0)
+    isSolvingToBreakpointRef.current = false // Stop breakpoint solving on reset
   }
 
   // Animation effect
@@ -84,6 +94,11 @@ export const AutoroutingPipelineDebugger = ({
         clearInterval(intervalId)
       }
     }
+
+    // Stop animation if breakpoint solving is active
+    if (isSolvingToBreakpointRef.current) {
+      setIsAnimating(false)
+    }
   }, [isAnimating, speedLevel, solver, animationSpeed])
 
   // Manual step function
@@ -92,6 +107,7 @@ export const AutoroutingPipelineDebugger = ({
       solver.step()
       setForceUpdate((prev) => prev + 1)
     }
+    isSolvingToBreakpointRef.current = false // Stop breakpoint solving on manual step
   }
 
   // Next Stage function
@@ -123,6 +139,7 @@ export const AutoroutingPipelineDebugger = ({
 
       setForceUpdate((prev) => prev + 1)
     }
+    isSolvingToBreakpointRef.current = false // Stop breakpoint solving on next stage
   }
 
   // Solve completely
@@ -133,6 +150,7 @@ export const AutoroutingPipelineDebugger = ({
       const endTime = performance.now() / 1000
       setSolveTime(endTime - startTime)
     }
+    isSolvingToBreakpointRef.current = false // Stop breakpoint solving on solve completely
   }
 
   // Go to specific iteration
@@ -181,6 +199,7 @@ export const AutoroutingPipelineDebugger = ({
     }
 
     setForceUpdate((prev) => prev + 1)
+    isSolvingToBreakpointRef.current = false // Stop breakpoint solving on go to iteration
   }
 
   // Run DRC checks on the current routes
@@ -321,6 +340,92 @@ export const AutoroutingPipelineDebugger = ({
     }
   }
 
+  // Solve to Breakpoint logic
+  const handleSolveToBreakpoint = (
+    targetSolverName: string,
+    targetNodeId: string,
+  ) => {
+    if (solver.solved || solver.failed || isSolvingToBreakpointRef.current) {
+      return
+    }
+
+    setBreakpointNodeId(targetNodeId)
+    window.localStorage.setItem("lastBreakpointNodeId", targetNodeId)
+    isSolvingToBreakpointRef.current = true
+    setIsAnimating(false) // Ensure regular animation is stopped
+
+    const checkBreakpoint = () => {
+      if (!isSolvingToBreakpointRef.current) return // Stop if cancelled
+
+      let deepestSolver = solver.activeSubSolver
+      while (deepestSolver?.activeSubSolver) {
+        deepestSolver = deepestSolver.activeSubSolver
+      }
+
+      if (deepestSolver) {
+        const solverName = deepestSolver.constructor.name
+        let rootNodeId: string | undefined = undefined
+        try {
+          // Attempt to get rootNodeId, specific to certain solvers like UnravelSectionSolver
+          const params = (deepestSolver as any).getConstructorParams()
+          if (params?.rootNodeId) {
+            rootNodeId = params.rootNodeId
+          } else if (params?.[0]?.rootNodeId) {
+            // Handle cases where params are wrapped in an array
+            rootNodeId = params[0].rootNodeId
+          }
+        } catch (e) {
+          // Ignore errors if getConstructorParams or rootNodeId doesn't exist
+        }
+
+        console.log(solverName, rootNodeId)
+        if (solverName === targetSolverName && rootNodeId === targetNodeId) {
+          console.log(
+            `Breakpoint hit: ${targetSolverName} with rootNodeId ${targetNodeId}`,
+          )
+          isSolvingToBreakpointRef.current = false // Breakpoint hit, stop solving
+          setForceUpdate((prev) => prev + 1) // Update UI
+          return
+        }
+      }
+
+      // If breakpoint not hit, take a step
+      if (!solver.solved && !solver.failed) {
+        solver.step()
+        setForceUpdate((prev) => prev + 1) // Update UI after step
+        requestAnimationFrame(checkBreakpoint) // Continue checking in the next frame
+      } else {
+        isSolvingToBreakpointRef.current = false // Solver finished or failed
+      }
+    }
+
+    requestAnimationFrame(checkBreakpoint) // Start the checking loop
+  }
+
+  // Play until a specific stage
+  const handlePlayStage = (targetSolverStageKey: string) => {
+    if (solver.solved || solver.failed) return
+
+    // Stop any ongoing animation or breakpoint solving
+    setIsAnimating(false)
+    isSolvingToBreakpointRef.current = false
+
+    // Step until the target solver becomes active
+    while (
+      !solver.solved &&
+      !solver.failed &&
+      solver.activeSubSolver?.constructor.name !== targetSolverStageKey
+    ) {
+      solver.step()
+      // Check if the target solver became active *after* the step
+      if (solver?.[targetSolverStageKey as keyof AutoroutingPipelineSolver]) {
+        break
+      }
+    }
+
+    setForceUpdate((prev) => prev + 1) // Update UI
+  }
+
   // Increase animation speed
   const increaseSpeed = () => {
     setSpeedLevel((prev) => Math.min(prev + 1, speedLevels.length - 1))
@@ -430,6 +535,15 @@ export const AutoroutingPipelineDebugger = ({
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={() => setIsBreakpointDialogOpen(true)}
+          disabled={
+            solver.solved || solver.failed || isSolvingToBreakpointRef.current
+          }
+        >
+          {isSolvingToBreakpointRef.current ? "Solving..." : "Solve Breakpoint"}
+        </button>
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
           onClick={() => setCanSelectObjects(!canSelectObjects)}
         >
           {canSelectObjects ? "Disable" : "Enable"} Object Selection
@@ -526,6 +640,13 @@ export const AutoroutingPipelineDebugger = ({
           </label>
         </div>
       </div>
+
+      <SolveBreakpointDialog
+        isOpen={isBreakpointDialogOpen}
+        onClose={() => setIsBreakpointDialogOpen(false)}
+        onSolve={handleSolveToBreakpoint}
+        initialNodeId={breakpointNodeId}
+      />
 
       <div className="border rounded-md p-4 mb-4">
         {canSelectObjects || renderer === "vector" ? (
@@ -716,10 +837,11 @@ export const AutoroutingPipelineDebugger = ({
             <tr className="bg-gray-100">
               <th className="border p-2 text-left">Step</th>
               <th className="border p-2 text-left">Status</th>
-              <th className="border p-2 text-left">Iterations</th>
               <th className="border p-2 text-left">
                 i<sub>0</sub>
               </th>
+              <th className="border p-2 text-left">Iterations</th>
+              <th className="border p-2 text-left">Progress</th>
               <th className="border p-2 text-left">Time</th>
               <th className="border p-2 text-left">Input</th>
             </tr>
@@ -751,19 +873,39 @@ export const AutoroutingPipelineDebugger = ({
                 return (
                   <tr key={step.solverName}>
                     <td className="border p-2">
-                      <span className="text-gray-500 whitespace-pre mr-2">
-                        {(index + 1).toString().padStart(2, " ")}
+                      <span className="text-gray-500 mr-1 tabular-nums">
+                        {(index + 1).toString().padStart(2, "0")}
                       </span>
+                      {status === "Not Started" && (
+                        <button
+                          className="ml-2 mr-2 text-xs hover:bg-gray-200 rounded px-1 py-0.5"
+                          onClick={() =>
+                            handlePlayStage(
+                              solver.pipelineDef[index].solverName,
+                            )
+                          }
+                          title={`Play until ${step.solverName} starts`}
+                        >
+                          ▶️
+                        </button>
+                      )}
                       {step.solverName}
                     </td>
                     <td className={`border p-2 font-bold ${statusClass}`}>
                       {status}
                     </td>
+                    <td className="border p-2 tabular-nums text-gray-500">
+                      {status === "Not Started" ? "" : i0}
+                    </td>
                     <td className="border p-2">
                       {stepSolver?.iterations || 0}
                     </td>
-                    <td className="border p-2 tabular-nums text-gray-500">
-                      {i0}
+                    <td className="border p-2">
+                      {status === "Solved"
+                        ? "100%"
+                        : status === "In Progress"
+                          ? `${((stepSolver?.progress ?? 0) * 100).toFixed(1)}%`
+                          : ""}
                     </td>
                     <td className="border p-2 tabular-nums">
                       {(
@@ -855,6 +997,16 @@ export const AutoroutingPipelineDebugger = ({
             } catch (e: any) {
               window.alert(`Unable to get constructor params: ${e.toString()}`)
             }
+
+            if (typeof params === "object") {
+              params = { ...params }
+              for (const key in params) {
+                if (params[key] instanceof Map) {
+                  params[key] = Object.fromEntries(params[key])
+                }
+              }
+            }
+
             const paramsJson = JSON.stringify(params, null, 2)
             const blob = new Blob([paramsJson], { type: "application/json" })
             const url = URL.createObjectURL(blob)

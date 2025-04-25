@@ -38,6 +38,7 @@ export class CapacityPathingSolver extends BaseSolver {
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
   GREEDY_MULTIPLIER = 1.1
+  MAX_CANDIDATES_IN_MEMORY = 10_000
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
@@ -286,6 +287,12 @@ export class CapacityPathingSolver extends BaseSolver {
 
     this.candidates.sort((a, b) => a.f - b.f)
     const currentCandidate = this.candidates.shift()
+    if (this.candidates.length > this.MAX_CANDIDATES_IN_MEMORY) {
+      this.candidates.splice(
+        this.MAX_CANDIDATES_IN_MEMORY,
+        this.candidates.length - this.MAX_CANDIDATES_IN_MEMORY,
+      )
+    }
     if (!currentCandidate) {
       // TODO Track failed paths, make sure solver doesn't think it solved
       console.error(
