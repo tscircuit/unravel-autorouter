@@ -75,8 +75,7 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
         collisionScore += this.obstacleMargin - gap
       }
     }
-    return collisionScore * 0.00001
-    // return 1 / (candidate.magForceApplied ?? 0.01)
+    return collisionScore * 0.011 // 100 iterations @ hdpolyline09_optimized
   }
 
   _step() {
