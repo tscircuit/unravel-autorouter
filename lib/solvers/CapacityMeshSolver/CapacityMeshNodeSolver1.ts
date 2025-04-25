@@ -12,7 +12,7 @@ import { isPointInRect } from "lib/utils/isPointInRect"
 import { doRectsOverlap } from "lib/utils/doRectsOverlap"
 import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
-import { ObstacleSpatialHashIndex } from "lib/data-structures/ObstacleTree"
+import { ObstacleTree } from "lib/data-structures/ObstacleTree"
 import { TargetTree } from "lib/data-structures/TargetTree"
 
 interface CapacityMeshNodeSolverOptions {
@@ -45,7 +45,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
 
   targets: Target[]
   targetTree: TargetTree
-  obstacleTree: ObstacleSpatialHashIndex
+  obstacleTree: ObstacleTree
 
   constructor(
     public srj: SimpleRouteJson,
@@ -91,7 +91,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     ]
     this.finishedNodes = []
     this.nodeToXYOverlappingObstaclesMap = new Map()
-    this.obstacleTree = new ObstacleSpatialHashIndex(this.srj.obstacles)
+    this.obstacleTree = new ObstacleTree("flatbush", this.srj.obstacles)
     this.targets = this.computeTargets()
     this.targetTree = new TargetTree(this.targets)
   }
@@ -101,7 +101,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     for (const conn of this.srj.connections) {
       for (const ptc of conn.pointsToConnect) {
         const obstacles = this.obstacleTree
-          .getNodesInArea(ptc.x, ptc.y, 0.01, 0.01)
+          .searchArea(ptc.x, ptc.y, 0.01, 0.01)
           .filter((o) =>
             o.zLayers!.some((z) => (ptc.layer === "top" ? z === 0 : z === 1)),
           )

@@ -1,4 +1,4 @@
-import { ObstacleSpatialHashIndex } from "lib/data-structures/ObstacleTree"
+import { ObstacleTree } from "lib/data-structures/ObstacleTree"
 import { BaseSolver } from "../BaseSolver"
 import {
   HighDensityRoute,
@@ -15,7 +15,7 @@ interface RouteSection {
 }
 
 export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
-  obstacleSHI: ObstacleSpatialHashIndex
+  obstacleSHI: ObstacleTree
   hdRouteSHI: HighDensityRouteSpatialIndex
   unsimplifiedRoute: HighDensityRoute
 
@@ -27,7 +27,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
   OBSTACLE_MARGIN = 0.1
 
   constructor(params: {
-    obstacleSHI: ObstacleSpatialHashIndex
+    obstacleSHI: ObstacleTree
     hdRouteSHI: HighDensityRouteSpatialIndex
     unsimplifiedRoute: HighDensityRoute
   }) {
@@ -150,7 +150,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
       }
 
       // Obstacle check
-      const obstacles = this.obstacleSHI.getNodesInArea(
+      const obstacles = this.obstacleSHI.searchArea(
         segmentBox.centerX,
         segmentBox.centerY,
         segmentBox.width + (this.TRACE_THICKNESS + this.OBSTACLE_MARGIN) * 2, // Expand search width

@@ -72,6 +72,20 @@ export class ObstacleTree {
   }): Obstacle[] {
     return this.idx.search(bbox.minX, bbox.minY, bbox.maxX, bbox.maxY)
   }
+
+  searchArea(
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+  ): Obstacle[] {
+    return this.search({
+      minX: centerX - width / 2,
+      minY: centerY - height / 2,
+      maxX: centerX + width / 2,
+      maxY: centerY + height / 2,
+    })
+  }
 }
 
 export class NativeObstacleTree {
@@ -139,4 +153,3 @@ export class NativeObstacleTree {
     return obstacles
   }
 }
-export { NativeObstacleTree as ObstacleSpatialHashIndex }
