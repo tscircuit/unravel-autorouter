@@ -32,7 +32,7 @@ export class UselessViaRemovalSolver extends BaseSolver {
     this.optimizedHdRoutes = []
     this.unprocessedRoutes = [...input.unsimplifiedHdRoutes]
 
-    this.obstacleSHI = new ObstacleSpatialHashIndex(input.obstacles)
+    this.obstacleSHI = new ObstacleSpatialHashIndex("flatbush", input.obstacles)
     this.hdRouteSHI = new HighDensityRouteSpatialIndex(
       this.unsimplifiedHdRoutes,
     )

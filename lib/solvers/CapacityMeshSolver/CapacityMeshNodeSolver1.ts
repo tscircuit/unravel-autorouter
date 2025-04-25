@@ -91,7 +91,10 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     ]
     this.finishedNodes = []
     this.nodeToXYOverlappingObstaclesMap = new Map()
-    this.obstacleTree = new ObstacleSpatialHashIndex(this.srj.obstacles)
+    this.obstacleTree = new ObstacleSpatialHashIndex(
+      "flatbush",
+      this.srj.obstacles,
+    )
     this.targets = this.computeTargets()
     this.targetTree = new TargetTree(this.targets)
   }
@@ -101,7 +104,7 @@ export class CapacityMeshNodeSolver extends BaseSolver {
     for (const conn of this.srj.connections) {
       for (const ptc of conn.pointsToConnect) {
         const obstacles = this.obstacleTree
-          .getNodesInArea(ptc.x, ptc.y, 0.01, 0.01)
+          .searchArea(ptc.x, ptc.y, 0.01, 0.01)
           .filter((o) =>
             o.zLayers!.some((z) => (ptc.layer === "top" ? z === 0 : z === 1)),
           )

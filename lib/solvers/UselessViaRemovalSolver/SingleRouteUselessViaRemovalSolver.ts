@@ -150,7 +150,7 @@ export class SingleRouteUselessViaRemovalSolver extends BaseSolver {
       }
 
       // Obstacle check
-      const obstacles = this.obstacleSHI.getNodesInArea(
+      const obstacles = this.obstacleSHI.searchArea(
         segmentBox.centerX,
         segmentBox.centerY,
         segmentBox.width + (this.TRACE_THICKNESS + this.OBSTACLE_MARGIN) * 2, // Expand search width
