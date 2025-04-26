@@ -8,10 +8,8 @@ import { GraphicsObject } from "graphics-debug"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeSection } from "./visualizeSection"
-import {
-  CapacityPathingSingleSectionPathingSolver,
-  CpssPathingSolverHyperParameters,
-} from "./CapacityPathingSingleSectionPathingSolver"
+import { CpssPathingSolverHyperParameters } from "./CapacityPathingSingleSectionPathingSolver"
+import { HyperCapacityPathingSingleSectionPathingSolver } from "./HyperCapacityPathingSingleSectionPathingSolver"
 
 export interface CapacityPathingSingleSectionSolverInput {
   centerNodeId: CapacityMeshNodeId
@@ -38,10 +36,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     startNodeId: CapacityMeshNodeId
     endNodeId: CapacityMeshNodeId
   }>
-  activeSubSolver?:
-    | CapacityPathingSingleSectionPathingSolver
-    | null
-    | undefined = null
+  activeSubSolver?: HyperCapacityPathingSingleSectionPathingSolver | null = null
 
   constructor(params: CapacityPathingSingleSectionSolverInput) {
     super()
@@ -62,10 +57,11 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
 
     this.computeSectionNodesTerminalsAndEdges()
 
-    this.activeSubSolver = new CapacityPathingSingleSectionPathingSolver({
+    // Use the Hyper solver
+    this.activeSubSolver = new HyperCapacityPathingSingleSectionPathingSolver({
       sectionConnectionTerminals: this.sectionConnectionTerminals,
       sectionNodes: this.sectionNodes,
-      sectionEdges: this.sectionEdges,
+      sectionEdges: this.sectionEdges, // Pass sectionEdges here
       colorMap: this.colorMap,
       hyperParameters: params.hyperParameters,
     })
