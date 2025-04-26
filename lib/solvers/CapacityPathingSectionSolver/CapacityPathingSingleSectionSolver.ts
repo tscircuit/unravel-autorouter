@@ -12,6 +12,10 @@ import {
   CapacityPathingSingleSectionPathingSolver,
   CpssPathingSolverHyperParameters,
 } from "./CapacityPathingSingleSectionPathingSolver"
+import {
+  computeSectionNodesTerminalsAndEdges,
+  SectionConnectionTerminal,
+} from "./computeSectionNodesTerminalsAndEdges"
 
 export interface CapacityPathingSingleSectionSolverInput {
   centerNodeId: CapacityMeshNodeId
@@ -33,11 +37,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
   sectionNodes: CapacityMeshNode[]
   sectionEdges: CapacityMeshEdge[] // Added sectionEdges property
-  sectionConnectionTerminals: Array<{
-    connectionName: string
-    startNodeId: CapacityMeshNodeId
-    endNodeId: CapacityMeshNodeId
-  }>
+  sectionConnectionTerminals: Array<SectionConnectionTerminal>
   activeSubSolver?:
     | CapacityPathingSingleSectionPathingSolver
     | null
@@ -72,74 +72,15 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   }
 
   private computeSectionNodesTerminalsAndEdges() {
-    const sectionNodeIds = new Set<CapacityMeshNodeId>()
-    const queue: Array<{ nodeId: CapacityMeshNodeId; depth: number }> = [
-      { nodeId: this.centerNodeId, depth: 0 },
-    ]
-    sectionNodeIds.add(this.centerNodeId)
-
-    let head = 0
-    while (head < queue.length) {
-      const { nodeId, depth } = queue[head++]
-
-      if (depth >= this.expansionDegrees) continue
-
-      const neighbors =
-        this.nodeEdgeMap
-          .get(nodeId)
-          ?.flatMap((edge) => edge.nodeIds.filter((id) => id !== nodeId)) ?? []
-
-      for (const neighborId of neighbors) {
-        if (!sectionNodeIds.has(neighborId)) {
-          sectionNodeIds.add(neighborId)
-          queue.push({ nodeId: neighborId, depth: depth + 1 })
-        }
-      }
-    }
-
-    this.sectionNodes = Array.from(sectionNodeIds).map(
-      (id) => this.nodeMap.get(id)!,
-    )
-
-    // Compute section edges (edges where both nodes are in the section)
-    this.sectionEdges = this.edges.filter((edge) => {
-      const [nodeIdA, nodeIdB] = edge.nodeIds
-      return sectionNodeIds.has(nodeIdA) && sectionNodeIds.has(nodeIdB)
-    })
-
-    // Compute terminals
-    this.sectionConnectionTerminals = []
-    for (const conn of this.connectionsWithNodes) {
-      if (!conn.path) continue
-
-      let startNodeId: CapacityMeshNodeId | null = null
-      let endNodeId: CapacityMeshNodeId | null = null
-
-      // Find the first node in the path that is within the section
-      for (const node of conn.path) {
-        if (sectionNodeIds.has(node.capacityMeshNodeId)) {
-          startNodeId = node.capacityMeshNodeId
-          break
-        }
-      }
-
-      // Find the last node in the path that is within the section
-      for (let i = conn.path.length - 1; i >= 0; i--) {
-        const node = conn.path[i]
-        if (sectionNodeIds.has(node.capacityMeshNodeId)) {
-          endNodeId = node.capacityMeshNodeId
-          break
-        }
-      }
-
-      if (startNodeId && endNodeId) {
-        this.sectionConnectionTerminals.push({
-          connectionName: conn.connection.name,
-          startNodeId,
-          endNodeId,
-        })
-      }
-    }
+    const { sectionNodes, sectionEdges, sectionConnectionTerminals } =
+      computeSectionNodesTerminalsAndEdges({
+        centerNodeId: this.centerNodeId,
+        nodeMap: this.nodeMap,
+        edges: this.edges,
+        connectionsWithNodes: this.connectionsWithNodes,
+        nodeEdgeMap: this.nodeEdgeMap,
+        expansionDegrees: this.expansionDegrees,
+      })
   }
 
   _step() {
