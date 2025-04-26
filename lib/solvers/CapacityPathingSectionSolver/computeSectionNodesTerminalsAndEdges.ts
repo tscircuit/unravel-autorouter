@@ -9,6 +9,13 @@ export interface SectionConnectionTerminal {
   connectionName: string
   startNodeId: CapacityMeshNodeId
   endNodeId: CapacityMeshNodeId
+  path?: CapacityMeshNode[] // To store the result for this connection
+}
+export interface CapacityPathingSection {
+  centerNodeId: string
+  sectionConnectionTerminals: SectionConnectionTerminal[]
+  sectionNodes: CapacityMeshNode[]
+  sectionEdges: CapacityMeshEdge[]
 }
 
 export const computeSectionNodesTerminalsAndEdges = (opts: {
@@ -18,11 +25,7 @@ export const computeSectionNodesTerminalsAndEdges = (opts: {
   edges: CapacityMeshEdge[]
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
   expansionDegrees: number
-}): {
-  sectionConnectionTerminals: SectionConnectionTerminal[]
-  sectionNodes: CapacityMeshNode[]
-  sectionEdges: CapacityMeshEdge[]
-} => {
+}): CapacityPathingSection => {
   const {
     centerNodeId,
     connectionsWithNodes,
@@ -98,5 +101,10 @@ export const computeSectionNodesTerminalsAndEdges = (opts: {
       })
     }
   }
-  return { sectionConnectionTerminals, sectionNodes, sectionEdges }
+  return {
+    sectionConnectionTerminals,
+    sectionNodes,
+    sectionEdges,
+    centerNodeId,
+  }
 }

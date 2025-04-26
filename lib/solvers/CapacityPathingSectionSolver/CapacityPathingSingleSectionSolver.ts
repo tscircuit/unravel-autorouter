@@ -68,6 +68,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
       sectionEdges: this.sectionEdges,
       colorMap: this.colorMap,
       hyperParameters: params.hyperParameters,
+      centerNodeId: this.centerNodeId,
     })
   }
 

@@ -19,6 +19,12 @@ import {
   calculateNodeProbabilityOfFailure,
   computeSectionScore,
 } from "./computeSectionScore" // Added import
+import { CapacityPathingSingleSectionPathingSolver } from "./CapacityPathingSingleSectionPathingSolver"
+import {
+  CapacityPathingSection,
+  computeSectionNodesTerminalsAndEdges,
+} from "./computeSectionNodesTerminalsAndEdges"
+import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 
 /**
  * This solver solves for capacity paths by first solving with negative
@@ -29,6 +35,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   simpleRouteJson: SimpleRouteJson
   nodes: CapacityMeshNode[]
   edges: CapacityMeshEdge[]
+  nodeEdgeMap: Map<CapacityMeshEdgeId, CapacityMeshEdge[]>
   connectionsWithNodes: Array<ConnectionPathWithNodes> = [] // Initialize here
   colorMap: Record<string, string>
 
@@ -43,7 +50,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   nodeCapacityPercentMap: Map<CapacityMeshNodeId, number> = new Map()
   nodeOptimizationAttemptCountMap: Map<CapacityMeshNodeId, number> = new Map()
 
-  sectionSolver?: CapacityPathingSingleSectionSolver | null = null
+  currentSection: CapacityPathingSection | null = null
+  sectionSolver?: CapacityPathingSingleSectionPathingSolver | null = null
 
   MAX_ATTEMPTS_PER_NODE = 10
   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
@@ -59,6 +67,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     this.nodeMap = new Map(
       this.nodes.map((node) => [node.capacityMeshNodeId, node]),
     )
+    this.nodeEdgeMap = getNodeEdgeMap(this.edges)
     this.initialSolver = new CapacityPathingGreedySolver({
       simpleRouteJson: this.simpleRouteJson,
       nodes: this.nodes,
@@ -144,17 +153,24 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         this.solved = true
         return
       }
-      this.sectionSolver = new CapacityPathingSingleSectionSolver({
+
+      const section = computeSectionNodesTerminalsAndEdges({
         centerNodeId,
         connectionsWithNodes: this.connectionsWithNodes,
-        nodes: this.nodes,
+        nodeMap: this.nodeMap,
         edges: this.edges,
-        colorMap: this.colorMap,
-        hyperParameters: {
-          EXPANSION_DEGREES: this.MAX_EXPANSION_DEGREES,
-          SHUFFLE_SEED: this.iterations,
-        },
+        expansionDegrees: this.MAX_EXPANSION_DEGREES,
+        nodeEdgeMap: this.nodeEdgeMap,
       })
+      this.currentSection = section
+      this.sectionSolver = new CapacityPathingSingleSectionPathingSolver({
+        sectionConnectionTerminals: section.sectionConnectionTerminals,
+        sectionEdges: section.sectionEdges,
+        sectionNodes: section.sectionNodes,
+        colorMap: this.colorMap,
+        centerNodeId: section.centerNodeId,
+      })
+
       this.activeSubSolver = this.sectionSolver
       this.nodeOptimizationAttemptCountMap.set(
         centerNodeId,
@@ -168,7 +184,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       // If the section solver fails, mark the node as attempted but don't update paths
       // TODO: Consider more sophisticated failure handling? Maybe increase expansionDegrees?
       console.warn(
-        `Section solver failed for node ${this.sectionSolver.centerNodeId}. Error: ${this.sectionSolver.error}`,
+        `Section solver failed for node ${this.currentSection!.centerNodeId}. Error: ${this.sectionSolver.error}`,
       )
       this.sectionSolver = null
       this.activeSubSolver = null
@@ -177,12 +193,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
     if (this.sectionSolver!.solved) {
       const solvedSectionSolver = this.sectionSolver
-      const pathingSolver = solvedSectionSolver.activeSubSolver
+      const pathingSolver: CapacityPathingSingleSectionPathingSolver =
+        (solvedSectionSolver?.activeSubSolver || solvedSectionSolver) as any
       this.sectionSolver = null // Clear active solver regardless of merge outcome
       this.activeSubSolver = null
       if (!pathingSolver || !pathingSolver.solved) {
         console.warn(
-          `Pathing sub-solver for section ${solvedSectionSolver.centerNodeId} did not complete successfully. Discarding results.`,
+          `Pathing sub-solver for section ${this.currentSection!.centerNodeId} did not complete successfully. Discarding results.`,
         )
         return // Skip scoring and merging
       }
@@ -277,7 +294,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
    * connectionsWithNodes list.
    */
   private _mergeSolvedSectionPaths(
-    solvedSectionSolver: CapacityPathingSingleSectionSolver,
+    solvedSectionSolver: CapacityPathingSingleSectionPathingSolver,
   ) {
     // Ensure the pathing sub-solver actually ran and has results
     const pathingSolver = solvedSectionSolver.activeSubSolver

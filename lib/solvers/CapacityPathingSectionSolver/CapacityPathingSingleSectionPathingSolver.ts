@@ -39,6 +39,7 @@ export interface CapacityPathingSingleSectionPathingSolverParams {
     // originalPath?: CapacityMeshNode[];
   }>
   colorMap?: Record<string, string> // Make colorMap optional in params
+  centerNodeId: string
   hyperParameters?: CpssPathingSolverHyperParameters
 }
 
