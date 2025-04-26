@@ -20,7 +20,9 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
     super()
     this.remainingHdRoutes = [...opts.hdRoutes]
     this.colorMap = opts.colorMap ?? {} // Store colorMap, default to empty object
-    const firstRoute = this.remainingHdRoutes[0]
+
+    const { firstRoute } = this.getDisjointedRoute()
+
     const firstRouteToStartDist = Math.min(
       distance(firstRoute.route[0], opts.start),
       distance(firstRoute.route[firstRoute.route.length - 1], opts.start),
@@ -48,9 +50,49 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
         },
       ],
       vias: [],
-      viaDiameter: opts.hdRoutes?.[0]?.viaDiameter ?? 0.6,
-      traceThickness: opts.hdRoutes?.[0]?.traceThickness ?? 0.15,
+      viaDiameter: firstRoute.viaDiameter,
+      traceThickness: firstRoute.traceThickness,
     }
+  }
+
+  /**
+   * Scan `remainingHdRoutes` and find a route that has **one** end that is not
+   * within `5e-6` of the start or end of any other route on the same layer.
+   * That “lonely” end marks one extremity of the whole chain, which we use as
+   * our starting segment. If no such route exists (e.g., the data form a loop),
+   * we simply return the first route so the solver can proceed.
+   */
+  getDisjointedRoute() {
+    const TOL = 5e-6
+
+    for (const candidate of this.remainingHdRoutes) {
+      const candidateEnds = [
+        candidate.route[0],
+        candidate.route[candidate.route.length - 1],
+      ]
+
+      // true if at least one end of `candidate` is not matched by any other route
+      const hasLonelyEnd = candidateEnds.some((end) => {
+        // Look through every *other* route and its two ends
+        return !this.remainingHdRoutes.some((other) => {
+          if (other === candidate) return false
+          const otherEnds = [
+            other.route[0],
+            other.route[other.route.length - 1],
+          ]
+          return otherEnds.some(
+            (oe) => oe.z === end.z && distance(end, oe) < TOL,
+          )
+        })
+      })
+
+      if (hasLonelyEnd) {
+        return { firstRoute: candidate }
+      }
+    }
+
+    // Degenerate case: everything is paired (forms a loop) – just pick the first route
+    return { firstRoute: this.remainingHdRoutes[0] }
   }
 
   _step() {
