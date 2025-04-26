@@ -163,7 +163,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         nodeEdgeMap: this.nodeEdgeMap,
       })
       this.currentSection = section
-      this.sectionSolver = new CapacityPathingSingleSectionPathingSolver({
+      this.sectionSolver = new HyperCapacityPathingSingleSectionPathingSolver({
         sectionConnectionTerminals: section.sectionConnectionTerminals,
         sectionEdges: section.sectionEdges,
         sectionNodes: section.sectionNodes,
