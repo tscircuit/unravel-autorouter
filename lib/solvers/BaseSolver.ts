@@ -29,6 +29,10 @@ export class BaseSolver {
       console.error(this.error)
       this.failed = true
     }
+    if ("computeProgress" in this) {
+      // @ts-ignore
+      this.progress = this.computeProgress() as number
+    }
   }
 
   _step() {}

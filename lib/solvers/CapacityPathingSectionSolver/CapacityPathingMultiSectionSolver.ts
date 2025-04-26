@@ -12,14 +12,16 @@ import {
 } from "../CapacityPathingSolver/CapacityPathingSolver"
 import { CapacityPathingGreedySolver } from "./CapacityPathingGreedySolver"
 import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingSingleSectionSolver"
-import { CapacityPathingSingleSectionSolver } from "./CapacityPathingSingleSectionSolver"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { visualizeSection } from "./visualizeSection"
 import {
   calculateNodeProbabilityOfFailure,
   computeSectionScore,
 } from "./computeSectionScore" // Added import
-import { CapacityPathingSingleSectionPathingSolver } from "./CapacityPathingSingleSectionPathingSolver"
+import {
+  CapacityPathingSingleSectionPathingSolver,
+  CapacityPathingSingleSectionSolver,
+} from "./CapacityPathingSingleSectionPathingSolver"
 import {
   CapacityPathingSection,
   computeSectionNodesTerminalsAndEdges,
@@ -51,7 +53,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   nodeOptimizationAttemptCountMap: Map<CapacityMeshNodeId, number> = new Map()
 
   currentSection: CapacityPathingSection | null = null
-  sectionSolver?: CapacityPathingSingleSectionPathingSolver | null = null
+  sectionSolver?:
+    | CapacityPathingSingleSectionSolver
+    | HyperCapacityPathingSingleSectionSolver
+    | null = null
 
   MAX_ATTEMPTS_PER_NODE = 10
   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
@@ -163,7 +168,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         nodeEdgeMap: this.nodeEdgeMap,
       })
       this.currentSection = section
-      this.sectionSolver = new HyperCapacityPathingSingleSectionPathingSolver({
+      this.sectionSolver = new HyperCapacityPathingSingleSectionSolver({
         sectionConnectionTerminals: section.sectionConnectionTerminals,
         sectionEdges: section.sectionEdges,
         sectionNodes: section.sectionNodes,
@@ -294,7 +299,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
    * connectionsWithNodes list.
    */
   private _mergeSolvedSectionPaths(
-    solvedSectionSolver: CapacityPathingSingleSectionPathingSolver,
+    solvedSectionSolver:
+      | CapacityPathingSingleSectionPathingSolver
+      | HyperCapacityPathingSingleSectionSolver,
   ) {
     // Ensure the pathing sub-solver actually ran and has results
     const pathingSolver = solvedSectionSolver.activeSubSolver

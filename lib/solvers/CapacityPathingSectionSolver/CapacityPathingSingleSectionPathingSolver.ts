@@ -43,7 +43,7 @@ export interface CapacityPathingSingleSectionPathingSolverParams {
   hyperParameters?: CpssPathingSolverHyperParameters
 }
 
-export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
+export class CapacityPathingSingleSectionSolver extends BaseSolver {
   GREEDY_MULTIPLIER = 1.5
   sectionNodes: CapacityMeshNode[]
   sectionEdges: CapacityMeshEdge[]
@@ -368,6 +368,48 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
     // this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId); // This seems redundant if added above
   }
 
+  computeProgress(): number {
+    const totalConnections = this.sectionConnectionTerminals.length
+    if (totalConnections === 0) return 1 // No work to do
+
+    // Base progress based on completed connections
+    const completedConnections = this.currentConnectionIndex
+    let progress = completedConnections / totalConnections
+
+    // Refine progress based on the current connection's A* search
+    if (
+      this.currentConnectionIndex < totalConnections &&
+      this.candidates &&
+      this.candidates.length > 0 &&
+      this.activeCandidateStraightLineDistance &&
+      this.activeCandidateStraightLineDistance > 0
+    ) {
+      // Find the candidate with the lowest h value (closest to the goal heuristically)
+      // Note: Sorting by f is standard A*, but for progress, lowest h is more indicative.
+      // Let's use the best candidate (lowest f) as a proxy, assuming h contributes significantly.
+      const bestCandidate = this.candidates.reduce((best, current) =>
+        current.f < best.f ? current : best,
+      )
+
+      // Estimate progress within the current connection: 1 - (current_h / initial_h)
+      // Clamp between 0 and 1, as h might increase due to penalties
+      const currentConnectionProgress = Math.max(
+        0,
+        Math.min(
+          1,
+          1 - bestCandidate.h / this.activeCandidateStraightLineDistance,
+        ),
+      )
+
+      // Add the fractional progress of the current connection
+      progress += currentConnectionProgress / totalConnections
+    } else if (this.solved) {
+      progress = 1 // Ensure progress is 1 when solved
+    }
+
+    return Math.min(1, progress) // Clamp final progress to 1
+  }
+
   private _setupAStar(startNode: CapacityMeshNode, endNode: CapacityMeshNode) {
     this.candidates = [
       { prevCandidate: null, node: startNode, f: 0, g: 0, h: 0 },
@@ -520,3 +562,10 @@ export class CapacityPathingSingleSectionPathingSolver extends BaseSolver {
     return baseGraphics
   }
 }
+
+/* @deprecated use CapacityPathingSingleSectionPathingSolver */
+export const CapacityPathingSingleSectionPathingSolver =
+  CapacityPathingSingleSectionSolver
+export type CapacityPathingSingleSectionPathingSolver = InstanceType<
+  typeof CapacityPathingSingleSectionSolver
+>

@@ -23,26 +23,72 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
   }
 
   computeG(solver: CapacityPathingSingleSectionPathingSolver): number {
-    return solver.iterations
+    return solver.iterations / 100
   }
 
   computeH(solver: CapacityPathingSingleSectionPathingSolver): number {
-    return solver.computeProgress() * 1000
+    return solver.computeProgress()
   }
 
-  getHyperParameterCombinations(
-    hyperParameterDefs?: Array<HyperParameterDef>,
-  ): Array<Record<string, any>> {}
+  getCombinationDefs(): Array<Array<string>> | null {
+    return [["orderings6"]]
+  }
 
-  getHyperParameterDefs(): Array<HyperParameterDef> {}
+  getHyperParameterDefs(): Array<HyperParameterDef> {
+    return [
+      {
+        name: "orderings6",
+        possibleValues: [
+          {
+            SHUFFLE_SEED: 0,
+          },
+          {
+            SHUFFLE_SEED: 1,
+          },
+          {
+            SHUFFLE_SEED: 2,
+          },
+          {
+            SHUFFLE_SEED: 3,
+          },
+          {
+            SHUFFLE_SEED: 4,
+          },
+          {
+            SHUFFLE_SEED: 5,
+          },
+        ],
+      },
+    ]
+  }
 
   generateSolver(
     hyperParameters: any,
-  ): CapacityPathingSingleSectionPathingSolver {}
+  ): CapacityPathingSingleSectionPathingSolver {
+    return new CapacityPathingSingleSectionPathingSolver({
+      ...this.constructorParams,
+      hyperParameters: {
+        ...this.constructorParams.hyperParameters,
+        ...hyperParameters,
+      },
+    })
+  }
 
   onSolve({
     solver,
   }: SupervisedSolver<CapacityPathingSingleSectionPathingSolver>) {
     this.winningSolver = solver
+  }
+
+  get centerNodeId() {
+    return this.constructorParams.centerNodeId
+  }
+
+  get sectionNodes() {
+    return this.constructorParams.sectionNodes
+  }
+
+  get sectionConnectionTerminals() {
+    return this.winningSolver?.sectionConnectionTerminals
   }
 }
