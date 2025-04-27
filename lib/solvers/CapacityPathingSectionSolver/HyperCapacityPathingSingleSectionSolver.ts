@@ -19,6 +19,7 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
     >[0],
   ) {
     super()
+    this.MAX_ITERATIONS = 10e3
     this.constructorParams = params
   }
 
@@ -31,13 +32,17 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
   }
 
   getCombinationDefs(): Array<Array<string>> | null {
-    return [["orderings6"]]
+    return [["orderings10"]]
+  }
+
+  getFailureMessage() {
+    return `All CapacityPathingSingleSection solvers failed for "${this.centerNodeId}"`
   }
 
   getHyperParameterDefs(): Array<HyperParameterDef> {
     return [
       {
-        name: "orderings6",
+        name: "orderings10",
         possibleValues: [
           {
             SHUFFLE_SEED: 0,
@@ -56,6 +61,18 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
           },
           {
             SHUFFLE_SEED: 5,
+          },
+          {
+            SHUFFLE_SEED: 6,
+          },
+          {
+            SHUFFLE_SEED: 7,
+          },
+          {
+            SHUFFLE_SEED: 8,
+          },
+          {
+            SHUFFLE_SEED: 9,
           },
         ],
       },

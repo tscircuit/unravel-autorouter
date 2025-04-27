@@ -131,6 +131,10 @@ export class HyperParameterSupervisorSolver<
     return bestSolver
   }
 
+  getFailureMessage() {
+    return "All solvers failed in hyper solver."
+  }
+
   _step() {
     if (!this.supervisedSolvers) this.initializeSolvers()
 
@@ -138,7 +142,7 @@ export class HyperParameterSupervisorSolver<
 
     if (!supervisedSolver) {
       this.failed = true
-      this.error = "All solvers failed"
+      this.error = this.getFailureMessage()
       return
     }
 

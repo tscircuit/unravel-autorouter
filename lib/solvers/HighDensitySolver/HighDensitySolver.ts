@@ -153,6 +153,7 @@ export class HighDensitySolver extends BaseSolver {
             points: [start, end],
             strokeColor: "red",
             strokeDash: "10, 5",
+            layer: "did_not_connect",
           })
         }
       }
