@@ -303,22 +303,22 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       | CapacityPathingSingleSectionPathingSolver
       | HyperCapacityPathingSingleSectionSolver,
   ) {
+    const centerNodeId = solvedSectionSolver.centerNodeId
     // Ensure the pathing sub-solver actually ran and has results
-    const pathingSolver = solvedSectionSolver.activeSubSolver
-    if (!pathingSolver || !pathingSolver.solved) {
+    if (!solvedSectionSolver || !solvedSectionSolver.solved) {
       console.warn(
-        `Pathing sub-solver for section ${solvedSectionSolver.centerNodeId} did not complete successfully. Skipping merge.`,
+        `Pathing sub-solver for section ${centerNodeId} did not complete successfully. Skipping merge.`,
       )
       return
     }
 
-    const solvedTerminals = pathingSolver.sectionConnectionTerminals
+    const solvedTerminals = solvedSectionSolver.sectionConnectionTerminals!
 
     for (const solvedTerminal of solvedTerminals) {
       if (!solvedTerminal.path) {
         // Pathing might have failed for this specific connection within the section
         console.warn(
-          `No path found for connection ${solvedTerminal.connectionName} in section ${solvedSectionSolver.centerNodeId}`,
+          `No path found for connection ${solvedTerminal.connectionName} in section ${centerNodeId}`,
         )
         continue
       }

@@ -57,6 +57,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]> // Edges *within the section*
   colorMap: Record<string, string>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number> // Tracks capacity usage *within this solver's run*
+  centerNodeId: string
 
   MAX_CANDIDATES_IN_MEMORY = 10_000
 
@@ -81,6 +82,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   constructor(params: CapacityPathingSingleSectionPathingSolverParams) {
     super()
 
+    this.centerNodeId = params.centerNodeId
     this.sectionNodes = params.sectionNodes
     this.sectionEdges = params.sectionEdges
     // Initialize path property for each terminal
