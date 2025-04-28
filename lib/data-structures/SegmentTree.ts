@@ -1,5 +1,6 @@
 import { RbushIndex } from "./RbushIndex"
 import { ISpatialIndex } from "./SpatialIndex"
+
 import { FlatbushIndex } from "./FlatbushIndex"
 
 interface Point {
