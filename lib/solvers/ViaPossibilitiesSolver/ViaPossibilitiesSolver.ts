@@ -23,6 +23,7 @@ export interface Candidate {
   viaLocationAssignments: Map<FaceId, ConnectionName>
   // Each iteration, we move the current heads closer to the end face
   currentHeads: Map<ConnectionName, FaceId>
+  headPaths: Map<ConnectionName, FaceId[]> // Added: Track the path of each head
   incompleteHeads: ConnectionName[]
   depth: number
   possible: boolean
@@ -222,10 +223,20 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       initialHeads.set(connectionName, startFaceId)
     }
 
+    // Initialize head paths
+    const initialHeadPaths: Map<ConnectionName, FaceId[]> = new Map()
+    for (const [
+      connectionName,
+      { startFaceId },
+    ] of this.connectionEndpointFaceMap.entries()) {
+      initialHeadPaths.set(connectionName, [startFaceId]) // Start path with the initial face
+    }
+
     this.candidates = [
       {
         viaLocationAssignments: new Map(),
         currentHeads: initialHeads,
+        headPaths: initialHeadPaths, // Initialize head paths
         incompleteHeads: Array.from(initialHeads.keys()),
         depth: 0,
         possible: false,
@@ -272,17 +283,28 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           )) &&
         !candidate.viaLocationAssignments.has(currentFaceIdOfIncompleteHead)
 
-      // 1. CREATE CANDIDATES TO EACH NEIGHBORING FACE
+      // 1. CREATE CANDIDATES TO EACH NEIGHBORING FACE (Move Head)
       for (const neighborFaceId of neighborFaceIds) {
         const newCurrentHeads = new Map(candidate.currentHeads)
         newCurrentHeads.set(incompleteHeadConnName, neighborFaceId)
-        const neighbor = {
+
+        // Update head paths
+        const newHeadPaths = new Map(candidate.headPaths)
+        const currentPath = newHeadPaths.get(incompleteHeadConnName)!
+        if (currentPath.includes(neighborFaceId)) continue
+
+        newHeadPaths.set(incompleteHeadConnName, [
+          ...currentPath,
+          neighborFaceId,
+        ])
+        const neighbor: Candidate = {
           ...candidate,
           currentHeads: newCurrentHeads,
+          headPaths: newHeadPaths,
           depth: candidate.depth + 1,
         }
         if (neighborFaceId === finalFaceIdForHead) {
-          neighbor.incompleteHeads = neighbor.incompleteHeads.filter(
+          neighbor.incompleteHeads = candidate.incompleteHeads.filter(
             (h) => h !== incompleteHeadConnName,
           )
         }
@@ -294,9 +316,16 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         const newViaLocationAssignments = new Map(
           candidate.viaLocationAssignments,
         )
+        newViaLocationAssignments.set(
+          currentFaceIdOfIncompleteHead,
+          incompleteHeadConnName,
+        ) // Assign via
+
+        // Head paths remain the same when placing a via, only assignments change
         const neighbor: Candidate = {
           ...candidate,
           viaLocationAssignments: newViaLocationAssignments,
+          headPaths: new Map(candidate.headPaths), // Ensure a new map instance for hashing
           depth: candidate.depth + 1,
         }
         newCandidates.push(neighbor)
@@ -319,8 +348,6 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       lines: [],
       circles: [],
       rects: [],
-      polygons: [],
-      // texts: [], // Removed: Labels are attached to objects
       title: "Via Possibilities Solver State",
       coordinateSystem: "cartesian",
     }
@@ -357,17 +384,10 @@ export class ViaPossibilitiesSolver extends BaseSolver {
 
     // 2. Draw Faces and Centroids
     for (const [faceId, face] of this.faces.entries()) {
-      graphics.polygons!.push({
-        points: face.vertices,
-        fill: "rgba(128, 128, 128, 0.1)", // Light gray fill
-        stroke: "rgba(100, 100, 100, 0.5)", // Darker gray stroke
-        strokeWidth: 0.02,
-      })
       graphics.points!.push({
         x: face.centroid.x,
         y: face.centroid.y,
         color: "black",
-        radius: 0.05,
         label: face.requiresViaFromOneOfConnections
           ? `${faceId}\nRequires Via: ${face.requiresViaFromOneOfConnections.join(", ")}`
           : faceId,
@@ -392,14 +412,12 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         x: start.x,
         y: start.y,
         color: color,
-        radius: 0.15,
         label: `${connectionName} Start (z${start.z})`,
       })
       graphics.points!.push({
         x: end.x,
         y: end.y,
         color: color,
-        radius: 0.15,
         label: `${connectionName} End (z${end.z})`,
       })
     }
@@ -418,7 +436,6 @@ export class ViaPossibilitiesSolver extends BaseSolver {
             center: face.centroid,
             radius: 0.2,
             stroke: color,
-            strokeWidth: 0.05,
             fill: "transparent",
             label: `Head: ${connectionName}`,
           })
@@ -438,38 +455,11 @@ export class ViaPossibilitiesSolver extends BaseSolver {
             radius: 0.25,
             fill: color,
             stroke: "white",
-            strokeWidth: 0.03,
             label: `Via: ${connectionName}`,
           })
         }
       }
-
-      // Add solver status text anchored to a point
-      const statusText = `Depth: ${this.lastCandidate.depth}, Incomplete: ${this.lastCandidate.incompleteHeads.join(", ")}`
-      graphics.points!.push({
-        x: this.bounds.minX,
-        y: this.bounds.maxY + 0.5, // Position above the bounds
-        radius: 0.01, // Make it very small/invisible
-        color: "transparent",
-        label: statusText,
-        labelColor: "black",
-        labelFontSize: "0.2px",
-        labelAlignment: "left", // Align text to the right of the point
-      })
-    } else {
-      // Add solver status text anchored to a point
-      graphics.points!.push({
-        x: this.bounds.minX,
-        y: this.bounds.maxY + 0.5, // Position above the bounds
-        radius: 0.01, // Make it very small/invisible
-        color: "transparent",
-        label: "Solver not started or no candidates.",
-        labelColor: "gray",
-        labelFontSize: "0.2px",
-        labelAlignment: "left", // Align text to the right of the point
-      })
     }
-
     return graphics
   }
 }
