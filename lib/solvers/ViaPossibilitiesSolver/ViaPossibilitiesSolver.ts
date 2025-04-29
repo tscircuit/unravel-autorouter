@@ -14,6 +14,7 @@ import {
 } from "@tscircuit/math-utils"
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
 import { Connect } from "vite"
+import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 
 export type CandidateHash = string
 export type ConnectionName = string
@@ -72,13 +73,18 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   >
   exploredCandidateHashes: Set<CandidateHash>
   lastCandidate: Candidate | null
+  colorMap: Record<string, string>
 
   constructor({
     nodeWithPortPoints,
+    colorMap,
   }: {
     nodeWithPortPoints: NodeWithPortPoints
+    colorMap?: Record<string, string>
   }) {
     super()
+    this.colorMap =
+      colorMap ?? generateColorMapFromNodeWithPortPoints(nodeWithPortPoints)
     this.maxViaCount = 5
     this.exploredCandidateHashes = new Set()
     this.bounds = getBoundsFromNodeWithPortPoints(nodeWithPortPoints)
@@ -391,9 +397,6 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         label: face.requiresViaFromOneOfConnections
           ? `${faceId}\nRequires Via: ${face.requiresViaFromOneOfConnections.join(", ")}`
           : faceId,
-        labelAlignment: "bottom", // Position label below the point
-        labelColor: face.requiresViaFromOneOfConnections ? "red" : "black",
-        labelFontSize: "0.1px",
       })
       // Removed text push, label is now part of the point
     }
