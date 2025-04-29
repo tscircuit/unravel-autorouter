@@ -5,6 +5,7 @@ import { getViaPossibilitiesFromPortPairs } from "lib/solvers/HighDensitySolver/
 import { Bounds } from "@tscircuit/math-utils"
 import { NodeWithPortPoints } from "lib/types/high-density-types"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
+import { safeTransparentize } from "lib/solvers/colors"
 
 export default () => {
   const nodeWithPortPoints = cn9630.nodeWithPortPoints
@@ -115,8 +116,8 @@ export default () => {
 
     graphics.circles.push({
       center: { x, y },
-      radius: 0.3,
-      fill: color,
+      radius: 0.1,
+      fill: safeTransparentize(color, 0.5),
       label: `Via possibility (${connectionLabel})`,
     })
   }
@@ -167,7 +168,7 @@ export default () => {
       <div className="mt-4 border-t pt-4">
         <h3 className="font-bold mb-2">Visualization Information</h3>
         <div className="border p-2 rounded mb-2">
-          Node: {nodeWithPortPoints.name || "Unknown"}
+          Node: {nodeWithPortPoints.capacityMeshNodeId || "Unknown"}
         </div>
         <div className="border p-2 rounded mb-2">
           Port Pairs: {portPairs.size}

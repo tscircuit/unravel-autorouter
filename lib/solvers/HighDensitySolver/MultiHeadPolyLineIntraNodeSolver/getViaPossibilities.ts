@@ -72,6 +72,7 @@ export const getViaPossibilitiesFromPortPairs = ({
         // TODO add to zSegments
       }
     }
+    zToSegments.set(z, zSegments)
   }
 
   // STEP 2: Find Centroids
@@ -87,14 +88,25 @@ export const getViaPossibilitiesFromPortPairs = ({
   for (const z of availableZ) {
     const { faces } = zToCentroidResult.get(z)!
     for (const { centroid, vertices } of faces) {
-      console.log({ vertices })
+      const connectionNamesInFace = new Set<string>()
+      vertices.forEach((v) => {
+        v.connectionNames?.forEach((connectionName) =>
+          connectionNamesInFace.add(connectionName),
+        )
+      })
+
+      viaPossibilities.push({
+        x: centroid.x,
+        y: centroid.y,
+        connectionNames: Array.from(connectionNamesInFace),
+      })
     }
   }
 
   // STEP 4: Create all possible via combinations, taking into consideration min and max via count
 
   return {
-    viaPossibilities: [],
+    viaPossibilities,
     viaCombinations: [],
   }
 }
