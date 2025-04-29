@@ -314,6 +314,162 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
-    // TODO
+    const graphics: GraphicsObject = {
+      points: [],
+      lines: [],
+      circles: [],
+      rects: [],
+      polygons: [],
+      // texts: [], // Removed: Labels are attached to objects
+      title: "Via Possibilities Solver State",
+      coordinateSystem: "cartesian",
+    }
+
+    // Generate a simple color map
+    const connectionNames = Array.from(this.portPairMap.keys())
+    const colors = [
+      "red",
+      "blue",
+      "green",
+      "purple",
+      "orange",
+      "cyan",
+      "magenta",
+      "yellow",
+    ]
+    const colorMap: Record<string, string> = {}
+    connectionNames.forEach((name, index) => {
+      colorMap[name] = colors[index % colors.length]
+    })
+
+    // 1. Draw Node Bounds
+    graphics.lines!.push({
+      points: [
+        { x: this.bounds.minX, y: this.bounds.minY },
+        { x: this.bounds.maxX, y: this.bounds.minY },
+        { x: this.bounds.maxX, y: this.bounds.maxY },
+        { x: this.bounds.minX, y: this.bounds.maxY },
+        { x: this.bounds.minX, y: this.bounds.minY },
+      ],
+      strokeColor: "gray",
+      strokeWidth: 0.05,
+    })
+
+    // 2. Draw Faces and Centroids
+    for (const [faceId, face] of this.faces.entries()) {
+      graphics.polygons!.push({
+        points: face.vertices,
+        fill: "rgba(128, 128, 128, 0.1)", // Light gray fill
+        stroke: "rgba(100, 100, 100, 0.5)", // Darker gray stroke
+        strokeWidth: 0.02,
+      })
+      graphics.points!.push({
+        x: face.centroid.x,
+        y: face.centroid.y,
+        color: "black",
+        radius: 0.05,
+        label: face.requiresViaFromOneOfConnections
+          ? `${faceId}\nRequires Via: ${face.requiresViaFromOneOfConnections.join(", ")}`
+          : faceId,
+        labelAlignment: "bottom", // Position label below the point
+        labelColor: face.requiresViaFromOneOfConnections ? "red" : "black",
+        labelFontSize: "0.1px",
+      })
+      // Removed text push, label is now part of the point
+    }
+
+    // 3. Draw Port Pairs (Original Segments)
+    for (const [connectionName, { start, end }] of this.portPairMap.entries()) {
+      const color = colorMap[connectionName] ?? "black"
+      graphics.lines!.push({
+        points: [start, end],
+        strokeColor: color,
+        strokeWidth: 0.1,
+        strokeDash: start.z !== end.z ? [0.1, 0.1] : undefined, // Dashed if transition
+        label: `${connectionName} (z${start.z}->z${end.z})`,
+      })
+      graphics.points!.push({
+        x: start.x,
+        y: start.y,
+        color: color,
+        radius: 0.15,
+        label: `${connectionName} Start (z${start.z})`,
+      })
+      graphics.points!.push({
+        x: end.x,
+        y: end.y,
+        color: color,
+        radius: 0.15,
+        label: `${connectionName} End (z${end.z})`,
+      })
+    }
+
+    // 4. Visualize Last Candidate State
+    if (this.lastCandidate) {
+      // Draw current heads
+      for (const [
+        connectionName,
+        faceId,
+      ] of this.lastCandidate.currentHeads.entries()) {
+        const face = this.faces.get(faceId)
+        if (face) {
+          const color = colorMap[connectionName] ?? "black"
+          graphics.circles!.push({
+            center: face.centroid,
+            radius: 0.2,
+            stroke: color,
+            strokeWidth: 0.05,
+            fill: "transparent",
+            label: `Head: ${connectionName}`,
+          })
+        }
+      }
+
+      // Draw assigned vias
+      for (const [
+        faceId,
+        connectionName,
+      ] of this.lastCandidate.viaLocationAssignments.entries()) {
+        const face = this.faces.get(faceId)
+        if (face) {
+          const color = colorMap[connectionName] ?? "black"
+          graphics.circles!.push({
+            center: face.centroid,
+            radius: 0.25,
+            fill: color,
+            stroke: "white",
+            strokeWidth: 0.03,
+            label: `Via: ${connectionName}`,
+          })
+        }
+      }
+
+      // Add solver status text anchored to a point
+      const statusText = `Depth: ${this.lastCandidate.depth}, Incomplete: ${this.lastCandidate.incompleteHeads.join(", ")}`
+      graphics.points!.push({
+        x: this.bounds.minX,
+        y: this.bounds.maxY + 0.5, // Position above the bounds
+        radius: 0.01, // Make it very small/invisible
+        color: "transparent",
+        label: statusText,
+        labelColor: "black",
+        labelFontSize: "0.2px",
+        labelAlignment: "left", // Align text to the right of the point
+      })
+    } else {
+      // Add solver status text anchored to a point
+      graphics.points!.push({
+        x: this.bounds.minX,
+        y: this.bounds.maxY + 0.5, // Position above the bounds
+        radius: 0.01, // Make it very small/invisible
+        color: "transparent",
+        label: "Solver not started or no candidates.",
+        labelColor: "gray",
+        labelFontSize: "0.2px",
+        labelAlignment: "left", // Align text to the right of the point
+      })
+    }
+
+    return graphics
   }
 }
