@@ -1,5 +1,6 @@
 import { NodeWithPortPoints } from "lib/types/high-density-types"
 import { BaseSolver } from "../BaseSolver"
+import { GraphicsObject } from "graphics-debug"
 import {
   Face,
   getCentroidsFromInnerBoxIntersections,
@@ -12,18 +13,19 @@ import {
   segmentToSegmentMinDistance,
 } from "@tscircuit/math-utils"
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
+import { Connect } from "vite"
 
-export type ViaLocationHash = string
 export type CandidateHash = string
 export type ConnectionName = string
 export type FaceId = string
 
 export interface Candidate {
-  viaLocationAssignments: Map<ViaLocationHash, ConnectionName>
+  viaLocationAssignments: Map<FaceId, ConnectionName>
   // Each iteration, we move the current heads closer to the end face
   currentHeads: Map<ConnectionName, FaceId>
-  possible: boolean
+  incompleteHeads: ConnectionName[]
   depth: number
+  possible: boolean
 }
 
 export const hashCandidate = (candidate: Candidate): CandidateHash => {
@@ -39,6 +41,7 @@ export const hashViaLocation = (p: Point) => {
 
 export interface FaceWithSegments extends Face {
   segments: Array<{ start: Point; end: Point }>
+  requiresViaFromOneOfConnections?: ConnectionName[]
 }
 
 export interface Point3 {
@@ -58,7 +61,10 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   faces: Map<FaceId, FaceWithSegments>
   faceEdges: Map<FaceId, FaceId[]>
   bounds: Bounds
+  maxViaCount: number
   portPairMap: PortPairMap
+  transitionConnectionNames: ConnectionName[]
+  sameLayerConnectionNames: ConnectionName[]
   connectionEndpointFaceMap: Map<
     ConnectionName,
     { startFaceId: FaceId; endFaceId: string }
@@ -72,9 +78,24 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     nodeWithPortPoints: NodeWithPortPoints
   }) {
     super()
+    this.maxViaCount = 5
     this.exploredCandidateHashes = new Set()
     this.bounds = getBoundsFromNodeWithPortPoints(nodeWithPortPoints)
     this.portPairMap = getPortPairMap(nodeWithPortPoints)
+
+    this.transitionConnectionNames = Array.from(
+      this.portPairMap
+        .entries()
+        .filter(([connectionName, { start, end }]) => start.z !== end.z)
+        .map(([connectionName]) => connectionName),
+    )
+    this.sameLayerConnectionNames = Array.from(
+      this.portPairMap
+        .entries()
+        .filter(([connectionName, { start, end }]) => start.z === end.z)
+        .map(([connectionName]) => connectionName),
+    )
+
     const segments: Segment[] = Array.from(this.portPairMap.values())
 
     const { faces } = getCentroidsFromInnerBoxIntersections(
@@ -91,7 +112,30 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           end: vertices[(u + 1) % vertices.length],
         })
       }
-      this.faces.set(`face${i.toString()}`, { ...faces[i], segments })
+
+      // A face will require a connection from one of the connections when it contains
+      // vertices that show the trace is on the same layer
+      let requiresViaFromOneOfConnections: ConnectionName[] | undefined =
+        undefined
+      const connectionNamesInFace = new Set<string>()
+      for (const vertex of vertices) {
+        for (const connectionName of vertex.connectionNames ?? []) {
+          connectionNamesInFace.add(connectionName)
+        }
+      }
+      const sameLayerConnectionNames = this.sameLayerConnectionNames.filter(
+        (cn) => connectionNamesInFace.has(cn),
+      )
+
+      if (sameLayerConnectionNames.length > 1) {
+        requiresViaFromOneOfConnections = sameLayerConnectionNames
+      }
+
+      this.faces.set(`face${i.toString()}`, {
+        ...faces[i],
+        segments,
+        requiresViaFromOneOfConnections,
+      })
     }
 
     this.connectionEndpointFaceMap = new Map()
@@ -127,10 +171,47 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         startFaceId,
         endFaceId,
       })
+    }
 
-      // Compute face edges. If two faces have a segment to segment min distance of less than 0.001 we consider them
-      // to have a shared edge
-      // TODO
+    // Compute face edges. If two faces have a segment to segment min distance of less than 0.001 we consider them
+    // to have a shared edge
+    this.faceEdges = new Map()
+    const faceIds = Array.from(this.faces.keys())
+
+    for (let i = 0; i < faceIds.length; i++) {
+      const faceId1 = faceIds[i]
+      if (!this.faceEdges.has(faceId1)) this.faceEdges.set(faceId1, [])
+      const face1 = this.faces.get(faceId1)!
+
+      for (let j = i + 1; j < faceIds.length; j++) {
+        const faceId2 = faceIds[j]
+        if (!this.faceEdges.has(faceId2)) this.faceEdges.set(faceId2, [])
+        const face2 = this.faces.get(faceId2)!
+
+        let foundSharedEdge = false
+        for (const seg1 of face1.segments) {
+          for (const seg2 of face2.segments) {
+            const dist = segmentToSegmentMinDistance(
+              seg1.start,
+              seg1.end,
+              seg2.start,
+              seg2.end,
+            )
+            if (dist < 0.001) {
+              // Add edge in both directions, avoiding duplicates
+              if (!this.faceEdges.get(faceId1)!.includes(faceId2)) {
+                this.faceEdges.get(faceId1)!.push(faceId2)
+              }
+              if (!this.faceEdges.get(faceId2)!.includes(faceId1)) {
+                this.faceEdges.get(faceId2)!.push(faceId1)
+              }
+              foundSharedEdge = true
+              break // Move to the next face pair once a shared edge is found
+            }
+          }
+          if (foundSharedEdge) break
+        }
+      }
     }
 
     const initialHeads: Map<ConnectionName, FaceId> = new Map()
@@ -145,8 +226,9 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       {
         viaLocationAssignments: new Map(),
         currentHeads: initialHeads,
-        possible: false,
+        incompleteHeads: Array.from(initialHeads.keys()),
         depth: 0,
+        possible: false,
       },
     ]
     this.exploredCandidateHashes.add(hashCandidate(this.candidates[0]))
@@ -164,5 +246,70 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     this.candidates.push(...this.getUnexploredNeighbors(currentCandidate))
   }
 
-  getUnexploredNeighbors(candidate: Candidate): Candidate[] {}
+  isCandidatePossible(candidate: Candidate) {
+    if (candidate.incompleteHeads.length > 0) return false
+    // TODO check that number of vias does not exceed limit
+    // TODO check that transition connection names have odd number of vias
+    // TODO check that same layer connection names have even number of vias or 0
+  }
+
+  getUnexploredNeighbors(candidate: Candidate): Candidate[] {
+    const newCandidates: Candidate[] = []
+    for (const incompleteHeadConnName of candidate.incompleteHeads) {
+      // Move the incomplete head forward in every possible direction, also consider the placement of any vias
+      const currentFaceIdOfIncompleteHead = candidate.currentHeads.get(
+        incompleteHeadConnName,
+      )!
+      const finalFaceIdForHead = this.connectionEndpointFaceMap.get(
+        incompleteHeadConnName,
+      )!.endFaceId
+      const neighborFaceIds = this.faceEdges.get(currentFaceIdOfIncompleteHead)!
+      const currentFace = this.faces.get(currentFaceIdOfIncompleteHead)
+      const canVia =
+        (!currentFace?.requiresViaFromOneOfConnections ||
+          currentFace?.requiresViaFromOneOfConnections.includes(
+            incompleteHeadConnName,
+          )) &&
+        !candidate.viaLocationAssignments.has(currentFaceIdOfIncompleteHead)
+
+      // 1. CREATE CANDIDATES TO EACH NEIGHBORING FACE
+      for (const neighborFaceId of neighborFaceIds) {
+        const newCurrentHeads = new Map(candidate.currentHeads)
+        newCurrentHeads.set(incompleteHeadConnName, neighborFaceId)
+        const neighbor = {
+          ...candidate,
+          currentHeads: newCurrentHeads,
+          depth: candidate.depth + 1,
+        }
+        if (neighborFaceId === finalFaceIdForHead) {
+          neighbor.incompleteHeads = neighbor.incompleteHeads.filter(
+            (h) => h !== incompleteHeadConnName,
+          )
+        }
+        newCandidates.push(neighbor)
+      }
+
+      // 2. IF WE CAN VIA, CREATE CANDIDATE WITH VIA
+      if (canVia) {
+        const newViaLocationAssignments = new Map(
+          candidate.viaLocationAssignments,
+        )
+        const neighbor: Candidate = {
+          ...candidate,
+          viaLocationAssignments: newViaLocationAssignments,
+          depth: candidate.depth + 1,
+        }
+        newCandidates.push(neighbor)
+      }
+    }
+
+    return newCandidates.filter(
+      (candidate) =>
+        !this.exploredCandidateHashes.has(hashCandidate(candidate)),
+    )
+  }
+
+  visualize(): GraphicsObject {
+    // TODO
+  }
 }
