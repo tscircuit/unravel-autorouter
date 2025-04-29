@@ -15,6 +15,7 @@ import {
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
 import { Connect } from "vite"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
+import { safeTransparentize } from "../colors"
 
 export type CandidateHash = string
 export type ConnectionName = string
@@ -28,6 +29,9 @@ export interface Candidate {
   incompleteHeads: ConnectionName[]
   depth: number
   possible: boolean
+  h?: number
+  g?: number
+  f?: number
 }
 
 export const hashCandidate = (candidate: Candidate): CandidateHash => {
@@ -83,6 +87,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     colorMap?: Record<string, string>
   }) {
     super()
+    this.MAX_ITERATIONS = 10e3
     this.colorMap =
       colorMap ?? generateColorMapFromNodeWithPortPoints(nodeWithPortPoints)
     this.maxViaCount = 5
@@ -270,6 +275,12 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     // TODO check that same layer connection names have even number of vias or 0
   }
 
+  computeG(candidate: Candidate, parent: Candidate) {}
+
+  computeH(candidate: Candidate) {
+    // Sum of the distance remaining for each head
+  }
+
   getUnexploredNeighbors(candidate: Candidate): Candidate[] {
     const newCandidates: Candidate[] = []
     for (const incompleteHeadConnName of candidate.incompleteHeads) {
@@ -334,7 +345,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           headPaths: new Map(candidate.headPaths), // Ensure a new map instance for hashing
           depth: candidate.depth + 1,
         }
-        newCandidates.push(neighbor)
+        neighbor.h = newCandidates.push(neighbor)
       }
     }
 
@@ -393,8 +404,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       graphics.lines!.push({
         points: [start, end],
         strokeColor: color,
-        strokeWidth: 0.1,
-        strokeDash: start.z !== end.z ? [0.1, 0.1] : undefined, // Dashed if transition
+        strokeDash: start.z !== end.z ? "5,5" : undefined,
         label: `${connectionName} (z${start.z}->z${end.z})`,
       })
       graphics.points!.push({
@@ -413,7 +423,43 @@ export class ViaPossibilitiesSolver extends BaseSolver {
 
     // 4. Visualize Last Candidate State
     if (this.lastCandidate) {
-      // Draw current heads
+      // Draw Head Paths
+      for (const [
+        connectionName,
+        pathFaceIds,
+      ] of this.lastCandidate.headPaths.entries()) {
+        const color = colorMap[connectionName] ?? "black"
+        const portPair = this.portPairMap.get(connectionName)!
+        const pathPoints: Point[] = [portPair.start] // Start with the connection start point
+
+        for (const faceId of pathFaceIds) {
+          const face = this.faces.get(faceId)
+          if (face) {
+            pathPoints.push(face.centroid)
+          }
+        }
+
+        // If the head is complete, add the end point
+        if (!this.lastCandidate.incompleteHeads.includes(connectionName)) {
+          console.log("adding end point", {
+            incompleteHeads: this.lastCandidate.incompleteHeads,
+            connectionName,
+          })
+          pathPoints.push(portPair.end)
+        }
+
+        // console.log({ pathPoints })
+
+        graphics.lines!.push({
+          points: pathPoints,
+          strokeColor: safeTransparentize(color, 0.5),
+          strokeWidth: 0.08, // Make path lines thinner than original segments
+          strokeDash: [0.05, 0.05], // Dashed to distinguish from original segments
+          label: `Path: ${connectionName}`,
+        })
+      }
+
+      // Draw current heads (optional, can be redundant with paths)
       for (const [
         connectionName,
         faceId,
@@ -421,11 +467,10 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         const face = this.faces.get(faceId)
         if (face) {
           const color = colorMap[connectionName] ?? "black"
-          graphics.circles!.push({
-            center: face.centroid,
-            radius: 0.2,
-            stroke: color,
-            fill: "transparent",
+          graphics.points!.push({
+            x: face.centroid.x + 0.01,
+            y: face.centroid.y + 0.01,
+            color,
             label: `Head: ${connectionName}`,
           })
         }
