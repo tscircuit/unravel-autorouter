@@ -108,7 +108,7 @@ interface FaceVertex extends Point {
   connectionNames?: Set<string>
 }
 
-interface Face {
+export interface Face {
   vertices: FaceVertex[]
   centroid: Point
 }
