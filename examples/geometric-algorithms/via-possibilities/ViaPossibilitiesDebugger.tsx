@@ -16,6 +16,7 @@ export const ViaPossibilitiesDebugger: React.FC<
   const colorMap = generateColorMapFromNodeWithPortPoints(nodeWithPortPoints)
   const [minViaCount, setMinViaCount] = useState(1)
   const [maxViaCount, setMaxViaCount] = useState(3)
+  const [currentCombinationIndex, setCurrentCombinationIndex] = useState(0)
 
   // Calculate bounds from nodeWithPortPoints
   const bounds: Bounds = {
@@ -57,13 +58,21 @@ export const ViaPossibilitiesDebugger: React.FC<
   const availableZ = nodeWithPortPoints.availableZ ?? [0, 1]
 
   // Get via possibilities
-  const { viaPossibilities } = getViaPossibilitiesFromPortPairs({
-    portPairs,
-    availableZ,
-    bounds,
-    maxViaCount,
-    minViaCount,
-  })
+  const { viaPossibilities, viaCombinations } =
+    getViaPossibilitiesFromPortPairs({
+      portPairs,
+      availableZ,
+      bounds,
+      maxViaCount,
+      minViaCount,
+    })
+
+  // Ensure index is valid after count changes
+  React.useEffect(() => {
+    if (currentCombinationIndex >= viaCombinations.length) {
+      setCurrentCombinationIndex(Math.max(0, viaCombinations.length - 1))
+    }
+  }, [viaCombinations.length, currentCombinationIndex])
 
   const graphics = {
     points: [],
@@ -123,7 +132,23 @@ export const ViaPossibilitiesDebugger: React.FC<
     }
   }
 
-  // Draw via possibilities
+  // Draw the CURRENT via combination
+  const currentCombination = viaCombinations[currentCombinationIndex] ?? []
+  for (const viaPlacement of currentCombination) {
+    const { x, y, connectionName } = viaPlacement
+    const color = colorMap[connectionName] ?? "black"
+
+    graphics.circles.push({
+      center: { x, y },
+      radius: 0.15, // Make combination vias slightly larger
+      fill: color,
+      strokeColor: "white",
+      strokeWidth: 0.02,
+      label: `Via (${connectionName})`,
+    })
+  }
+
+  // Optionally: Draw all possibilities faintly in the background
   for (const viaPossibility of viaPossibilities) {
     const { x, y, connectionNames } = viaPossibility
     const connectionLabel = connectionNames.join(", ")
@@ -131,12 +156,11 @@ export const ViaPossibilitiesDebugger: React.FC<
       connectionNames.length === 1
         ? (colorMap[connectionNames[0]] ?? "black")
         : "purple"
-
     graphics.circles.push({
       center: { x, y },
-      radius: 0.1,
-      fill: safeTransparentize(color, 0.5),
-      label: `Via possibility (${connectionLabel})`,
+      radius: 0.05, // Smaller radius for background possibilities
+      fill: safeTransparentize(color, 0.1),
+      label: `Possible: (${connectionLabel})`,
     })
   }
 
@@ -179,6 +203,40 @@ export const ViaPossibilitiesDebugger: React.FC<
         </div>
       </div>
 
+      {/* Combination Controls */}
+      <div className="flex justify-between items-center mb-4">
+        <button
+          onClick={() =>
+            setCurrentCombinationIndex((prev) => Math.max(0, prev - 1))
+          }
+          disabled={
+            currentCombinationIndex === 0 || viaCombinations.length === 0
+          }
+          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Previous Combination
+        </button>
+        <span>
+          Combination{" "}
+          {viaCombinations.length > 0 ? currentCombinationIndex + 1 : 0} /{" "}
+          {viaCombinations.length}
+        </span>
+        <button
+          onClick={() =>
+            setCurrentCombinationIndex((prev) =>
+              Math.min(viaCombinations.length - 1, prev + 1),
+            )
+          }
+          disabled={
+            currentCombinationIndex >= viaCombinations.length - 1 ||
+            viaCombinations.length === 0
+          }
+          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Next Combination
+        </button>
+      </div>
+
       <div className="border rounded-md p-4 mb-4">
         <InteractiveGraphics graphics={graphics} />
       </div>
@@ -196,6 +254,9 @@ export const ViaPossibilitiesDebugger: React.FC<
         </div>
         <div className="border p-2 rounded mb-2">
           Available Z Layers: {availableZ.join(", ")}
+        </div>
+        <div className="border p-2 rounded mb-2">
+          Valid Via Combinations Found: {viaCombinations.length}
         </div>
       </div>
     </div>
