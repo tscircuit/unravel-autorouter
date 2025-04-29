@@ -359,21 +359,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     }
 
     // Generate a simple color map
-    const connectionNames = Array.from(this.portPairMap.keys())
-    const colors = [
-      "red",
-      "blue",
-      "green",
-      "purple",
-      "orange",
-      "cyan",
-      "magenta",
-      "yellow",
-    ]
-    const colorMap: Record<string, string> = {}
-    connectionNames.forEach((name, index) => {
-      colorMap[name] = colors[index % colors.length]
-    })
+    const colorMap = this.colorMap
 
     // 1. Draw Node Bounds
     graphics.lines!.push({
