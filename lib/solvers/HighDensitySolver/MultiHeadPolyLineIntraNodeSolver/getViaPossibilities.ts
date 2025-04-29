@@ -78,7 +78,7 @@ export const getViaPossibilitiesFromPortPairs = ({
   for (const z of availableZ) {
     zToCentroidResult.set(
       z,
-      getCentroidsFromInnerBoxIntersections(bounds, zToSegments.get(z)!),
+      getCentroidsFromInnerBoxIntersections(bounds, zToSegments.get(z)! ?? []),
     )
   }
 

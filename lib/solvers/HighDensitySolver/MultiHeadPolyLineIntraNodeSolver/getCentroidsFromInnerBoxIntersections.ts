@@ -9,6 +9,7 @@ interface Point {
 export interface Segment {
   start: Point
   end: Point
+  connectionName?: string
 }
 
 // EPS is used for floating point comparisons
