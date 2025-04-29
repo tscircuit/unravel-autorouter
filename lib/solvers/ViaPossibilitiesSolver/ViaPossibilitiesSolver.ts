@@ -5,7 +5,12 @@ import {
   getCentroidsFromInnerBoxIntersections,
 } from "../HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/getCentroidsFromInnerBoxIntersections"
 import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWithPortPoints"
-import { Bounds, Point, pointToSegmentDistance } from "@tscircuit/math-utils"
+import {
+  Bounds,
+  Point,
+  pointToSegmentDistance,
+  segmentToSegmentMinDistance,
+} from "@tscircuit/math-utils"
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
 
 export type ViaLocationHash = string
@@ -15,10 +20,18 @@ export type FaceId = string
 
 export interface Candidate {
   viaLocationAssignments: Map<ViaLocationHash, ConnectionName>
+  // Each iteration, we move the current heads closer to the end face
+  currentHeads: Map<ConnectionName, FaceId>
+  possible: boolean
+  depth: number
 }
 
 export const hashCandidate = (candidate: Candidate): CandidateHash => {
-  return Array.from(candidate.viaLocationAssignments.entries()).sort().join("|")
+  return Array.from(candidate.viaLocationAssignments.entries())
+    .sort()
+    .join("|")
+    .concat("$")
+    .concat(Array.from(candidate.currentHeads.entries()).sort().join("|"))
 }
 export const hashViaLocation = (p: Point) => {
   return `${p.x},${p.y}`
@@ -43,13 +56,15 @@ export interface Segment {
 export class ViaPossibilitiesSolver extends BaseSolver {
   candidates: Candidate[]
   faces: Map<FaceId, FaceWithSegments>
+  faceEdges: Map<FaceId, FaceId[]>
   bounds: Bounds
   portPairMap: PortPairMap
   connectionEndpointFaceMap: Map<
     ConnectionName,
     { startFaceId: FaceId; endFaceId: string }
   >
-  exploredAssignments: Set<CandidateHash>
+  exploredCandidateHashes: Set<CandidateHash>
+  lastCandidate: Candidate | null
 
   constructor({
     nodeWithPortPoints,
@@ -57,7 +72,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     nodeWithPortPoints: NodeWithPortPoints
   }) {
     super()
-    this.exploredAssignments = new Set()
+    this.exploredCandidateHashes = new Set()
     this.bounds = getBoundsFromNodeWithPortPoints(nodeWithPortPoints)
     this.portPairMap = getPortPairMap(nodeWithPortPoints)
     const segments: Segment[] = Array.from(this.portPairMap.values())
@@ -112,17 +127,42 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         startFaceId,
         endFaceId,
       })
+
+      // Compute face edges. If two faces have a segment to segment min distance of less than 0.001 we consider them
+      // to have a shared edge
+      // TODO
     }
 
-    // TODO setup initial candidate
+    const initialHeads: Map<ConnectionName, FaceId> = new Map()
+    for (const [
+      connectionName,
+      { startFaceId },
+    ] of this.connectionEndpointFaceMap.entries()) {
+      initialHeads.set(connectionName, startFaceId)
+    }
+
     this.candidates = [
       {
         viaLocationAssignments: new Map(),
+        currentHeads: initialHeads,
+        possible: false,
+        depth: 0,
       },
     ]
+    this.exploredCandidateHashes.add(hashCandidate(this.candidates[0]))
+    this.lastCandidate = this.candidates[0]
   }
 
-  _step() {}
+  _step() {
+    const currentCandidate = this.candidates.pop()
+    if (!currentCandidate) {
+      this.solved = true
+      return
+    }
+    this.lastCandidate = currentCandidate
+
+    this.candidates.push(...this.getUnexploredNeighbors(currentCandidate))
+  }
 
   getUnexploredNeighbors(candidate: Candidate): Candidate[] {}
 }
