@@ -160,6 +160,7 @@ export const ViaPossibilitiesDebugger: React.FC<
     graphics.circles.push({
       center: { x, y },
       radius: 0.05, // Smaller radius for background possibilities
+      stroke: "white",
       fill: safeTransparentize(color, 0.1),
       label: `Possible: (${connectionLabel})`,
     })
