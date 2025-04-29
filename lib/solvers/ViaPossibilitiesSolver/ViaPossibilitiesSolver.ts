@@ -303,10 +303,14 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       }
     }
 
-    return newCandidates.filter(
-      (candidate) =>
-        !this.exploredCandidateHashes.has(hashCandidate(candidate)),
-    )
+    const unexploredNewCandidates: Candidate[] = []
+    for (const newCandidate of newCandidates) {
+      const candidateHash = hashCandidate(newCandidate)
+      if (this.exploredCandidateHashes.has(candidateHash)) continue
+      this.exploredCandidateHashes.add(candidateHash)
+      unexploredNewCandidates.push(newCandidate)
+    }
+    return unexploredNewCandidates
   }
 
   visualize(): GraphicsObject {
