@@ -95,12 +95,26 @@ export default () => {
   // Draw segments connecting port pairs
   for (const [connectionName, { start, end }] of portPairs.entries()) {
     if (start && end) {
+      const startZ = start.z ?? 0
+      const endZ = end.z ?? 0
+      let strokeDash: string | undefined = undefined
+
+      if (startZ === 1 && endZ === 1) {
+        strokeDash = [0.2, 0.2] // Dashed for lines entirely on z=1
+      } else if (startZ !== endZ) {
+        strokeDash = [1, 0.3, 0.3, 0.3] // "10,3,3,3" // Distinct dash for z-transitions
+      }
+      // Otherwise, strokeDash remains undefined for solid lines (e.g., z=0 to z=0)
+
       graphics.lines.push({
         points: [start, end],
-        strokeColor: colorMap[connectionName] ?? "purple",
+        strokeColor: safeTransparentize(
+          colorMap[connectionName] ?? "purple",
+          0.5,
+        ),
         strokeWidth: 0.1,
-        strokeDash: "5,5",
-        label: `${connectionName} raw connection`,
+        strokeDash: strokeDash,
+        label: `${connectionName} raw connection (z=${startZ}->${endZ})`,
       })
     }
   }
