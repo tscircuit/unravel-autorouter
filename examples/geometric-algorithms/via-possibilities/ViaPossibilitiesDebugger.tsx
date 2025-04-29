@@ -134,13 +134,14 @@ export const ViaPossibilitiesDebugger: React.FC<
 
   // Draw the CURRENT via combination
   const currentCombination = viaCombinations[currentCombinationIndex] ?? []
+  console.log({ currentCombination })
   for (const viaPlacement of currentCombination) {
     const { x, y, connectionName } = viaPlacement
     const color = colorMap[connectionName] ?? "black"
 
     graphics.circles.push({
       center: { x, y },
-      radius: 0.15, // Make combination vias slightly larger
+      radius: 0.3,
       fill: color,
       strokeColor: "white",
       strokeWidth: 0.02,
