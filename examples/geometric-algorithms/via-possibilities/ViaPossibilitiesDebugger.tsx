@@ -106,7 +106,7 @@ export const ViaPossibilitiesDebugger: React.FC<
       if (startZ === 1 && endZ === 1) {
         strokeDash = [0.2, 0.2] // Dashed for lines entirely on z=1
       } else if (startZ !== endZ) {
-        strokeDash = [1, 0.3, 0.3, 0.3] // "10,3,3,3" // Distinct dash for z-transitions
+        strokeDash = [0.3, 0.1] // Distinct dash for z-transitions
       }
       // Otherwise, strokeDash remains undefined for solid lines (e.g., z=0 to z=0)
 

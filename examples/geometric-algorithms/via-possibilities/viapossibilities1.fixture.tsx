@@ -1,11 +1,20 @@
-import cn9630 from "examples/assets/cn9630-nodeWithPortPoints.json"
 import React from "react"
 import { ViaPossibilitiesDebugger } from "./ViaPossibilitiesDebugger"
 import { NodeWithPortPoints } from "lib/types/high-density-types"
 
-export default () => {
-  // Cast is needed because the imported JSON doesn't perfectly match the type
-  const nodeWithPortPoints = cn9630.nodeWithPortPoints as NodeWithPortPoints
+const nodeWithPortPoints: NodeWithPortPoints = {
+  capacityMeshNodeId: "node1",
+  center: { x: 5, y: 5 },
+  width: 2,
+  height: 2,
+  portPoints: [
+    { connectionName: "A", x: 4, y: 4, z: 0 },
+    { connectionName: "A", x: 6, y: 6, z: 0 },
+    { connectionName: "B", x: 4, y: 6, z: 0 },
+    { connectionName: "B", x: 6, y: 4, z: 0 },
+  ],
+}
 
+export default () => {
   return <ViaPossibilitiesDebugger nodeWithPortPoints={nodeWithPortPoints} />
 }
