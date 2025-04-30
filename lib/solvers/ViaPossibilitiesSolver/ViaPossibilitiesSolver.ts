@@ -68,10 +68,16 @@ export interface Segment {
   connectionName: string
 }
 
+export interface FaceEdge {
+  crossesOverConnectionName: ConnectionName
+  possibleZOfConnection: number[]
+  crossesToFaceId: FaceId
+}
+
 export class ViaPossibilitiesSolver extends BaseSolver {
   candidates: Candidate[]
   faces: Map<FaceId, FaceWithSegments>
-  faceEdges: Map<FaceId, FaceId[]>
+  faceEdges: Map<FaceId, FaceEdge[]>
   bounds: Bounds
   maxViaCount: number
   portPairMap: PortPairMap
