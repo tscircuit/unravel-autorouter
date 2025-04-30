@@ -143,26 +143,92 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
       strokeWidth: 0.01,
     })
 
-    // 3. Draw Port Pairs (Original Segments)
-    for (const [connectionName, { start, end }] of this.portPairMap.entries()) {
-      const color = colorMap[connectionName] ?? "black"
-      graphics.lines!.push({
-        points: [start, end],
-        strokeColor: color,
-        strokeDash: start.z !== end.z ? "5,5" : undefined,
-        label: `${connectionName} (z${start.z}->z${end.z})`,
-      })
+    const drawPath = (
+      pathMap: Map<ConnectionName, Point3[]>,
+      labelPrefix: string,
+    ) => {
+      for (const [connectionName, path] of pathMap.entries()) {
+        const color = colorMap[connectionName] ?? "black"
+        for (let i = 0; i < path.length - 1; i++) {
+          const p1 = path[i]
+          const p2 = path[i + 1]
+
+          if (p1.x === p2.x && p1.y === p2.y && p1.z !== p2.z) {
+            // Draw Via for Z change
+            graphics.circles!.push({
+              center: { x: p1.x, y: p1.y },
+              radius: 0.3, // Diameter 0.6
+              fillColor: color,
+              label: `${labelPrefix}: ${connectionName} Via (z${p1.z}->z${p2.z})`,
+            })
+          } else {
+            // Draw Line Segment
+            graphics.lines!.push({
+              points: [p1, p2],
+              strokeColor: color,
+              strokeWidth: 0.1,
+              label: `${labelPrefix}: ${connectionName} (z${p1.z})`,
+            })
+          }
+        }
+        // Draw start/end points for clarity
+        if (path.length > 0) {
+          const start = path[0]
+          const end = path[path.length - 1]
+          graphics.points!.push({
+            x: start.x,
+            y: start.y,
+            color: color,
+            label: `${labelPrefix}: ${connectionName} Start (z${start.z})`,
+          })
+          graphics.points!.push({
+            x: end.x,
+            y: end.y,
+            color: color,
+            label: `${labelPrefix}: ${connectionName} End (z${end.z})`,
+          })
+        }
+      }
+    }
+
+    // 2. Draw Placeholder Paths
+    drawPath(this.placeholderPaths, "Placeholder")
+
+    // 3. Draw Completed Paths
+    drawPath(this.completedPaths, "Completed")
+
+    // 4. Draw Current Path (if any)
+    if (this.currentPath && this.currentPath.length > 0) {
+      const color = colorMap[this.currentConnectionName] ?? "orange" // Use a distinct color
+      for (let i = 0; i < this.currentPath.length - 1; i++) {
+        const p1 = this.currentPath[i]
+        const p2 = this.currentPath[i + 1]
+        if (p1.x === p2.x && p1.y === p2.y && p1.z !== p2.z) {
+          graphics.circles!.push({
+            center: { x: p1.x, y: p1.y },
+            radius: 0.3,
+            fillColor: color,
+            strokeColor: "yellow", // Highlight current
+            strokeWidth: 0.05,
+            label: `Current: ${this.currentConnectionName} Via (z${p1.z}->z${p2.z})`,
+          })
+        } else {
+          graphics.lines!.push({
+            points: [p1, p2],
+            strokeColor: color,
+            strokeWidth: 0.15, // Thicker
+            strokeDash: "2,2", // Dashed
+            label: `Current: ${this.currentConnectionName} (z${p1.z})`,
+          })
+        }
+      }
+      // Highlight current head
       graphics.points!.push({
-        x: start.x,
-        y: start.y,
-        color: color,
-        label: `${connectionName} Start (z${start.z})`,
-      })
-      graphics.points!.push({
-        x: end.x,
-        y: end.y,
-        color: color,
-        label: `${connectionName} End (z${end.z})`,
+        x: this.currentHead.x,
+        y: this.currentHead.y,
+        color: "yellow",
+        radius: 0.4,
+        label: `Current Head: ${this.currentConnectionName} (z${this.currentHead.z})`,
       })
     }
 
