@@ -77,7 +77,7 @@ export interface FaceEdge {
 export class ViaPossibilitiesSolver extends BaseSolver {
   candidates: Candidate[]
   faces: Map<FaceId, FaceWithSegments>
-  faceEdges: Map<FaceId, FaceEdge[]>
+  faceEdges: Map<FaceId, FaceEdge[]> // Keep the type definition as is
   bounds: Bounds
   maxViaCount: number
   portPairMap: PortPairMap
@@ -203,8 +203,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       })
     }
 
-    // Compute face edges. If two faces have a segment to segment min distance of less than 0.001 we consider them
-    // to have a shared edge
+    // Compute face edges. Find shared segments between faces and determine which connection crosses that edge.
     this.faceEdges = new Map()
     const faceIds = Array.from(this.faces.keys())
 
@@ -218,28 +217,86 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         if (!this.faceEdges.has(faceId2)) this.faceEdges.set(faceId2, [])
         const face2 = this.faces.get(faceId2)!
 
-        let foundSharedEdge = false
         for (const seg1 of face1.segments) {
           for (const seg2 of face2.segments) {
-            const dist = segmentToSegmentMinDistance(
-              seg1.start,
-              seg1.end,
-              seg2.start,
-              seg2.end,
-            )
-            if (dist < 0.001) {
-              // Add edge in both directions, avoiding duplicates
-              if (!this.faceEdges.get(faceId1)!.includes(faceId2)) {
-                this.faceEdges.get(faceId1)!.push(faceId2)
+            // Check if segments are essentially the same (endpoints match, possibly reversed)
+            const startsMatch = distance(seg1.start, seg2.start) < 0.001
+            const endsMatch = distance(seg1.end, seg2.end) < 0.001
+            const startEndMatch = distance(seg1.start, seg2.end) < 0.001
+            const endStartMatch = distance(seg1.end, seg2.start) < 0.001
+
+            if (
+              (startsMatch && endsMatch) ||
+              (startEndMatch && endStartMatch)
+            ) {
+              // Found a shared segment. Now find the connection name associated with its vertices.
+              // We assume a shared segment's vertices will have the crossing connection name.
+              // It's possible vertices have multiple names; we need the one NOT belonging to the faces'
+              // sameLayerConnectionNames if applicable, or simply one present on the vertex.
+              // For simplicity, we'll just grab the first connection name found on the start vertex.
+              // A more robust approach might be needed if vertices can belong to multiple crossing segments.
+
+              const vertex1 = face1.vertices.find(
+                (v) => distance(v, seg1.start) < 0.001,
+              )
+              const connectionNames = vertex1?.connectionNames
+              if (connectionNames && connectionNames.size > 0) {
+                // Heuristic: Pick the first connection name found. This might need refinement.
+                const crossesOverConnectionName = connectionNames
+                  .values()
+                  .next().value!
+
+                const portPair = this.portPairMap.get(
+                  crossesOverConnectionName!,
+                )
+                if (!portPair) {
+                  console.warn(
+                    `Could not find port pair for connection: ${crossesOverConnectionName} while creating face edge between ${faceId1} and ${faceId2}`,
+                  )
+                  continue // Skip if connection details aren't found
+                }
+
+                const possibleZOfConnection =
+                  portPair.start.z === portPair.end.z
+                    ? [portPair.start.z]
+                    : this.availableZ // If it transitions, any Z is possible? Or just start/end? Using availableZ for now.
+                // TODO: Refine possibleZOfConnection logic if needed. Maybe it should just be [start.z, end.z]?
+
+                // Add edge from face1 to face2
+                if (
+                  !this.faceEdges
+                    .get(faceId1)!
+                    .some((edge) => edge.crossesToFaceId === faceId2)
+                ) {
+                  this.faceEdges.get(faceId1)!.push({
+                    crossesToFaceId: faceId2,
+                    crossesOverConnectionName,
+                    possibleZOfConnection,
+                  })
+                }
+
+                // Add edge from face2 to face1
+                if (
+                  !this.faceEdges
+                    .get(faceId2)!
+                    .some((edge) => edge.crossesToFaceId === faceId1)
+                ) {
+                  this.faceEdges.get(faceId2)!.push({
+                    crossesToFaceId: faceId1,
+                    crossesOverConnectionName,
+                    possibleZOfConnection,
+                  })
+                }
+                // Break inner loops once shared segment is processed for this pair
+                // Continue to check other segments in case faces share multiple boundaries
+              } else {
+                console.warn(
+                  `Shared segment between ${faceId1} and ${faceId2} found, but no connection name associated with vertex ${JSON.stringify(seg1.start)}`,
+                )
               }
-              if (!this.faceEdges.get(faceId2)!.includes(faceId1)) {
-                this.faceEdges.get(faceId2)!.push(faceId1)
-              }
-              foundSharedEdge = true
-              break // Move to the next face pair once a shared edge is found
+              // Don't break here, faces might share more than one segment boundary
             }
           }
-          if (foundSharedEdge) break
         }
       }
     }
@@ -367,7 +424,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       const finalFaceIdForHead = this.connectionEndpointFaceMap.get(
         incompleteHeadConnName,
       )!.endFaceId
-      const neighborFaceIds = this.faceEdges.get(currentHead.faceId)!
+      const neighborFaceEdges = this.faceEdges.get(currentHead.faceId)! // Now using FaceEdge[]
       const currentFace = this.faces.get(currentHead.faceId)!
 
       // Determine if a via can be placed in the current face for this connection
@@ -379,10 +436,17 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           currentFace.requiresViaFromOneOfConnections.includes(
             incompleteHeadConnName,
           )) &&
-        !candidate.viaLocationAssignments.has(currentHead.faceId)
+        !candidate.viaLocationAssignments.has(currentHead.faceId) &&
+        candidate.viaLocationAssignments.size < this.maxViaCount // Also check max via count
 
       // 1. CREATE CANDIDATES TO EACH NEIGHBORING FACE (Move Head, same Z)
-      for (const neighborFaceId of neighborFaceIds) {
+      for (const neighborEdge of neighborFaceEdges) {
+        const neighborFaceId = neighborEdge.crossesToFaceId
+        // TODO: Add logic here to check if the move is valid based on
+        // neighborEdge.crossesOverConnectionName and neighborEdge.possibleZOfConnection
+        // e.g., prevent crossing a trace on the same layer?
+        // For now, we allow all moves.
+
         const newCurrentHeads = new Map(candidate.currentHeads)
         // Move head to neighbor face, keep the same Z layer
         newCurrentHeads.set(incompleteHeadConnName, {
@@ -399,7 +463,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
             (p) => p.faceId === neighborFaceId && p.z === currentHead.z,
           )
         )
-          continue
+          continue // Skip if this state was already visited in the current path
 
         newHeadPaths.set(incompleteHeadConnName, [
           ...currentPath,
@@ -408,14 +472,24 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         const neighbor: Candidate = {
           ...candidate, // Copy via assignments etc.
           currentHeads: newCurrentHeads, // Update heads
-          headPaths: newHeadPaths,
+          headPaths: newHeadPaths, // Update paths
           depth: candidate.depth + 1,
+          incompleteHeads: candidate.incompleteHeads, // Will be updated below if needed
         }
+
+        // Check if this head reached its destination
         if (neighborFaceId === finalFaceIdForHead) {
-          neighbor.incompleteHeads = candidate.incompleteHeads.filter(
-            (h) => h !== incompleteHeadConnName,
-          )
+          // Check if the Z layer matches the destination Z layer
+          const endZ = this.portPairMap.get(incompleteHeadConnName)!.end.z
+          if (currentHead.z === endZ) {
+            // Head is complete only if it reaches the final face AND the correct Z layer
+            neighbor.incompleteHeads = candidate.incompleteHeads.filter(
+              (h) => h !== incompleteHeadConnName,
+            )
+          }
+          // If it reaches the final face but wrong Z, it's not complete yet.
         }
+
         neighbor.h = this.computeH(neighbor)
         neighbor.g = this.computeG(neighbor, candidate)
         neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLIER
