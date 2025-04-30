@@ -92,7 +92,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   colorMap: Record<string, string>
   nodeWidth: number
   availableZ: number[]
-  GREEDY_MULTIPLIER = 10000
+  GREEDY_MULTIPLIER = 1
 
   constructor({
     nodeWithPortPoints,
@@ -153,12 +153,21 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           connectionNamesInFace.add(connectionName)
         }
       }
-      const sameLayerConnectionNames = this.sameLayerConnectionNames.filter(
-        (cn) => connectionNamesInFace.has(cn),
+      const sameLayerConnectionNames = this.sameLayerConnectionNames
+        .filter((cn) => connectionNamesInFace.has(cn))
+        .map((connName) => ({
+          connName,
+          z: this.portPairMap.get(connName)!.start.z,
+        }))
+
+      const allSameZ = sameLayerConnectionNames.every(
+        ({ z }) => z === sameLayerConnectionNames[0].z,
       )
 
-      if (sameLayerConnectionNames.length > 1) {
-        requiresViaFromOneOfConnections = sameLayerConnectionNames
+      if (sameLayerConnectionNames.length > 1 && allSameZ) {
+        requiresViaFromOneOfConnections = sameLayerConnectionNames.map(
+          (c) => c.connName,
+        )
       }
 
       this.faces.set(`face${i.toString()}`, {
@@ -688,7 +697,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
 
           graphics.lines!.push({
             points: [previousPoint, currentCentroid],
-            strokeColor: safeTransparentize(color, 0.5),
+            strokeColor: safeTransparentize(color, 0.9),
             strokeWidth: 0.08,
             // Dash if the segment *starts* on z=0
             strokeDash: previousZ === 1 ? [0.1, 0.1] : undefined,
@@ -703,7 +712,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         if (!this.lastCandidate.incompleteHeads.includes(connectionName)) {
           graphics.lines!.push({
             points: [previousPoint, portPair.end], // From last centroid to end
-            strokeColor: safeTransparentize(color, 0.5),
+            strokeColor: safeTransparentize(color, 0.9),
             strokeWidth: 0.08,
             // Dash if the final segment *starts* on z=0
             strokeDash: previousZ === 1 ? [0.1, 0.1] : undefined,
