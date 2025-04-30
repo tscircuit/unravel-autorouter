@@ -48,8 +48,8 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
 
   unprocessedConnections: ConnectionName[]
 
-  completedPaths: Map<ConnectionName, Point3[]>
-  placeholderPaths: Map<ConnectionName, Point3[]>
+  completedPaths: Map<ConnectionName, Point3[]> = new Map()
+  placeholderPaths: Map<ConnectionName, Point3[]> = new Map()
 
   currentHead: Point3
   currentConnectionName: ConnectionName
@@ -86,7 +86,22 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
       )
     }
 
-    // TODO generate placeholder paths
+    // Generate placeholder paths
+    for (const [
+      connectionName,
+      { start, end },
+    ] of this.portPairMap.entries()) {
+      if (start.z === end.z) {
+        this.placeholderPaths.set(connectionName, [start, end])
+      } else {
+        // Create a path with a Z change at the midpoint
+        const midX = (start.x + end.x) / 2
+        const midY = (start.y + end.y) / 2
+        const midStart: Point3 = { x: midX, y: midY, z: start.z }
+        const midEnd: Point3 = { x: midX, y: midY, z: end.z }
+        this.placeholderPaths.set(connectionName, [start, midStart, midEnd, end])
+      }
+    }
 
     this.currentConnectionName = this.unprocessedConnections.pop()!
     this.currentHead = this.portPairMap.get(this.currentConnectionName)!.start
