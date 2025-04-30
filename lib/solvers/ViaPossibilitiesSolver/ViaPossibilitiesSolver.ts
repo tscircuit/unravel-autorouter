@@ -35,11 +35,17 @@ export interface Candidate {
 }
 
 export const hashCandidate = (candidate: Candidate): CandidateHash => {
-  return Array.from(candidate.viaLocationAssignments.entries())
+  const viaAssignmentsString = Array.from(
+    candidate.viaLocationAssignments.entries(),
+  )
     .sort()
+    .map(([faceId, connName]) => `${faceId}:${connName}`)
     .join("|")
-    .concat("$")
-    .concat(Array.from(candidate.currentHeads.entries()).sort().join("|"))
+  const currentHeadsString = Array.from(candidate.currentHeads.entries())
+    .sort()
+    .map(([connName, { faceId, z }]) => `${connName}:${faceId}@${z}`)
+    .join("|")
+  return `${viaAssignmentsString}$${currentHeadsString}`
 }
 export const hashViaLocation = (p: Point) => {
   return `${p.x},${p.y}`
@@ -79,6 +85,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   lastCandidate: Candidate | null
   colorMap: Record<string, string>
   nodeWidth: number
+  availableZ: number[]
   GREEDY_MULTIPLIER = 1
 
   constructor({
@@ -98,6 +105,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     this.nodeWidth = this.bounds.maxX - this.bounds.minX
     this.portPairMap = getPortPairMap(nodeWithPortPoints)
     this.stats.solutionsFound = 0
+    this.availableZ = nodeWithPortPoints.availableZ ?? [0, 1]
 
     this.transitionConnectionNames = Array.from(
       this.portPairMap
@@ -230,21 +238,24 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       }
     }
 
-    const initialHeads: Map<ConnectionName, FaceId> = new Map()
+    // Initialize currentHeads with faceId and starting z-layer
+    const initialHeads: Map<ConnectionName, { faceId: FaceId; z: number }> =
+      new Map()
     for (const [
       connectionName,
       { startFaceId },
     ] of this.connectionEndpointFaceMap.entries()) {
-      initialHeads.set(connectionName, startFaceId)
+      const startZ = this.portPairMap.get(connectionName)!.start.z
+      initialHeads.set(connectionName, { faceId: startFaceId, z: startZ })
     }
 
-    // Initialize head paths
-    const initialHeadPaths: Map<ConnectionName, FaceId[]> = new Map()
-    for (const [
-      connectionName,
-      { startFaceId },
-    ] of this.connectionEndpointFaceMap.entries()) {
-      initialHeadPaths.set(connectionName, [startFaceId]) // Start path with the initial face
+    // Initialize head paths with the starting faceId and z-layer
+    const initialHeadPaths: Map<
+      ConnectionName,
+      { faceId: FaceId; z: number }[]
+    > = new Map()
+    for (const [connectionName, { faceId, z }] of initialHeads.entries()) {
+      initialHeadPaths.set(connectionName, [{ faceId, z }]) // Start path with the initial face and layer
     }
 
     this.candidates = [
@@ -327,10 +338,10 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     // Sum of the distance remaining for each head
     let distanceSum = 0
     for (const connectionName of candidate.incompleteHeads) {
-      const faceId = candidate.currentHeads.get(connectionName)!
+      const { faceId } = candidate.currentHeads.get(connectionName)!
       const centroid = this.faces.get(faceId)!.centroid
       const end = this.portPairMap.get(connectionName)!.end
-      distanceSum += distance(centroid, end)
+      distanceSum += distance(centroid, end) // Heuristic based on 2D distance to target centroid
     }
 
     const VIA_PENALTY_DIST = this.nodeWidth * 0.2
@@ -343,38 +354,54 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     const newCandidates: Candidate[] = []
     for (const incompleteHeadConnName of candidate.incompleteHeads) {
       // Move the incomplete head forward in every possible direction, also consider the placement of any vias
-      const currentFaceIdOfIncompleteHead = candidate.currentHeads.get(
+      const currentHead = candidate.currentHeads.get(incompleteHeadConnName)!
+      const { start: startPort, end: endPort } = this.portPairMap.get(
         incompleteHeadConnName,
       )!
       const finalFaceIdForHead = this.connectionEndpointFaceMap.get(
         incompleteHeadConnName,
       )!.endFaceId
-      const neighborFaceIds = this.faceEdges.get(currentFaceIdOfIncompleteHead)!
-      const currentFace = this.faces.get(currentFaceIdOfIncompleteHead)
+      const neighborFaceIds = this.faceEdges.get(currentHead.faceId)!
+      const currentFace = this.faces.get(currentHead.faceId)!
+
+      // Determine if a via can be placed in the current face for this connection
       const canVia =
-        (!currentFace?.requiresViaFromOneOfConnections ||
-          currentFace?.requiresViaFromOneOfConnections.includes(
+        // Check if the connection needs to transition layers
+        startPort.z !== endPort.z &&
+        // Check if the face allows vias for this connection (if restrictions exist)
+        (!currentFace.requiresViaFromOneOfConnections ||
+          currentFace.requiresViaFromOneOfConnections.includes(
             incompleteHeadConnName,
           )) &&
-        !candidate.viaLocationAssignments.has(currentFaceIdOfIncompleteHead)
+        !candidate.viaLocationAssignments.has(currentHead.faceId)
 
-      // 1. CREATE CANDIDATES TO EACH NEIGHBORING FACE (Move Head)
+      // 1. CREATE CANDIDATES TO EACH NEIGHBORING FACE (Move Head, same Z)
       for (const neighborFaceId of neighborFaceIds) {
         const newCurrentHeads = new Map(candidate.currentHeads)
-        newCurrentHeads.set(incompleteHeadConnName, neighborFaceId)
+        // Move head to neighbor face, keep the same Z layer
+        newCurrentHeads.set(incompleteHeadConnName, {
+          faceId: neighborFaceId,
+          z: currentHead.z,
+        })
 
         // Update head paths
         const newHeadPaths = new Map(candidate.headPaths)
         const currentPath = newHeadPaths.get(incompleteHeadConnName)!
-        if (currentPath.includes(neighborFaceId)) continue
+        // Prevent cycles by checking if the exact {faceId, z} pair is already in the path
+        if (
+          currentPath.some(
+            (p) => p.faceId === neighborFaceId && p.z === currentHead.z,
+          )
+        )
+          continue
 
         newHeadPaths.set(incompleteHeadConnName, [
           ...currentPath,
-          neighborFaceId,
+          { faceId: neighborFaceId, z: currentHead.z }, // Add new position to path
         ])
         const neighbor: Candidate = {
-          ...candidate,
-          currentHeads: newCurrentHeads,
+          ...candidate, // Copy via assignments etc.
+          currentHeads: newCurrentHeads, // Update heads
           headPaths: newHeadPaths,
           depth: candidate.depth + 1,
         }
@@ -389,27 +416,53 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         newCandidates.push(neighbor)
       }
 
-      // 2. IF WE CAN VIA, CREATE CANDIDATE WITH VIA
+      // 2. IF WE CAN VIA, CREATE CANDIDATE WITH VIA (Place Via, change Z)
       if (canVia) {
         const newViaLocationAssignments = new Map(
           candidate.viaLocationAssignments,
         )
         newViaLocationAssignments.set(
-          currentFaceIdOfIncompleteHead,
+          currentHead.faceId,
           incompleteHeadConnName,
-        ) // Assign via
+        ) // Assign via to this face for this connection
 
-        // Head paths remain the same when placing a via, only assignments change
-        const neighbor: Candidate = {
-          ...candidate,
-          viaLocationAssignments: newViaLocationAssignments,
-          headPaths: new Map(candidate.headPaths), // Ensure a new map instance for hashing
-          depth: candidate.depth + 1,
+        // Determine the new Z layer after placing the via
+        const newZ = currentHead.z === startPort.z ? endPort.z : startPort.z
+
+        // Update current head to reflect the new Z layer in the same face
+        const newCurrentHeads = new Map(candidate.currentHeads)
+        newCurrentHeads.set(incompleteHeadConnName, {
+          faceId: currentHead.faceId,
+          z: newZ,
+        })
+
+        // Update head path to reflect the layer transition within the same face
+        const newHeadPaths = new Map(candidate.headPaths)
+        const currentPath = newHeadPaths.get(incompleteHeadConnName)!
+
+        // Prevent cycles: Check if this exact {faceId, z} state was already visited in the path
+        if (
+          !currentPath.some(
+            (p) => p.faceId === currentHead.faceId && p.z === newZ,
+          )
+        ) {
+          newHeadPaths.set(incompleteHeadConnName, [
+            ...currentPath,
+            { faceId: currentHead.faceId, z: newZ }, // Add via transition step
+          ])
+
+          const neighbor: Candidate = {
+            ...candidate, // Keep parent's incomplete heads etc.
+            viaLocationAssignments: newViaLocationAssignments, // Add the new via assignment
+            currentHeads: newCurrentHeads, // Head is now on the new layer
+            headPaths: newHeadPaths, // Path reflects the layer change
+            depth: candidate.depth + 1,
+          }
+          neighbor.h = this.computeH(neighbor)
+          neighbor.g = this.computeG(neighbor, candidate)
+          neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLIER
+          newCandidates.push(neighbor)
         }
-        neighbor.h = this.computeH(neighbor)
-        neighbor.g = this.computeG(neighbor, candidate)
-        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLIER
-        newCandidates.push(neighbor)
       }
     }
 
@@ -437,8 +490,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     const colorMap = this.colorMap
 
     // 1. Draw Node Bounds
-    const boundaryColor =
-      this.lastCandidate && this.lastCandidate.possible ? "green" : "gray"
+    const boundaryColor = this.lastCandidate?.possible ? "green" : "gray"
     graphics.lines!.push({
       points: [
         { x: this.bounds.minX, y: this.bounds.minY },
@@ -492,16 +544,17 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       // Draw Head Paths
       for (const [
         connectionName,
-        pathFaceIds,
+        pathEntries, // Now an array of { faceId: FaceId; z: number }
       ] of this.lastCandidate.headPaths.entries()) {
         const color = colorMap[connectionName] ?? "black"
         const portPair = this.portPairMap.get(connectionName)!
         const pathPoints: Point[] = [portPair.start] // Start with the connection start point
 
-        for (const faceId of pathFaceIds) {
+        for (const { faceId } of pathEntries) {
+          // Iterate through path entries, extract faceId
           const face = this.faces.get(faceId)
           if (face) {
-            pathPoints.push(face.centroid)
+            pathPoints.push(face.centroid) // Use centroid for visualization
           }
         }
 
@@ -522,16 +575,17 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       // Draw current heads (optional, can be redundant with paths)
       for (const [
         connectionName,
-        faceId,
+        { faceId, z }, // Destructure faceId and z
       ] of this.lastCandidate.currentHeads.entries()) {
         const face = this.faces.get(faceId)
         if (face) {
           const color = colorMap[connectionName] ?? "black"
+          // Add z-layer info to the label
           graphics.points!.push({
             x: face.centroid.x + 0.01,
-            y: face.centroid.y + 0.01,
+            y: face.centroid.y + 0.01, // Slight offset for visibility
             color,
-            label: `Head: ${connectionName}`,
+            label: `Head: ${connectionName} (z${z})`, // Include z-layer in label
           })
         }
       }
