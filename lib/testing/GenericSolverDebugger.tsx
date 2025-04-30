@@ -70,8 +70,7 @@ export const GenericSolverDebugger = ({
   const resetSolver = () => {
     setMainSolver(createSolver())
     setSelectedSolverKey("main")
-    // Reset stat selection as well if needed, or keep it persistent
-    // setSelectedStatKey(null); // Uncomment to force re-selection on reset
+    setSelectedStatKey(null)
   }
 
   const stats = useRef({
@@ -582,7 +581,7 @@ export const GenericSolverDebugger = ({
                   setShowStatSelectionDialog(false)
                   // Optionally trigger the first step immediately after selection
                   if (selectedStatKey) {
-                     handleStepStat(); // Call handleStepStat again now that a key is selected
+                    handleStepStat() // Call handleStepStat again now that a key is selected
                   }
                 }}
                 disabled={!selectedStatKey}
