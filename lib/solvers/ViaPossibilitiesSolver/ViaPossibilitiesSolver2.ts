@@ -11,6 +11,7 @@ import {
 } from "@tscircuit/math-utils"
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
+import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
 
 export type ConnectionName = string
 
@@ -22,8 +23,20 @@ export interface Segment {
 
 export interface ViaPossibilities2HyperParameters {
   SHUFFLE_SEED?: number
-}
-
+} /**
+This solver uses an intersection-based approach. Here's how it works:
+0. Prepare placeholderPaths
+- Placeholder paths go from (start, end) if the z is the same
+- For placeholder paths, if the Z is different between the start and the end, then we create two segments, (start, mid) with start.z and (mid,end) with end.z. This means the placeholder path has four points, the second and third point are both a the mid XY but have a different z
+1. We cycle through each port pair, we start by setting currentHead = start for the first pair
+2. We have a currentHead, currentPath and currentConnectionName
+3. We always try to move the currentHead to the end. We try to create a line from currentHead to the end
+4. If the currentHead intersections EITHER:
+   - A previously created path
+   - If a connection doesn't have a previously created path, we use the placeholder path
+5. After the currentPath reaches the end for the connection, we delete the placeholder path
+6. When all the connections
+*/
 export class ViaPossibilitiesSolver2 extends BaseSolver {
   bounds: Bounds
   maxViaCount: number
@@ -32,6 +45,15 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
   nodeWidth: number
   availableZ: number[]
   hyperParameters: ViaPossibilities2HyperParameters
+
+  unprocessedConnections: ConnectionName[]
+
+  completedPaths: Map<ConnectionName, Point3[]>
+  placeholderPaths: Map<ConnectionName, Point3[]>
+
+  currentHead: Point3
+  currentConnectionName: ConnectionName
+  currentPath: Point3[]
 
   constructor({
     nodeWithPortPoints,
@@ -55,47 +77,24 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     this.hyperParameters = hyperParameters ?? {
       SHUFFLE_SEED: 0,
     }
-  }
 
-  _step() {}
-
-  isCandidatePossible(candidate: Candidate): boolean {
-    if (candidate.incompleteHeads.length > 0) return false
-
-    // Check 1: Total number of vias does not exceed the limit
-    if (candidate.viaLocationAssignments.size > this.maxViaCount) {
-      return false
-    }
-
-    // Count vias per connection
-    const viasPerConnection = new Map<ConnectionName, number>()
-    for (const connectionName of candidate.viaLocationAssignments.values()) {
-      viasPerConnection.set(
-        connectionName,
-        (viasPerConnection.get(connectionName) ?? 0) + 1,
+    this.unprocessedConnections = Array.from(this.portPairMap.keys()).sort()
+    if (hyperParameters?.SHUFFLE_SEED) {
+      this.unprocessedConnections = cloneAndShuffleArray(
+        this.unprocessedConnections,
+        hyperParameters.SHUFFLE_SEED,
       )
     }
 
-    // Check 2: Transition connection names must have an odd number of vias
-    for (const connectionName of this.transitionConnectionNames) {
-      const viaCount = viasPerConnection.get(connectionName) ?? 0
-      if (viaCount % 2 === 0) {
-        // Must have at least one via, and an odd number
-        return false
-      }
-    }
+    // TODO generate placeholder paths
 
-    // Check 3: Same layer connection names must have an even number of vias (or 0)
-    for (const connectionName of this.sameLayerConnectionNames) {
-      const viaCount = viasPerConnection.get(connectionName) ?? 0
-      if (viaCount % 2 !== 0) {
-        return false
-      }
-    }
-
-    // All checks passed
-    return true
+    this.currentConnectionName = this.unprocessedConnections.pop()!
+    this.currentHead = this.portPairMap.get(this.currentConnectionName)!.start
+    this.currentPath = [this.currentHead]
+    this.placeholderPaths.delete(this.currentConnectionName)
   }
+
+  _step() {}
 
   visualize(): GraphicsObject {
     const graphics: Required<GraphicsObject> = {
