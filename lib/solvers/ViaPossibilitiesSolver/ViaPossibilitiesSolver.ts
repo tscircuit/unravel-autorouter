@@ -415,18 +415,16 @@ export class ViaPossibilitiesSolver extends BaseSolver {
 
   getUnexploredNeighbors(candidate: Candidate): Candidate[] {
     const newCandidates: Candidate[] = []
-    for (const incompleteHeadConnName of candidate.incompleteHeads) {
+    for (const currentHeadConnName of candidate.incompleteHeads) {
       // Move the incomplete head forward in every possible direction, also consider the placement of any vias
-      const currentHead = candidate.currentHeads.get(incompleteHeadConnName)!
-      const { start: startPort, end: endPort } = this.portPairMap.get(
-        incompleteHeadConnName,
-      )!
-      const finalFaceIdForHead = this.connectionEndpointFaceMap.get(
-        incompleteHeadConnName,
-      )!.endFaceId
+      const currentHead = candidate.currentHeads.get(currentHeadConnName)!
+      const { start: startPort, end: endPort } =
+        this.portPairMap.get(currentHeadConnName)!
+      const finalFaceIdForHead =
+        this.connectionEndpointFaceMap.get(currentHeadConnName)!.endFaceId
       const neighborFaceEdges = this.faceEdges.get(currentHead.faceId)! // Now using FaceEdge[]
       const currentFace = this.faces.get(currentHead.faceId)!
-      const currentPath = candidate.headPaths.get(incompleteHeadConnName)!
+      const currentPath = candidate.headPaths.get(currentHeadConnName)!
 
       // Iterate through possible moves to neighboring faces
       for (const neighborEdge of neighborFaceEdges) {
@@ -441,8 +439,21 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         const mustCreateViaToGoToFace =
           onWrongLayerForFinalFace ||
           (crossesOverConnectionName &&
+            crossesOverConnectionName !== currentHeadConnName &&
             possibleZOfConnection.includes(currentHead.z) &&
             candidate.incompleteHeads.includes(crossesOverConnectionName))
+
+        // console.log({
+        //   currentHeadConnName,
+        //   onWrongLayerForFinalFace,
+        //   crossesOverConnectionName,
+        //   isInIncompleteHeads: candidate.incompleteHeads.includes(
+        //     crossesOverConnectionName,
+        //   ),
+        //   neighborFaceId,
+        //   mustCreateViaToGoToFace,
+        //   incompleteHeads: candidate.incompleteHeads,
+        // })
 
         if (mustCreateViaToGoToFace) {
           // CONFLICT: Must place a via in the *current* face before crossing, if possible.
@@ -462,7 +473,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
             )
             newViaLocationAssignments.set(
               currentHead.faceId,
-              incompleteHeadConnName,
+              currentHeadConnName,
             )
 
             const newZ =
@@ -477,19 +488,32 @@ export class ViaPossibilitiesSolver extends BaseSolver {
               )
             ) {
               const newCurrentHeads = new Map(candidate.currentHeads)
-              newCurrentHeads.set(incompleteHeadConnName, {
+              newCurrentHeads.set(currentHeadConnName, {
                 faceId: currentHead.faceId, // Stays in the same face
                 z: newZ, // Changes Z layer
               })
 
               const newHeadPaths = new Map(candidate.headPaths)
-              newHeadPaths.set(incompleteHeadConnName, [
+              newHeadPaths.set(currentHeadConnName, [
                 ...currentPath,
                 { faceId: currentHead.faceId, z: newZ }, // Add via transition step
               ])
 
+              let newIncompleteHeads = candidate.incompleteHeads
+              // Check if this head reached its destination
+              if (neighborFaceId === finalFaceIdForHead) {
+                const endZ = this.portPairMap.get(currentHeadConnName)!.end.z
+                if (newZ === endZ) {
+                  // Head is complete only if it reaches the final face AND the correct Z layer
+                  newIncompleteHeads = candidate.incompleteHeads.filter(
+                    (h) => h !== currentHeadConnName,
+                  )
+                }
+              }
+
               const viaCandidate: Candidate = {
                 ...candidate,
+                incompleteHeads: newIncompleteHeads,
                 viaLocationAssignments: newViaLocationAssignments,
                 currentHeads: newCurrentHeads,
                 headPaths: newHeadPaths,
@@ -518,13 +542,13 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           }
 
           const newCurrentHeads = new Map(candidate.currentHeads)
-          newCurrentHeads.set(incompleteHeadConnName, {
+          newCurrentHeads.set(currentHeadConnName, {
             faceId: neighborFaceId,
             z: currentHead.z,
           })
 
           const newHeadPaths = new Map(candidate.headPaths)
-          newHeadPaths.set(incompleteHeadConnName, [
+          newHeadPaths.set(currentHeadConnName, [
             ...currentPath,
             { faceId: neighborFaceId, z: currentHead.z }, // Add move step
           ])
@@ -532,11 +556,11 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           let newIncompleteHeads = candidate.incompleteHeads
           // Check if this head reached its destination
           if (neighborFaceId === finalFaceIdForHead) {
-            const endZ = this.portPairMap.get(incompleteHeadConnName)!.end.z
+            const endZ = this.portPairMap.get(currentHeadConnName)!.end.z
             if (currentHead.z === endZ) {
               // Head is complete only if it reaches the final face AND the correct Z layer
               newIncompleteHeads = candidate.incompleteHeads.filter(
-                (h) => h !== incompleteHeadConnName,
+                (h) => h !== currentHeadConnName,
               )
             }
           }
