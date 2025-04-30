@@ -508,7 +508,7 @@ export const GenericSolverDebugger = ({
               </span>
             </div>
             {(selectedSolver as any)?.candidates !== undefined && (
-              <div className="border p-2 rounded mb-2 flex space-x-4 [&>*]:w-48">
+              <div className="border p-2 rounded mb-2 flex flex-wrap space-x-4 [&>*]:w-36">
                 <div>
                   Candidates:{" "}
                   <span className="font-bold">

@@ -280,11 +280,41 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     this.candidates.sort((a, b) => a.f! - b.f!)
   }
 
-  isCandidatePossible(candidate: Candidate) {
+  isCandidatePossible(candidate: Candidate): boolean {
     if (candidate.incompleteHeads.length > 0) return false
-    // TODO check that number of vias does not exceed limit
-    // TODO check that transition connection names have odd number of vias
-    // TODO check that same layer connection names have even number of vias or 0
+
+    // Check 1: Total number of vias does not exceed the limit
+    if (candidate.viaLocationAssignments.size > this.maxViaCount) {
+      return false
+    }
+
+    // Count vias per connection
+    const viasPerConnection = new Map<ConnectionName, number>()
+    for (const connectionName of candidate.viaLocationAssignments.values()) {
+      viasPerConnection.set(
+        connectionName,
+        (viasPerConnection.get(connectionName) ?? 0) + 1,
+      )
+    }
+
+    // Check 2: Transition connection names must have an odd number of vias
+    for (const connectionName of this.transitionConnectionNames) {
+      const viaCount = viasPerConnection.get(connectionName) ?? 0
+      if (viaCount % 2 === 0) {
+        // Must have at least one via, and an odd number
+        return false
+      }
+    }
+
+    // Check 3: Same layer connection names must have an even number of vias (or 0)
+    for (const connectionName of this.sameLayerConnectionNames) {
+      const viaCount = viasPerConnection.get(connectionName) ?? 0
+      if (viaCount % 2 !== 0) {
+        return false
+      }
+    }
+
+    // All checks passed
     return true
   }
 
