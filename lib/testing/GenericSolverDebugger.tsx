@@ -77,7 +77,8 @@ export const GenericSolverDebugger = ({
   })
 
   const stepWithStats = () => {
-    const nextCandidate = (mainSolver as any).candidates?.[0]
+    const nextCandidate =
+      (mainSolver as any).lastCandidate || (mainSolver as any).candidates?.[0]
     if (nextCandidate) {
       if (nextCandidate.f < stats.current.bestF) {
         stats.current.bestF = nextCandidate.f
@@ -492,54 +493,76 @@ export const GenericSolverDebugger = ({
 
       <div className="mt-4 border-t pt-4">
         <h3 className="font-bold mb-2">Solver Information</h3>
-        <div className="border p-2 rounded mb-2">
-          Type:{" "}
-          <span className="font-bold">{selectedSolver?.constructor.name}</span>
-        </div>
-        <div className="border p-2 rounded mb-2">
-          Max Iterations:{" "}
-          <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
-        </div>
-        {(selectedSolver as any)?.candidates !== undefined && (
-          <div className="border p-2 rounded mb-2 flex space-x-4 [&>*]:w-48">
-            <div>
-              Candidates:{" "}
+        <div className="flex">
+          <div>
+            <div className="border p-2 rounded mb-2">
+              Type:{" "}
               <span className="font-bold">
-                {(selectedSolver as any).candidates.length}
+                {selectedSolver?.constructor.name}
               </span>
             </div>
-            <div>
-              Best F:{" "}
+            <div className="border p-2 rounded mb-2">
+              Max Iterations:{" "}
               <span className="font-bold">
-                {stats.current.bestF.toFixed(3)}
+                {selectedSolver?.MAX_ITERATIONS}
               </span>
             </div>
-            <div>
-              Best F:{" "}
-              <span className="font-bold">
-                {stats.current.bestCandidateIteration}
-              </span>
-            </div>
-            <div>
-              Last F:{" "}
-              <span className="font-bold">
-                {stats.current.lastF?.toFixed(3)}
-              </span>
-            </div>
-            <div>
-              Last G:{" "}
-              <span className="font-bold">
-                {stats.current.lastG?.toFixed(3)}
-              </span>
-            </div>
-            <div>
-              Last H:{" "}
-              <span className="font-bold">
-                {stats.current.lastH?.toFixed(3)}
-              </span>
-            </div>
+            {(selectedSolver as any)?.candidates !== undefined && (
+              <div className="border p-2 rounded mb-2 flex space-x-4 [&>*]:w-48">
+                <div>
+                  Candidates:{" "}
+                  <span className="font-bold">
+                    {(selectedSolver as any).candidates.length}
+                  </span>
+                </div>
+                <div>
+                  Best F:{" "}
+                  <span className="font-bold">
+                    {stats.current.bestF.toFixed(3)}
+                  </span>
+                </div>
+                <div>
+                  Best F:{" "}
+                  <span className="font-bold">
+                    {stats.current.bestCandidateIteration}
+                  </span>
+                </div>
+                <div>
+                  Last F:{" "}
+                  <span className="font-bold">
+                    {stats.current.lastF?.toFixed(3)}
+                  </span>
+                </div>
+                <div>
+                  Last G:{" "}
+                  <span className="font-bold">
+                    {stats.current.lastG?.toFixed(3)}
+                  </span>
+                </div>
+                <div>
+                  Last H:{" "}
+                  <span className="font-bold">
+                    {stats.current.lastH?.toFixed(3)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+          <div>
+            <table>
+              <tbody>
+                {Object.entries(mainSolver.stats).map(([k, v]) => {
+                  return (
+                    <tr key={k}>
+                      <td className="p-1">{k}</td>
+                      <td className="p-1">{v}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
       <div>
         <h3 className="font-bold mb-2">Advanced</h3>

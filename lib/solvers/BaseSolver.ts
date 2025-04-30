@@ -10,6 +10,7 @@ export class BaseSolver {
   activeSubSolver?: BaseSolver | null
   failedSubSolvers?: BaseSolver[]
   timeToSolve?: number
+  stats: Record<string, number> = {}
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {

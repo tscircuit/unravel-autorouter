@@ -13,9 +13,9 @@ import {
   segmentToSegmentMinDistance,
 } from "@tscircuit/math-utils"
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
-import { Connect } from "vite"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { safeTransparentize } from "../colors"
+import { distance } from "@tscircuit/math-utils"
 
 export type CandidateHash = string
 export type ConnectionName = string
@@ -78,6 +78,8 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   exploredCandidateHashes: Set<CandidateHash>
   lastCandidate: Candidate | null
   colorMap: Record<string, string>
+  nodeWidth: number
+  GREEDY_MULTIPLER = 1
 
   constructor({
     nodeWithPortPoints,
@@ -93,7 +95,9 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     this.maxViaCount = 5
     this.exploredCandidateHashes = new Set()
     this.bounds = getBoundsFromNodeWithPortPoints(nodeWithPortPoints)
+    this.nodeWidth = this.bounds.maxX - this.bounds.minX
     this.portPairMap = getPortPairMap(nodeWithPortPoints)
+    this.stats.solutionsFound = 0
 
     this.transitionConnectionNames = Array.from(
       this.portPairMap
@@ -259,13 +263,21 @@ export class ViaPossibilitiesSolver extends BaseSolver {
 
   _step() {
     const currentCandidate = this.candidates.pop()
+    console.log(currentCandidate)
     if (!currentCandidate) {
       this.solved = true
       return
     }
     this.lastCandidate = currentCandidate
 
+    if (currentCandidate.incompleteHeads.length === 0) {
+      if (this.isCandidatePossible(currentCandidate)) {
+        this.stats.solutionsFound += 1
+      }
+    }
+
     this.candidates.push(...this.getUnexploredNeighbors(currentCandidate))
+    this.candidates.sort((a, b) => b.f! - a.f!)
   }
 
   isCandidatePossible(candidate: Candidate) {
@@ -275,10 +287,25 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     // TODO check that same layer connection names have even number of vias or 0
   }
 
-  computeG(candidate: Candidate, parent: Candidate) {}
+  computeG(candidate: Candidate, parent: Candidate) {
+    const DEPTH_PENALTY_DIST = this.nodeWidth * 0.2
+    return candidate.depth * DEPTH_PENALTY_DIST
+  }
 
   computeH(candidate: Candidate) {
     // Sum of the distance remaining for each head
+    let distanceSum = 0
+    for (const connectionName of candidate.incompleteHeads) {
+      const faceId = candidate.currentHeads.get(connectionName)!
+      const centroid = this.faces.get(faceId)!.centroid
+      const end = this.portPairMap.get(connectionName)!.end
+      distanceSum += distance(centroid, end)
+    }
+
+    const VIA_PENALTY_DIST = this.nodeWidth * 0.2
+    distanceSum += candidate.viaLocationAssignments.size * VIA_PENALTY_DIST
+
+    return distanceSum
   }
 
   getUnexploredNeighbors(candidate: Candidate): Candidate[] {
@@ -325,6 +352,9 @@ export class ViaPossibilitiesSolver extends BaseSolver {
             (h) => h !== incompleteHeadConnName,
           )
         }
+        neighbor.h = this.computeH(neighbor)
+        neighbor.g = this.computeG(neighbor, candidate)
+        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLER
         newCandidates.push(neighbor)
       }
 
@@ -345,7 +375,10 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           headPaths: new Map(candidate.headPaths), // Ensure a new map instance for hashing
           depth: candidate.depth + 1,
         }
-        neighbor.h = newCandidates.push(neighbor)
+        neighbor.h = this.computeH(neighbor)
+        neighbor.g = this.computeG(neighbor, candidate)
+        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLER
+        newCandidates.push(neighbor)
       }
     }
 
