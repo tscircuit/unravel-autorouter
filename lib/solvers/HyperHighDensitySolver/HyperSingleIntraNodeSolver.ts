@@ -139,11 +139,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
         possibleValues: [
           {
             MULTI_HEAD_POLYLINE_SOLVER: true,
-            SEGMENTS_PER_POLYLINE: 3,
-          },
-          {
-            MULTI_HEAD_POLYLINE_SOLVER: true,
-            SEGMENTS_PER_POLYLINE: 4,
+            SEGMENTS_PER_POLYLINE: 6,
           },
         ],
       },

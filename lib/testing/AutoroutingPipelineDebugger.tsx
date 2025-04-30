@@ -843,6 +843,7 @@ export const AutoroutingPipelineDebugger = ({
               <th className="border p-2 text-left">Iterations</th>
               <th className="border p-2 text-left">Progress</th>
               <th className="border p-2 text-left">Time</th>
+              <th className="border p-2 text-left">Stats</th>
               <th className="border p-2 text-left">Input</th>
             </tr>
           </thead>
@@ -938,6 +939,19 @@ export const AutoroutingPipelineDebugger = ({
                           </div>
                         )}
                       </div>
+                    </td>
+                    <td className="border p-2 text-xs align-top">
+                      {stepSolver?.stats &&
+                      Object.keys(stepSolver.stats).length > 0 ? (
+                        <details>
+                          <summary className="cursor-pointer">Stats</summary>
+                          <pre className="mt-1 bg-gray-50 p-1 rounded text-[10px] max-h-40 overflow-auto">
+                            {JSON.stringify(stepSolver.stats, null, 2)}
+                          </pre>
+                        </details>
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     <td className="border p-2">
                       <button

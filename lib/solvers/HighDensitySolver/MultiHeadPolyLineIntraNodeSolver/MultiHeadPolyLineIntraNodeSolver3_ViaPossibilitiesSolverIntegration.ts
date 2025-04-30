@@ -15,12 +15,12 @@ const hashPolyLines = (polyLines: PolyLine2[]) => {
     .join("|")
 }
 
-export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver2 {
+export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver {
   constructor(
     params: ConstructorParameters<typeof MultiHeadPolyLineIntraNodeSolver2>[0],
   ) {
     super(params)
-    this.MAX_ITERATIONS = 2000
+    this.MAX_ITERATIONS = 10e3
   }
 
   createInitialCandidateFromSeed(shuffleSeed: number): Candidate | null {

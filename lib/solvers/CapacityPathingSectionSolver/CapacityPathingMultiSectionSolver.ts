@@ -60,9 +60,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     | HyperCapacityPathingSingleSectionSolver
     | null = null
 
-  MAX_ATTEMPTS_PER_NODE = 10
+  MAX_ATTEMPTS_PER_NODE = 1
   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
-  MAX_EXPANSION_DEGREES = 3
+  MAX_EXPANSION_DEGREES = 5
+  stats: { successfulOptimizations: number; failedOptimizations: number }
 
   constructor(
     params: ConstructorParameters<typeof CapacityPathingSolver>[0] & {
@@ -70,6 +71,11 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     },
   ) {
     super()
+    this.stats = {
+      successfulOptimizations: 0,
+      failedOptimizations: 0,
+    }
+
     this.MAX_ITERATIONS = 10e6
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
@@ -279,6 +285,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
       // --- Compare and Merge ---
       if (afterScore > beforeScore) {
+        this.stats.successfulOptimizations++
         // console.log(
         //   `Section ${
         //     solvedSectionSolver.centerNodeId
@@ -290,6 +297,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         this._mergeSolvedSectionPaths(solvedSectionSolver) // Pass the original section solver instance
         this._recalculateNodeCapacityUsage() // Recalculate global capacity after merging
       } else {
+        this.stats.failedOptimizations++
         // console.log(
         //   `Section ${
         //     solvedSectionSolver.centerNodeId
