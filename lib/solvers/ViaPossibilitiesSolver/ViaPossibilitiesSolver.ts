@@ -407,6 +407,8 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     const colorMap = this.colorMap
 
     // 1. Draw Node Bounds
+    const boundaryColor =
+      this.lastCandidate && this.lastCandidate.possible ? "green" : "gray"
     graphics.lines!.push({
       points: [
         { x: this.bounds.minX, y: this.bounds.minY },
@@ -415,7 +417,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         { x: this.bounds.minX, y: this.bounds.maxY },
         { x: this.bounds.minX, y: this.bounds.minY },
       ],
-      strokeColor: "gray",
+      strokeColor: boundaryColor,
       strokeWidth: 0.05,
     })
 
