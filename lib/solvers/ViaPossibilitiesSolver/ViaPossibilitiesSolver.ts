@@ -24,8 +24,8 @@ export type FaceId = string
 export interface Candidate {
   viaLocationAssignments: Map<FaceId, ConnectionName>
   // Each iteration, we move the current heads closer to the end face
-  currentHeads: Map<ConnectionName, FaceId>
-  headPaths: Map<ConnectionName, FaceId[]> // Added: Track the path of each head
+  currentHeads: Map<ConnectionName, { faceId: FaceId; z: number }>
+  headPaths: Map<ConnectionName, { faceId: FaceId; z: number }[]> // Added: Track the path of each head
   incompleteHeads: ConnectionName[]
   depth: number
   possible: boolean
