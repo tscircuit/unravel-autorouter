@@ -48,6 +48,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   obstacleMargin: number = 0.1
   traceWidth: number = 0.15
   availableZ: number[] = []
+  uniqueConnections: number = 0
 
   lastCandidate: Candidate | null = null
 
@@ -99,6 +100,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     const uniqueConnections = new Set(
       this.nodeWithPortPoints.portPoints.map((pp) => pp.connectionName),
     ).size
+    this.uniqueConnections = uniqueConnections
 
     const { numSameLayerCrossings, numTransitions } = getIntraNodeCrossings(
       this.nodeWithPortPoints,
@@ -110,11 +112,11 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       Math.ceil(uniqueConnections * 1.5),
     )
 
-    if (uniqueConnections > 5) {
-      this.failed = true
-      this.error = `Limit is currently set to 6 unique connections, ${uniqueConnections} found`
-      return
-    }
+    // if (uniqueConnections > 5) {
+    //   this.failed = true
+    //   this.error = `Limit is currently set to 6 unique connections, ${uniqueConnections} found`
+    //   return
+    // }
 
     if (
       this.minViaCount >

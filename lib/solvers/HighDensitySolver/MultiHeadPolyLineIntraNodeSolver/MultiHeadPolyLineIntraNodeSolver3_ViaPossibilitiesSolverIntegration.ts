@@ -3,17 +3,19 @@ import { ViaPossibilitiesSolver2 } from "lib/solvers/ViaPossibilitiesSolver/ViaP
 import { MultiHeadPolyLineIntraNodeSolver } from "./MultiHeadPolyLineIntraNodeSolver"
 import { MHPoint, PolyLine, Candidate } from "./types1"
 import { PolyLine2 } from "./types2"
+import { MultiHeadPolyLineIntraNodeSolver2 } from "./MultiHeadPolyLineIntraNodeSolver2_Optimized"
 
 const hashPolyLines = (polyLines: PolyLine2[]) => {
   return polyLines
     .flatMap(
       (pl) =>
-        `${pl.connectionName}-${pl.mPoints.map((mp) => `${mp.x},${mp.y},${mp.z1},${mp.z2}`)}`,
+        `${pl.connectionName}-${pl.mPoints.map((mp) => `${mp.x.toFixed(2)},${mp.y.toFixed(2)},${mp.z1},${mp.z2}`)}`,
     )
+    .sort()
     .join("|")
 }
 
-export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver {
+export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver2 {
   createInitialCandidateFromSeed(shuffleSeed: number): Candidate | null {
     // 1. Run ViaPossibilitiesSolver2 to get a valid path layout
     const viaSolver = new ViaPossibilitiesSolver2({
