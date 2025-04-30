@@ -16,6 +16,13 @@ const hashPolyLines = (polyLines: PolyLine2[]) => {
 }
 
 export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver2 {
+  constructor(
+    params: ConstructorParameters<typeof MultiHeadPolyLineIntraNodeSolver2>[0],
+  ) {
+    super(params)
+    this.MAX_ITERATIONS = 2000
+  }
+
   createInitialCandidateFromSeed(shuffleSeed: number): Candidate | null {
     // 1. Run ViaPossibilitiesSolver2 to get a valid path layout
     const viaSolver = new ViaPossibilitiesSolver2({
