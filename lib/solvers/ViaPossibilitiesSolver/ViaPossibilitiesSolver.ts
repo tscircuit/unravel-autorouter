@@ -662,32 +662,48 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       // Draw Head Paths
       for (const [
         connectionName,
-        pathEntries, // Now an array of { faceId: FaceId; z: number }
+        pathEntries, // Array of { faceId: FaceId; z: number }
       ] of this.lastCandidate.headPaths.entries()) {
         const color = colorMap[connectionName] ?? "black"
         const portPair = this.portPairMap.get(connectionName)!
-        const pathPoints: Point[] = [portPair.start] // Start with the connection start point
 
-        for (const { faceId } of pathEntries) {
-          // Iterate through path entries, extract faceId
-          const face = this.faces.get(faceId)
-          if (face) {
-            pathPoints.push(face.centroid) // Use centroid for visualization
-          }
+        let previousPoint: Point = portPair.start
+        let previousZ = portPair.start.z
+
+        for (const entry of pathEntries) {
+          const face = this.faces.get(entry.faceId)
+          if (!face) continue // Should not happen, but safety check
+
+          const currentCentroid = face.centroid
+          const currentZ = entry.z // Z layer *after* this step
+
+          graphics.lines!.push({
+            points: [previousPoint, currentCentroid],
+            strokeColor: safeTransparentize(color, 0.5),
+            strokeWidth: 0.08,
+            // Dash if the segment *starts* on z=0
+            strokeDash: previousZ === 1 ? [0.1, 0.1] : undefined,
+            // label: `Path Seg: ${connectionName} z${previousZ}`, // Optional: for debugging
+          })
+
+          previousPoint = currentCentroid
+          previousZ = currentZ // Update z for the *next* segment start
         }
 
-        // If the head is complete, add the end point
+        // If the head is complete, draw the final segment to the end point
         if (!this.lastCandidate.incompleteHeads.includes(connectionName)) {
-          pathPoints.push(portPair.end)
+          graphics.lines!.push({
+            points: [previousPoint, portPair.end], // From last centroid to end
+            strokeColor: safeTransparentize(color, 0.5),
+            strokeWidth: 0.08,
+            // Dash if the final segment *starts* on z=0
+            strokeDash: previousZ === 1 ? [0.1, 0.1] : undefined,
+            // label: `Path End: ${connectionName} z${previousZ}`, // Optional: for debugging
+          })
         }
-
-        graphics.lines!.push({
-          points: pathPoints,
-          strokeColor: safeTransparentize(color, 0.5),
-          strokeWidth: 0.08, // Make path lines thinner than original segments
-          // strokeDash: [0.05, 0.05], // Dashed to distinguish from original segments - REMOVED
-          label: `Path: ${connectionName}`,
-        })
+        // Add a single label for the whole path for clarity
+        graphics.lines![graphics.lines!.length - 1].label =
+          `Path: ${connectionName}`
       }
 
       // Draw current heads (optional, can be redundant with paths)
