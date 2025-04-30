@@ -262,8 +262,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   }
 
   _step() {
-    const currentCandidate = this.candidates.pop()
-    console.log(currentCandidate)
+    const currentCandidate = this.candidates.shift()
     if (!currentCandidate) {
       this.solved = true
       return
@@ -277,7 +276,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     }
 
     this.candidates.push(...this.getUnexploredNeighbors(currentCandidate))
-    this.candidates.sort((a, b) => b.f! - a.f!)
+    this.candidates.sort((a, b) => a.f! - b.f!)
   }
 
   isCandidatePossible(candidate: Candidate) {
@@ -285,6 +284,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     // TODO check that number of vias does not exceed limit
     // TODO check that transition connection names have odd number of vias
     // TODO check that same layer connection names have even number of vias or 0
+    return true
   }
 
   computeG(candidate: Candidate, parent: Candidate) {
@@ -474,14 +474,8 @@ export class ViaPossibilitiesSolver extends BaseSolver {
 
         // If the head is complete, add the end point
         if (!this.lastCandidate.incompleteHeads.includes(connectionName)) {
-          console.log("adding end point", {
-            incompleteHeads: this.lastCandidate.incompleteHeads,
-            connectionName,
-          })
           pathPoints.push(portPair.end)
         }
-
-        // console.log({ pathPoints })
 
         graphics.lines!.push({
           points: pathPoints,
