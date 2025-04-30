@@ -79,7 +79,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   lastCandidate: Candidate | null
   colorMap: Record<string, string>
   nodeWidth: number
-  GREEDY_MULTIPLER = 1
+  GREEDY_MULTIPLIER = 1
 
   constructor({
     nodeWithPortPoints,
@@ -385,7 +385,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         }
         neighbor.h = this.computeH(neighbor)
         neighbor.g = this.computeG(neighbor, candidate)
-        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLER
+        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLIER
         newCandidates.push(neighbor)
       }
 
@@ -408,7 +408,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         }
         neighbor.h = this.computeH(neighbor)
         neighbor.g = this.computeG(neighbor, candidate)
-        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLER
+        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLIER
         newCandidates.push(neighbor)
       }
     }
