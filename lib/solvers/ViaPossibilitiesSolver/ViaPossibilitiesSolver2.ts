@@ -53,7 +53,8 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
   nodeWidth: number
   availableZ: number[]
   hyperParameters: ViaPossibilities2HyperParameters
-  readonly VIA_INTERSECTION_BUFFER_DISTANCE = 0.05
+  VIA_INTERSECTION_BUFFER_DISTANCE = 0.05
+  WALL_BUFFER_DISTANCE = 0.05
 
   unprocessedConnections: ConnectionName[]
 
