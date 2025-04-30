@@ -92,7 +92,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   colorMap: Record<string, string>
   nodeWidth: number
   availableZ: number[]
-  GREEDY_MULTIPLIER = 10000
+  GREEDY_MULTIPLIER = 1
 
   constructor({
     nodeWithPortPoints,
