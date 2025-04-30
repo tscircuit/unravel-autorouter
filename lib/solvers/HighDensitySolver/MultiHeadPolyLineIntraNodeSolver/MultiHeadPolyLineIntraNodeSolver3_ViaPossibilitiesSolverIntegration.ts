@@ -1,18 +1,27 @@
 import { Point3, distance } from "@tscircuit/math-utils"
 import { ViaPossibilitiesSolver2 } from "lib/solvers/ViaPossibilitiesSolver/ViaPossibilitiesSolver2"
 import { MultiHeadPolyLineIntraNodeSolver } from "./MultiHeadPolyLineIntraNodeSolver"
-import { MHPoint, PolyLine } from "./types1"
-import { detectMultiConnectionClosedFacesWithoutVias } from "./detectMultiConnectionClosedFacesWithoutVias"
+import { MHPoint, PolyLine, Candidate } from "./types1"
+import { PolyLine2 } from "./types2"
+
+const hashPolyLines = (polyLines: PolyLine2[]) => {
+  return polyLines
+    .flatMap(
+      (pl) =>
+        `${pl.connectionName}-${pl.mPoints.map((mp) => `${mp.x},${mp.y},${mp.z1},${mp.z2}`)}`,
+    )
+    .join("|")
+}
 
 export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver {
-  setupInitialPolyLines(): void {
+  createInitialCandidateFromSeed(shuffleSeed: number): Candidate | null {
     // 1. Run ViaPossibilitiesSolver2 to get a valid path layout
     const viaSolver = new ViaPossibilitiesSolver2({
       nodeWithPortPoints: this.nodeWithPortPoints,
       colorMap: this.colorMap,
       // Pass relevant hyperparameters if needed, e.g., shuffle seed
       hyperParameters: {
-        SHUFFLE_SEED: 0,
+        SHUFFLE_SEED: shuffleSeed,
       },
     })
 
@@ -23,7 +32,7 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
       this.error =
         viaSolver.error ?? "ViaPossibilitiesSolver2 failed to find a solution."
       console.error(this.error)
-      return
+      return null
     }
 
     // 2. Convert the completedPaths from ViaPossibilitiesSolver2 into PolyLine[]
@@ -71,7 +80,6 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
           y: currentRawPoint.y,
           z1: z1,
           z2: z2,
-          connectionName: connectionName, // Add connectionName for potential debugging
         })
 
         if (z1 !== z2) {
@@ -143,7 +151,6 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
           y: midY,
           z1: segmentZ, // New point is on the same layer
           z2: segmentZ,
-          connectionName: connectionName,
         }
 
         // Insert the new midpoint into the mPoints array
@@ -162,13 +169,11 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
           ...startPoint,
           z1: startPoint.z,
           z2: startPoint.z, // Start point is not a via itself
-          connectionName: connectionName,
         },
         end: {
           ...endPoint,
           z1: endPoint.z, // End point uses its own Z as z1
           z2: endPoint.z, // End point is not a via itself
-          connectionName: connectionName,
         },
         mPoints,
       })
@@ -178,25 +183,7 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
       this.failed = true
       this.error = "No valid polylines generated from ViaPossibilitiesSolver2."
       console.error(this.error)
-      return
-    }
-
-    // 3. Create the single initial candidate
-    // Check for closed faces (should be less likely now, but good sanity check)
-    const hasClosedSameLayerFace = detectMultiConnectionClosedFacesWithoutVias(
-      polyLines,
-      this.bounds,
-    )
-
-    if (hasClosedSameLayerFace) {
-      // This indicates an issue either in ViaPossibilitiesSolver2 or the conversion logic
-      console.warn(
-        "Warning: Closed face detected even after using ViaPossibilitiesSolver2. Proceeding, but layout might be problematic.",
-      )
-      // Optionally, mark as failed if this is critical
-      // this.failed = true;
-      // this.error = "Closed face detected in initial layout from ViaPossibilitiesSolver2.";
-      // return;
+      return null
     }
 
     const minGaps = this.computeMinGapBtwPolyLines(polyLines)
@@ -204,20 +191,30 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
 
     const initialCandidate = {
       polyLines,
-      g: 0, // Initial cost is 0
+      g: 0,
       h: h,
-      f: h, // f = g + h
+      f: 0 + h, // f = g + h
       viaCount: totalViaCount,
       minGaps,
-      hasClosedSameLayerFace, // Store the flag
     }
+    initialCandidate.g = this.computeG(polyLines, initialCandidate)
+    initialCandidate.f = initialCandidate.g + initialCandidate.h
 
-    // 4. Add the candidate and sort (though only one exists initially)
-    this.candidates = [initialCandidate]
+    return initialCandidate
+  }
+
+  setupInitialPolyLines(): void {
+    this.candidates = []
+    const maxCandidatesToGenerate = 200
+    const candidatePolylineHashes = new Set<string>()
+    for (let i = 0; i < maxCandidatesToGenerate; i++) {
+      const newCandidate = this.createInitialCandidateFromSeed(i)
+      if (!newCandidate) continue
+      const newCandidatePolylineHash = hashPolyLines(newCandidate.polyLines)
+      if (candidatePolylineHashes.has(newCandidatePolylineHash)) continue
+      candidatePolylineHashes.add(newCandidatePolylineHash)
+      this.candidates.push(newCandidate)
+    }
     this.candidates.sort((a, b) => a.f - b.f) // Sort in case we add more initial candidates later
-
-    console.log(
-      `Initialized MultiHeadPolyLineIntraNodeSolver3 with 1 candidate from ViaPossibilitiesSolver2 (Total Vias: ${totalViaCount})`,
-    )
   }
 }
