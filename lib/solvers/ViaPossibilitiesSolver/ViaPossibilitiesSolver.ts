@@ -92,7 +92,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   colorMap: Record<string, string>
   nodeWidth: number
   availableZ: number[]
-  GREEDY_MULTIPLIER = 1
+  GREEDY_MULTIPLIER = 10000
 
   constructor({
     nodeWithPortPoints,
@@ -441,7 +441,8 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         const mustCreateViaToGoToFace =
           onWrongLayerForFinalFace ||
           (crossesOverConnectionName &&
-            possibleZOfConnection.includes(currentHead.z))
+            possibleZOfConnection.includes(currentHead.z) &&
+            candidate.incompleteHeads.includes(crossesOverConnectionName))
 
         if (mustCreateViaToGoToFace) {
           // CONFLICT: Must place a via in the *current* face before crossing, if possible.
