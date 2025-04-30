@@ -126,7 +126,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     const targetEnd = this.portPairMap.get(this.currentConnectionName)!.end
     const proposedSegment: [Point3, Point3] = [this.currentHead, targetEnd]
 
-    let closestIntersection: { point: Point; dist: number } | null = null
+    let closestIntersection: any = null
     let intersectedSegmentZ: number | null = null
 
     const checkIntersectionsWithPathMap = (
