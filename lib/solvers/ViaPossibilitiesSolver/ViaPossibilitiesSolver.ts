@@ -89,7 +89,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
     colorMap?: Record<string, string>
   }) {
     super()
-    this.MAX_ITERATIONS = 10e3
+    this.MAX_ITERATIONS = 100e3
     this.colorMap =
       colorMap ?? generateColorMapFromNodeWithPortPoints(nodeWithPortPoints)
     this.maxViaCount = 5
@@ -271,6 +271,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
 
     if (currentCandidate.incompleteHeads.length === 0) {
       if (this.isCandidatePossible(currentCandidate)) {
+        currentCandidate.possible = true
         this.stats.solutionsFound += 1
       }
     }
