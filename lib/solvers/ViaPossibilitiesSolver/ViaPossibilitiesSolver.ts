@@ -153,6 +153,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           connectionNamesInFace.add(connectionName)
         }
       }
+      // -------------------------- REVISE THIS ---------------------------------------
       const sameLayerConnectionNames = this.sameLayerConnectionNames
         .filter((cn) => connectionNamesInFace.has(cn))
         .map((connName) => ({
@@ -169,6 +170,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           (c) => c.connName,
         )
       }
+      // -------------------------- REVISE THIS ---------------------------------------
 
       this.faces.set(`face${i.toString()}`, {
         ...faces[i],
