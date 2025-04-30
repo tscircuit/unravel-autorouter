@@ -63,7 +63,7 @@ export class HighDensitySolver extends BaseSolver {
       if (this.failedSolvers.length > 0) {
         this.solved = false
         this.failed = true
-        this.error = `Failed to solve ${this.failedSolvers.length} nodes`
+        this.error = `Failed to solve ${this.failedSolvers.length} nodes, ${this.failedSolvers.slice(0, 5).map((fs) => fs.nodeWithPortPoints.capacityMeshNodeId)}`
         return
       }
 
@@ -153,6 +153,7 @@ export class HighDensitySolver extends BaseSolver {
             points: [start, end],
             strokeColor: "red",
             strokeDash: "10, 5",
+            layer: "did_not_connect",
           })
         }
       }

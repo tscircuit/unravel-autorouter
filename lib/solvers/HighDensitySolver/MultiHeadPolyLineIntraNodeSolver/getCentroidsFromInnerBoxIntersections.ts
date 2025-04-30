@@ -9,6 +9,7 @@ interface Point {
 export interface Segment {
   start: Point
   end: Point
+  connectionName?: string
 }
 
 // EPS is used for floating point comparisons
@@ -77,11 +78,13 @@ export class Vertex implements Point {
   x: number
   y: number
   out: number[] // Outgoing half-edge indices
+  connectionNames: Set<string> // Names of connections passing through this vertex
 
   constructor(x: number, y: number) {
     this.x = x
     this.y = y
     this.out = []
+    this.connectionNames = new Set()
   }
 }
 
@@ -101,15 +104,19 @@ export class HalfEdge {
   }
 }
 
-interface Face {
-  vertices: Point[]
+interface FaceVertex extends Point {
+  connectionNames?: Set<string>
+}
+
+export interface Face {
+  vertices: FaceVertex[]
   centroid: Point
 }
 
 interface ComputeRegionCentroidsResult {
   centroids: Point[]
   faces: Face[]
-  allVertices: Vertex[]
+  allVertices: Vertex[] // These vertices now include connectionNames
 }
 
 export function getCentroidsFromInnerBoxIntersections(
@@ -195,9 +202,19 @@ export function getCentroidsFromInnerBoxIntersections(
       return t1 - t2
     })
     for (let k = 0; k < list.length - 1; ++k) {
-      const v1 = getVertexId(list[k])
-      const v2 = getVertexId(list[k + 1])
-      if (v1 !== v2) undirectedEdges.push([v1, v2])
+      const p1 = list[k]
+      const p2 = list[k + 1]
+      const v1 = getVertexId(p1)
+      const v2 = getVertexId(p2)
+
+      if (v1 !== v2) {
+        undirectedEdges.push([v1, v2])
+        // Associate connectionName with the vertices of this sub-segment
+        if (s.connectionName) {
+          vertices[v1].connectionNames.add(s.connectionName)
+          vertices[v2].connectionNames.add(s.connectionName)
+        }
+      }
     }
   }
 
@@ -265,7 +282,12 @@ export function getCentroidsFromInnerBoxIntersections(
       if (c) {
         centroids.push(c)
         faces.push({
-          vertices: poly.map((p) => ({ x: p.x, y: p.y })), // Convert Vertex back to simple Point
+          vertices: poly.map((v) => ({
+            x: v.x,
+            y: v.y,
+            connectionNames:
+              v.connectionNames.size > 0 ? v.connectionNames : undefined,
+          })),
           centroid: c,
         })
       }

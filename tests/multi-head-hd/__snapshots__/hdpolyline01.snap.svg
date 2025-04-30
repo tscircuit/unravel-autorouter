@@ -1,0 +1,108 @@
+<svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <circle data-type="point" data-label="A (Port z=0)" data-x="4" data-y="4" cx="40" cy="600" r="3" fill="hsl(90, 100%, 50%)" />
+  </g>
+  <g>
+    <circle data-type="point" data-label="A (Port z=0)" data-x="6" data-y="6" cx="600" cy="40" r="3" fill="hsl(90, 100%, 50%)" />
+  </g>
+  <g>
+    <circle data-type="point" data-label="B (Port z=0)" data-x="4" data-y="6" cx="40" cy="40" r="3" fill="hsl(270, 100%, 50%)" />
+  </g>
+  <g>
+    <circle data-type="point" data-label="B (Port z=0)" data-x="6" data-y="4" cx="600" cy="600" r="3" fill="hsl(270, 100%, 50%)" />
+  </g>
+  <polyline data-points="4,4 6,4 6,6 4,6 4,4" data-type="line" points="40,600 600,600 600,40 40,40 40,600" fill="none" stroke="gray" stroke-width="1" />
+  <polyline data-points="4,4 4.504413393015492,4.490031946185808" data-type="line" points="40,600 181.2357500443377,462.79105506797373" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="42" />
+  <polyline data-points="4.504413393015492,4.490031946185808 5,5" data-type="line" points="181.2357500443377,462.79105506797373 320,320" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="42" />
+  <polyline data-points="5,5 5.495586606984508,5.509968053814192" data-type="line" points="320,320 458.7642499556623,177.20894493202627" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="42" />
+  <polyline data-points="5.495586606984508,5.509968053814192 6,6" data-type="line" points="458.7642499556623,177.20894493202627 600,40" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="42" />
+  <polyline data-points="4.504413393015492,4.490031946185808 4.5048311142677875,4.48939563066103" data-type="line" points="181.2357500443377,462.79105506797373 181.35271199498038,462.96922341491154" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4.504413393015492,4.490031946185808 4.5041532699291835,4.490086865466417" data-type="line" points="181.2357500443377,462.79105506797373 181.16291558017133,462.7756776694032" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4.504413393015492,4.490031946185808 4.637940603884001,4.291721845594587" data-type="line" points="181.2357500443377,462.79105506797373 218.62336908752036,518.3178832335157" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4.504413393015492,4.490031946185808 4.458996444290827,4.489562366737352" data-type="line" points="181.2357500443377,462.79105506797373 168.51900440143163,462.9225373135414" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5,5 5.000657462348898,4.999415239207203" data-type="line" points="320,320 320.18408945769147,320.16373302198303" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5,5 4.999342537651102,5.000584760792797" data-type="line" points="320,320 319.81591054230853,319.83626697801697" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5,5 5.145457029352087,4.898864233992846" data-type="line" points="320,320 360.72796821858446,348.31801448200304" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5,5 4.854542970647913,5.101135766007154" data-type="line" points="320,320 279.27203178141554,291.68198551799696" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.495586606984508,5.509968053814192 5.4958467300708165,5.509913134533583" data-type="line" points="458.7642499556623,177.20894493202627 458.83708441982867,177.2243223305968" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.495586606984508,5.509968053814192 5.4951688857322125,5.51060436933897" data-type="line" points="458.7642499556623,177.20894493202627 458.6472880050196,177.03077658508846" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.495586606984508,5.509968053814192 5.541003555709173,5.510437633262648" data-type="line" points="458.7642499556623,177.20894493202627 471.48099559856837,177.0774626864586" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.495586606984508,5.509968053814192 5.362059396115999,5.708278154405413" data-type="line" points="458.7642499556623,177.20894493202627 421.37663091247964,121.68211676648434" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4,6 4.3372632747184285,5.019818613854546" data-type="line" points="40,40 134.43371692115988,314.4507881207271" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="42" />
+  <polyline data-points="4.3372632747184285,5.019818613854546 5,5" data-type="line" points="134.43371692115988,314.4507881207271 320,320" fill="none" stroke="rgba(128,0,255,0.5)" stroke-width="42" />
+  <polyline data-points="5,5 5.6627367252815715,4.980181386145454" data-type="line" points="320,320 505.5662830788401,325.5492118792729" fill="none" stroke="rgba(128,0,255,0.5)" stroke-width="42" />
+  <polyline data-points="5.6627367252815715,4.980181386145454 6,4" data-type="line" points="505.5662830788401,325.5492118792729 600,600" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="42" />
+  <polyline data-points="4.3372632747184285,5.019818613854546 4.272473148356105,5.214275832616863" data-type="line" points="134.43371692115988,314.4507881207271 116.29248153970934,260.0027668672783" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4.3372632747184285,5.019818613854546 4.134581258091438,5.222617911799447" data-type="line" points="134.43371692115988,314.4507881207271 77.68275226560263,257.6669846961547" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4.3372632747184285,5.019818613854546 4.248373770292347,5.019875608716749" data-type="line" points="134.43371692115988,314.4507881207271 109.5446556818572,314.4348295593104" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4.3372632747184285,5.019818613854546 4.335058758608874,5.01887737937604" data-type="line" points="134.43371692115988,314.4507881207271 133.81645241048454,314.71433377470885" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="4.3372632747184285,5.019818613854546 4.327441402795974,5.019818613854546" data-type="line" points="134.43371692115988,314.4507881207271 131.68359278287267,314.4507881207271" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.6627367252815715,4.980181386145454 5.664941241391126,4.98112262062396" data-type="line" points="505.5662830788401,325.5492118792729 506.18354758951546,325.28566622529115" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.6627367252815715,4.980181386145454 5.751626229707653,4.980124391283251" data-type="line" points="505.5662830788401,325.5492118792729 530.4553443181428,325.5651704406896" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.6627367252815715,4.980181386145454 5.865418741908562,4.777382088200553" data-type="line" points="505.5662830788401,325.5492118792729 562.3172477343974,382.3330153038453" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.6627367252815715,4.980181386145454 5.727526851643895,4.785724167383137" data-type="line" points="505.5662830788401,325.5492118792729 523.7075184602907,379.9972331327217" fill="none" stroke="hsl(90, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <polyline data-points="5.6627367252815715,4.980181386145454 5.672558597204026,4.980181386145454" data-type="line" points="505.5662830788401,325.5492118792729 508.31640721712733,325.5492118792729" fill="none" stroke="hsl(270, 100%, 50%)" stroke-width="5.6000000000000005" />
+  <circle data-type="circle" data-label="" data-x="4.504413393015492" data-y="4.490031946185808" cx="181.2357500443377" cy="462.79105506797373" r="0.068359375" fill="hsl(90, 100%, 50%)" stroke="black" stroke-width="0.0035714285714285713" />
+  <circle data-type="circle" data-label="" data-x="5" data-y="5" cx="320" cy="320" r="0.068359375" fill="hsl(90, 100%, 50%)" stroke="black" stroke-width="0.0035714285714285713" />
+  <circle data-type="circle" data-label="" data-x="5.495586606984508" data-y="5.509968053814192" cx="458.7642499556623" cy="177.20894493202627" r="0.068359375" fill="hsl(90, 100%, 50%)" stroke="black" stroke-width="0.0035714285714285713" />
+  <circle data-type="circle" data-label="" data-x="4.3372632747184285" data-y="5.019818613854546" cx="134.43371692115988" cy="314.4507881207271" r="84" fill="rgba(128,0,255,0.5)" stroke="black" stroke-width="0.0035714285714285713" />
+  <circle data-type="circle" data-label="" data-x="5" data-y="5" cx="320" cy="320" r="0.068359375" fill="rgba(128,0,255,0.5)" stroke="black" stroke-width="0.0035714285714285713" />
+  <circle data-type="circle" data-label="" data-x="5.6627367252815715" data-y="4.980181386145454" cx="505.5662830788401" cy="325.5492118792729" r="84" fill="rgba(128,0,255,0.5)" stroke="black" stroke-width="0.0035714285714285713" />
+  <g id="crosshair" style="display: none">
+    <line id="crosshair-h" y1="0" y2="640" stroke="#666" stroke-width="0.5" />
+    <line id="crosshair-v" x1="0" x2="640" stroke="#666" stroke-width="0.5" /><text id="coordinates" font-family="monospace" font-size="12" fill="#666"></text>
+  </g>
+  <script>
+    <![CDATA[
+    document.currentScript.parentElement.addEventListener('mousemove', (e) => {
+      const svg = e.currentTarget;
+      const rect = svg.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const crosshair = svg.getElementById('crosshair');
+      const h = svg.getElementById('crosshair-h');
+      const v = svg.getElementById('crosshair-v');
+      const coords = svg.getElementById('coordinates');
+
+      crosshair.style.display = 'block';
+      h.setAttribute('x1', '0');
+      h.setAttribute('x2', '640');
+      h.setAttribute('y1', y);
+      h.setAttribute('y2', y);
+      v.setAttribute('x1', x);
+      v.setAttribute('x2', x);
+      v.setAttribute('y1', '0');
+      v.setAttribute('y2', '640');
+
+      // Calculate real coordinates using inverse transformation
+      const matrix = {
+        "a": 280,
+        "c": 0,
+        "e": -1080,
+        "b": 0,
+        "d": -280,
+        "f": 1720
+      };
+      // Manually invert and apply the affine transform
+      // Since we only use translate and scale, we can directly compute:
+      // x' = (x - tx) / sx
+      // y' = (y - ty) / sy
+      const sx = matrix.a;
+      const sy = matrix.d;
+      const tx = matrix.e;
+      const ty = matrix.f;
+      const realPoint = {
+        x: (x - tx) / sx,
+        y: (y - ty) / sy // Flip y back since we used negative scale
+      }
+
+      coords.textContent = `(${realPoint.x.toFixed(2)}, ${realPoint.y.toFixed(2)})`;
+      coords.setAttribute('x', (x + 5).toString());
+      coords.setAttribute('y', (y - 5).toString());
+    });
+    document.currentScript.parentElement.addEventListener('mouseleave', () => {
+      document.currentScript.parentElement.getElementById('crosshair').style.display = 'none';
+    });
+    ]]>
+  </script>
+</svg>
