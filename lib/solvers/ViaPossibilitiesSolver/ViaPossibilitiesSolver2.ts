@@ -53,6 +53,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
   nodeWidth: number
   availableZ: number[]
   hyperParameters: ViaPossibilities2HyperParameters
+  readonly VIA_INTERSECTION_BUFFER_DISTANCE = 0.05
 
   unprocessedConnections: ConnectionName[]
 
@@ -178,10 +179,28 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
 
     if (closestIntersection) {
       // --- Intersection Found ---
-      const midXY = midpoint(this.currentHead, closestIntersection.point)
+      let viaXY: Point
+      const distToIntersection = closestIntersection.dist
+
+      if (distToIntersection < this.VIA_INTERSECTION_BUFFER_DISTANCE) {
+        // If intersection is too close, place via at midpoint
+        viaXY = midpoint(this.currentHead, closestIntersection.point)
+      } else {
+        // Otherwise, place via VIA_INTERSECTION_BUFFER_DISTANCE before the intersection point
+        const intersectionPoint = closestIntersection.point
+        const vectorX = intersectionPoint.x - this.currentHead.x
+        const vectorY = intersectionPoint.y - this.currentHead.y
+        // Calculate the point VIA_INTERSECTION_BUFFER_DISTANCE away from the intersection towards the current head
+        const ratio =
+          (distToIntersection - this.VIA_INTERSECTION_BUFFER_DISTANCE) /
+          distToIntersection
+        viaXY = {
+          x: this.currentHead.x + vectorX * ratio,
+          y: this.currentHead.y + vectorY * ratio,
+        }
+      }
 
       // Determine the Z level to switch to (the one NOT occupied by the intersected segment)
-      // Assuming only two Z levels [0, 1] for now.
       const nextZ = this.availableZ.find((z) => z !== intersectedSegmentZ)!
       if (nextZ === undefined) {
         console.error("Could not determine next Z level for via placement!")
@@ -189,18 +208,36 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
         return
       }
 
-      const viaPoint1: Point3 = { ...midXY, z: this.currentHead.z }
-      const viaPoint2: Point3 = { ...midXY, z: nextZ }
+      const viaPoint1: Point3 = { ...viaXY, z: this.currentHead.z }
+      const viaPoint2: Point3 = { ...viaXY, z: nextZ }
 
       this.currentPath.push(viaPoint1, viaPoint2)
       this.currentHead = viaPoint2
     } else if (needsZChange) {
       // --- No Intersection, but Z Mismatch ---
-      const midXY = midpoint(this.currentHead, targetEnd) // Place via halfway to target
+      let viaXY: Point
+      const distToTarget = distance(this.currentHead, targetEnd)
+
+      if (distToTarget < this.VIA_INTERSECTION_BUFFER_DISTANCE) {
+        // If target is too close, place via at midpoint
+        viaXY = midpoint(this.currentHead, targetEnd)
+      } else {
+        // Otherwise, place via VIA_INTERSECTION_BUFFER_DISTANCE before the target end point
+        const vectorX = targetEnd.x - this.currentHead.x
+        const vectorY = targetEnd.y - this.currentHead.y
+        // Calculate the point VIA_INTERSECTION_BUFFER_DISTANCE away from the target towards the current head
+        const ratio =
+          (distToTarget - this.VIA_INTERSECTION_BUFFER_DISTANCE) / distToTarget
+        viaXY = {
+          x: this.currentHead.x + vectorX * ratio,
+          y: this.currentHead.y + vectorY * ratio,
+        }
+      }
+
       const nextZ = targetEnd.z // Target the destination Z
 
-      const viaPoint1: Point3 = { ...midXY, z: this.currentHead.z }
-      const viaPoint2: Point3 = { ...midXY, z: nextZ }
+      const viaPoint1: Point3 = { ...viaXY, z: this.currentHead.z }
+      const viaPoint2: Point3 = { ...viaXY, z: nextZ }
 
       this.currentPath.push(viaPoint1, viaPoint2)
       this.currentHead = viaPoint2
