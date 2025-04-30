@@ -4,9 +4,12 @@ import { GraphicsObject } from "graphics-debug"
 import { getBoundsFromNodeWithPortPoints } from "lib/utils/getBoundsFromNodeWithPortPoints"
 import {
   Bounds,
+  distance,
+  midpoint,
   Point,
   Point3,
   pointToSegmentDistance,
+  getSegmentIntersection,
   segmentToSegmentMinDistance,
 } from "@tscircuit/math-utils"
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
@@ -113,10 +116,113 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     this.currentConnectionName = this.unprocessedConnections.pop()!
     this.currentHead = this.portPairMap.get(this.currentConnectionName)!.start
     this.currentPath = [this.currentHead]
-    this.placeholderPaths.delete(this.currentConnectionName)
+    this.placeholderPaths.delete(this.currentConnectionName) // Delete placeholder when we start processing
   }
 
-  _step() {}
+  _step() {
+    if (this.solved) return
+
+    const targetEnd = this.portPairMap.get(this.currentConnectionName)!.end
+    const proposedSegment: [Point3, Point3] = [this.currentHead, targetEnd]
+
+    let closestIntersection: { point: Point; dist: number } | null = null
+    let intersectedSegmentZ: number | null = null
+
+    const checkIntersectionsWithPathMap = (
+      pathMap: Map<ConnectionName, Point3[]>,
+    ) => {
+      for (const path of pathMap.values()) {
+        for (let i = 0; i < path.length - 1; i++) {
+          const segment: [Point3, Point3] = [path[i], path[i + 1]]
+          // Skip checking intersection if segment is just a via (z change)
+          if (segment[0].x === segment[1].x && segment[0].y === segment[1].y) {
+            continue
+          }
+          // Only check intersections on the same Z plane as the proposed move start
+          // Or if the proposed move itself involves a Z change (handled later)
+          if (segment[0].z !== this.currentHead.z) {
+            continue
+          }
+
+          const intersection = getSegmentIntersection(
+            proposedSegment[0],
+            proposedSegment[1],
+            segment[0],
+            segment[1],
+          )
+          if (intersection) {
+            // Ignore intersection if it's exactly at the start point (currentHead)
+            const distToIntersection = distance(this.currentHead, intersection)
+            if (distToIntersection < 1e-6) continue // Tolerance for floating point
+
+            if (
+              !closestIntersection ||
+              distToIntersection < closestIntersection.dist
+            ) {
+              closestIntersection = {
+                point: intersection,
+                dist: distToIntersection,
+              }
+              intersectedSegmentZ = segment[0].z // Z level of the segment we hit
+            }
+          }
+        }
+      }
+    }
+
+    // Check intersections against completed and placeholder paths
+    checkIntersectionsWithPathMap(this.completedPaths)
+    checkIntersectionsWithPathMap(this.placeholderPaths)
+
+    const needsZChange = this.currentHead.z !== targetEnd.z
+
+    if (closestIntersection) {
+      // --- Intersection Found ---
+      const midXY = midpoint(this.currentHead, closestIntersection.point)
+
+      // Determine the Z level to switch to (the one NOT occupied by the intersected segment)
+      // Assuming only two Z levels [0, 1] for now.
+      const nextZ = this.availableZ.find((z) => z !== intersectedSegmentZ)!
+      if (nextZ === undefined) {
+        console.error("Could not determine next Z level for via placement!")
+        this.failed = true // Mark as failed if Z logic breaks
+        return
+      }
+
+      const viaPoint1: Point3 = { ...midXY, z: this.currentHead.z }
+      const viaPoint2: Point3 = { ...midXY, z: nextZ }
+
+      this.currentPath.push(viaPoint1, viaPoint2)
+      this.currentHead = viaPoint2
+    } else if (needsZChange) {
+      // --- No Intersection, but Z Mismatch ---
+      const midXY = midpoint(this.currentHead, targetEnd) // Place via halfway to target
+      const nextZ = targetEnd.z // Target the destination Z
+
+      const viaPoint1: Point3 = { ...midXY, z: this.currentHead.z }
+      const viaPoint2: Point3 = { ...midXY, z: nextZ }
+
+      this.currentPath.push(viaPoint1, viaPoint2)
+      this.currentHead = viaPoint2
+    } else {
+      // --- No Intersection, Z Matches: Path Clear ---
+      this.currentPath.push(targetEnd)
+      this.completedPaths.set(this.currentConnectionName, this.currentPath)
+
+      if (this.unprocessedConnections.length === 0) {
+        // All connections processed
+        this.solved = true
+        this.stats.solutionsFound = 1 // Mark as solved
+      } else {
+        // Start next connection
+        this.currentConnectionName = this.unprocessedConnections.pop()!
+        const { start } = this.portPairMap.get(this.currentConnectionName)!
+        this.currentHead = start
+        this.currentPath = [this.currentHead]
+        this.placeholderPaths.delete(this.currentConnectionName) // Remove placeholder
+      }
+    }
+  }
 
   visualize(): GraphicsObject {
     const graphics: Required<GraphicsObject> = {
