@@ -144,6 +144,23 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
       strokeWidth: 0.01,
     })
 
+    // Draw Start/End points from portPairMap
+    for (const [connectionName, { start, end }] of this.portPairMap.entries()) {
+      const color = this.colorMap[connectionName] ?? "black"
+      graphics.points!.push({
+        x: start.x,
+        y: start.y,
+        color: color,
+        label: `Port: ${connectionName} Start (z${start.z})`,
+      })
+      graphics.points!.push({
+        x: end.x,
+        y: end.y,
+        color: color,
+        label: `Port: ${connectionName} End (z${end.z})`,
+      })
+    }
+
     const drawPath = (
       pathMap: Map<ConnectionName, Point3[]>,
       labelPrefix: string,
@@ -172,23 +189,6 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
               label: `${labelPrefix}: ${connectionName} (z${p1.z})`,
             })
           }
-        }
-        // Draw start/end points for clarity
-        if (path.length > 0) {
-          const start = path[0]
-          const end = path[path.length - 1]
-          graphics.points!.push({
-            x: start.x,
-            y: start.y,
-            color: color,
-            label: `${labelPrefix}: ${connectionName} Start (z${start.z})`,
-          })
-          graphics.points!.push({
-            x: end.x,
-            y: end.y,
-            color: color,
-            label: `${labelPrefix}: ${connectionName} End (z${end.z})`,
-          })
         }
       }
     }
