@@ -92,7 +92,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
   colorMap: Record<string, string>
   nodeWidth: number
   availableZ: number[]
-  GREEDY_MULTIPLIER = 1
+  GREEDY_MULTIPLIER = 10000
 
   constructor({
     nodeWithPortPoints,
@@ -435,13 +435,22 @@ export class ViaPossibilitiesSolver extends BaseSolver {
         const onWrongLayerForFinalFace =
           isFinalFace && currentHead.z !== endPort.z
 
+        // HACK: this is a lazy check, after a connection has a via you don't really need to
+        // "jump it", so we remove the requirement to have a via to jump it. In the future we
+        // may want to track the this differently, essentially the possibleZOfConnection is
+        // unknown as soon as a connection has a via
+        const crossingConnectionMayHaveChanged =
+          candidate.viaLocationAssignments
+            .values()
+            .some((connName) => connName === crossesOverConnectionName)
+
         // Check for conflict: Are we trying to cross a connection on the same Z layer?
         const mustCreateViaToGoToFace =
           onWrongLayerForFinalFace ||
           (crossesOverConnectionName &&
+            !crossingConnectionMayHaveChanged &&
             crossesOverConnectionName !== currentHeadConnName &&
-            possibleZOfConnection.includes(currentHead.z) &&
-            candidate.incompleteHeads.includes(crossesOverConnectionName))
+            possibleZOfConnection.includes(currentHead.z))
 
         // console.log({
         //   currentHeadConnName,
