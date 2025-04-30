@@ -484,7 +484,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           points: pathPoints,
           strokeColor: safeTransparentize(color, 0.5),
           strokeWidth: 0.08, // Make path lines thinner than original segments
-          strokeDash: [0.05, 0.05], // Dashed to distinguish from original segments
+          // strokeDash: [0.05, 0.05], // Dashed to distinguish from original segments - REMOVED
           label: `Path: ${connectionName}`,
         })
       }
@@ -517,7 +517,7 @@ export class ViaPossibilitiesSolver extends BaseSolver {
           graphics.circles!.push({
             center: face.centroid,
             radius: 0.25,
-            fill: color,
+            fill: safeTransparentize(color, 0.5), // Make via fill 50% transparent
             stroke: "white",
             label: `Via: ${connectionName}`,
           })
