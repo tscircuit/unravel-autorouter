@@ -28,6 +28,8 @@ import {
 } from "./computeSectionNodesTerminalsAndEdges"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 
+type CapacityMeshEdgeId = string
+
 /**
  * This solver solves for capacity paths by first solving with negative
  * capacities allowed, then re-solving problematic sections with a section
