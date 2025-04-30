@@ -64,7 +64,11 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
   MAX_EXPANSION_DEGREES = 3
 
-  constructor(params: ConstructorParameters<typeof CapacityPathingSolver>[0]) {
+  constructor(
+    params: ConstructorParameters<typeof CapacityPathingSolver>[0] & {
+      initialPathingSolver?: CapacityPathingGreedySolver
+    },
+  ) {
     super()
     this.MAX_ITERATIONS = 10e6
     this.simpleRouteJson = params.simpleRouteJson
@@ -75,12 +79,14 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       this.nodes.map((node) => [node.capacityMeshNodeId, node]),
     )
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
-    this.initialSolver = new CapacityPathingGreedySolver({
-      simpleRouteJson: this.simpleRouteJson,
-      nodes: this.nodes,
-      edges: this.edges,
-      colorMap: this.colorMap,
-    })
+    this.initialSolver =
+      params.initialPathingSolver ||
+      new CapacityPathingGreedySolver({
+        simpleRouteJson: this.simpleRouteJson,
+        nodes: this.nodes,
+        edges: this.edges,
+        colorMap: this.colorMap,
+      })
     this.activeSubSolver = this.initialSolver
 
     // Calculate and store total capacity for each node (only needs to be done once)

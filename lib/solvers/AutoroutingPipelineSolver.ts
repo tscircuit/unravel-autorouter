@@ -45,6 +45,7 @@ import {
 import { CapacityMeshEdgeSolver2_NodeTreeOptimization } from "./CapacityMeshSolver/CapacityMeshEdgeSolver2_NodeTreeOptimization"
 import { UselessViaRemovalSolver } from "./UselessViaRemovalSolver/UselessViaRemovalSolver"
 import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
+import { CapacityPathingGreedySolver } from "./CapacityPathingSectionSolver/CapacityPathingGreedySolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -61,9 +62,7 @@ type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
 }
 
 function definePipelineStep<
-  T extends new (
-    ...args: any[]
-  ) => BaseSolver,
+  T extends new (...args: any[]) => BaseSolver,
   const P extends ConstructorParameters<T>,
 >(
   solverName: keyof AutoroutingPipelineSolver,
@@ -86,7 +85,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   nodeSolver?: CapacityMeshNodeSolver
   nodeTargetMerger?: CapacityNodeTargetMerger
   edgeSolver?: CapacityMeshEdgeSolver
-  pathingSolver?: CapacityPathingMultiSectionSolver // Updated type
+  initialPathingSolver?: CapacityPathingGreedySolver
+  pathingOptimizer?: CapacityPathingMultiSectionSolver
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
   segmentToPointSolver?: CapacitySegmentToPointSolver
@@ -177,12 +177,28 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       (cms) => [cms.capacityNodes!],
     ),
     definePipelineStep(
-      "pathingSolver",
+      "initialPathingSolver",
+      CapacityPathingGreedySolver,
+      (cms) => [
+        {
+          simpleRouteJson: cms.srjWithPointPairs!,
+          nodes: cms.capacityNodes!,
+          edges: cms.edgeSolver?.edges || [],
+          colorMap: cms.colorMap,
+          hyperParameters: {
+            MAX_CAPACITY_FACTOR: 1,
+          },
+        },
+      ],
+    ),
+    definePipelineStep(
+      "pathingOptimizer",
       // CapacityPathingSolver5,
       CapacityPathingMultiSectionSolver,
       (cms) => [
         // Replaced solver class
         {
+          initialPathingSolver: cms.initialPathingSolver,
           simpleRouteJson: cms.srjWithPointPairs!,
           nodes: cms.capacityNodes!,
           edges: cms.edgeSolver?.edges || [],
@@ -200,7 +216,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         {
           nodes: cms.capacityNodes!,
           edges: cms.edgeSolver?.edges || [],
-          capacityPaths: cms.pathingSolver?.getCapacityPaths() || [],
+          capacityPaths: cms.pathingOptimizer?.getCapacityPaths() || [],
           colorMap: cms.colorMap,
         },
       ],
@@ -404,7 +420,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     const singleLayerNodeMergerViz = this.singleLayerNodeMerger?.visualize()
     const strawSolverViz = this.strawSolver?.visualize()
     const edgeViz = this.edgeSolver?.visualize()
-    const pathingViz = this.pathingSolver?.visualize()
+    const initialPathingViz = this.initialPathingSolver?.visualize()
+    const pathingOptimizerViz = this.pathingOptimizer?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
     const segmentToPointViz = this.segmentToPointSolver?.visualize()
     const segmentOptimizationViz =
@@ -466,7 +483,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       singleLayerNodeMergerViz,
       strawSolverViz,
       edgeViz,
-      pathingViz,
+      initialPathingViz,
+      pathingOptimizerViz,
       edgeToPortSegmentViz,
       segmentToPointViz,
       segmentOptimizationViz,
@@ -513,9 +531,9 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       return { lines }
     }
 
-    if (this.pathingSolver) {
+    if (this.pathingOptimizer) {
       const lines: Line[] = []
-      for (const connection of this.pathingSolver.connectionsWithNodes) {
+      for (const connection of this.pathingOptimizer.connectionsWithNodes) {
         if (!connection.path) continue
         lines.push({
           points: connection.path.map((n) => ({
