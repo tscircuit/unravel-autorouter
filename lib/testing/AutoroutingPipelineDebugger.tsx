@@ -849,6 +849,17 @@ export const AutoroutingPipelineDebugger = ({
           <tbody>
             {(() => {
               let cumulativeIterations = 0
+
+              // Calculate total time spent across all stages that have started
+              const totalTimeMs =
+                solver.pipelineDef?.reduce((total, step) => {
+                  const startTime = solver.startTimeOfPhase[step.solverName]
+                  if (startTime === undefined) return total // Stage hasn't started
+                  const endTime =
+                    solver.endTimeOfPhase[step.solverName] ?? performance.now()
+                  return total + (endTime - startTime)
+                }, 0) ?? 0
+
               return solver.pipelineDef?.map((step, index) => {
                 const stepSolver = solver[
                   step.solverName as keyof CapacityMeshSolver
@@ -869,6 +880,15 @@ export const AutoroutingPipelineDebugger = ({
                   : stepSolver?.failed
                     ? "text-red-600"
                     : "text-blue-600"
+
+                const startTime = solver.startTimeOfPhase[step.solverName]
+                const endTime =
+                  solver.endTimeOfPhase[step.solverName] ?? performance.now()
+                const stepTimeMs =
+                  startTime !== undefined ? endTime - startTime : 0
+                const stepTimeSec = stepTimeMs / 1000
+                const timePercentage =
+                  totalTimeMs > 0 ? (stepTimeMs / totalTimeMs) * 100 : 0
 
                 return (
                   <tr key={step.solverName}>
@@ -908,13 +928,16 @@ export const AutoroutingPipelineDebugger = ({
                           : ""}
                     </td>
                     <td className="border p-2 tabular-nums">
-                      {(
-                        ((solver.endTimeOfPhase[step.solverName] ??
-                          performance.now()) -
-                          (solver.startTimeOfPhase[step.solverName] ??
-                            performance.now())) /
-                        1000
-                      ).toFixed(2)}
+                      <div className="flex">
+                        <div className="flex-grow">
+                          {stepTimeSec.toFixed(2)}s
+                        </div>
+                        {status !== "Not Started" && totalTimeMs > 0 && (
+                          <div className="text-gray-500 ml-1">
+                            {timePercentage.toFixed(1)}%
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="border p-2">
                       <button
