@@ -426,126 +426,139 @@ export class ViaPossibilitiesSolver extends BaseSolver {
       )!.endFaceId
       const neighborFaceEdges = this.faceEdges.get(currentHead.faceId)! // Now using FaceEdge[]
       const currentFace = this.faces.get(currentHead.faceId)!
+      const currentPath = candidate.headPaths.get(incompleteHeadConnName)!
 
-      // Determine if a via can be placed in the current face for this connection
-      const canVia =
-        // Check if the connection needs to transition layers
-        startPort.z !== endPort.z &&
-        // Check if the face allows vias for this connection (if restrictions exist)
-        (!currentFace.requiresViaFromOneOfConnections ||
-          currentFace.requiresViaFromOneOfConnections.includes(
-            incompleteHeadConnName,
-          )) &&
-        !candidate.viaLocationAssignments.has(currentHead.faceId) &&
-        candidate.viaLocationAssignments.size < this.maxViaCount // Also check max via count
-
-      // 1. CREATE CANDIDATES TO EACH NEIGHBORING FACE (Move Head, same Z)
+      // Iterate through possible moves to neighboring faces
       for (const neighborEdge of neighborFaceEdges) {
         const neighborFaceId = neighborEdge.crossesToFaceId
-        // TODO: Add logic here to check if the move is valid based on
-        // neighborEdge.crossesOverConnectionName and neighborEdge.possibleZOfConnection
-        // e.g., prevent crossing a trace on the same layer?
-        // For now, we allow all moves.
+        const crossesOverConnectionName = neighborEdge.crossesOverConnectionName
+        const possibleZOfConnection = neighborEdge.possibleZOfConnection
+        const isFinalFace = finalFaceIdForHead === neighborFaceId
+        const onWrongLayerForFinalFace =
+          isFinalFace && currentHead.z !== endPort.z
 
-        const newCurrentHeads = new Map(candidate.currentHeads)
-        // Move head to neighbor face, keep the same Z layer
-        newCurrentHeads.set(incompleteHeadConnName, {
-          faceId: neighborFaceId,
-          z: currentHead.z,
-        })
+        // Check for conflict: Are we trying to cross a connection on the same Z layer?
+        const mustCreateViaToGoToFace =
+          onWrongLayerForFinalFace ||
+          (crossesOverConnectionName &&
+            possibleZOfConnection.includes(currentHead.z))
 
-        // Update head paths
-        const newHeadPaths = new Map(candidate.headPaths)
-        const currentPath = newHeadPaths.get(incompleteHeadConnName)!
-        // Prevent cycles by checking if the exact {faceId, z} pair is already in the path
-        if (
-          currentPath.some(
-            (p) => p.faceId === neighborFaceId && p.z === currentHead.z,
+        if (mustCreateViaToGoToFace) {
+          // CONFLICT: Must place a via in the *current* face before crossing, if possible.
+
+          const faceHasNoVia = !candidate.viaLocationAssignments.has(
+            currentHead.faceId,
           )
-        )
-          continue // Skip if this state was already visited in the current path
+          const viaCountOk =
+            candidate.viaLocationAssignments.size < this.maxViaCount
 
-        newHeadPaths.set(incompleteHeadConnName, [
-          ...currentPath,
-          { faceId: neighborFaceId, z: currentHead.z }, // Add new position to path
-        ])
-        const neighbor: Candidate = {
-          ...candidate, // Copy via assignments etc.
-          currentHeads: newCurrentHeads, // Update heads
-          headPaths: newHeadPaths, // Update paths
-          depth: candidate.depth + 1,
-          incompleteHeads: candidate.incompleteHeads, // Will be updated below if needed
-        }
+          const canPlaceVia = faceHasNoVia && viaCountOk
 
-        // Check if this head reached its destination
-        if (neighborFaceId === finalFaceIdForHead) {
-          // Check if the Z layer matches the destination Z layer
-          const endZ = this.portPairMap.get(incompleteHeadConnName)!.end.z
-          if (currentHead.z === endZ) {
-            // Head is complete only if it reaches the final face AND the correct Z layer
-            neighbor.incompleteHeads = candidate.incompleteHeads.filter(
-              (h) => h !== incompleteHeadConnName,
+          if (canPlaceVia) {
+            // Generate a "place via" candidate (stays in current face, changes Z)
+            const newViaLocationAssignments = new Map(
+              candidate.viaLocationAssignments,
             )
+            newViaLocationAssignments.set(
+              currentHead.faceId,
+              incompleteHeadConnName,
+            )
+
+            const newZ =
+              this.availableZ[
+                (this.availableZ.indexOf(currentHead.z) + 1) %
+                  this.availableZ.length
+              ]
+            // Prevent cycles: Check if this exact {faceId, z} state was already visited
+            if (
+              !currentPath.some(
+                (p) => p.faceId === currentHead.faceId && p.z === newZ,
+              )
+            ) {
+              const newCurrentHeads = new Map(candidate.currentHeads)
+              newCurrentHeads.set(incompleteHeadConnName, {
+                faceId: currentHead.faceId, // Stays in the same face
+                z: newZ, // Changes Z layer
+              })
+
+              const newHeadPaths = new Map(candidate.headPaths)
+              newHeadPaths.set(incompleteHeadConnName, [
+                ...currentPath,
+                { faceId: currentHead.faceId, z: newZ }, // Add via transition step
+              ])
+
+              const viaCandidate: Candidate = {
+                ...candidate,
+                viaLocationAssignments: newViaLocationAssignments,
+                currentHeads: newCurrentHeads,
+                headPaths: newHeadPaths,
+                depth: candidate.depth + 1,
+                // incompleteHeads remains the same for this step
+              }
+              viaCandidate.h = this.computeH(viaCandidate)
+              viaCandidate.g = this.computeG(viaCandidate, candidate)
+              viaCandidate.f =
+                viaCandidate.g + viaCandidate.h * this.GREEDY_MULTIPLIER
+              newCandidates.push(viaCandidate)
+            }
           }
-          // If it reaches the final face but wrong Z, it's not complete yet.
-        }
+          // If via cannot be placed, this path is blocked for this neighbor edge.
+          // Continue to the next neighborEdge.
+        } else {
+          // NO CONFLICT: Generate a "move head" candidate (moves to neighbor face, same Z)
 
-        neighbor.h = this.computeH(neighbor)
-        neighbor.g = this.computeG(neighbor, candidate)
-        neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLIER
-        newCandidates.push(neighbor)
-      }
+          // Prevent cycles: Check if moving to {neighborFaceId, currentHead.z} was already visited
+          if (
+            currentPath.some(
+              (p) => p.faceId === neighborFaceId && p.z === currentHead.z,
+            )
+          ) {
+            continue // Skip if this state was already visited in the current path
+          }
 
-      // 2. IF WE CAN VIA, CREATE CANDIDATE WITH VIA (Place Via, change Z)
-      if (canVia) {
-        const newViaLocationAssignments = new Map(
-          candidate.viaLocationAssignments,
-        )
-        newViaLocationAssignments.set(
-          currentHead.faceId,
-          incompleteHeadConnName,
-        ) // Assign via to this face for this connection
+          const newCurrentHeads = new Map(candidate.currentHeads)
+          newCurrentHeads.set(incompleteHeadConnName, {
+            faceId: neighborFaceId,
+            z: currentHead.z,
+          })
 
-        // Determine the new Z layer after placing the via
-        const newZ = currentHead.z === startPort.z ? endPort.z : startPort.z
-
-        // Update current head to reflect the new Z layer in the same face
-        const newCurrentHeads = new Map(candidate.currentHeads)
-        newCurrentHeads.set(incompleteHeadConnName, {
-          faceId: currentHead.faceId,
-          z: newZ,
-        })
-
-        // Update head path to reflect the layer transition within the same face
-        const newHeadPaths = new Map(candidate.headPaths)
-        const currentPath = newHeadPaths.get(incompleteHeadConnName)!
-
-        // Prevent cycles: Check if this exact {faceId, z} state was already visited in the path
-        if (
-          !currentPath.some(
-            (p) => p.faceId === currentHead.faceId && p.z === newZ,
-          )
-        ) {
+          const newHeadPaths = new Map(candidate.headPaths)
           newHeadPaths.set(incompleteHeadConnName, [
             ...currentPath,
-            { faceId: currentHead.faceId, z: newZ }, // Add via transition step
+            { faceId: neighborFaceId, z: currentHead.z }, // Add move step
           ])
 
-          const neighbor: Candidate = {
-            ...candidate, // Keep parent's incomplete heads etc.
-            viaLocationAssignments: newViaLocationAssignments, // Add the new via assignment
-            currentHeads: newCurrentHeads, // Head is now on the new layer
-            headPaths: newHeadPaths, // Path reflects the layer change
-            depth: candidate.depth + 1,
+          let newIncompleteHeads = candidate.incompleteHeads
+          // Check if this head reached its destination
+          if (neighborFaceId === finalFaceIdForHead) {
+            const endZ = this.portPairMap.get(incompleteHeadConnName)!.end.z
+            if (currentHead.z === endZ) {
+              // Head is complete only if it reaches the final face AND the correct Z layer
+              newIncompleteHeads = candidate.incompleteHeads.filter(
+                (h) => h !== incompleteHeadConnName,
+              )
+            }
           }
-          neighbor.h = this.computeH(neighbor)
-          neighbor.g = this.computeG(neighbor, candidate)
-          neighbor.f = neighbor.g + neighbor.h * this.GREEDY_MULTIPLIER
-          newCandidates.push(neighbor)
+
+          const moveCandidate: Candidate = {
+            ...candidate,
+            currentHeads: newCurrentHeads,
+            headPaths: newHeadPaths,
+            depth: candidate.depth + 1,
+            incompleteHeads: newIncompleteHeads,
+            // viaLocationAssignments remains the same
+          }
+
+          moveCandidate.h = this.computeH(moveCandidate)
+          moveCandidate.g = this.computeG(moveCandidate, candidate)
+          moveCandidate.f =
+            moveCandidate.g + moveCandidate.h * this.GREEDY_MULTIPLIER
+          newCandidates.push(moveCandidate)
         }
       }
     }
 
+    // Filter out explored candidates before returning
     const unexploredNewCandidates: Candidate[] = []
     for (const newCandidate of newCandidates) {
       const candidateHash = hashCandidate(newCandidate)
