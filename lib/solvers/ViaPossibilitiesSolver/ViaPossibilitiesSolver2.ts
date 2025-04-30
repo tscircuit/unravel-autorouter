@@ -12,6 +12,7 @@ import {
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
+import { safeTransparentize } from "../colors"
 
 export type ConnectionName = string
 
@@ -158,14 +159,15 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
             graphics.circles!.push({
               center: { x: p1.x, y: p1.y },
               radius: 0.3, // Diameter 0.6
-              fillColor: color,
+              fill: safeTransparentize(color, 0.5),
               label: `${labelPrefix}: ${connectionName} Via (z${p1.z}->z${p2.z})`,
             })
           } else {
             // Draw Line Segment
             graphics.lines!.push({
               points: [p1, p2],
-              strokeColor: color,
+              strokeColor: safeTransparentize(color, 0.5),
+              strokeDash: p1.z === 0 ? undefined : [0.1, 0.1],
               strokeWidth: 0.1,
               label: `${labelPrefix}: ${connectionName} (z${p1.z})`,
             })
@@ -207,15 +209,13 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
           graphics.circles!.push({
             center: { x: p1.x, y: p1.y },
             radius: 0.3,
-            fillColor: color,
-            strokeColor: "yellow", // Highlight current
-            strokeWidth: 0.05,
+            fill: safeTransparentize(color, 0.5),
             label: `Current: ${this.currentConnectionName} Via (z${p1.z}->z${p2.z})`,
           })
         } else {
           graphics.lines!.push({
             points: [p1, p2],
-            strokeColor: color,
+            strokeColor: safeTransparentize(color, 0.5),
             strokeWidth: 0.15, // Thicker
             strokeDash: "2,2", // Dashed
             label: `Current: ${this.currentConnectionName} (z${p1.z})`,
@@ -226,8 +226,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
       graphics.points!.push({
         x: this.currentHead.x,
         y: this.currentHead.y,
-        color: "yellow",
-        radius: 0.4,
+        color: "green",
         label: `Current Head: ${this.currentConnectionName} (z${this.currentHead.z})`,
       })
     }
