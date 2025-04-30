@@ -30,12 +30,16 @@ This solver uses an intersection-based approach. Here's how it works:
 - For placeholder paths, if the Z is different between the start and the end, then we create two segments, (start, mid) with start.z and (mid,end) with end.z. This means the placeholder path has four points, the second and third point are both a the mid XY but have a different z
 1. We cycle through each port pair, we start by setting currentHead = start for the first pair
 2. We have a currentHead, currentPath and currentConnectionName
+STEP LOOP:
 3. We always try to move the currentHead to the end. We try to create a line from currentHead to the end
-4. If the currentHead intersections EITHER:
-   - A previously created path
-   - If a connection doesn't have a previously created path, we use the placeholder path
-5. After the currentPath reaches the end for the connection, we delete the placeholder path
-6. When all the connections
+4. If the currentHead does any of the following:
+   - Intersects a previously created path
+   - Intersects a placeholder path
+   - (check last) is not on the same z as the end
+   Then we must insert a via (2 points with a z change). Insert this via at the midpoint of currentHead and the intersection point (or the end if the "is not same z as end" condition applies)
+   In the next iteration of the step function we'll go back to step 3
+5. After the currentPath reaches the end for the connection, we delete the placeholder path and select the next currentHead by popping the unprocessedConnections, reset currentPath and set currentConnectionName
+6. When there are no more unprocessed connections, we set this.solved = true
 */
 export class ViaPossibilitiesSolver2 extends BaseSolver {
   bounds: Bounds
@@ -87,10 +91,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     }
 
     // Generate placeholder paths
-    for (const [
-      connectionName,
-      { start, end },
-    ] of this.portPairMap.entries()) {
+    for (const [connectionName, { start, end }] of this.portPairMap.entries()) {
       if (start.z === end.z) {
         this.placeholderPaths.set(connectionName, [start, end])
       } else {
@@ -99,7 +100,12 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
         const midY = (start.y + end.y) / 2
         const midStart: Point3 = { x: midX, y: midY, z: start.z }
         const midEnd: Point3 = { x: midX, y: midY, z: end.z }
-        this.placeholderPaths.set(connectionName, [start, midStart, midEnd, end])
+        this.placeholderPaths.set(connectionName, [
+          start,
+          midStart,
+          midEnd,
+          end,
+        ])
       }
     }
 
