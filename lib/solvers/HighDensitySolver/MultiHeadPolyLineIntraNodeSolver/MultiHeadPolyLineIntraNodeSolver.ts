@@ -1101,7 +1101,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
             points: [p1, p2],
             strokeColor: segmentColor,
             strokeWidth: this.traceWidth, // TODO: Use actual trace thickness from HighDensityRoute?
-            strokeDash: !isLayer0 ? "5,5" : undefined, // Dashed for layers > 0
+            strokeDash: !isLayer0 ? [0.15, 0.15] : undefined, // Dashed for layers > 0
             label: `${polyLine.connectionName} segment (z=${segmentLayer})`,
           })
         }
