@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
 import { getViaPossibilitiesFromPortPairs } from "lib/solvers/HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/getViaPossibilities"
