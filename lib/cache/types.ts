@@ -1,6 +1,9 @@
 export interface CacheProvider {
-  // IndexedDb, localstorage, or any non-network cache that you can call synchronously
+  // IndexedDb, localstorage, in-memory, or any non-network cache that you can call synchronously
   isSyncCache: boolean
+
+  cacheHits: number
+  cacheMisses: number
 
   getCachedSolutionSync(cacheKey: string): any
   getCachedSolution(cacheKey: string): Promise<any>
@@ -14,6 +17,7 @@ export interface CachableSolver<
   CachedSolution = any,
 > {
   cacheHit: boolean
+  cacheProvider: CacheProvider
 
   cacheKey?: string
   cacheToSolveSpaceTransform?: CacheToSolveSpaceTransform
