@@ -103,6 +103,7 @@ export class HighDensitySolver extends BaseSolver {
             segment.z === 0
               ? segment.color
               : safeTransparentize(segment.color, 0.75),
+          layer: `z${segment.z}`,
           strokeWidth: route.traceThickness,
           strokeDash: segment.z !== 0 ? "10, 5" : undefined,
         })
@@ -110,6 +111,7 @@ export class HighDensitySolver extends BaseSolver {
       for (const via of route.vias) {
         graphics.circles!.push({
           center: via,
+          layer: "z0,1",
           radius: route.viaDiameter / 2,
           fill: this.colorMap[route.connectionName],
           label: `${route.connectionName} via`,
@@ -127,6 +129,7 @@ export class HighDensitySolver extends BaseSolver {
           x: node.center.x - rectWidth / 2,
           y: node.center.y - rectHeight / 2,
         },
+        layer: "did_not_connect",
         width: rectWidth,
         height: rectHeight,
         fill: "red",
