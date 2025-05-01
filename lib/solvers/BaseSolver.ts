@@ -10,6 +10,7 @@ export class BaseSolver {
   activeSubSolver?: BaseSolver | null
   failedSubSolvers?: BaseSolver[]
   timeToSolve?: number
+  stats: Record<string, number> = {}
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {
@@ -28,6 +29,10 @@ export class BaseSolver {
       this.error = `${this.constructor.name} did not converge`
       console.error(this.error)
       this.failed = true
+    }
+    if ("computeProgress" in this) {
+      // @ts-ignore
+      this.progress = this.computeProgress() as number
     }
   }
 
