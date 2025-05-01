@@ -55,7 +55,10 @@ export class InMemoryCache implements CacheProvider {
    * @param cachedSolution The solution data to cache.
    * @returns A promise that resolves when the solution is cached.
    */
-  async setCachedSolution(cacheKey: string, cachedSolution: any): Promise<void> {
+  async setCachedSolution(
+    cacheKey: string,
+    cachedSolution: any,
+  ): Promise<void> {
     this.setCachedSolutionSync(cacheKey, cachedSolution)
   }
 
@@ -68,3 +71,5 @@ export class InMemoryCache implements CacheProvider {
     this.cacheMisses = 0
   }
 }
+
+globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE = new InMemoryCache()

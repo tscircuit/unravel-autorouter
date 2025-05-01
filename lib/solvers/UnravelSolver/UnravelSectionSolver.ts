@@ -25,6 +25,7 @@ import {
   SegmentPointMapAndReverseMaps,
 } from "./createSegmentPointMap"
 import { calculateNodeProbabilityOfFailure } from "./calculateCrossingProbabilityOfFailure"
+import { CachableSolver } from "lib/cache/types"
 
 interface UnravelSectionSolverParams {
   rootNodeId: CapacityMeshNodeId

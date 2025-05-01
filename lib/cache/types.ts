@@ -31,12 +31,12 @@ export interface CachableSolver<
    * space for this solver. It can also contain information about how cache ids map to
    * ids for the solver
    **/
-  computeCacheKeyAndTransform: () => {
+  computeCacheKeyAndTransform(): {
     cacheKey: string
     cacheToSolveSpaceTransform: CacheToSolveSpaceTransform
   }
 
   applyCachedSolution(cachedSolution: CachedSolution): void
 
-  attemptToUseCache(): Promise<boolean>
+  attemptToUseCacheSync(): boolean
 }
