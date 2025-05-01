@@ -11,6 +11,7 @@ import {
   pointToSegmentDistance,
   getSegmentIntersection,
   segmentToSegmentMinDistance,
+  clamp,
 } from "@tscircuit/math-utils"
 import { getPortPairMap, PortPairMap } from "lib/utils/getPortPairs"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
@@ -53,7 +54,9 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
   nodeWidth: number
   availableZ: number[]
   hyperParameters: ViaPossibilities2HyperParameters
-  readonly VIA_INTERSECTION_BUFFER_DISTANCE = 0.05
+  VIA_INTERSECTION_BUFFER_DISTANCE = 0.05
+  PLACEHOLDER_WALL_BUFFER_DISTANCE = 0.1
+  NEW_HEAD_WALL_BUFFER_DISTANCE = 0.05
 
   unprocessedConnections: ConnectionName[]
 
@@ -96,28 +99,88 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     }
 
     // Generate placeholder paths
+    const nodeCenterX = (this.bounds.minX + this.bounds.maxX) / 2
+    const nodeCenterY = (this.bounds.minY + this.bounds.maxY) / 2
     for (const [connectionName, { start, end }] of this.portPairMap.entries()) {
       if (start.z === end.z) {
-        this.placeholderPaths.set(connectionName, [start, end])
+        const isVertical = Math.abs(start.x - end.x) < 1e-9 // Use tolerance for float comparison
+        const isHorizontal = Math.abs(start.y - end.y) < 1e-9
+
+        if (isVertical || isHorizontal) {
+          this.placeholderPaths.set(connectionName, [
+            start,
+            this._padByPlaceholderWallBuffer(start),
+            this._padByPlaceholderWallBuffer(end),
+            end,
+          ])
+        } else {
+          // Diagonal line on the same Z plane
+          this.placeholderPaths.set(connectionName, [start, end])
+        }
       } else {
-        // Create a path with a Z change at the midpoint
+        // Create a path with a Z change at the midpoint for different Z levels
         const midX = (start.x + end.x) / 2
         const midY = (start.y + end.y) / 2
-        const midStart: Point3 = { x: midX, y: midY, z: start.z }
-        const midEnd: Point3 = { x: midX, y: midY, z: end.z }
+
+        // Use the (potentially offset) midpoint XY for the Z change points
+        const midStart: Point3 = this._padByPlaceholderWallBuffer({
+          x: midX,
+          y: midY,
+          z: start.z,
+        })
+        const midEnd: Point3 = this._padByPlaceholderWallBuffer({
+          x: midX,
+          y: midY,
+          z: end.z,
+        })
         this.placeholderPaths.set(connectionName, [
           start,
+          this._padByPlaceholderWallBuffer(start),
           midStart,
           midEnd,
+          this._padByPlaceholderWallBuffer(end),
           end,
         ])
       }
     }
 
     this.currentConnectionName = this.unprocessedConnections.pop()!
-    this.currentHead = this.portPairMap.get(this.currentConnectionName)!.start
-    this.currentPath = [this.currentHead]
+    const start = this.portPairMap.get(this.currentConnectionName)!.start
+    this.currentHead = this._padByNewHeadWallBuffer(start)
+    this.currentPath = [start, this.currentHead]
     this.placeholderPaths.delete(this.currentConnectionName) // Delete placeholder when we start processing
+  }
+
+  _padByNewHeadWallBuffer(point: Point3) {
+    return {
+      x: clamp(
+        point.x,
+        this.bounds.minX + this.NEW_HEAD_WALL_BUFFER_DISTANCE,
+        this.bounds.maxX - this.NEW_HEAD_WALL_BUFFER_DISTANCE,
+      ),
+      y: clamp(
+        point.y,
+        this.bounds.minY + this.NEW_HEAD_WALL_BUFFER_DISTANCE,
+        this.bounds.maxY - this.NEW_HEAD_WALL_BUFFER_DISTANCE,
+      ),
+      z: point.z,
+    }
+  }
+
+  _padByPlaceholderWallBuffer(point: Point3) {
+    return {
+      x: clamp(
+        point.x,
+        this.bounds.minX + this.PLACEHOLDER_WALL_BUFFER_DISTANCE,
+        this.bounds.maxX - this.PLACEHOLDER_WALL_BUFFER_DISTANCE,
+      ),
+      y: clamp(
+        point.y,
+        this.bounds.minY + this.PLACEHOLDER_WALL_BUFFER_DISTANCE,
+        this.bounds.maxY - this.PLACEHOLDER_WALL_BUFFER_DISTANCE,
+      ),
+      z: point.z,
+    }
   }
 
   _step() {
@@ -254,8 +317,8 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
         // Start next connection
         this.currentConnectionName = this.unprocessedConnections.pop()!
         const { start } = this.portPairMap.get(this.currentConnectionName)!
-        this.currentHead = start
-        this.currentPath = [this.currentHead]
+        this.currentHead = this._padByNewHeadWallBuffer(start)
+        this.currentPath = [start, this.currentHead]
         this.placeholderPaths.delete(this.currentConnectionName) // Remove placeholder
       }
     }

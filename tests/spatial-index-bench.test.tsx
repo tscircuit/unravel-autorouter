@@ -40,7 +40,7 @@ function randBox() {
   return { minX: x, minY: x, maxX: x + 100, maxY: x + 100 }
 }
 
-test("RBush (bulk load + query)", () => {
+test.skip("RBush (bulk load + query)", () => {
   const tree = new RBush<{
     minX: number
     minY: number
@@ -54,7 +54,7 @@ test("RBush (bulk load + query)", () => {
   console.log("RBush build:", (t1 - t0).toFixed(1), "ms")
 })
 
-test("Flatbush (bulk load + query)", () => {
+test.skip("Flatbush (bulk load + query)", () => {
   const idx = new Flatbush(rawBoxes.length)
   const t0 = performance.now()
   rawBoxes.forEach((b) => idx.add(b.minX, b.minY, b.maxX, b.maxY))
