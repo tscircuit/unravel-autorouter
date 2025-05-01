@@ -25,7 +25,7 @@ import {
   SegmentPointMapAndReverseMaps,
 } from "./createSegmentPointMap"
 import { calculateNodeProbabilityOfFailure } from "./calculateCrossingProbabilityOfFailure"
-import { CachableSolver } from "lib/cache/types"
+import { PointModificationsMap } from "./types"
 
 interface UnravelSectionSolverParams {
   rootNodeId: CapacityMeshNodeId
@@ -308,6 +308,12 @@ export class UnravelSectionSolver extends BaseSolver {
       //   this.unravelSection.segmentPointMap,
       //   pointModifications,
       // ),
+      // Ensure original candidate has issues calculated
+      issues: getIssuesInSection(
+        this.unravelSection,
+        this.nodeMap,
+        pointModifications,
+      ),
     }
   }
 

@@ -10,6 +10,8 @@ export interface CacheProvider {
 
   setCachedSolutionSync(cacheKey: string, cachedSolution: any): void
   setCachedSolution(cacheKey: string, cachedSolution: any): Promise<void>
+
+  clearCache(): void
 }
 
 export interface CachableSolver<
@@ -17,6 +19,7 @@ export interface CachableSolver<
   CachedSolution = any,
 > {
   cacheHit: boolean
+  hasAttemptedToUseCache: boolean
   cacheProvider: CacheProvider
 
   cacheKey?: string
@@ -39,4 +42,6 @@ export interface CachableSolver<
   applyCachedSolution(cachedSolution: CachedSolution): void
 
   attemptToUseCacheSync(): boolean
+
+  saveToCacheSync(): void
 }
