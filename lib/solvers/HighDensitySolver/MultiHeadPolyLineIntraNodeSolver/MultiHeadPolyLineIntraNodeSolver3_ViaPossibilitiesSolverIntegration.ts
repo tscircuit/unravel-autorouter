@@ -15,12 +15,23 @@ const hashPolyLines = (polyLines: PolyLine2[]) => {
     .join("|")
 }
 
+function factorial(n: number) {
+  if (!Number.isInteger(n) || n < 0) {
+    throw new RangeError("n must be a non-negative integer")
+  }
+  let result = 1
+  for (let i = 2; i <= n; i++) {
+    result *= i
+  }
+  return result
+}
+
 export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver {
   constructor(
     params: ConstructorParameters<typeof MultiHeadPolyLineIntraNodeSolver2>[0],
   ) {
     super(params)
-    this.MAX_ITERATIONS = 10e3
+    this.MAX_ITERATIONS = 100e3
   }
 
   createInitialCandidateFromSeed(shuffleSeed: number): Candidate | null {
@@ -214,7 +225,10 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
 
   setupInitialPolyLines(): void {
     this.candidates = []
-    const maxCandidatesToGenerate = 200
+    const maxCandidatesToGenerate = Math.min(
+      2000,
+      factorial(this.uniqueConnections),
+    )
     const candidatePolylineHashes = new Set<string>()
     for (let i = 0; i < maxCandidatesToGenerate; i++) {
       const newCandidate = this.createInitialCandidateFromSeed(i)
