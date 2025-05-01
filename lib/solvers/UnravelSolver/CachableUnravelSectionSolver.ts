@@ -14,18 +14,19 @@ export class CachableUnravelSectionSolver
   implements
     CachableSolver<CacheToUnravelSectionTransform, CachedSolvedUnravelSection>
 {
-  cacheHit: boolean
+  cacheHit = false
   cacheProvider: CacheProvider
   cacheKey?: string | undefined
   cacheToSolveSpaceTransform?: CacheToUnravelSectionTransform | undefined
 
   constructor(
     params: ConstructorParameters<typeof UnravelSectionSolver>[0] & {
-      cacheProvider: CacheProvider
+      cacheProvider?: CacheProvider
     },
   ) {
     super(params)
-    this.cacheProvider = params.cacheProvider
+    this.cacheProvider =
+      params.cacheProvider ?? globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE
   }
 
   computeCacheKeyAndTransform(): {
@@ -41,5 +42,6 @@ export class CachableUnravelSectionSolver
 
   attemptToUseCacheSync(): boolean {
     throw new Error("Method not implemented.")
+    // If we're able to use the cache, cacheHit = true and this.solved = true
   }
 }
