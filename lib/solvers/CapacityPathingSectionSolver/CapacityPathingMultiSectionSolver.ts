@@ -189,6 +189,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         sectionNodes: section.sectionNodes,
         colorMap: this.colorMap,
         centerNodeId: section.centerNodeId,
+        nodeEdgeMap: this.nodeEdgeMap,
       })
 
       this.activeSubSolver = this.sectionSolver
