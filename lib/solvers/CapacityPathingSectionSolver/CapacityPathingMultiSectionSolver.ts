@@ -80,6 +80,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
     this.edges = params.edges
+    this.nodeEdgeMap = getNodeEdgeMap(this.edges)
     this.colorMap = params.colorMap ?? {}
     this.nodeMap = new Map(
       this.nodes.map((node) => [node.capacityMeshNodeId, node]),
@@ -188,6 +189,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         sectionNodes: section.sectionNodes,
         colorMap: this.colorMap,
         centerNodeId: section.centerNodeId,
+        nodeEdgeMap: this.nodeEdgeMap,
       })
 
       this.activeSubSolver = this.sectionSolver

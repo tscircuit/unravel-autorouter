@@ -40,6 +40,7 @@ export interface CapacityPathingSingleSectionPathingSolverParams {
   }>
   colorMap?: Record<string, string> // Make colorMap optional in params
   centerNodeId: string
+  nodeEdgeMap?: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
   hyperParameters?: CpssPathingSolverHyperParameters
 }
 
@@ -92,7 +93,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.nodeMap = new Map(
       this.sectionNodes.map((n) => [n.capacityMeshNodeId, n]),
     )
-    this.nodeEdgeMap = getNodeEdgeMap(this.sectionEdges) // Use only section edges
+    this.nodeEdgeMap = params.nodeEdgeMap ?? getNodeEdgeMap(this.sectionEdges) // Use only section edges
     this.colorMap = params.colorMap ?? {}
 
     // Initialize capacity map, potentially with starting values
