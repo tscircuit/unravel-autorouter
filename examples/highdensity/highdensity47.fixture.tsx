@@ -11,15 +11,7 @@ export const hyperParameters = {
 
 export default () => {
   return (
-    <GenericSolverDebugger
-      createSolver={() =>
-        new MultiHeadPolyLineIntraNodeSolver3({
-          nodeWithPortPoints: cn34933.nodeWithPortPoints,
-          hyperParameters,
-        })
-      }
-    />
-    // <HyperHighDensityDebugger nodeWithPortPoints={cn34933.nodeWithPortPoints} />
+    <HyperHighDensityDebugger nodeWithPortPoints={cn34933.nodeWithPortPoints} />
     // <GenericSolverDebugger
     //   createSolver={() =>
     //     new IntraNodeRouteSolver({

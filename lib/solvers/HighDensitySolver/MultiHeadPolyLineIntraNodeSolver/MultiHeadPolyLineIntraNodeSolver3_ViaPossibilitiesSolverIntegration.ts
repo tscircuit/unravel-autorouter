@@ -26,12 +26,12 @@ function factorial(n: number) {
   return result
 }
 
-export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver {
+export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver2 {
   constructor(
     params: ConstructorParameters<typeof MultiHeadPolyLineIntraNodeSolver2>[0],
   ) {
     super(params)
-    this.MAX_ITERATIONS = 100e3
+    this.MAX_ITERATIONS = 1000
   }
 
   createInitialCandidateFromSeed(shuffleSeed: number): Candidate | null {
