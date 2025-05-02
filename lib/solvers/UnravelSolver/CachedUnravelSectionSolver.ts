@@ -91,7 +91,12 @@ export class CachedUnravelSectionSolver
     let spCounter = 0
 
     // Sort node IDs for deterministic normalized IDs
-    const sortedNodeIds = [...this.unravelSection.allNodeIds].sort()
+    const sortedNodeIds = [...this.unravelSection.allNodeIds].sort((aNId, bNId) => {
+      const n1 = this.nodeMap.get(aNId)!
+      const n2 = this.nodeMap.get(bNId)!
+
+      return n1.center.x > n2.center.x ? ... // TODO
+    })
     for (const nodeId of sortedNodeIds) {
       const normId = `node_${nodeCounter++}`
       nodeIdMap.set(nodeId, normId)
@@ -125,8 +130,8 @@ export class CachedUnravelSectionSolver
     for (const [nodeId, normNodeId] of nodeIdMap.entries()) {
       const node = this.nodeMap.get(nodeId)!
       normalizedNodes[normNodeId] = {
-        ...node,
-        capacityMeshNodeId: normNodeId, // Use normalized ID
+        // ...node,
+        // capacityMeshNodeId: normNodeId, // Use normalized ID
         center: {
           x: node.center.x + translationOffset.x,
           y: node.center.y + translationOffset.y,
@@ -140,8 +145,8 @@ export class CachedUnravelSectionSolver
         x: number
         y: number
         z: number
-        segmentId: NormalizedId // Use normalized ID
-        connectionName: string
+        // segmentId: NormalizedId // Use normalized ID
+        // connectionName: string
         // Add other relevant properties if needed
       }
     > = {}
@@ -151,8 +156,8 @@ export class CachedUnravelSectionSolver
         x: sp.x + translationOffset.x,
         y: sp.y + translationOffset.y,
         z: sp.z,
-        segmentId: segmentIdMap.get(sp.segmentId)!,
-        connectionName: sp.connectionName,
+        // segmentId: segmentIdMap.get(sp.segmentId)!,
+        // connectionName: sp.connectionName,
       }
     }
 
@@ -164,12 +169,13 @@ export class CachedUnravelSectionSolver
       normalizedNodes,
       normalizedSegmentPoints,
       mutableHops: this.MUTABLE_HOPS,
-      normalizedRootNodeId: nodeIdMap.get(this.rootNodeId)!,
-      // Add hashes of other relevant normalized structures if needed
     }
 
     // Use object-hash for potentially better handling of object structures
-    const cacheKey = objectHash(keyData)
+    // const cacheKey = stableStringify(keyData)
+    const cacheKey =
+      objectHash(keyData) +
+      JSON.stringify(JSON.parse(stableStringify(keyData)), null, "  ")
 
     const cacheToSolveSpaceTransform: CacheToUnravelSectionTransform = {
       translationOffset,

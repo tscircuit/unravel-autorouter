@@ -18,6 +18,7 @@ export class InMemoryCache implements CacheProvider {
    * @returns The cached solution if found, otherwise undefined.
    */
   getCachedSolutionSync(cacheKey: string): any {
+    console.log("getting", cacheKey)
     const cachedSolution = this.cache.get(cacheKey)
     if (cachedSolution !== undefined) {
       this.cacheHits++
@@ -45,6 +46,7 @@ export class InMemoryCache implements CacheProvider {
    * @param cachedSolution The solution data to cache.
    */
   setCachedSolutionSync(cacheKey: string, cachedSolution: any): void {
+    console.log("setting", cacheKey)
     // Store a structured clone to prevent external modification of the cached object
     this.cache.set(cacheKey, structuredClone(cachedSolution))
   }

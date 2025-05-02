@@ -1,3 +1,5 @@
+import { CachableSolver } from "./types"
+
 export function attemptToUseCacheSync(solver: CachableSolver): boolean {
   if (!solver.cacheProvider.isSyncCache) {
     console.log("Cache provider is not synchronous, skipping sync cache check.")

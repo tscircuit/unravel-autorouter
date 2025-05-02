@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
-import { CachedUnravelSectionSolver } from "lib/solvers/UnravelSolver/CachableUnravelSectionSolver"
+import { CachedUnravelSectionSolver } from "lib/solvers/UnravelSolver/CachedUnravelSectionSolver"
 import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger" // Import GenericSolverDebugger
 import segmentpoint5 from "examples/assets/segmenttopoint5.json"
 import { getDedupedSegments } from "lib/solvers/UnravelSolver/getDedupedSegments"
@@ -125,13 +125,6 @@ const createModifiedData = (
 }
 
 export default function CachedUnravel1() {
-  // State to hold the results of the initial automatic run
-  const [solver1Result, setSolver1Result] =
-    useState<CachedUnravelSectionSolver | null>(null)
-  const [solver2Result, setSolver2Result] =
-    useState<CachedUnravelSectionSolver | null>(null)
-  const [cacheStats, setCacheStats] = useState({ hits: 0, misses: 0 })
-
   const cacheProvider = globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE
 
   // Prepare original and modified data once
@@ -149,42 +142,6 @@ export default function CachedUnravel1() {
 
     return { originalParams, modifiedParams }
   }, [])
-
-  useEffect(() => {
-    // Clear cache before running the example for consistent results
-    cacheProvider.clearCache()
-    setCacheStats({
-      hits: cacheProvider.cacheHits,
-      misses: cacheProvider.cacheMisses,
-    })
-
-    // Create and run solver 1 (original data)
-    const s1 = new CachedUnravelSectionSolver({
-      ...originalParams,
-      cacheProvider,
-    })
-    s1.solve() // Run to populate cache
-    setSolver1Result(s1) // Store the result of the first run
-    setCacheStats({
-      hits: cacheProvider.cacheHits,
-      misses: cacheProvider.cacheMisses,
-    })
-
-    // Create and run solver 2 (modified data) - should hit cache
-    const s2 = new CachedUnravelSectionSolver({
-      ...modifiedParams,
-      cacheProvider,
-    })
-    s2.solve() // Should be a cache hit
-    setSolver2Result(s2) // Store the result of the second run
-
-    // Update stats after both solvers have run
-    // Update stats one last time after both solvers have run and state is set
-    setCacheStats({
-      hits: cacheProvider.cacheHits,
-      misses: cacheProvider.cacheMisses,
-    })
-  }, [originalParams, modifiedParams, cacheProvider]) // Rerun if data prep changes
 
   // Define createSolver functions for GenericSolverDebugger
   const createSolver1 = useCallback(() => {
@@ -210,35 +167,14 @@ export default function CachedUnravel1() {
       </h1>
       <div className="border p-2 rounded">
         <h2 className="text-lg font-semibold">Cache Stats</h2>
-        <p>Hits: {cacheStats.hits}</p>
-        <p>Misses: {cacheStats.misses}</p>
-        <p>Expected: 1 Miss (Solver 1), 1 Hit (Solver 2)</p>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <h2 className="text-lg font-semibold">Solver 1 (Original Data)</h2>
-          <p>
-            Initial Run Cache Hit:{" "}
-            {solver1Result?.cacheHit
-              ? "Yes"
-              : solver1Result === null
-                ? "Running..."
-                : "No"}
-          </p>
           <GenericSolverDebugger createSolver={createSolver1} />
         </div>
         <div>
-          <h2 className="text-lg font-semibold">
-            Solver 2 (Translated & ID-Remapped Data)
-          </h2>
-          <p>
-            Initial Run Cache Hit:{" "}
-            {solver2Result?.cacheHit
-              ? "Yes"
-              : solver2Result === null
-                ? "Running..."
-                : "No"}
-          </p>
+          <h2 className="text-lg font-semibold">Solver 2 (Modified Data)</h2>
           <GenericSolverDebugger createSolver={createSolver2} />
         </div>
       </div>

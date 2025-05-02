@@ -12,6 +12,7 @@ export class BaseSolver {
   failedSubSolvers?: BaseSolver[]
   timeToSolve?: number
   stats: Record<string, number> = {}
+  cacheKey?: string
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {
