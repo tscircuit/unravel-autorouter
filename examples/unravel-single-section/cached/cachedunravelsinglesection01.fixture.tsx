@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
-import { CachableUnravelSectionSolver } from "lib/solvers/UnravelSolver/CachableUnravelSectionSolver"
+import { CachedUnravelSectionSolver } from "lib/solvers/UnravelSolver/CachableUnravelSectionSolver"
 import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger" // Import GenericSolverDebugger
 import segmentpoint5 from "examples/assets/segmenttopoint5.json"
 import { getDedupedSegments } from "lib/solvers/UnravelSolver/getDedupedSegments"
@@ -49,7 +49,10 @@ const createModifiedData = (
   originalData: typeof segmentpoint5,
   originalRootNodeId: CapacityMeshNodeId,
   translation: { x: number; y: number },
-): { modifiedData: typeof segmentpoint5; newRootNodeId: CapacityMeshNodeId } => {
+): {
+  modifiedData: typeof segmentpoint5
+  newRootNodeId: CapacityMeshNodeId
+} => {
   const modifiedData = structuredClone(originalData)
   const nodeUuidMap = new Map<CapacityMeshNodeId, CapacityMeshNodeId>()
   const segmentUuidMap = new Map<SegmentId, SegmentId>()
@@ -124,9 +127,9 @@ const createModifiedData = (
 export default function CachedUnravel1() {
   // State to hold the results of the initial automatic run
   const [solver1Result, setSolver1Result] =
-    useState<CachableUnravelSectionSolver | null>(null)
+    useState<CachedUnravelSectionSolver | null>(null)
   const [solver2Result, setSolver2Result] =
-    useState<CachableUnravelSectionSolver | null>(null)
+    useState<CachedUnravelSectionSolver | null>(null)
   const [cacheStats, setCacheStats] = useState({ hits: 0, misses: 0 })
 
   const cacheProvider = globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE
@@ -150,21 +153,25 @@ export default function CachedUnravel1() {
   useEffect(() => {
     // Clear cache before running the example for consistent results
     cacheProvider.clearCache()
-    setCacheStats({ hits: cacheProvider.cacheHits, misses: cacheProvider.cacheMisses })
-
+    setCacheStats({
+      hits: cacheProvider.cacheHits,
+      misses: cacheProvider.cacheMisses,
+    })
 
     // Create and run solver 1 (original data)
-    const s1 = new CachableUnravelSectionSolver({
+    const s1 = new CachedUnravelSectionSolver({
       ...originalParams,
       cacheProvider,
     })
     s1.solve() // Run to populate cache
     setSolver1Result(s1) // Store the result of the first run
-    setCacheStats({ hits: cacheProvider.cacheHits, misses: cacheProvider.cacheMisses })
-
+    setCacheStats({
+      hits: cacheProvider.cacheHits,
+      misses: cacheProvider.cacheMisses,
+    })
 
     // Create and run solver 2 (modified data) - should hit cache
-    const s2 = new CachableUnravelSectionSolver({
+    const s2 = new CachedUnravelSectionSolver({
       ...modifiedParams,
       cacheProvider,
     })
@@ -173,14 +180,16 @@ export default function CachedUnravel1() {
 
     // Update stats after both solvers have run
     // Update stats one last time after both solvers have run and state is set
-    setCacheStats({ hits: cacheProvider.cacheHits, misses: cacheProvider.cacheMisses })
-
+    setCacheStats({
+      hits: cacheProvider.cacheHits,
+      misses: cacheProvider.cacheMisses,
+    })
   }, [originalParams, modifiedParams, cacheProvider]) // Rerun if data prep changes
 
   // Define createSolver functions for GenericSolverDebugger
   const createSolver1 = useCallback(() => {
     // This creates a NEW solver instance for the debugger
-    return new CachableUnravelSectionSolver({
+    return new CachedUnravelSectionSolver({
       ...originalParams,
       cacheProvider,
     })
@@ -188,16 +197,17 @@ export default function CachedUnravel1() {
 
   const createSolver2 = useCallback(() => {
     // This creates a NEW solver instance for the debugger
-    return new CachableUnravelSectionSolver({
+    return new CachedUnravelSectionSolver({
       ...modifiedParams,
       cacheProvider,
     })
   }, [modifiedParams, cacheProvider])
 
-
   return (
     <div className="flex flex-col space-y-4 p-4">
-      <h1 className="text-xl font-bold">Cached Unravel Section Solver Example (Using GenericSolverDebugger)</h1>
+      <h1 className="text-xl font-bold">
+        Cached Unravel Section Solver Example (Using GenericSolverDebugger)
+      </h1>
       <div className="border p-2 rounded">
         <h2 className="text-lg font-semibold">Cache Stats</h2>
         <p>Hits: {cacheStats.hits}</p>
@@ -207,14 +217,28 @@ export default function CachedUnravel1() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <h2 className="text-lg font-semibold">Solver 1 (Original Data)</h2>
-          <p>Initial Run Cache Hit: {solver1Result?.cacheHit ? "Yes" : solver1Result === null ? "Running..." : "No"}</p>
+          <p>
+            Initial Run Cache Hit:{" "}
+            {solver1Result?.cacheHit
+              ? "Yes"
+              : solver1Result === null
+                ? "Running..."
+                : "No"}
+          </p>
           <GenericSolverDebugger createSolver={createSolver1} />
         </div>
         <div>
           <h2 className="text-lg font-semibold">
             Solver 2 (Translated & ID-Remapped Data)
           </h2>
-          <p>Initial Run Cache Hit: {solver2Result?.cacheHit ? "Yes" : solver2Result === null ? "Running..." : "No"}</p>
+          <p>
+            Initial Run Cache Hit:{" "}
+            {solver2Result?.cacheHit
+              ? "Yes"
+              : solver2Result === null
+                ? "Running..."
+                : "No"}
+          </p>
           <GenericSolverDebugger createSolver={createSolver2} />
         </div>
       </div>

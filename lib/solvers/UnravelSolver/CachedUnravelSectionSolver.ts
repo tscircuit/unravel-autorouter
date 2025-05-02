@@ -39,7 +39,7 @@ interface CachedSolvedUnravelSection {
 
 globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE = new InMemoryCache()
 
-export class CachableUnravelSectionSolver
+export class CachedUnravelSectionSolver
   extends UnravelSectionSolver
   implements
     CachableSolver<CacheToUnravelSectionTransform, CachedSolvedUnravelSection>
