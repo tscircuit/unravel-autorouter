@@ -190,9 +190,7 @@ export class CachedUnravelSectionSolver
 
     // Use object-hash for potentially better handling of object structures
     // const cacheKey = stableStringify(keyData)
-    const cacheKey =
-      objectHash(keyData) +
-      JSON.stringify(JSON.parse(stableStringify(keyData)), null, "  ")
+    const cacheKey = objectHash(keyData)
 
     const cacheToSolveSpaceTransform: CacheToUnravelSectionTransform = {
       translationOffset,

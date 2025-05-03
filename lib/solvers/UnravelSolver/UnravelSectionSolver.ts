@@ -741,6 +741,8 @@ export class UnravelSectionSolver extends BaseSolver {
       } else {
         candidate = this.candidates[this.selectedCandidateIndex]
       }
+    } else if (this.solved) {
+      candidate = this.bestCandidate
     } else {
       candidate = this.lastProcessedCandidate || this.candidates[0]
     }
