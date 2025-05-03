@@ -2,6 +2,7 @@ import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { SegmentWithAssignedPoints } from "../CapacityMeshSolver/CapacitySegmentToPointSolver"
 import { UnravelSectionSolver } from "./UnravelSectionSolver"
+import { CachedUnravelSectionSolver } from "./CachedUnravelSectionSolver"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { NodePortSegment } from "lib/types/capacity-edges-to-port-segments-types"
 import { getDedupedSegments } from "./getDedupedSegments"
@@ -40,6 +41,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   MAX_ITERATIONS_WITHOUT_IMPROVEMENT = 200
 
+  deadEndCacheKeys = new Set<string>()
+
   /**
    * Probability of failure for each node
    */
@@ -65,6 +68,13 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     nodes: CapacityMeshNode[]
   }) {
     super()
+
+    this.stats.successfulOptimizations = 0
+    this.stats.failedOptimizations = 0
+    this.stats.cacheHits = 0
+    this.stats.cacheMisses = 0
+    this.stats.earlyStops = 0
+    this.stats.deadEndStops = 0
 
     this.MAX_ITERATIONS = 1e6
 
@@ -171,7 +181,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         highestPfNodeId,
         (this.attemptsToFixNode.get(highestPfNodeId) ?? 0) + 1,
       )
-      this.activeSubSolver = new UnravelSectionSolver({
+      this.activeSubSolver = new CachedUnravelSectionSolver({
         dedupedSegments: this.dedupedSegments,
         dedupedSegmentMap: this.dedupedSegmentMap,
         nodeMap: this.nodeMap,
@@ -184,6 +194,18 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         nodeToSegmentPointMap: this.nodeToSegmentPointMap,
         segmentToSegmentPointMap: this.segmentToSegmentPointMap,
       })
+      ;(
+        this.activeSubSolver as CachedUnravelSectionSolver
+      ).computeCacheKeyAndTransform()
+      if (
+        this.activeSubSolver.cacheKey &&
+        this.deadEndCacheKeys.has(this.activeSubSolver.cacheKey)
+      ) {
+        // We already tried this cacheKey and we decided to early stop, save as a dead end
+        this.activeSubSolver = null
+        this.stats.deadEndStops += 1
+        return
+      }
     }
 
     this.activeSubSolver.step()
@@ -202,12 +224,20 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
     // cn90994
     if (this.activeSubSolver.solved || shouldEarlyStop) {
-      // Incorporate the changes from the active solver
+      if (this.activeSubSolver.cacheHit) {
+        this.stats.cacheHits += 1
+      } else if (!shouldEarlyStop) {
+        this.stats.cacheMisses += 1
+      }
 
+      if (shouldEarlyStop) this.stats.earlyStops += 1
+
+      // Incorporate the changes from the active solver
       const foundBetterSolution =
         bestCandidate && bestCandidate.g < originalCandidate!.g
 
       if (foundBetterSolution) {
+        this.stats.successfulOptimizations += 1
         // Modify the points using the pointModifications of the candidate
         for (const [
           segmentPointId,
@@ -226,6 +256,11 @@ export class UnravelMultiSectionSolver extends BaseSolver {
             this.computeNodePf(this.nodeMap.get(nodeId)!),
           )
         }
+      } else {
+        // did not find better solution
+        this.stats.failedOptimizations += 1
+        if (this.activeSubSolver.cacheKey)
+          this.deadEndCacheKeys.add(this.activeSubSolver.cacheKey!)
       }
 
       this.activeSubSolver = null

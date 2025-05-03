@@ -72,15 +72,12 @@ export class LocalStorageCache implements CacheProvider {
    * @param cachedSolution The solution data to cache.
    */
   setCachedSolutionSync(cacheKey: string, cachedSolution: any): void {
-    console.log("local storage setting solution...")
     if (typeof localStorage === "undefined") return
-    console.log("got here")
 
     const key = this.getKey(cacheKey)
     try {
       const stringifiedSolution = JSON.stringify(cachedSolution)
       localStorage.setItem(key, stringifiedSolution)
-      console.log(`Cached solution (sync) for: ${cacheKey}`)
     } catch (error) {
       console.error(`Error setting cached solution sync for ${key}:`, error)
       // Handle potential storage quota errors

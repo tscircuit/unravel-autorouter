@@ -16,6 +16,7 @@ export class BaseSolver {
   /**
    * For cached solvers
    **/
+  cacheHit?: boolean
   cacheKey?: string
   cacheToSolveSpaceTransform?: any
 

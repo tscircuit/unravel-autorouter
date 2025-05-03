@@ -30,14 +30,17 @@ interface CacheToUnravelSectionTransform {
   reverseSegmentIdMap: Map<NormalizedId, SegmentId>
   reverseSegmentPointIdMap: Map<NormalizedId, SegmentPointId>
 }
-interface CachedSolvedUnravelSection {
-  // Store the essential result using NORMALIZED IDs and NORMALIZED coordinates
-  bestCandidatePointModifications: Array<
-    [NormalizedId, { x?: number; y?: number; z?: number }] // Normalized ID and coords
-  >
-  // Store the 'f' value to reconstruct the candidate accurately
-  bestCandidateF: number
-}
+type CachedSolvedUnravelSection =
+  | {
+      success: true
+      // Store the essential result using NORMALIZED IDs and NORMALIZED coordinates
+      bestCandidatePointModifications: Array<
+        [NormalizedId, { x?: number; y?: number; z?: number }] // Normalized ID and coords
+      >
+      // Store the 'f' value to reconstruct the candidate accurately
+      bestCandidateF: number
+    }
+  | { success: false }
 
 setupGlobalCaches()
 
@@ -70,11 +73,8 @@ export class CachedUnravelSectionSolver
     if (!this.hasAttemptedToUseCache) {
       if (this.attemptToUseCacheSync()) return
     }
-    console.log("calling super step")
     super._step()
-    if (this.solved) {
-      console.log("it got solved, saving to cache")
-      console.log(this.cacheProvider)
+    if (this.solved || this.failed) {
       this.saveToCacheSync()
     }
   }
@@ -218,6 +218,10 @@ export class CachedUnravelSectionSolver
   }
 
   applyCachedSolution(cachedSolution: CachedSolvedUnravelSection): void {
+    if (cachedSolution.success === false) {
+      this.failed = true
+      return
+    }
     if (!this.cacheToSolveSpaceTransform) {
       console.error("Cache transform not available to apply cached solution.")
       return
@@ -280,7 +284,6 @@ export class CachedUnravelSectionSolver
 
     this.cacheHit = true
     this.solved = true // Mark as solved since we applied a cached solution
-    console.log(`Cache hit for UnravelSectionSolver: ${this.cacheKey}`)
   }
 
   attemptToUseCacheSync(): boolean {
@@ -320,6 +323,12 @@ export class CachedUnravelSectionSolver
   }
 
   saveToCacheSync(): void {
+    if (this.failed) {
+      this.cacheProvider.setCachedSolutionSync(this.cacheKey!, {
+        success: false,
+      })
+      return
+    }
     if (!this.bestCandidate) return
     const { translationOffset, segmentPointIdMap } =
       this.cacheToSolveSpaceTransform!
@@ -353,6 +362,7 @@ export class CachedUnravelSectionSolver
     }
 
     const cachedSolution: CachedSolvedUnravelSection = {
+      success: true,
       bestCandidatePointModifications: normalizedModifications,
       bestCandidateF: this.bestCandidate.f,
     }
