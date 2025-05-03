@@ -91,15 +91,17 @@ export class CachedUnravelSectionSolver
     let spCounter = 0
 
     // Sort node IDs for deterministic normalized IDs based on coordinates (x then y)
-    const sortedNodeIds = [...this.unravelSection.allNodeIds].sort((aNId, bNId) => {
-      const n1 = this.nodeMap.get(aNId)!
-      const n2 = this.nodeMap.get(bNId)!
+    const sortedNodeIds = [...this.unravelSection.allNodeIds].sort(
+      (aNId, bNId) => {
+        const n1 = this.nodeMap.get(aNId)!
+        const n2 = this.nodeMap.get(bNId)!
 
-      if (n1.center.x !== n2.center.x) {
-        return n1.center.x - n2.center.x
-      }
-      return n1.center.y - n2.center.y
-    })
+        if (n1.center.x !== n2.center.x) {
+          return n1.center.x - n2.center.x
+        }
+        return n1.center.y - n2.center.y
+      },
+    )
     for (const nodeId of sortedNodeIds) {
       const normId = `node_${nodeCounter++}`
       nodeIdMap.set(nodeId, normId)
@@ -108,7 +110,14 @@ export class CachedUnravelSectionSolver
 
     // Sort segment point IDs for deterministic normalized IDs
     const sortedSegmentPointIds = [
-      ...this.unravelSection.segmentPointMap.keys(),
+      ...Array.from(this.unravelSection.segmentPointMap.entries())
+        .sort(([, a], [, b]) => {
+          if (a.x !== b.x) {
+            return a.x - b.x
+          }
+          return a.y - b.y
+        })
+        .map(([id]) => id),
     ].sort()
     for (const spId of sortedSegmentPointIds) {
       const normSpId = `sp_${spCounter++}`
@@ -126,7 +135,10 @@ export class CachedUnravelSectionSolver
     // 3. Create Normalized Structure for Hashing
     const normalizedNodes: Record<
       NormalizedId,
-      Omit<CapacityMeshNode, "capacityMeshNodeId" | "center"> & {
+      {
+        width: number
+        height: number
+        availableZ: number[]
         center: { x: number; y: number }
       }
     > = {}
@@ -134,7 +146,9 @@ export class CachedUnravelSectionSolver
       const node = this.nodeMap.get(nodeId)!
       normalizedNodes[normNodeId] = {
         // ...node,
-        // capacityMeshNodeId: normNodeId, // Use normalized ID
+        width: node.width,
+        height: node.height,
+        availableZ: node.availableZ,
         center: {
           x: node.center.x + translationOffset.x,
           y: node.center.y + translationOffset.y,
