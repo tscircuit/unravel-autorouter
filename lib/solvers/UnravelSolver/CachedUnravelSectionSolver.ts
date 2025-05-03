@@ -13,6 +13,7 @@ import objectHash from "object-hash"
 import { getIssuesInSection } from "./getIssuesInSection"
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { SegmentId } from "./types"
+import { LocalStorageCache } from "lib/cache/LocalStorageCache"
 
 // Normalized IDs are simple strings like "node_0", "sp_1", etc.
 type NormalizedId = string
@@ -38,6 +39,7 @@ interface CachedSolvedUnravelSection {
 }
 
 globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE ??= new InMemoryCache()
+globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE ??= new LocalStorageCache()
 
 export class CachedUnravelSectionSolver
   extends UnravelSectionSolver
@@ -57,8 +59,11 @@ export class CachedUnravelSectionSolver
     },
   ) {
     super(params)
+    // this.cacheProvider =
+    //   params.cacheProvider ?? globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE
     this.cacheProvider =
-      params.cacheProvider ?? globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE
+      params.cacheProvider ??
+      globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE
   }
 
   _step() {

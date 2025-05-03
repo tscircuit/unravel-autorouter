@@ -18,7 +18,7 @@ export class InMemoryCache implements CacheProvider {
    * @returns The cached solution if found, otherwise undefined.
    */
   getCachedSolutionSync(cacheKey: string): any {
-    console.log("getting", cacheKey)
+    console.log("getting ls", cacheKey)
     const cachedSolution = this.cache.get(cacheKey)
     if (cachedSolution !== undefined) {
       this.cacheHits++
@@ -46,7 +46,7 @@ export class InMemoryCache implements CacheProvider {
    * @param cachedSolution The solution data to cache.
    */
   setCachedSolutionSync(cacheKey: string, cachedSolution: any): void {
-    console.log("setting", cacheKey)
+    console.log("setting ls", cacheKey)
     // Store a structured clone to prevent external modification of the cached object
     this.cache.set(cacheKey, structuredClone(cachedSolution))
   }
@@ -76,7 +76,6 @@ export class InMemoryCache implements CacheProvider {
 
 // Add global declare for globalThis to fix types
 declare global {
-  // eslint-disable-next-line no-var
   var TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE: InMemoryCache
 }
 
