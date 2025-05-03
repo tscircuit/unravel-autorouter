@@ -90,12 +90,15 @@ export class CachedUnravelSectionSolver
     let segmentCounter = 0
     let spCounter = 0
 
-    // Sort node IDs for deterministic normalized IDs
+    // Sort node IDs for deterministic normalized IDs based on coordinates (x then y)
     const sortedNodeIds = [...this.unravelSection.allNodeIds].sort((aNId, bNId) => {
       const n1 = this.nodeMap.get(aNId)!
       const n2 = this.nodeMap.get(bNId)!
 
-      return n1.center.x > n2.center.x ? ... // TODO
+      if (n1.center.x !== n2.center.x) {
+        return n1.center.x - n2.center.x
+      }
+      return n1.center.y - n2.center.y
     })
     for (const nodeId of sortedNodeIds) {
       const normId = `node_${nodeCounter++}`
