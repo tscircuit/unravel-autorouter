@@ -37,7 +37,7 @@ interface CachedSolvedUnravelSection {
   bestCandidateF: number
 }
 
-globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE = new InMemoryCache()
+globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE ??= new InMemoryCache()
 
 export class CachedUnravelSectionSolver
   extends UnravelSectionSolver
@@ -46,8 +46,9 @@ export class CachedUnravelSectionSolver
 {
   cacheHit = false
   cacheProvider: CacheProvider
-  cacheKey?: string | undefined
-  cacheToSolveSpaceTransform?: CacheToUnravelSectionTransform | undefined
+  declare cacheToSolveSpaceTransform?:
+    | CacheToUnravelSectionTransform
+    | undefined
   hasAttemptedToUseCache = false
 
   constructor(
