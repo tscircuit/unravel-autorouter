@@ -72,13 +72,15 @@ export class LocalStorageCache implements CacheProvider {
    * @param cachedSolution The solution data to cache.
    */
   setCachedSolutionSync(cacheKey: string, cachedSolution: any): void {
+    console.log("local storage setting solution...")
     if (typeof localStorage === "undefined") return
+    console.log("got here")
 
     const key = this.getKey(cacheKey)
     try {
       const stringifiedSolution = JSON.stringify(cachedSolution)
       localStorage.setItem(key, stringifiedSolution)
-      // console.log(`Cached solution (sync) for: ${cacheKey}`)
+      console.log(`Cached solution (sync) for: ${cacheKey}`)
     } catch (error) {
       console.error(`Error setting cached solution sync for ${key}:`, error)
       // Handle potential storage quota errors
@@ -136,10 +138,3 @@ export class LocalStorageCache implements CacheProvider {
     }
   }
 }
-
-// Add global declare for globalThis to fix types
-declare global {
-  var TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE: LocalStorageCache
-}
-
-globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE = new LocalStorageCache()

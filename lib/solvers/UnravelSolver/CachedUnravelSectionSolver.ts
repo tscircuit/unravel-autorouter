@@ -14,6 +14,7 @@ import { getIssuesInSection } from "./getIssuesInSection"
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { SegmentId } from "./types"
 import { LocalStorageCache } from "lib/cache/LocalStorageCache"
+import { setupGlobalCaches } from "lib/cache/setupGlobalCaches"
 
 // Normalized IDs are simple strings like "node_0", "sp_1", etc.
 type NormalizedId = string
@@ -38,8 +39,7 @@ interface CachedSolvedUnravelSection {
   bestCandidateF: number
 }
 
-globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE ??= new InMemoryCache()
-globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE ??= new LocalStorageCache()
+setupGlobalCaches()
 
 export class CachedUnravelSectionSolver
   extends UnravelSectionSolver
@@ -70,8 +70,11 @@ export class CachedUnravelSectionSolver
     if (!this.hasAttemptedToUseCache) {
       if (this.attemptToUseCacheSync()) return
     }
+    console.log("calling super step")
     super._step()
     if (this.solved) {
+      console.log("it got solved, saving to cache")
+      console.log(this.cacheProvider)
       this.saveToCacheSync()
     }
   }
@@ -353,6 +356,7 @@ export class CachedUnravelSectionSolver
       bestCandidatePointModifications: normalizedModifications,
       bestCandidateF: this.bestCandidate.f,
     }
+
     this.cacheProvider.setCachedSolutionSync(this.cacheKey!, cachedSolution)
   }
 }

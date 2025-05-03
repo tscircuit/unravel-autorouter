@@ -73,10 +73,3 @@ export class InMemoryCache implements CacheProvider {
     this.cacheMisses = 0
   }
 }
-
-// Add global declare for globalThis to fix types
-declare global {
-  var TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE: InMemoryCache
-}
-
-globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE = new InMemoryCache()
