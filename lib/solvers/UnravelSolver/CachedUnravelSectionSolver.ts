@@ -192,6 +192,7 @@ export class CachedUnravelSectionSolver
     // For simplicity, we'll hash nodes, points, and parameters for now.
 
     const keyData = {
+      hyperParameters: this.hyperParameters,
       normalizedNodes,
       normalizedSegmentPoints,
       mutableHops: this.MUTABLE_HOPS,

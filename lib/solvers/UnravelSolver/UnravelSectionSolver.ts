@@ -27,6 +27,10 @@ import {
 import { calculateNodeProbabilityOfFailure } from "./calculateCrossingProbabilityOfFailure"
 import { PointModificationsMap } from "./types"
 
+export interface UnravelSectionHyperParameters {
+  MAX_ITERATIONS_WITHOUT_IMPROVEMENT: number
+}
+
 interface UnravelSectionSolverParams {
   rootNodeId: CapacityMeshNodeId
   colorMap?: Record<string, string>
@@ -39,6 +43,7 @@ interface UnravelSectionSolverParams {
   segmentPointMap?: SegmentPointMap
   nodeToSegmentPointMap?: Map<CapacityMeshNodeId, SegmentPointId[]>
   segmentToSegmentPointMap?: Map<SegmentId, SegmentPointId[]>
+  hyperParameters?: Partial<UnravelSectionHyperParameters>
 }
 
 /**
@@ -91,6 +96,8 @@ export class UnravelSectionSolver extends BaseSolver {
   MAX_CANDIDATES = 500
   iterationsSinceImprovement = 0
 
+  hyperParameters: UnravelSectionHyperParameters
+
   selectedCandidateIndex: number | "best" | "original" | null = null
 
   queuedOrExploredCandidatePointModificationHashes: Set<string> = new Set()
@@ -104,6 +111,11 @@ export class UnravelSectionSolver extends BaseSolver {
 
     this.MUTABLE_HOPS = params.MUTABLE_HOPS ?? this.MUTABLE_HOPS
     this.MAX_ITERATIONS = 50_000
+
+    this.hyperParameters = {
+      ...params.hyperParameters,
+      MAX_ITERATIONS_WITHOUT_IMPROVEMENT: 200,
+    }
 
     this.nodeMap = params.nodeMap
     this.dedupedSegments = params.dedupedSegments
@@ -298,7 +310,6 @@ export class UnravelSectionSolver extends BaseSolver {
     })
     return {
       pointModifications,
-      issues,
       g,
       h: 0,
       f: g,
@@ -675,6 +686,13 @@ export class UnravelSectionSolver extends BaseSolver {
   _step() {
     const candidate = this.candidates.shift()
     this.iterationsSinceImprovement++
+    if (
+      this.iterationsSinceImprovement >
+      this.hyperParameters.MAX_ITERATIONS_WITHOUT_IMPROVEMENT
+    ) {
+      this.solved = true
+      return
+    }
     if (!candidate) {
       this.solved = true
       return

@@ -213,24 +213,22 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     const { bestCandidate, originalCandidate, lastProcessedCandidate } =
       this.activeSubSolver
 
-    // const giveUpFactor =
-    //   1 + 4 * (1 - Math.min(1, this.activeSubSolver.iterations / 40))
     // const shouldEarlyStop =
-    //   lastProcessedCandidate &&
-    //   lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
-    const shouldEarlyStop =
-      this.activeSubSolver.iterationsSinceImprovement >
-      this.MAX_ITERATIONS_WITHOUT_IMPROVEMENT
+    //   this.activeSubSolver.iterationsSinceImprovement >
+    //   this.MAX_ITERATIONS_WITHOUT_IMPROVEMENT
 
     // cn90994
-    if (this.activeSubSolver.solved || shouldEarlyStop) {
+    if (this.activeSubSolver.failed) {
+      this.stats.failedOptimizations += 1
+      this.activeSubSolver = null
+      return
+    }
+    if (this.activeSubSolver.solved) {
       if (this.activeSubSolver.cacheHit) {
         this.stats.cacheHits += 1
-      } else if (!shouldEarlyStop) {
+      } else {
         this.stats.cacheMisses += 1
       }
-
-      if (shouldEarlyStop) this.stats.earlyStops += 1
 
       // Incorporate the changes from the active solver
       const foundBetterSolution =
@@ -259,8 +257,6 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       } else {
         // did not find better solution
         this.stats.failedOptimizations += 1
-        if (this.activeSubSolver.cacheKey)
-          this.deadEndCacheKeys.add(this.activeSubSolver.cacheKey!)
       }
 
       this.activeSubSolver = null
