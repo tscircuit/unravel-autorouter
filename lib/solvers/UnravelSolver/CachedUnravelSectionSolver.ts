@@ -81,6 +81,9 @@ export class CachedUnravelSectionSolver
     cacheKey: string
     cacheToSolveSpaceTransform: CacheToUnravelSectionTransform
   } {
+    // Round to the nearest 50 microns, convert to string
+    const approx1 = (mm: number) => // TODO
+
     // 1. Calculate Translation Offset
     const rootNode = this.nodeMap.get(this.rootNodeId)!
     const translationOffset = { x: -rootNode.center.x, y: -rootNode.center.y }
