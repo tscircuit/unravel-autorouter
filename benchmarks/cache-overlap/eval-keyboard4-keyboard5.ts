@@ -57,18 +57,22 @@ async function runBenchmark() {
     keyboard5 as unknown as SimpleRouteJson,
     cache,
   )
+  const baselineCacheKeys = new Set([...cache.cache.keys()])
   console.log(
-    `Baseline completed: ${baselineResult.totalTimeMs.toFixed(2)}ms total, ${baselineResult.unravelTimeMs.toFixed(2)}ms unravel`,
+    `Baseline completed: ${baselineResult.totalTimeMs.toFixed(2)}ms total, ${baselineResult.unravelTimeMs.toFixed(2)}ms unravel, ${cache.cache.size} Cache Keys`,
   )
-
-  console.log(cache.cache.keys())
 
   console.log("Clearing cache...")
   cache.clearCache()
 
   console.log("Warming cache with keyboard4...")
   await runSolver(keyboard4 as unknown as SimpleRouteJson, cache)
-  console.log("Cache warming completed.")
+  const keyboard4Cache = cache.cache
+  // TODO compute keys shared between baselineCacheKeys and keyboard4 cache
+  // const sharedKeys =
+  console.log(
+    `Cache warming completed, ${cache.cache.size} cache keys created. `,
+  )
 
   console.log("Running test (keyboard5) with warmed cache...")
   const testResult = await runSolver(

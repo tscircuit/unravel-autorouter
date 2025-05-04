@@ -9,7 +9,7 @@ export class InMemoryCache implements CacheProvider {
   cacheHits = 0
   cacheMisses = 0
 
-  private cache: Map<string, any> = new Map()
+  cache: Map<string, any> = new Map()
 
   /**
    * Retrieves a cached solution synchronously based on the cache key.
