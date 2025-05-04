@@ -67,11 +67,12 @@ async function runBenchmark() {
 
   console.log("Warming cache with keyboard4...")
   await runSolver(keyboard4 as unknown as SimpleRouteJson, cache)
-  const keyboard4Cache = cache.cache
-  // TODO compute keys shared between baselineCacheKeys and keyboard4 cache
-  // const sharedKeys =
+  const keyboard4CacheKeys = new Set([...cache.cache.keys()])
+  const sharedKeys = new Set(
+    [...baselineCacheKeys].filter((key) => keyboard4CacheKeys.has(key)),
+  )
   console.log(
-    `Cache warming completed, ${cache.cache.size} cache keys created. `,
+    `Cache warming completed, ${keyboard4CacheKeys.size} cache keys created. ${sharedKeys.size} keys shared with baseline.`,
   )
 
   console.log("Running test (keyboard5) with warmed cache...")
