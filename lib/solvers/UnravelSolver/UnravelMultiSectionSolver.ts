@@ -21,6 +21,7 @@ import {
 import { createSegmentPointMap } from "./createSegmentPointMap"
 import { getIntraNodeCrossingsFromSegmentPoints } from "lib/utils/getIntraNodeCrossingsFromSegmentPoints"
 import { getNodesNearNode } from "./getNodesNearNode"
+import { CacheProvider } from "lib/cache/types"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
@@ -41,8 +42,6 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   MAX_ITERATIONS_WITHOUT_IMPROVEMENT = 200
 
-  deadEndCacheKeys = new Set<string>()
-
   /**
    * Probability of failure for each node
    */
@@ -54,10 +53,13 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   segmentPointMap: SegmentPointMap
 
+  cacheProvider: CacheProvider | null = null
+
   constructor({
     assignedSegments,
     colorMap,
     nodes,
+    cacheProvider,
   }: {
     assignedSegments: NodePortSegment[]
     colorMap?: Record<string, string>
@@ -66,6 +68,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
      * for the result datatype (the center, width, height of the node)
      */
     nodes: CapacityMeshNode[]
+    cacheProvider?: CacheProvider | null
   }) {
     super()
 
@@ -73,8 +76,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     this.stats.failedOptimizations = 0
     this.stats.cacheHits = 0
     this.stats.cacheMisses = 0
-    this.stats.earlyStops = 0
-    this.stats.deadEndStops = 0
+
+    this.cacheProvider = cacheProvider ?? null
 
     this.MAX_ITERATIONS = 1e6
 
@@ -193,19 +196,11 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         segmentPointMap: this.segmentPointMap,
         nodeToSegmentPointMap: this.nodeToSegmentPointMap,
         segmentToSegmentPointMap: this.segmentToSegmentPointMap,
+        cacheProvider: this.cacheProvider,
       })
       ;(
         this.activeSubSolver as CachedUnravelSectionSolver
       ).computeCacheKeyAndTransform()
-      if (
-        this.activeSubSolver.cacheKey &&
-        this.deadEndCacheKeys.has(this.activeSubSolver.cacheKey)
-      ) {
-        // We already tried this cacheKey and we decided to early stop, save as a dead end
-        this.activeSubSolver = null
-        this.stats.deadEndStops += 1
-        return
-      }
     }
 
     this.activeSubSolver.step()

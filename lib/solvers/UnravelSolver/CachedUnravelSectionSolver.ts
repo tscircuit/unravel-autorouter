@@ -50,7 +50,7 @@ export class CachedUnravelSectionSolver
     CachableSolver<CacheToUnravelSectionTransform, CachedSolvedUnravelSection>
 {
   cacheHit = false
-  cacheProvider: CacheProvider
+  cacheProvider: CacheProvider | null
   declare cacheToSolveSpaceTransform?:
     | CacheToUnravelSectionTransform
     | undefined
@@ -58,23 +58,21 @@ export class CachedUnravelSectionSolver
 
   constructor(
     params: ConstructorParameters<typeof UnravelSectionSolver>[0] & {
-      cacheProvider?: CacheProvider
+      cacheProvider?: CacheProvider | null
     },
   ) {
     super(params)
     // this.cacheProvider =
     //   params.cacheProvider ?? globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE
-    this.cacheProvider =
-      params.cacheProvider ??
-      globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE
+    this.cacheProvider = params.cacheProvider ?? null
   }
 
   _step() {
-    if (!this.hasAttemptedToUseCache) {
+    if (!this.hasAttemptedToUseCache && this.cacheProvider) {
       if (this.attemptToUseCacheSync()) return
     }
     super._step()
-    if (this.solved || this.failed) {
+    if ((this.solved || this.failed) && this.cacheProvider) {
       this.saveToCacheSync()
     }
   }

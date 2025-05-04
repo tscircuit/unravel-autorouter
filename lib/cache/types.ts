@@ -20,7 +20,7 @@ export interface CachableSolver<
 > {
   cacheHit: boolean
   hasAttemptedToUseCache: boolean
-  cacheProvider: CacheProvider
+  cacheProvider: CacheProvider | null
 
   cacheKey?: string
   cacheToSolveSpaceTransform?: CacheToSolveSpaceTransform
