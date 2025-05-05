@@ -102,14 +102,16 @@ export class CachedUnravelSectionSolver
   } {
     // 1. Calculate Transformation Matrix (currently just translation)
     const rootNode = this.nodeMap.get(this.rootNodeId)!
-    const realToCacheTransform = translate(-rootNode.center.x, -rootNode.center.y)
+    const realToCacheTransform = translate(
+      -rootNode.center.x,
+      -rootNode.center.y,
+    )
     // TODO: Add scaling here in the future if needed, e.g.,
     // const scaleFactor = 1 / someUnit;
     // const realToCacheTransform = compose(
     //   translate(-rootNode.center.x, -rootNode.center.y),
     //   scale(scaleFactor, scaleFactor)
     // );
-
 
     // 2. Create ID Mappings
     const nodeIdMap = new Map<CapacityMeshNodeId, NormalizedId>()
@@ -203,7 +205,10 @@ export class CachedUnravelSectionSolver
     > = {}
     for (const [spId, normSpId] of segmentPointIdMap.entries()) {
       const sp = this.unravelSection.segmentPointMap.get(spId)!
-      const transformedPoint = applyToPoint(realToCacheTransform, { x: sp.x, y: sp.y })
+      const transformedPoint = applyToPoint(realToCacheTransform, {
+        x: sp.x,
+        y: sp.y,
+      })
       normalizedSegmentPoints[normSpId] = {
         x: approximateCoordinate(transformedPoint.x),
         y: approximateCoordinate(transformedPoint.y),
