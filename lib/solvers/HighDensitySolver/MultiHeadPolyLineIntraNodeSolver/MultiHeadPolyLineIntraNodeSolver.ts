@@ -981,20 +981,21 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   }
 
   checkIfSolved(candidate: Pick<Candidate, "polyLines" | "minGaps">) {
-    return (
-      candidate.minGaps.every((minGap) => minGap >= this.obstacleMargin) &&
-      candidate.polyLines.every((polyLine) => {
-        return polyLine.mPoints.every((mPoint) => {
-          const padding =
-            (mPoint.z1 !== mPoint.z2
-              ? this.viaDiameter / 2
-              : this.traceWidth / 2) *
-            // Forgiveness outside bounds
-            0.9
-          return withinBounds(mPoint, this.bounds, padding)
-        })
-      })
+    const minGapsToOtherConnectionsValid = candidate.minGaps.every(
+      (minGap) => minGap >= this.obstacleMargin,
     )
+
+    const allPointsWithinBounds = candidate.polyLines.every((polyLine) => {
+      return polyLine.mPoints.every((mPoint) => {
+        const padding =
+          (mPoint.z1 !== mPoint.z2 ? this.viaDiameter / 2 : 0) *
+          // Forgiveness outside bounds
+          0.9
+        return withinBounds(mPoint, this.bounds, padding)
+      })
+    })
+
+    return minGapsToOtherConnectionsValid && allPointsWithinBounds
   }
 
   _step() {
