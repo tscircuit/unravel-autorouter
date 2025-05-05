@@ -18,6 +18,14 @@ import {
   getGlobalLocalStorageCache,
   setupGlobalCaches,
 } from "lib/cache/setupGlobalCaches"
+import {
+  translate,
+  type Matrix,
+  applyToPoint,
+  applyToPoints,
+  scale,
+  compose,
+} from "transformation-matrix"
 
 // Normalized IDs are simple strings like "node_0", "sp_1", etc.
 type NormalizedId = string
@@ -261,7 +269,8 @@ export class CachedUnravelSectionSolver
         continue
       }
 
-      const originalSegmentPoint = this.unravelSection.segmentPointMap.get(originalSpId)
+      const originalSegmentPoint =
+        this.unravelSection.segmentPointMap.get(originalSpId)
       if (!originalSegmentPoint) {
         console.warn(
           `Could not find original segment point for ID: ${originalSpId} when applying cache.`,
@@ -389,7 +398,8 @@ export class CachedUnravelSectionSolver
         continue
       }
 
-      const originalSegmentPoint = this.unravelSection.segmentPointMap.get(originalSpId)
+      const originalSegmentPoint =
+        this.unravelSection.segmentPointMap.get(originalSpId)
       if (!originalSegmentPoint) {
         console.warn(
           `Could not find original segment point for ID: ${originalSpId} when saving cache.`,
