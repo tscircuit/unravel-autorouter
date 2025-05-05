@@ -620,6 +620,22 @@ export const GenericSolverDebugger = ({
                 {selectedSolver?.MAX_ITERATIONS}
               </span>
             </div>
+            {selectedSolver?.stats &&
+              Object.keys(selectedSolver?.stats).length > 0 && (
+                <div className="border p-2 rounded mb-2">
+                  <details>
+                    <summary>Stats</summary>
+                    <pre>
+                      {JSON.stringify(selectedSolver?.stats, null, "  ")}
+                    </pre>
+                  </details>
+                </div>
+              )}
+            {selectedSolver?.cacheKey && (
+              <div className="border p-2 rounded mb-2 whitespace-pre">
+                Cache Key: {selectedSolver.cacheKey as string}
+              </div>
+            )}
             {(selectedSolver as any)?.candidates !== undefined && (
               <div className="border p-2 rounded mb-2 flex flex-wrap space-x-4 [&>*]:w-36">
                 <div>

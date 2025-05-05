@@ -1,4 +1,5 @@
 import type { GraphicsObject } from "graphics-debug"
+import { CachableSolver, CacheProvider } from "lib/cache/types"
 
 export class BaseSolver {
   MAX_ITERATIONS = 1000
@@ -11,6 +12,13 @@ export class BaseSolver {
   failedSubSolvers?: BaseSolver[]
   timeToSolve?: number
   stats: Record<string, number> = {}
+
+  /**
+   * For cached solvers
+   **/
+  cacheHit?: boolean
+  cacheKey?: string
+  cacheToSolveSpaceTransform?: any
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {

@@ -23,6 +23,8 @@
     "@tscircuit/core": "^0.0.337",
     "@tscircuit/math-utils": "^0.0.18",
     "@types/bun": "latest",
+    "@types/fast-json-stable-stringify": "^2.1.2",
+    "@types/object-hash": "^3.0.6",
     "@types/rbush": "^4.0.0",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
@@ -48,5 +50,8 @@
   "peerDependencies": {
     "typescript": "^5.7.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "fast-json-stable-stringify": "^2.1.0",
+    "object-hash": "^3.0.0"
+  }
 }
