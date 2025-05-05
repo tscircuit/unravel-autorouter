@@ -1,7 +1,9 @@
 import { CachableSolver } from "./types"
 
 export function attemptToUseCacheSync(solver: CachableSolver): boolean {
-  if (!solver.cacheProvider.isSyncCache) {
+  const cacheProvider = solver.cacheProvider
+  if (!cacheProvider) return false
+  if (!cacheProvider.isSyncCache) {
     console.log("Cache provider is not synchronous, skipping sync cache check.")
     return false
   }
@@ -16,12 +18,10 @@ export function attemptToUseCacheSync(solver: CachableSolver): boolean {
   }
 
   try {
-    const cachedSolution = solver.cacheProvider.getCachedSolutionSync(
-      solver.cacheKey,
-    )
+    const cachedSolution = cacheProvider.getCachedSolutionSync(solver.cacheKey)
 
     if (cachedSolution) {
-      solver.applyCachedSolution(cachedSolution as CachedSolvedUnravelSection)
+      solver.applyCachedSolution(cachedSolution)
       return true
     } else {
       // console.log(`Cache miss for UnravelSectionSolver: ${solver.cacheKey}`)
