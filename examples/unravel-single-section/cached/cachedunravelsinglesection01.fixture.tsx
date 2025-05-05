@@ -59,6 +59,7 @@ const createModifiedData = (
   let newRootNodeId: CapacityMeshNodeId = ""
 
   // Remap and translate nodes
+  // @ts-ignore
   modifiedData.nodes = modifiedData.nodes.map((node) => {
     const newNodeId = `mod-${crypto.randomUUID().substring(0, 6)}` // Generate new node ID
     nodeUuidMap.set(node.capacityMeshNodeId, newNodeId)
