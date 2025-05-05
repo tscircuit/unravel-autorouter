@@ -297,7 +297,7 @@ export class CachedUnravelSectionSolver
 
       if (normDelta.dx !== undefined) {
         const dxNum = parseFloat(normDelta.dx)
-        if (!isNaN(dxNum)) {
+        if (!Number.isNaN(dxNum)) {
           // Apply delta to the original coordinate (no translation offset needed here as delta is relative)
           modifiedPoint.x = originalSegmentPoint.x + dxNum
         } else {
@@ -306,7 +306,7 @@ export class CachedUnravelSectionSolver
       }
       if (normDelta.dy !== undefined) {
         const dyNum = parseFloat(normDelta.dy)
-        if (!isNaN(dyNum)) {
+        if (!Number.isNaN(dyNum)) {
           // Apply delta to the original coordinate
           modifiedPoint.y = originalSegmentPoint.y + dyNum
         } else {
@@ -350,7 +350,7 @@ export class CachedUnravelSectionSolver
 
   attemptToUseCacheSync(): boolean {
     this.hasAttemptedToUseCache = true
-    if (!this.cacheProvider.isSyncCache) {
+    if (!this.cacheProvider?.isSyncCache) {
       console.log(
         "Cache provider is not synchronous, skipping sync cache check.",
       )
@@ -386,7 +386,7 @@ export class CachedUnravelSectionSolver
 
   saveToCacheSync(): void {
     if (this.failed) {
-      this.cacheProvider.setCachedSolutionSync(this.cacheKey!, {
+      this.cacheProvider?.setCachedSolutionSync(this.cacheKey!, {
         success: false,
       })
       return
@@ -464,6 +464,6 @@ export class CachedUnravelSectionSolver
       bestCandidateF: this.bestCandidate.f,
     }
 
-    this.cacheProvider.setCachedSolutionSync(this.cacheKey!, cachedSolution)
+    this.cacheProvider?.setCachedSolutionSync(this.cacheKey!, cachedSolution)
   }
 }
