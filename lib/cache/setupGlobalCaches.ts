@@ -7,6 +7,13 @@ declare global {
   var TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE: InMemoryCache
 }
 
+export function getGlobalLocalStorageCache() {
+  if (!globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE) {
+    setupGlobalCaches()
+  }
+  return globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE
+}
+
 export function setupGlobalCaches() {
   globalThis.TSCIRCUIT_AUTOROUTER_LOCAL_STORAGE_CACHE ??=
     new LocalStorageCache()
