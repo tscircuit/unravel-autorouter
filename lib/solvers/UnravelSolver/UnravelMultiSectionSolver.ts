@@ -198,9 +198,6 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         segmentToSegmentPointMap: this.segmentToSegmentPointMap,
         cacheProvider: this.cacheProvider,
       })
-      ;(
-        this.activeSubSolver as CachedUnravelSectionSolver
-      ).computeCacheKeyAndTransform()
     }
 
     this.activeSubSolver.step()

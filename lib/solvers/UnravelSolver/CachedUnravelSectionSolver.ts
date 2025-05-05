@@ -38,7 +38,7 @@ const approximateCoordinate = (coord: number): string => {
 }
 
 interface CacheToUnravelSectionTransform {
-  translationOffset: { x: number; y: number }
+  realToCacheTransform: Matrix
   // Mappings from original UUIDs to normalized IDs
   nodeIdMap: Map<CapacityMeshNodeId, NormalizedId>
   segmentIdMap: Map<SegmentId, NormalizedId>
@@ -100,9 +100,16 @@ export class CachedUnravelSectionSolver
     cacheKey: string
     cacheToSolveSpaceTransform: CacheToUnravelSectionTransform
   } {
-    // 1. Calculate Translation Offset
+    // 1. Calculate Transformation Matrix (currently just translation)
     const rootNode = this.nodeMap.get(this.rootNodeId)!
-    const translationOffset = { x: -rootNode.center.x, y: -rootNode.center.y }
+    const realToCacheTransform = translate(-rootNode.center.x, -rootNode.center.y)
+    // TODO: Add scaling here in the future if needed, e.g.,
+    // const scaleFactor = 1 / someUnit;
+    // const realToCacheTransform = compose(
+    //   translate(-rootNode.center.x, -rootNode.center.y),
+    //   scale(scaleFactor, scaleFactor)
+    // );
+
 
     // 2. Create ID Mappings
     const nodeIdMap = new Map<CapacityMeshNodeId, NormalizedId>()
@@ -170,14 +177,15 @@ export class CachedUnravelSectionSolver
     > = {}
     for (const [nodeId, normNodeId] of nodeIdMap.entries()) {
       const node = this.nodeMap.get(nodeId)!
+      const transformedCenter = applyToPoint(realToCacheTransform, node.center)
       normalizedNodes[normNodeId] = {
         // ...node,
-        width: node.width,
+        width: node.width, // TODO: Scale width/height if transform includes scaling
         height: node.height,
         availableZ: node.availableZ,
         center: {
-          x: approximateCoordinate(node.center.x + translationOffset.x),
-          y: approximateCoordinate(node.center.y + translationOffset.y),
+          x: approximateCoordinate(transformedCenter.x),
+          y: approximateCoordinate(transformedCenter.y),
         },
       }
     }
@@ -195,10 +203,11 @@ export class CachedUnravelSectionSolver
     > = {}
     for (const [spId, normSpId] of segmentPointIdMap.entries()) {
       const sp = this.unravelSection.segmentPointMap.get(spId)!
+      const transformedPoint = applyToPoint(realToCacheTransform, { x: sp.x, y: sp.y })
       normalizedSegmentPoints[normSpId] = {
-        x: approximateCoordinate(sp.x + translationOffset.x),
-        y: approximateCoordinate(sp.y + translationOffset.y),
-        z: sp.z,
+        x: approximateCoordinate(transformedPoint.x),
+        y: approximateCoordinate(transformedPoint.y),
+        z: sp.z, // Z is not transformed by 2D matrix
         // segmentId: segmentIdMap.get(sp.segmentId)!,
         // connectionName: sp.connectionName,
       }
@@ -220,7 +229,7 @@ export class CachedUnravelSectionSolver
     const cacheKey = `unravelsec:${objectHash(keyData)}`
 
     const cacheToSolveSpaceTransform: CacheToUnravelSectionTransform = {
-      translationOffset,
+      realToCacheTransform,
       nodeIdMap,
       segmentIdMap,
       segmentPointIdMap,
@@ -246,7 +255,7 @@ export class CachedUnravelSectionSolver
     }
 
     const {
-      translationOffset,
+      // realToCacheTransform, // Not needed to apply deltas
       reverseSegmentPointIdMap,
       reverseNodeIdMap, // Needed if issues depend on node IDs
     } = this.cacheToSolveSpaceTransform
@@ -378,8 +387,10 @@ export class CachedUnravelSectionSolver
       return
     }
     if (!this.bestCandidate) return
-    const { translationOffset, segmentPointIdMap } =
-      this.cacheToSolveSpaceTransform!
+    const {
+      // realToCacheTransform, // Not needed to calculate deltas
+      segmentPointIdMap,
+    } = this.cacheToSolveSpaceTransform!
 
     // Convert best candidate modifications to NORMALIZED DELTAs with approximated coordinate offsets
     const normalizedDeltas: Array<
