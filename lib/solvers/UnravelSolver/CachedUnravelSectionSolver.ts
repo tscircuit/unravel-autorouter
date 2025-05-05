@@ -43,9 +43,9 @@ interface CacheToUnravelSectionTransform {
 type CachedSolvedUnravelSection =
   | {
       success: true
-      // Store the essential result using NORMALIZED IDs and APPROXIMATED coordinates (as strings)
-      bestCandidatePointModifications: Array<
-        [NormalizedId, { x?: string; y?: string; z?: number }] // Normalized ID and approximated coords (x,y as string)
+      // Store the DELTA using NORMALIZED IDs and APPROXIMATED coordinate offsets (as strings)
+      bestCandidatePointModificationsDelta: Array<
+        [NormalizedId, { dx?: string; dy?: string; dz?: number }] // Normalized ID and approximated coord deltas (dx, dy as string)
       >
       // Store the 'f' value to reconstruct the candidate accurately
       bestCandidateF: number
@@ -251,37 +251,54 @@ export class CachedUnravelSectionSolver
 
     for (const [
       normSpId,
-      normMod, // normMod.x and normMod.y are strings here
-    ] of cachedSolution.bestCandidatePointModifications) {
+      normDelta, // normDelta.dx and normDelta.dy are strings here
+    ] of cachedSolution.bestCandidatePointModificationsDelta) {
       const originalSpId = reverseSegmentPointIdMap.get(normSpId)
       if (!originalSpId) {
         console.warn(
-          `Could not find original ID for normalized SP ID: ${normSpId}`,
+          `Could not find original ID for normalized SP ID: ${normSpId} when applying cache.`,
         )
         continue
       }
 
-      // Denormalize coordinates, parsing strings back to numbers
-      const originalMod: { x?: number; y?: number; z?: number } = {}
-      if (normMod.x !== undefined) {
-        const xNum = parseFloat(normMod.x)
-        if (!isNaN(xNum)) {
-          originalMod.x = xNum - translationOffset.x
-        } else {
-          console.warn(`Failed to parse cached x coordinate: ${normMod.x}`)
-        }
+      const originalSegmentPoint = this.unravelSection.segmentPointMap.get(originalSpId)
+      if (!originalSegmentPoint) {
+        console.warn(
+          `Could not find original segment point for ID: ${originalSpId} when applying cache.`,
+        )
+        continue
       }
-      if (normMod.y !== undefined) {
-        const yNum = parseFloat(normMod.y)
-        if (!isNaN(yNum)) {
-          originalMod.y = yNum - translationOffset.y
-        } else {
-          console.warn(`Failed to parse cached y coordinate: ${normMod.y}`)
-        }
-      }
-      if (normMod.z !== undefined) originalMod.z = normMod.z // Z is not translated
 
-      pointModifications.set(originalSpId, originalMod)
+      // Calculate absolute coordinates by applying the delta to the original point
+      const modifiedPoint: { x?: number; y?: number; z?: number } = {}
+
+      if (normDelta.dx !== undefined) {
+        const dxNum = parseFloat(normDelta.dx)
+        if (!isNaN(dxNum)) {
+          // Apply delta to the original coordinate (no translation offset needed here as delta is relative)
+          modifiedPoint.x = originalSegmentPoint.x + dxNum
+        } else {
+          console.warn(`Failed to parse cached dx coordinate: ${normDelta.dx}`)
+        }
+      }
+      if (normDelta.dy !== undefined) {
+        const dyNum = parseFloat(normDelta.dy)
+        if (!isNaN(dyNum)) {
+          // Apply delta to the original coordinate
+          modifiedPoint.y = originalSegmentPoint.y + dyNum
+        } else {
+          console.warn(`Failed to parse cached dy coordinate: ${normDelta.dy}`)
+        }
+      }
+      if (normDelta.dz !== undefined) {
+        // Z delta is applied directly
+        modifiedPoint.z = originalSegmentPoint.z + normDelta.dz
+      }
+
+      // Only add modification if at least one coordinate changed
+      if (Object.keys(modifiedPoint).length > 0) {
+        pointModifications.set(originalSpId, modifiedPoint)
+      }
     }
 
     // Reconstruct the best candidate using ORIGINAL IDs/coords
@@ -355,14 +372,14 @@ export class CachedUnravelSectionSolver
     const { translationOffset, segmentPointIdMap } =
       this.cacheToSolveSpaceTransform!
 
-    // Convert best candidate modifications to NORMALIZED format with approximated coordinates
-    const normalizedModifications: Array<
-      [NormalizedId, { x?: string; y?: string; z?: number }] // x, y are strings
+    // Convert best candidate modifications to NORMALIZED DELTAs with approximated coordinate offsets
+    const normalizedDeltas: Array<
+      [NormalizedId, { dx?: string; dy?: string; dz?: number }] // dx, dy are strings
     > = []
 
     for (const [
       originalSpId,
-      originalMod,
+      modifiedPoint, // This contains the absolute modified coordinates {x?, y?, z?}
     ] of this.bestCandidate.pointModifications.entries()) {
       const normSpId = segmentPointIdMap.get(originalSpId)
       if (!normSpId) {
@@ -372,22 +389,52 @@ export class CachedUnravelSectionSolver
         continue
       }
 
-      // Normalize and approximate coordinates
-      const normMod: { x?: string; y?: string; z?: number } = {}
-      if (originalMod.x !== undefined) {
-        normMod.x = approximateCoordinate(originalMod.x + translationOffset.x)
+      const originalSegmentPoint = this.unravelSection.segmentPointMap.get(originalSpId)
+      if (!originalSegmentPoint) {
+        console.warn(
+          `Could not find original segment point for ID: ${originalSpId} when saving cache.`,
+        )
+        continue
       }
-      if (originalMod.y !== undefined) {
-        normMod.y = approximateCoordinate(originalMod.y + translationOffset.y)
-      }
-      if (originalMod.z !== undefined) normMod.z = originalMod.z // Z is not translated
 
-      normalizedModifications.push([normSpId, normMod])
+      // Calculate delta and approximate
+      const normDelta: { dx?: string; dy?: string; dz?: number } = {}
+      let hasDelta = false
+      if (modifiedPoint.x !== undefined) {
+        const dx = modifiedPoint.x - originalSegmentPoint.x
+        // Only store delta if it's non-zero (within approximation tolerance)
+        const approxDx = approximateCoordinate(dx)
+        if (parseFloat(approxDx) !== 0) {
+          normDelta.dx = approxDx
+          hasDelta = true
+        }
+      }
+      if (modifiedPoint.y !== undefined) {
+        const dy = modifiedPoint.y - originalSegmentPoint.y
+        const approxDy = approximateCoordinate(dy)
+        if (parseFloat(approxDy) !== 0) {
+          normDelta.dy = approxDy
+          hasDelta = true
+        }
+      }
+      if (modifiedPoint.z !== undefined) {
+        const dz = modifiedPoint.z - originalSegmentPoint.z
+        // Z doesn't need approximation, store if non-zero
+        if (dz !== 0) {
+          normDelta.dz = dz
+          hasDelta = true
+        }
+      }
+
+      // Only add to cache if there was an actual change
+      if (hasDelta) {
+        normalizedDeltas.push([normSpId, normDelta])
+      }
     }
 
     const cachedSolution: CachedSolvedUnravelSection = {
       success: true,
-      bestCandidatePointModifications: normalizedModifications,
+      bestCandidatePointModificationsDelta: normalizedDeltas,
       bestCandidateF: this.bestCandidate.f,
     }
 
