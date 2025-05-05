@@ -18,6 +18,8 @@ import { convertToCircuitJson } from "./utils/convertToCircuitJson"
 import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
 import { addVisualizationToLastStep } from "lib/utils/addVisualizationToLastStep"
 import { SolveBreakpointDialog } from "./SolveBreakpointDialog"
+import { CacheDebugger } from "./CacheDebugger"
+import { getGlobalLocalStorageCache } from "lib/cache/setupGlobalCaches"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -25,7 +27,10 @@ interface CapacityMeshPipelineDebuggerProps {
 }
 
 const createSolver = (srj: SimpleRouteJson) => {
-  return new CapacityMeshSolver(srj)
+  return new CapacityMeshSolver(srj, {
+    // TODO this should be an option, we want to set it to null by default
+    cacheProvider: getGlobalLocalStorageCache(),
+  })
 }
 
 export const AutoroutingPipelineDebugger = ({
@@ -1078,6 +1083,7 @@ export const AutoroutingPipelineDebugger = ({
           Download Circuit Json
         </button>
       </div>
+      <CacheDebugger />
     </div>
   )
 }
