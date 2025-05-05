@@ -29,7 +29,7 @@ interface CapacityMeshPipelineDebuggerProps {
 const createSolver = (srj: SimpleRouteJson) => {
   return new CapacityMeshSolver(srj, {
     // TODO this should be an option, we want to set it to null by default
-    cacheProvider: getGlobalLocalStorageCache(),
+    cacheProvider: null, // getGlobalLocalStorageCache(),
   })
 }
 
