@@ -14,10 +14,20 @@ import { getIssuesInSection } from "./getIssuesInSection"
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { SegmentId } from "./types"
 import { LocalStorageCache } from "lib/cache/LocalStorageCache"
-import { setupGlobalCaches } from "lib/cache/setupGlobalCaches"
+import {
+  getGlobalLocalStorageCache,
+  setupGlobalCaches,
+} from "lib/cache/setupGlobalCaches"
 
 // Normalized IDs are simple strings like "node_0", "sp_1", etc.
 type NormalizedId = string
+
+// Helper function to round to nearest 50 microns (0.05 mm) and return as string
+const approximateCoordinate = (coord: number): string => {
+  // Multiply by 20 (1 / 0.05), round, then divide by 20
+  // Use toFixed(2) to ensure consistent string format like "1.20" or "0.05"
+  return (Math.round(coord * 20) / 20).toFixed(2)
+}
 
 interface CacheToUnravelSectionTransform {
   translationOffset: { x: number; y: number }
@@ -33,9 +43,9 @@ interface CacheToUnravelSectionTransform {
 type CachedSolvedUnravelSection =
   | {
       success: true
-      // Store the essential result using NORMALIZED IDs and NORMALIZED coordinates
+      // Store the essential result using NORMALIZED IDs and APPROXIMATED coordinates (as strings)
       bestCandidatePointModifications: Array<
-        [NormalizedId, { x?: number; y?: number; z?: number }] // Normalized ID and coords
+        [NormalizedId, { x?: string; y?: string; z?: number }] // Normalized ID and approximated coords (x,y as string)
       >
       // Store the 'f' value to reconstruct the candidate accurately
       bestCandidateF: number
@@ -62,9 +72,10 @@ export class CachedUnravelSectionSolver
     },
   ) {
     super(params)
-    // this.cacheProvider =
-    //   params.cacheProvider ?? globalThis.TSCIRCUIT_AUTOROUTER_IN_MEMORY_CACHE
-    this.cacheProvider = params.cacheProvider ?? null
+    this.cacheProvider =
+      params.cacheProvider === undefined
+        ? getGlobalLocalStorageCache() // Default to in-memory if undefined
+        : params.cacheProvider // Use null if explicitly passed as null
   }
 
   _step() {
@@ -81,9 +92,6 @@ export class CachedUnravelSectionSolver
     cacheKey: string
     cacheToSolveSpaceTransform: CacheToUnravelSectionTransform
   } {
-    // Round to the nearest 50 microns, convert to string
-    const approx1 = (mm: number) => // TODO
-
     // 1. Calculate Translation Offset
     const rootNode = this.nodeMap.get(this.rootNodeId)!
     const translationOffset = { x: -rootNode.center.x, y: -rootNode.center.y }
@@ -149,7 +157,7 @@ export class CachedUnravelSectionSolver
         width: number
         height: number
         availableZ: number[]
-        center: { x: number; y: number }
+        center: { x: string; y: string } // Coordinates are approximated strings
       }
     > = {}
     for (const [nodeId, normNodeId] of nodeIdMap.entries()) {
@@ -160,8 +168,8 @@ export class CachedUnravelSectionSolver
         height: node.height,
         availableZ: node.availableZ,
         center: {
-          x: node.center.x + translationOffset.x,
-          y: node.center.y + translationOffset.y,
+          x: approximateCoordinate(node.center.x + translationOffset.x),
+          y: approximateCoordinate(node.center.y + translationOffset.y),
         },
       }
     }
@@ -169,8 +177,8 @@ export class CachedUnravelSectionSolver
     const normalizedSegmentPoints: Record<
       NormalizedId,
       {
-        x: number
-        y: number
+        x: string // Approximated string coordinate
+        y: string // Approximated string coordinate
         z: number
         // segmentId: NormalizedId // Use normalized ID
         // connectionName: string
@@ -180,8 +188,8 @@ export class CachedUnravelSectionSolver
     for (const [spId, normSpId] of segmentPointIdMap.entries()) {
       const sp = this.unravelSection.segmentPointMap.get(spId)!
       normalizedSegmentPoints[normSpId] = {
-        x: sp.x + translationOffset.x,
-        y: sp.y + translationOffset.y,
+        x: approximateCoordinate(sp.x + translationOffset.x),
+        y: approximateCoordinate(sp.y + translationOffset.y),
         z: sp.z,
         // segmentId: segmentIdMap.get(sp.segmentId)!,
         // connectionName: sp.connectionName,
@@ -201,7 +209,7 @@ export class CachedUnravelSectionSolver
 
     // Use object-hash for potentially better handling of object structures
     // const cacheKey = stableStringify(keyData)
-    const cacheKey = objectHash(keyData)
+    const cacheKey = `unravelsec:${objectHash(keyData)}`
 
     const cacheToSolveSpaceTransform: CacheToUnravelSectionTransform = {
       translationOffset,
@@ -243,7 +251,7 @@ export class CachedUnravelSectionSolver
 
     for (const [
       normSpId,
-      normMod,
+      normMod, // normMod.x and normMod.y are strings here
     ] of cachedSolution.bestCandidatePointModifications) {
       const originalSpId = reverseSegmentPointIdMap.get(normSpId)
       if (!originalSpId) {
@@ -253,12 +261,24 @@ export class CachedUnravelSectionSolver
         continue
       }
 
-      // Denormalize coordinates
+      // Denormalize coordinates, parsing strings back to numbers
       const originalMod: { x?: number; y?: number; z?: number } = {}
-      if (normMod.x !== undefined)
-        originalMod.x = normMod.x - translationOffset.x
-      if (normMod.y !== undefined)
-        originalMod.y = normMod.y - translationOffset.y
+      if (normMod.x !== undefined) {
+        const xNum = parseFloat(normMod.x)
+        if (!isNaN(xNum)) {
+          originalMod.x = xNum - translationOffset.x
+        } else {
+          console.warn(`Failed to parse cached x coordinate: ${normMod.x}`)
+        }
+      }
+      if (normMod.y !== undefined) {
+        const yNum = parseFloat(normMod.y)
+        if (!isNaN(yNum)) {
+          originalMod.y = yNum - translationOffset.y
+        } else {
+          console.warn(`Failed to parse cached y coordinate: ${normMod.y}`)
+        }
+      }
       if (normMod.z !== undefined) originalMod.z = normMod.z // Z is not translated
 
       pointModifications.set(originalSpId, originalMod)
@@ -335,9 +355,9 @@ export class CachedUnravelSectionSolver
     const { translationOffset, segmentPointIdMap } =
       this.cacheToSolveSpaceTransform!
 
-    // Convert best candidate modifications to NORMALIZED format
+    // Convert best candidate modifications to NORMALIZED format with approximated coordinates
     const normalizedModifications: Array<
-      [NormalizedId, { x?: number; y?: number; z?: number }]
+      [NormalizedId, { x?: string; y?: string; z?: number }] // x, y are strings
     > = []
 
     for (const [
@@ -352,12 +372,14 @@ export class CachedUnravelSectionSolver
         continue
       }
 
-      // Normalize coordinates
-      const normMod: { x?: number; y?: number; z?: number } = {}
-      if (originalMod.x !== undefined)
-        normMod.x = originalMod.x + translationOffset.x
-      if (originalMod.y !== undefined)
-        normMod.y = originalMod.y + translationOffset.y
+      // Normalize and approximate coordinates
+      const normMod: { x?: string; y?: string; z?: number } = {}
+      if (originalMod.x !== undefined) {
+        normMod.x = approximateCoordinate(originalMod.x + translationOffset.x)
+      }
+      if (originalMod.y !== undefined) {
+        normMod.y = approximateCoordinate(originalMod.y + translationOffset.y)
+      }
       if (originalMod.z !== undefined) normMod.z = originalMod.z // Z is not translated
 
       normalizedModifications.push([normSpId, normMod])
