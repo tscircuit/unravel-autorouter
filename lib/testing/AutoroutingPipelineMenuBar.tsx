@@ -5,8 +5,20 @@ import {
   MenubarMenu,
   MenubarSeparator,
   MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
   MenubarTrigger,
 } from "lib/testing/ui/menubar" // Assuming shadcn components are here
+
+export type CacheProvider = "none" | "in-memory" | "local-storage"
+
+const cacheProviders: CacheProvider[] = ["none", "in-memory", "local-storage"]
+const cacheProviderLabels: Record<CacheProvider, string> = {
+  none: "None",
+  "in-memory": "In Memory",
+  "local-storage": "Local Storage",
+}
 
 interface AutoroutingPipelineMenuBarProps {
   renderer: "canvas" | "vector"
@@ -17,6 +29,10 @@ interface AutoroutingPipelineMenuBarProps {
   drcErrorCount: number
   animationSpeed: number
   onSetAnimationSpeed: (speed: number) => void
+  onSolveToBreakpointClick: () => void
+  cacheProvider: CacheProvider
+  onSetCacheProvider: (provider: CacheProvider) => void
+  onClearCache: () => void
 }
 
 const animationSpeeds = [1, 2, 5, 10, 100, 500, 5000]
@@ -30,6 +46,10 @@ export const AutoroutingPipelineMenuBar = ({
   onSetCanSelectObjects,
   onRunDrcChecks,
   drcErrorCount,
+  onSolveToBreakpointClick,
+  cacheProvider,
+  onSetCacheProvider,
+  onClearCache,
 }: AutoroutingPipelineMenuBarProps) => {
   return (
     <Menubar className="rounded-none border-b border-none px-2 lg:px-4 mb-4">
@@ -59,6 +79,9 @@ export const AutoroutingPipelineMenuBar = ({
             {canSelectObjects ? "Disable" : "Enable"} Object Interaction
             {canSelectObjects && <MenubarShortcut>✓</MenubarShortcut>}
           </MenubarItem>
+          <MenubarItem onClick={onSolveToBreakpointClick}>
+            Solve to Breakpoint
+          </MenubarItem>
           <MenubarSeparator />
           <MenubarItem onClick={onRunDrcChecks}>
             Run DRC Checks{" "}
@@ -83,6 +106,30 @@ export const AutoroutingPipelineMenuBar = ({
               {animationSpeed === speed && <MenubarShortcut>✓</MenubarShortcut>}
             </MenubarItem>
           ))}
+        </MenubarContent>
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger>Cache</MenubarTrigger>
+        <MenubarContent>
+          <MenubarSub>
+            <MenubarSubTrigger>Set Cache Provider</MenubarSubTrigger>
+            <MenubarSubContent>
+              {cacheProviders.map((provider) => (
+                <MenubarItem
+                  key={provider}
+                  onClick={() => onSetCacheProvider(provider)}
+                  disabled={cacheProvider === provider}
+                >
+                  {cacheProviderLabels[provider]}{" "}
+                  {cacheProvider === provider && (
+                    <MenubarShortcut>✓</MenubarShortcut>
+                  )}
+                </MenubarItem>
+              ))}
+            </MenubarSubContent>
+          </MenubarSub>
+          <MenubarSeparator />
+          <MenubarItem onClick={onClearCache}>Clear Cache</MenubarItem>
         </MenubarContent>
       </MenubarMenu>
     </Menubar>
