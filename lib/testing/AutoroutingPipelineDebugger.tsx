@@ -19,26 +19,56 @@ import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
 import { addVisualizationToLastStep } from "lib/utils/addVisualizationToLastStep"
 import { SolveBreakpointDialog } from "./SolveBreakpointDialog"
 import { CacheDebugger } from "./CacheDebugger"
-import { getGlobalLocalStorageCache } from "lib/cache/setupGlobalCaches"
+import {
+  getGlobalInMemoryCache,
+  getGlobalLocalStorageCache,
+} from "lib/cache/setupGlobalCaches"
+import { CacheProvider } from "lib/cache/types"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
   animationSpeed?: number
 }
 
-const createSolver = (srj: SimpleRouteJson) => {
-  return new CapacityMeshSolver(srj, {
-    // TODO this should be an option, we want to set it to null by default
-    cacheProvider: null, // getGlobalLocalStorageCache(),
-  })
+const cacheProviderNames = ["None", "In Memory", "Local Storage"] as const
+type CacheProviderName = (typeof cacheProviderNames)[number]
+
+const getGlobalCacheProviderFromName = (
+  name: CacheProviderName,
+): CacheProvider | null => {
+  if (name === "None") return null
+  if (name === "In Memory") return getGlobalInMemoryCache()
+  if (name === "Local Storage") return getGlobalLocalStorageCache()
+  return null
 }
 
 export const AutoroutingPipelineDebugger = ({
   srj,
   animationSpeed = 1,
 }: CapacityMeshPipelineDebuggerProps) => {
+  const [cacheProviderName, setCacheProviderNameState] =
+    useState<CacheProviderName>(
+      (localStorage.getItem("cacheProviderName") as CacheProviderName) ??
+        "None",
+    )
+
+  const setCacheProviderName = (newName: CacheProviderName) => {
+    setCacheProviderNameState(newName)
+    localStorage.setItem("cacheProviderName", newName)
+  }
+
+  const cacheProvider = useMemo(
+    () => getGlobalCacheProviderFromName(cacheProviderName),
+    [cacheProviderName],
+  )
+
+  const createNewSolver = () =>
+    new AutoroutingPipelineSolver(srj, {
+      cacheProvider,
+    })
+
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
-    createSolver(srj),
+    createNewSolver(),
   )
   const [previewMode, setPreviewMode] = useState(false)
   const [renderer, setRenderer] = useState<"canvas" | "vector">(
@@ -70,7 +100,7 @@ export const AutoroutingPipelineDebugger = ({
 
   // Reset solver
   const resetSolver = () => {
-    setSolver(createSolver(srj))
+    setSolver(createNewSolver())
     setDrcErrors(null) // Clear DRC errors when resetting
     setDrcErrorCount(0)
     isSolvingToBreakpointRef.current = false // Stop breakpoint solving on reset
@@ -185,7 +215,7 @@ export const AutoroutingPipelineDebugger = ({
 
     // If we're already past the target, we need to reset and start over
     if (solver.iterations > target) {
-      const newSolver = createSolver(srj)
+      const newSolver = createNewSolver()
       setSolver(newSolver)
 
       // Now run until we reach the target
@@ -780,7 +810,7 @@ export const AutoroutingPipelineDebugger = ({
                           nodeId,
                           nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
                           segmentIdToNodeIds: umss.segmentIdToNodeIds,
-                          hops: 5,
+                          hops: 8,
                         }),
                       )
 
@@ -1083,7 +1113,7 @@ export const AutoroutingPipelineDebugger = ({
           Download Circuit Json
         </button>
       </div>
-      <CacheDebugger />
+      <CacheDebugger cacheProvider={cacheProvider} />
     </div>
   )
 }

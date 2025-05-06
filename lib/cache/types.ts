@@ -11,6 +11,8 @@ export interface CacheProvider {
   setCachedSolutionSync(cacheKey: string, cachedSolution: any): void
   setCachedSolution(cacheKey: string, cachedSolution: any): Promise<void>
 
+  getAllCacheKeys(): string[]
+
   clearCache(): void
 }
 

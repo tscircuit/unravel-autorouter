@@ -70,4 +70,8 @@ export class InMemoryCache implements CacheProvider {
     this.cacheHits = 0
     this.cacheMisses = 0
   }
+
+  getAllCacheKeys(): string[] {
+    return Array.from(this.cache.keys())
+  }
 }
