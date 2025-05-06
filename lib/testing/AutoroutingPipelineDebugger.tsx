@@ -526,6 +526,10 @@ export const AutoroutingPipelineDebugger = ({
         onSetCanSelectObjects={setCanSelectObjects}
         onRunDrcChecks={handleRunDrcChecks}
         drcErrorCount={drcErrorCount}
+        animationSpeed={0}
+        onSetAnimationSpeed={function (speed: number): void {
+          throw new Error("Function not implemented.")
+        }}
       />
       <div className="flex gap-2 mb-4 text-xs">
         <button

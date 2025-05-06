@@ -15,11 +15,17 @@ interface AutoroutingPipelineMenuBarProps {
   onSetCanSelectObjects: (canSelect: boolean) => void
   onRunDrcChecks: () => void
   drcErrorCount: number
+  animationSpeed: number
+  onSetAnimationSpeed: (speed: number) => void
 }
+
+const animationSpeeds = [1, 2, 5, 10, 100, 500, 5000]
 
 export const AutoroutingPipelineMenuBar = ({
   renderer,
   onSetRenderer,
+  animationSpeed,
+  onSetAnimationSpeed,
   canSelectObjects,
   onSetCanSelectObjects,
   onRunDrcChecks,
@@ -62,6 +68,21 @@ export const AutoroutingPipelineMenuBar = ({
               </MenubarShortcut>
             )}
           </MenubarItem>
+        </MenubarContent>
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger>Animation</MenubarTrigger>
+        <MenubarContent>
+          {animationSpeeds.map((speed) => (
+            <MenubarItem
+              key={speed}
+              onClick={() => onSetAnimationSpeed(speed)}
+              disabled={animationSpeed === speed}
+            >
+              {speed}x{" "}
+              {animationSpeed === speed && <MenubarShortcut>✓</MenubarShortcut>}
+            </MenubarItem>
+          ))}
         </MenubarContent>
       </MenubarMenu>
     </Menubar>
