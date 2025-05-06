@@ -6,7 +6,7 @@ import {
   MenubarSeparator,
   MenubarShortcut,
   MenubarTrigger,
-} from "@/components/ui/menubar" // Assuming shadcn components are here
+} from "lib/testing/ui/menubar" // Assuming shadcn components are here
 
 interface AutoroutingPipelineMenuBarProps {
   renderer: "canvas" | "vector"

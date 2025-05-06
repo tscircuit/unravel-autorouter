@@ -24,6 +24,7 @@ import {
   getGlobalLocalStorageCache,
 } from "lib/cache/setupGlobalCaches"
 import { CacheProvider } from "lib/cache/types"
+import { AutoroutingPipelineMenuBar } from "./AutoroutingPipelineMenuBar"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
@@ -515,6 +516,20 @@ export const AutoroutingPipelineDebugger = ({
 
   return (
     <div className="p-4">
+      <AutoroutingPipelineMenuBar
+        renderer={"canvas"}
+        onSetRenderer={function (renderer: "canvas" | "vector"): void {
+          throw new Error("Function not implemented.")
+        }}
+        canSelectObjects={false}
+        onSetCanSelectObjects={function (canSelect: boolean): void {
+          throw new Error("Function not implemented.")
+        }}
+        onRunDrcChecks={function (): void {
+          throw new Error("Function not implemented.")
+        }}
+        drcErrorCount={0}
+      />
       <div className="flex gap-2 mb-4 text-xs">
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
