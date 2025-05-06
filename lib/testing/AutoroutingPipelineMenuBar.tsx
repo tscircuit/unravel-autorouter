@@ -10,7 +10,10 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "lib/testing/ui/menubar" // Assuming shadcn components are here
-import type { CacheProviderName } from "./AutoroutingPipelineDebugger"
+import {
+  type CacheProviderName,
+  cacheProviderNames,
+} from "./AutoroutingPipelineDebugger"
 
 const cacheProviders: CacheProviderName[] = [
   "None",
@@ -45,8 +48,8 @@ export const AutoroutingPipelineMenuBar = ({
   onRunDrcChecks,
   drcErrorCount,
   onSolveToBreakpointClick,
-  cacheProvider,
-  onSetCacheProvider,
+  cacheProviderName,
+  onSetCacheProviderName,
   onClearCache,
 }: AutoroutingPipelineMenuBarProps) => {
   return (
@@ -112,14 +115,14 @@ export const AutoroutingPipelineMenuBar = ({
           <MenubarSub>
             <MenubarSubTrigger>Set Cache Provider</MenubarSubTrigger>
             <MenubarSubContent>
-              {cacheProviders.map((provider) => (
+              {cacheProviderNames.map((provider) => (
                 <MenubarItem
                   key={provider}
-                  onClick={() => onSetCacheProvider(provider)}
-                  disabled={cacheProvider === provider}
+                  onClick={() => onSetCacheProviderName(provider)}
+                  disabled={cacheProviderName === provider}
                 >
-                  {cacheProviderLabels[provider]}{" "}
-                  {cacheProvider === provider && (
+                  {provider}
+                  {cacheProviderName === provider && (
                     <MenubarShortcut>✓</MenubarShortcut>
                   )}
                 </MenubarItem>

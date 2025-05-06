@@ -31,7 +31,11 @@ interface CapacityMeshPipelineDebuggerProps {
   animationSpeed?: number
 }
 
-const cacheProviderNames = ["None", "In Memory", "Local Storage"] as const
+export const cacheProviderNames = [
+  "None",
+  "In Memory",
+  "Local Storage",
+] as const
 export type CacheProviderName = (typeof cacheProviderNames)[number]
 
 const getGlobalCacheProviderFromName = (
