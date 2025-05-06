@@ -517,18 +517,15 @@ export const AutoroutingPipelineDebugger = ({
   return (
     <div className="p-4">
       <AutoroutingPipelineMenuBar
-        renderer={"canvas"}
-        onSetRenderer={function (renderer: "canvas" | "vector"): void {
-          throw new Error("Function not implemented.")
+        renderer={renderer}
+        onSetRenderer={(newRenderer) => {
+          setRenderer(newRenderer)
+          window.localStorage.setItem("lastSelectedRenderer", newRenderer)
         }}
-        canSelectObjects={false}
-        onSetCanSelectObjects={function (canSelect: boolean): void {
-          throw new Error("Function not implemented.")
-        }}
-        onRunDrcChecks={function (): void {
-          throw new Error("Function not implemented.")
-        }}
-        drcErrorCount={0}
+        canSelectObjects={canSelectObjects}
+        onSetCanSelectObjects={setCanSelectObjects}
+        onRunDrcChecks={handleRunDrcChecks}
+        drcErrorCount={drcErrorCount}
       />
       <div className="flex gap-2 mb-4 text-xs">
         <button
