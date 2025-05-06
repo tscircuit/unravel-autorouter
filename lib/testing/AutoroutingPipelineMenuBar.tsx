@@ -10,15 +10,13 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "lib/testing/ui/menubar" // Assuming shadcn components are here
+import type { CacheProviderName } from "./AutoroutingPipelineDebugger"
 
-export type CacheProvider = "none" | "in-memory" | "local-storage"
-
-const cacheProviders: CacheProvider[] = ["none", "in-memory", "local-storage"]
-const cacheProviderLabels: Record<CacheProvider, string> = {
-  none: "None",
-  "in-memory": "In Memory",
-  "local-storage": "Local Storage",
-}
+const cacheProviders: CacheProviderName[] = [
+  "None",
+  "In Memory",
+  "Local Storage",
+]
 
 interface AutoroutingPipelineMenuBarProps {
   renderer: "canvas" | "vector"
@@ -30,8 +28,8 @@ interface AutoroutingPipelineMenuBarProps {
   animationSpeed: number
   onSetAnimationSpeed: (speed: number) => void
   onSolveToBreakpointClick: () => void
-  cacheProvider: CacheProvider
-  onSetCacheProvider: (provider: CacheProvider) => void
+  cacheProviderName: CacheProviderName
+  onSetCacheProviderName: (provider: CacheProviderName) => void
   onClearCache: () => void
 }
 

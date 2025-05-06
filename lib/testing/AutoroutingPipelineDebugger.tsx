@@ -32,7 +32,7 @@ interface CapacityMeshPipelineDebuggerProps {
 }
 
 const cacheProviderNames = ["None", "In Memory", "Local Storage"] as const
-type CacheProviderName = (typeof cacheProviderNames)[number]
+export type CacheProviderName = (typeof cacheProviderNames)[number]
 
 const getGlobalCacheProviderFromName = (
   name: CacheProviderName,
@@ -526,9 +526,17 @@ export const AutoroutingPipelineDebugger = ({
         onSetCanSelectObjects={setCanSelectObjects}
         onRunDrcChecks={handleRunDrcChecks}
         drcErrorCount={drcErrorCount}
-        animationSpeed={0}
-        onSetAnimationSpeed={function (speed: number): void {
-          throw new Error("Function not implemented.")
+        animationSpeed={speedLevel}
+        onSetAnimationSpeed={setSpeedLevel}
+        onSolveToBreakpointClick={() => {
+          setIsBreakpointDialogOpen(true)
+        }}
+        cacheProviderName={cacheProviderName}
+        onSetCacheProviderName={(name: CacheProviderName) => {
+          setCacheProviderName(name)
+        }}
+        onClearCache={() => {
+          cacheProvider?.clearCache()
         }}
       />
       <div className="flex gap-2 mb-4 text-xs">
@@ -555,24 +563,6 @@ export const AutoroutingPipelineDebugger = ({
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={decreaseSpeed}
-          disabled={speedLevel === 0 || solver.solved || solver.failed}
-        >
-          Slower
-        </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100 min-w-[80px]"
-          onClick={increaseSpeed}
-          disabled={
-            speedLevel === speedLevels.length - 1 ||
-            solver.solved ||
-            solver.failed
-          }
-        >
-          {speedLabels[speedLevel + 1] ?? "(Max)"}
-        </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleSolveCompletely}
           disabled={solver.solved || solver.failed}
         >
@@ -583,15 +573,6 @@ export const AutoroutingPipelineDebugger = ({
           onClick={resetSolver}
         >
           Reset
-        </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() => setIsBreakpointDialogOpen(true)}
-          disabled={
-            solver.solved || solver.failed || isSolvingToBreakpointRef.current
-          }
-        >
-          {isSolvingToBreakpointRef.current ? "Solving..." : "Solve Breakpoint"}
         </button>
       </div>
 
