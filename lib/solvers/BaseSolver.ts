@@ -11,7 +11,7 @@ export class BaseSolver {
   activeSubSolver?: BaseSolver | null
   failedSubSolvers?: BaseSolver[]
   timeToSolve?: number
-  stats: Record<string, number> = {}
+  stats: Record<string, any> = {}
 
   /**
    * For cached solvers
