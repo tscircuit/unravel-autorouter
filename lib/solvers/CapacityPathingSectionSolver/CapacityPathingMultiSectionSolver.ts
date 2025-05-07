@@ -89,7 +89,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   constructor(
     params: ConstructorParameters<typeof CapacityPathingSolver>[0] & {
       initialPathingSolver?: CapacityPathingGreedySolver
-    },
+    }
   ) {
     super()
     this.stats = {
@@ -108,7 +108,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
     this.colorMap = params.colorMap ?? {}
     this.nodeMap = new Map(
-      this.nodes.map((node) => [node.capacityMeshNodeId, node]),
+      this.nodes.map((node) => [node.capacityMeshNodeId, node])
     )
     this.nodeEdgeMap = getNodeEdgeMap(this.edges)
     this.initialSolver =
@@ -165,15 +165,15 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     for (const node of this.nodes) {
       if (node._containsTarget) continue
       const attemptCount = this.nodeOptimizationAttemptCountMap.get(
-        node.capacityMeshNodeId,
+        node.capacityMeshNodeId
       )!
       const totalCapacity = this.totalNodeCapacityMap.get(
-        node.capacityMeshNodeId,
+        node.capacityMeshNodeId
       )!
       const nodePf = calculateNodeProbabilityOfFailure(
         this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0,
         totalCapacity,
-        node.availableZ.length,
+        node.availableZ.length
       )
       const nodePfDivAttempts = nodePf / (attemptCount + 1)
       if (
@@ -190,27 +190,32 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     return nodeWithHighestPercentCapacityUsed
   }
 
-  getWorstNodePf() {
+  getOverallScore() {
     let highestNodePf = 0
     for (const node of this.nodes) {
       if (node._containsTarget) continue
-      const attemptCount = this.nodeOptimizationAttemptCountMap.get(
-        node.capacityMeshNodeId,
-      )!
       const totalCapacity = this.totalNodeCapacityMap.get(
-        node.capacityMeshNodeId,
+        node.capacityMeshNodeId
       )!
       const nodePf = calculateNodeProbabilityOfFailure(
         this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0,
         totalCapacity,
-        node.availableZ.length,
+        node.availableZ.length
       )
-      const nodePfDivAttempts = nodePf / (attemptCount + 1)
+
       if (nodePf > highestNodePf) {
         highestNodePf = nodePf
       }
     }
-    return highestNodePf
+    return {
+      highestNodePf,
+      score: computeSectionScore({
+        totalNodeCapacityMap: this.totalNodeCapacityMap,
+        usedNodeCapacityMap: this.usedNodeCapacityMap,
+        nodeMap: this.nodeMap,
+        sectionNodeIds: this.nodes.map((node) => node.capacityMeshNodeId),
+      })
+    }
   }
 
   _stepSectionOptimization() {
@@ -219,7 +224,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       if (!centerNodeId) {
         // No more nodes to optimize
         this.currentScheduleIndex++
-        this.stats[`nodePf${this.currentScheduleIndex}`] = this.getWorstNodePf()
+        const { highestNodePf, score } = this.getOverallScore()
+        this.stats[`nodePf${this.currentScheduleIndex}`] = highestNodePf
+        this.stats[`score${this.currentScheduleIndex}`] = score
         if (!this.currentSchedule) {
           this.solved = true
         }
@@ -247,7 +254,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       this.activeSubSolver = this.sectionSolver
       this.nodeOptimizationAttemptCountMap.set(
         centerNodeId,
-        (this.nodeOptimizationAttemptCountMap.get(centerNodeId) ?? 0) + 1,
+        (this.nodeOptimizationAttemptCountMap.get(centerNodeId) ?? 0) + 1
       )
     }
 
@@ -259,7 +266,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       console.warn(
         `Section solver failed for node ${
           this.currentSection!.centerNodeId
-        }. Error: ${this.sectionSolver.error}`,
+        }. Error: ${this.sectionSolver.error}`
       )
       this.stats.failedSectionSolvers++
       this.stats.failedOptimizations++
@@ -278,13 +285,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         console.warn(
           `Pathing sub-solver for section ${
             this.currentSection!.centerNodeId
-          } did not complete successfully. Discarding results.`,
+          } did not complete successfully. Discarding results.`
         )
         return // Skip scoring and merging
       }
 
       const sectionNodeIds = new Set(
-        solvedSectionSolver.sectionNodes.map((n) => n.capacityMeshNodeId),
+        solvedSectionSolver.sectionNodes.map((n) => n.capacityMeshNodeId)
       )
 
       // --- Calculate Before Score ---
@@ -303,7 +310,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       // 2. Decrement capacity for original paths within the section
       for (const terminal of newSectionPaths) {
         const originalConnection = this.connectionsWithNodes.find(
-          (conn) => conn.connection.name === terminal.connectionName,
+          (conn) => conn.connection.name === terminal.connectionName
         )
         if (originalConnection?.path) {
           for (const node of originalConnection.path) {
@@ -313,7 +320,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
               // Ensure usage doesn't go below zero if maps were somehow inconsistent
               afterUsedCapacityMap.set(
                 node.capacityMeshNodeId,
-                Math.max(0, currentUsage - 1),
+                Math.max(0, currentUsage - 1)
               )
             }
           }
@@ -328,7 +335,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
             if (sectionNodeIds.has(node.capacityMeshNodeId)) {
               afterUsedCapacityMap.set(
                 node.capacityMeshNodeId,
-                (afterUsedCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1,
+                (afterUsedCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1
               )
             }
           }
@@ -377,13 +384,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   private _mergeSolvedSectionPaths(
     solvedSectionSolver:
       | CapacityPathingSingleSectionPathingSolver
-      | HyperCapacityPathingSingleSectionSolver,
+      | HyperCapacityPathingSingleSectionSolver
   ) {
     const centerNodeId = solvedSectionSolver.centerNodeId
     // Ensure the pathing sub-solver actually ran and has results
     if (!solvedSectionSolver || !solvedSectionSolver.solved) {
       console.warn(
-        `Pathing sub-solver for section ${centerNodeId} did not complete successfully. Skipping merge.`,
+        `Pathing sub-solver for section ${centerNodeId} did not complete successfully. Skipping merge.`
       )
       return
     }
@@ -394,18 +401,18 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       if (!solvedTerminal.path) {
         // Pathing might have failed for this specific connection within the section
         console.warn(
-          `No path found for connection ${solvedTerminal.connectionName} in section ${centerNodeId}`,
+          `No path found for connection ${solvedTerminal.connectionName} in section ${centerNodeId}`
         )
         continue
       }
 
       const originalConnection = this.connectionsWithNodes.find(
-        (conn) => conn.connection.name === solvedTerminal.connectionName,
+        (conn) => conn.connection.name === solvedTerminal.connectionName
       )
 
       if (!originalConnection || !originalConnection.path) {
         console.warn(
-          `Original connection or path not found for ${solvedTerminal.connectionName} while merging section ${solvedSectionSolver.centerNodeId}`,
+          `Original connection or path not found for ${solvedTerminal.connectionName} while merging section ${solvedSectionSolver.centerNodeId}`
         )
         continue
       }
@@ -415,15 +422,15 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
       // Find the indices in the original path corresponding to the section terminals
       const startIndex = originalPath.findIndex(
-        (node) => node.capacityMeshNodeId === solvedTerminal.startNodeId,
+        (node) => node.capacityMeshNodeId === solvedTerminal.startNodeId
       )
       const endIndex = originalPath.findIndex(
-        (node) => node.capacityMeshNodeId === solvedTerminal.endNodeId,
+        (node) => node.capacityMeshNodeId === solvedTerminal.endNodeId
       )
 
       if (startIndex === -1 || endIndex === -1) {
         console.warn(
-          `Could not find start/end nodes (${solvedTerminal.startNodeId}/${solvedTerminal.endNodeId}) in original path for ${solvedTerminal.connectionName}`,
+          `Could not find start/end nodes (${solvedTerminal.startNodeId}/${solvedTerminal.endNodeId}) in original path for ${solvedTerminal.connectionName}`
         )
         continue
       }
@@ -461,7 +468,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         } else {
           // This case is problematic - the new path doesn't seem to connect correctly.
           console.warn(
-            `New section path for ${solvedTerminal.connectionName} doesn't align with original path boundaries. Skipping merge for this connection.`,
+            `New section path for ${solvedTerminal.connectionName} doesn't align with original path boundaries. Skipping merge for this connection.`
           )
           continue // Skip merging this specific path
         }
@@ -489,7 +496,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       for (const node of conn.path) {
         this.usedNodeCapacityMap.set(
           node.capacityMeshNodeId,
-          (this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1,
+          (this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1
         )
       }
     }
