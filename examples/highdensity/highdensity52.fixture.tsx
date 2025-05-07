@@ -4,14 +4,18 @@ import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger"
 import { HyperHighDensityDebugger } from "lib/testing/HyperHighDensityDebugger"
 import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
 import { MultiHeadPolyLineIntraNodeSolver3 } from "../../lib/solvers/HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/MultiHeadPolyLineIntraNodeSolver3_ViaPossibilitiesSolverIntegration"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 export const hyperParameters = {
   SEGMENTS_PER_POLYLINE: 6,
 }
 
+const connMap = new ConnectivityMap({})
+connMap.addConnections([["source_net_0_mst19", "source_net_0_mst156"]])
+
 export default () => {
   return (
-    <HyperHighDensityDebugger nodeWithPortPoints={cn23108} />
+    <HyperHighDensityDebugger nodeWithPortPoints={cn23108} connMap={connMap} />
     // <GenericSolverDebugger
     //   createSolver={() =>
     //     new MultiHeadPolyLineIntraNodeSolver3({

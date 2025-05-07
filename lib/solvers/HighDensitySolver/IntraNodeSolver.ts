@@ -182,6 +182,8 @@ export class IntraNodeRouteSolver extends BaseSolver {
           y: points[points.length - 1].y,
           z: points[points.length - 1].z,
         },
+        // TODO filter solved routes that are connected to connectionName
+        // (they are not obstacles)
         obstacleRoutes: this.solvedRoutes,
         futureConnections: this.unsolvedConnections,
         layerCount: 2,

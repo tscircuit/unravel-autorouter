@@ -6,19 +6,23 @@ import { useEffect, useState, useMemo } from "react"
 import type { NodeWithPortPoints } from "../types/high-density-types"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { GraphicsObject } from "graphics-debug"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 interface HyperHighDensityDebuggerProps {
   nodeWithPortPoints: NodeWithPortPoints
+  connMap: ConnectivityMap
   colorMap?: Record<string, string>
 }
 
 export const HyperHighDensityDebugger = ({
   nodeWithPortPoints,
+  connMap,
   colorMap,
 }: HyperHighDensityDebuggerProps) => {
   const solver = useMemo(() => {
     return new HyperSingleIntraNodeSolver({
       nodeWithPortPoints,
+      connMap,
       colorMap:
         colorMap ?? generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
     })
