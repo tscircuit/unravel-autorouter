@@ -223,7 +223,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         totalNodeCapacityMap: this.totalNodeCapacityMap,
         usedNodeCapacityMap: this.usedNodeCapacityMap,
         nodeMap: this.nodeMap,
-        sectionNodeIds: new Set(this.nodes.map((node) => node.capacityMeshNodeId)),
+        sectionNodeIds: new Set(
+          this.nodes.map((node) => node.capacityMeshNodeId),
+        ),
       }),
     }
   }
