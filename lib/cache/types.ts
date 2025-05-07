@@ -18,7 +18,7 @@ export interface CacheProvider {
 
 export interface CachableSolver<
   CacheToSolveSpaceTransform = any,
-  CachedSolution = any,
+  CachedSolution = any
 > {
   cacheHit: boolean
   hasAttemptedToUseCache: boolean

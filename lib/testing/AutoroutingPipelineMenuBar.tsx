@@ -14,6 +14,7 @@ import {
   type CacheProviderName,
   cacheProviderNames,
 } from "./AutoroutingPipelineDebugger"
+import { CacheProvider } from "lib/cache/types"
 
 const cacheProviders: CacheProviderName[] = [
   "None",
@@ -32,6 +33,7 @@ interface AutoroutingPipelineMenuBarProps {
   onSetAnimationSpeed: (speed: number) => void
   onSolveToBreakpointClick: () => void
   cacheProviderName: CacheProviderName
+  cacheProvider: CacheProvider | null
   onSetCacheProviderName: (provider: CacheProviderName) => void
   onClearCache: () => void
 }
@@ -49,6 +51,7 @@ export const AutoroutingPipelineMenuBar = ({
   drcErrorCount,
   onSolveToBreakpointClick,
   cacheProviderName,
+  cacheProvider,
   onSetCacheProviderName,
   onClearCache,
 }: AutoroutingPipelineMenuBarProps) => {
@@ -131,6 +134,16 @@ export const AutoroutingPipelineMenuBar = ({
           </MenubarSub>
           <MenubarSeparator />
           <MenubarItem onClick={onClearCache}>Clear Cache</MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem disabled>
+            Cache Keys: {cacheProvider?.getAllCacheKeys().length}
+          </MenubarItem>
+          <MenubarItem disabled>
+            Cache Hits: {cacheProvider?.cacheHits}
+          </MenubarItem>
+          <MenubarItem disabled>
+            Cache Misses: {cacheProvider?.cacheMisses}
+          </MenubarItem>
         </MenubarContent>
       </MenubarMenu>
     </Menubar>
