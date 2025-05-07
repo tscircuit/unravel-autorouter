@@ -39,7 +39,7 @@ export const cacheProviderNames = [
 export type CacheProviderName = (typeof cacheProviderNames)[number]
 
 const getGlobalCacheProviderFromName = (
-  name: CacheProviderName
+  name: CacheProviderName,
 ): CacheProvider | null => {
   if (name === "None") return null
   if (name === "In Memory") return getGlobalInMemoryCache()
@@ -53,7 +53,8 @@ export const AutoroutingPipelineDebugger = ({
 }: CapacityMeshPipelineDebuggerProps) => {
   const [cacheProviderName, setCacheProviderNameState] =
     useState<CacheProviderName>(
-      (localStorage.getItem("cacheProviderName") as CacheProviderName) ?? "None"
+      (localStorage.getItem("cacheProviderName") as CacheProviderName) ??
+        "None",
     )
 
   const setCacheProviderName = (newName: CacheProviderName) => {
@@ -63,7 +64,7 @@ export const AutoroutingPipelineDebugger = ({
 
   const cacheProvider = useMemo(
     () => getGlobalCacheProviderFromName(cacheProviderName),
-    [cacheProviderName]
+    [cacheProviderName],
   )
 
   const createNewSolver = (opts: { cacheProvider?: CacheProvider } = {}) =>
@@ -73,13 +74,13 @@ export const AutoroutingPipelineDebugger = ({
     })
 
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
-    createNewSolver()
+    createNewSolver(),
   )
   const [previewMode, setPreviewMode] = useState(false)
   const [renderer, setRenderer] = useState<"canvas" | "vector">(
     (window.localStorage.getItem("lastSelectedRenderer") as
       | "canvas"
-      | "vector") ?? "vector"
+      | "vector") ?? "vector",
   )
   const [canSelectObjects, setCanSelectObjects] = useState(false)
   const [, setForceUpdate] = useState(0)
@@ -88,7 +89,7 @@ export const AutoroutingPipelineDebugger = ({
   const [solveTime, setSolveTime] = useState<number | null>(null)
   const [dialogObject, setDialogObject] = useState<Rect | null>(null)
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
-    parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10)
+    parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
   )
   const [drcErrors, setDrcErrors] = useState<GraphicsObject | null>(null)
   const [drcErrorCount, setDrcErrorCount] = useState<number>(0)
@@ -96,7 +97,7 @@ export const AutoroutingPipelineDebugger = ({
     useState(false)
   const [isBreakpointDialogOpen, setIsBreakpointDialogOpen] = useState(false)
   const [breakpointNodeId, setBreakpointNodeId] = useState<string>(
-    () => window.localStorage.getItem("lastBreakpointNodeId") || ""
+    () => window.localStorage.getItem("lastBreakpointNodeId") || "",
   )
   const isSolvingToBreakpointRef = useRef(false) // Ref to track breakpoint solving state
 
@@ -201,7 +202,7 @@ export const AutoroutingPipelineDebugger = ({
 
     const targetIteration = window.prompt(
       "Enter target iteration number:",
-      lastTargetIteration.toString()
+      lastTargetIteration.toString(),
     )
 
     if (targetIteration === null) {
@@ -252,7 +253,7 @@ export const AutoroutingPipelineDebugger = ({
 
       if (!srjWithPointPairs) {
         alert(
-          "No connection information available. Wait until the NetToPointPairsSolver completes."
+          "No connection information available. Wait until the NetToPointPairsSolver completes.",
         )
         return
       }
@@ -262,7 +263,7 @@ export const AutoroutingPipelineDebugger = ({
       // Neither available, show error
       if (!routes) {
         alert(
-          "No routes available yet. Complete routing first or proceed to high-density routing stage."
+          "No routes available yet. Complete routing first or proceed to high-density routing stage.",
         )
         return
       }
@@ -271,7 +272,7 @@ export const AutoroutingPipelineDebugger = ({
       const circuitJson = convertToCircuitJson(
         srjWithPointPairs,
         routes,
-        solver.srj.minTraceWidth
+        solver.srj.minTraceWidth,
       )
 
       // Run the DRC check for trace overlaps
@@ -377,7 +378,7 @@ export const AutoroutingPipelineDebugger = ({
       alert(
         `Error running DRC checks: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       )
     }
   }
@@ -385,7 +386,7 @@ export const AutoroutingPipelineDebugger = ({
   // Solve to Breakpoint logic
   const handleSolveToBreakpoint = (
     targetSolverName: string,
-    targetNodeId: string
+    targetNodeId: string,
   ) => {
     if (solver.solved || solver.failed || isSolvingToBreakpointRef.current) {
       return
@@ -423,7 +424,7 @@ export const AutoroutingPipelineDebugger = ({
         console.log(solverName, rootNodeId)
         if (solverName === targetSolverName && rootNodeId === targetNodeId) {
           console.log(
-            `Breakpoint hit: ${targetSolverName} with rootNodeId ${targetNodeId}`
+            `Breakpoint hit: ${targetSolverName} with rootNodeId ${targetNodeId}`,
           )
           isSolvingToBreakpointRef.current = false // Breakpoint hit, stop solving
           setForceUpdate((prev) => prev + 1) // Update UI
@@ -544,7 +545,7 @@ export const AutoroutingPipelineDebugger = ({
           setSolver(
             createNewSolver({
               cacheProvider: getGlobalCacheProviderFromName(name),
-            })
+            }),
           )
         }}
         onClearCache={() => {
@@ -612,8 +613,8 @@ export const AutoroutingPipelineDebugger = ({
               solver.solved
                 ? "text-green-600"
                 : solver.failed
-                ? "text-red-600"
-                : "text-blue-600"
+                  ? "text-red-600"
+                  : "text-blue-600"
             }`}
           >
             {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
@@ -718,11 +719,11 @@ export const AutoroutingPipelineDebugger = ({
 
                           if (solver.nodeTargetMerger?.newNodes) {
                             nodeData = solver.nodeTargetMerger.newNodes.find(
-                              (n) => n.capacityMeshNodeId === nodeId
+                              (n) => n.capacityMeshNodeId === nodeId,
                             )
                           } else if (solver.nodeSolver?.finishedNodes) {
                             nodeData = solver.nodeSolver.finishedNodes.find(
-                              (n) => n.capacityMeshNodeId === nodeId
+                              (n) => n.capacityMeshNodeId === nodeId,
                             )
                           }
 
@@ -746,7 +747,7 @@ export const AutoroutingPipelineDebugger = ({
                           const dataStr = JSON.stringify(
                             dataToDownload,
                             null,
-                            2
+                            2,
                           )
                           const dataBlob = new Blob([dataStr], {
                             type: "application/json",
@@ -792,14 +793,14 @@ export const AutoroutingPipelineDebugger = ({
                           nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
                           segmentIdToNodeIds: umss.segmentIdToNodeIds,
                           hops: 8,
-                        })
+                        }),
                       )
 
                       // Filter the verbose input to only include content related to relevant nodes
                       const filteredVerboseInput =
                         filterUnravelMultiSectionInput(
                           verboseInput,
-                          relevantNodeIds
+                          relevantNodeIds,
                         )
 
                       // Create a JSON string with proper formatting
@@ -812,7 +813,7 @@ export const AutoroutingPipelineDebugger = ({
                           }
                           return value
                         },
-                        2
+                        2,
                       )
 
                       // Create a blob with the JSON data
@@ -888,15 +889,15 @@ export const AutoroutingPipelineDebugger = ({
                 const status = stepSolver?.solved
                   ? "Solved"
                   : stepSolver?.failed
-                  ? "Failed"
-                  : stepSolver
-                  ? "In Progress"
-                  : "Not Started"
+                    ? "Failed"
+                    : stepSolver
+                      ? "In Progress"
+                      : "Not Started"
                 const statusClass = stepSolver?.solved
                   ? "text-green-600"
                   : stepSolver?.failed
-                  ? "text-red-600"
-                  : "text-blue-600"
+                    ? "text-red-600"
+                    : "text-blue-600"
 
                 const startTime = solver.startTimeOfPhase[step.solverName]
                 const endTime =
@@ -918,7 +919,7 @@ export const AutoroutingPipelineDebugger = ({
                           className="ml-2 mr-2 text-xs hover:bg-gray-200 rounded px-1 py-0.5"
                           onClick={() =>
                             handlePlayStage(
-                              solver.pipelineDef[index].solverName
+                              solver.pipelineDef[index].solverName,
                             )
                           }
                           title={`Play until ${step.solverName} starts`}
@@ -941,8 +942,8 @@ export const AutoroutingPipelineDebugger = ({
                       {status === "Solved"
                         ? "100%"
                         : status === "In Progress"
-                        ? `${((stepSolver?.progress ?? 0) * 100).toFixed(1)}%`
-                        : ""}
+                          ? `${((stepSolver?.progress ?? 0) * 100).toFixed(1)}%`
+                          : ""}
                     </td>
                     <td className="border p-2 tabular-nums">
                       <div className="flex">
@@ -1078,7 +1079,7 @@ export const AutoroutingPipelineDebugger = ({
             const circuitJson = convertToCircuitJson(
               solver.srjWithPointPairs!,
               solver.getOutputSimplifiedPcbTraces(),
-              solver.srj.minTraceWidth
+              solver.srj.minTraceWidth,
             )
             const blob = new Blob([JSON.stringify(circuitJson, null, 2)], {
               type: "application/json",
