@@ -7,7 +7,7 @@ import {
 import {
   CapacityPathingSingleSectionPathingSolver,
   CapacityPathingSingleSectionPathingSolverParams,
-} from "./CapacityPathingSingleSectionPathingSolver"
+} from "./CapacityPathingSingleSectionSolver"
 
 export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSupervisorSolver<CapacityPathingSingleSectionPathingSolver> {
   constructorParams: CapacityPathingSingleSectionPathingSolverParams

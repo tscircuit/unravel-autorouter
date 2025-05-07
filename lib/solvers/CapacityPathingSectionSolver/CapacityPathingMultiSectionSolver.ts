@@ -21,7 +21,7 @@ import {
 import {
   CapacityPathingSingleSectionPathingSolver,
   CapacityPathingSingleSectionSolver,
-} from "./CapacityPathingSingleSectionPathingSolver"
+} from "./CapacityPathingSingleSectionSolver"
 import {
   CapacityPathingSection,
   computeSectionNodesTerminalsAndEdges,
