@@ -67,7 +67,9 @@ export const AutoroutingPipelineDebugger = ({
     [cacheProviderName],
   )
 
-  const createNewSolver = (opts: { cacheProvider?: CacheProvider } = {}) =>
+  const createNewSolver = (
+    opts: { cacheProvider?: CacheProvider | null } = {},
+  ) =>
     new AutoroutingPipelineSolver(srj, {
       cacheProvider,
       ...opts,
