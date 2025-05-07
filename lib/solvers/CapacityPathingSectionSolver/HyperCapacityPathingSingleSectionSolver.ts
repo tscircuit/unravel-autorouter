@@ -32,6 +32,7 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
   }
 
   getCombinationDefs(): Array<Array<string>> | null {
+    // TODO change combination defs based on hyperParameters.EXPANSION_DEGREES
     return [["orderings10"]]
   }
 

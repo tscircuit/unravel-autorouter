@@ -250,9 +250,7 @@ export class CapacityPathingSolver extends BaseSolver {
     )
   }
 
-  reduceCapacityAlongPath(nextConnection: {
-    path?: CapacityMeshNode[]
-  }) {
+  reduceCapacityAlongPath(nextConnection: { path?: CapacityMeshNode[] }) {
     for (const node of nextConnection.path ?? []) {
       this.usedNodeCapacityMap.set(
         node.capacityMeshNodeId,

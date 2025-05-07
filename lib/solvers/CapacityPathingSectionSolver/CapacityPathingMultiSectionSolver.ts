@@ -60,9 +60,30 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     | HyperCapacityPathingSingleSectionSolver
     | null = null
 
-  MAX_ATTEMPTS_PER_NODE = 1
-  MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
-  MAX_EXPANSION_DEGREES = 5
+  currentScheduleIndex = 0
+
+  OPTIMIZATION_SCHEDULE = [
+    {
+      MAX_ATTEMPTS_PER_NODE: 1,
+      MAX_EXPANSION_DEGREES: 9,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.2,
+    },
+    {
+      MAX_ATTEMPTS_PER_NODE: 1,
+      MAX_EXPANSION_DEGREES: 6,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.1,
+    },
+    {
+      MAX_ATTEMPTS_PER_NODE: 1,
+      MAX_EXPANSION_DEGREES: 3,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
+    },
+  ]
+
+  get currentSchedule() {
+    return this.OPTIMIZATION_SCHEDULE[this.currentScheduleIndex] ?? null
+  }
+
   stats: { successfulOptimizations: number; failedOptimizations: number }
 
   constructor(
@@ -74,6 +95,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     this.stats = {
       successfulOptimizations: 0,
       failedOptimizations: 0,
+      failedSectionSolvers: 0,
+      nodePf1: 0,
+      nodePf2: 0,
+      nodePf3: 0,
     }
 
     this.MAX_ITERATIONS = 10e6
@@ -152,9 +177,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       )
       const nodePfDivAttempts = nodePf / (attemptCount + 1)
       if (
-        attemptCount < this.MAX_ATTEMPTS_PER_NODE &&
+        attemptCount < this.currentSchedule.MAX_ATTEMPTS_PER_NODE &&
         nodePfDivAttempts > highestNodePfDivAttempts &&
-        nodePf > this.MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE
+        nodePf > this.currentSchedule.MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE
       ) {
         highestNodePfDivAttempts = nodePfDivAttempts
         highestNodePf = nodePf
@@ -165,12 +190,39 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     return nodeWithHighestPercentCapacityUsed
   }
 
+  getWorstNodePf() {
+    let highestNodePf = 0
+    for (const node of this.nodes) {
+      if (node._containsTarget) continue
+      const attemptCount = this.nodeOptimizationAttemptCountMap.get(
+        node.capacityMeshNodeId,
+      )!
+      const totalCapacity = this.totalNodeCapacityMap.get(
+        node.capacityMeshNodeId,
+      )!
+      const nodePf = calculateNodeProbabilityOfFailure(
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0,
+        totalCapacity,
+        node.availableZ.length,
+      )
+      const nodePfDivAttempts = nodePf / (attemptCount + 1)
+      if (nodePf > highestNodePf) {
+        highestNodePf = nodePf
+      }
+    }
+    return highestNodePf
+  }
+
   _stepSectionOptimization() {
     if (!this.sectionSolver) {
       const centerNodeId = this._getNextNodeToOptimize()
       if (!centerNodeId) {
         // No more nodes to optimize
-        this.solved = true
+        this.currentScheduleIndex++
+        this.stats[`nodePf${this.currentScheduleIndex}`] = this.getWorstNodePf()
+        if (!this.currentSchedule) {
+          this.solved = true
+        }
         return
       }
 
@@ -205,8 +257,12 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       // If the section solver fails, mark the node as attempted but don't update paths
       // TODO: Consider more sophisticated failure handling? Maybe increase expansionDegrees?
       console.warn(
-        `Section solver failed for node ${this.currentSection!.centerNodeId}. Error: ${this.sectionSolver.error}`,
+        `Section solver failed for node ${
+          this.currentSection!.centerNodeId
+        }. Error: ${this.sectionSolver.error}`,
       )
+      this.stats.failedSectionSolvers++
+      this.stats.failedOptimizations++
       this.sectionSolver = null
       this.activeSubSolver = null
       return // Try the next node in the next step
@@ -220,7 +276,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       this.activeSubSolver = null
       if (!pathingSolver || !pathingSolver.solved) {
         console.warn(
-          `Pathing sub-solver for section ${this.currentSection!.centerNodeId} did not complete successfully. Discarding results.`,
+          `Pathing sub-solver for section ${
+            this.currentSection!.centerNodeId
+          } did not complete successfully. Discarding results.`,
         )
         return // Skip scoring and merging
       }
