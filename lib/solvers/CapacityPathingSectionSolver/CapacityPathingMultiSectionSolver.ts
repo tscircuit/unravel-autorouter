@@ -62,15 +62,26 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
   currentScheduleIndex = 0
 
+  stats: {
+    successfulOptimizations: number
+    failedOptimizations: number
+    failedSectionSolvers: number
+    scheduleScores: Array<{
+      maxExpansionDegrees: number
+      endingScore: number
+      endingHighestNodePf: number
+    }>
+  }
+
   OPTIMIZATION_SCHEDULE = [
+    // {
+    //   MAX_ATTEMPTS_PER_NODE: 1,
+    //   MAX_EXPANSION_DEGREES: 9,
+    //   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.2,
+    // },
     {
       MAX_ATTEMPTS_PER_NODE: 1,
-      MAX_EXPANSION_DEGREES: 9,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.2,
-    },
-    {
-      MAX_ATTEMPTS_PER_NODE: 1,
-      MAX_EXPANSION_DEGREES: 6,
+      MAX_EXPANSION_DEGREES: 5,
       MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.1,
     },
     {
@@ -84,8 +95,6 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     return this.OPTIMIZATION_SCHEDULE[this.currentScheduleIndex] ?? null
   }
 
-  stats: { successfulOptimizations: number; failedOptimizations: number }
-
   constructor(
     params: ConstructorParameters<typeof CapacityPathingSolver>[0] & {
       initialPathingSolver?: CapacityPathingGreedySolver
@@ -96,9 +105,12 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       successfulOptimizations: 0,
       failedOptimizations: 0,
       failedSectionSolvers: 0,
-      nodePf1: 0,
-      nodePf2: 0,
-      nodePf3: 0,
+      scheduleScores: this.OPTIMIZATION_SCHEDULE.map(({MAX_EXPANSION_DEGREES}) => ({
+        maxExpansionDegrees: MAX_EXPANSION_DEGREES,
+        endingScore: 0,
+        endingHighestNodePf: 0,
+        sectionAttempts: 0
+      }))
     }
 
     this.MAX_ITERATIONS = 10e6
@@ -222,11 +234,13 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     if (!this.sectionSolver) {
       const centerNodeId = this._getNextNodeToOptimize()
       if (!centerNodeId) {
+        const { highestNodePf, score } = this.getOverallScore()
+        this.stats.scheduleScores[this.currentScheduleIndex].endingHighestNodePf = highestNodePf
+        this.stats.scheduleScores[this.currentScheduleIndex].endingScore = score
+
         // No more nodes to optimize
         this.currentScheduleIndex++
-        const { highestNodePf, score } = this.getOverallScore()
-        this.stats[`nodePf${this.currentScheduleIndex}`] = highestNodePf
-        this.stats[`score${this.currentScheduleIndex}`] = score
+
         if (!this.currentSchedule) {
           this.solved = true
         }
@@ -241,6 +255,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         expansionDegrees: this.MAX_EXPANSION_DEGREES,
         nodeEdgeMap: this.nodeEdgeMap,
       })
+      this.stats.scheduleScores[this.currentScheduleIndex].sectionAttempts++
       this.currentSection = section
       this.sectionSolver = new HyperCapacityPathingSingleSectionSolver({
         sectionConnectionTerminals: section.sectionConnectionTerminals,

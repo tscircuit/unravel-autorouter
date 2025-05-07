@@ -19,7 +19,7 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
     >[0],
   ) {
     super()
-    this.MAX_ITERATIONS = 10e3
+    this.MAX_ITERATIONS = 100e3
     this.constructorParams = params
   }
 
