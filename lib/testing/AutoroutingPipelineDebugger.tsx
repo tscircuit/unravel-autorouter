@@ -19,26 +19,64 @@ import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
 import { addVisualizationToLastStep } from "lib/utils/addVisualizationToLastStep"
 import { SolveBreakpointDialog } from "./SolveBreakpointDialog"
 import { CacheDebugger } from "./CacheDebugger"
-import { getGlobalLocalStorageCache } from "lib/cache/setupGlobalCaches"
+import {
+  getGlobalInMemoryCache,
+  getGlobalLocalStorageCache,
+} from "lib/cache/setupGlobalCaches"
+import { CacheProvider } from "lib/cache/types"
+import { AutoroutingPipelineMenuBar } from "./AutoroutingPipelineMenuBar"
 
 interface CapacityMeshPipelineDebuggerProps {
   srj: SimpleRouteJson
   animationSpeed?: number
 }
 
-const createSolver = (srj: SimpleRouteJson) => {
-  return new CapacityMeshSolver(srj, {
-    // TODO this should be an option, we want to set it to null by default
-    cacheProvider: null, // getGlobalLocalStorageCache(),
-  })
+export const cacheProviderNames = [
+  "None",
+  "In Memory",
+  "Local Storage",
+] as const
+export type CacheProviderName = (typeof cacheProviderNames)[number]
+
+const getGlobalCacheProviderFromName = (
+  name: CacheProviderName,
+): CacheProvider | null => {
+  if (name === "None") return null
+  if (name === "In Memory") return getGlobalInMemoryCache()
+  if (name === "Local Storage") return getGlobalLocalStorageCache()
+  return null
 }
 
 export const AutoroutingPipelineDebugger = ({
   srj,
   animationSpeed = 1,
 }: CapacityMeshPipelineDebuggerProps) => {
+  const [cacheProviderName, setCacheProviderNameState] =
+    useState<CacheProviderName>(
+      (localStorage.getItem("cacheProviderName") as CacheProviderName) ??
+        "None",
+    )
+
+  const setCacheProviderName = (newName: CacheProviderName) => {
+    setCacheProviderNameState(newName)
+    localStorage.setItem("cacheProviderName", newName)
+  }
+
+  const cacheProvider = useMemo(
+    () => getGlobalCacheProviderFromName(cacheProviderName),
+    [cacheProviderName],
+  )
+
+  const createNewSolver = (
+    opts: { cacheProvider?: CacheProvider | null } = {},
+  ) =>
+    new AutoroutingPipelineSolver(srj, {
+      cacheProvider,
+      ...opts,
+    })
+
   const [solver, setSolver] = useState<CapacityMeshSolver>(() =>
-    createSolver(srj),
+    createNewSolver(),
   )
   const [previewMode, setPreviewMode] = useState(false)
   const [renderer, setRenderer] = useState<"canvas" | "vector">(
@@ -70,7 +108,7 @@ export const AutoroutingPipelineDebugger = ({
 
   // Reset solver
   const resetSolver = () => {
-    setSolver(createSolver(srj))
+    setSolver(createNewSolver())
     setDrcErrors(null) // Clear DRC errors when resetting
     setDrcErrorCount(0)
     isSolvingToBreakpointRef.current = false // Stop breakpoint solving on reset
@@ -185,7 +223,7 @@ export const AutoroutingPipelineDebugger = ({
 
     // If we're already past the target, we need to reset and start over
     if (solver.iterations > target) {
-      const newSolver = createSolver(srj)
+      const newSolver = createNewSolver()
       setSolver(newSolver)
 
       // Now run until we reach the target
@@ -340,7 +378,9 @@ export const AutoroutingPipelineDebugger = ({
     } catch (error) {
       console.error("DRC check error:", error)
       alert(
-        `Error running DRC checks: ${error instanceof Error ? error.message : String(error)}`,
+        `Error running DRC checks: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       )
     }
   }
@@ -485,6 +525,35 @@ export const AutoroutingPipelineDebugger = ({
 
   return (
     <div className="p-4">
+      <AutoroutingPipelineMenuBar
+        renderer={renderer}
+        onSetRenderer={(newRenderer) => {
+          setRenderer(newRenderer)
+          window.localStorage.setItem("lastSelectedRenderer", newRenderer)
+        }}
+        canSelectObjects={canSelectObjects}
+        onSetCanSelectObjects={setCanSelectObjects}
+        onRunDrcChecks={handleRunDrcChecks}
+        drcErrorCount={drcErrorCount}
+        animationSpeed={speedLevel}
+        onSetAnimationSpeed={setSpeedLevel}
+        onSolveToBreakpointClick={() => {
+          setIsBreakpointDialogOpen(true)
+        }}
+        cacheProviderName={cacheProviderName}
+        cacheProvider={cacheProvider}
+        onSetCacheProviderName={(name: CacheProviderName) => {
+          setCacheProviderName(name)
+          setSolver(
+            createNewSolver({
+              cacheProvider: getGlobalCacheProviderFromName(name),
+            }),
+          )
+        }}
+        onClearCache={() => {
+          cacheProvider?.clearCache()
+        }}
+      />
       <div className="flex gap-2 mb-4 text-xs">
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
@@ -509,24 +578,6 @@ export const AutoroutingPipelineDebugger = ({
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={decreaseSpeed}
-          disabled={speedLevel === 0 || solver.solved || solver.failed}
-        >
-          Slower
-        </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100 min-w-[80px]"
-          onClick={increaseSpeed}
-          disabled={
-            speedLevel === speedLevels.length - 1 ||
-            solver.solved ||
-            solver.failed
-          }
-        >
-          {speedLabels[speedLevel + 1] ?? "(Max)"}
-        </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleSolveCompletely}
           disabled={solver.solved || solver.failed}
         >
@@ -538,49 +589,6 @@ export const AutoroutingPipelineDebugger = ({
         >
           Reset
         </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() => setIsBreakpointDialogOpen(true)}
-          disabled={
-            solver.solved || solver.failed || isSolvingToBreakpointRef.current
-          }
-        >
-          {isSolvingToBreakpointRef.current ? "Solving..." : "Solve Breakpoint"}
-        </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() => setCanSelectObjects(!canSelectObjects)}
-        >
-          {canSelectObjects ? "Disable" : "Enable"} Object Selection
-        </button>
-        <button
-          className="border rounded-md p-2 hover:bg-gray-100"
-          onClick={() => {
-            const newRenderer = renderer === "canvas" ? "vector" : "canvas"
-            setRenderer(newRenderer)
-            window.localStorage.setItem("lastSelectedRenderer", newRenderer)
-          }}
-        >
-          Switch to {renderer === "canvas" ? "Vector" : "Canvas"} Renderer
-        </button>
-        {drcErrors ? (
-          <button
-            className="border rounded-md p-2 hover:bg-gray-100 bg-red-50"
-            onClick={() => {
-              setDrcErrors(null)
-              setDrcErrorCount(0)
-            }}
-          >
-            Clear DRC Errors ({drcErrorCount})
-          </button>
-        ) : (
-          <button
-            className="border rounded-md p-2 hover:bg-gray-100 bg-blue-50"
-            onClick={handleRunDrcChecks}
-          >
-            Run DRC Checks
-          </button>
-        )}
       </div>
 
       <div className="flex gap-4 mb-4 tabular-nums text-xs">
@@ -603,7 +611,13 @@ export const AutoroutingPipelineDebugger = ({
         <div className="border p-2 rounded">
           Status:{" "}
           <span
-            className={`font-bold ${solver.solved ? "text-green-600" : solver.failed ? "text-red-600" : "text-blue-600"}`}
+            className={`font-bold ${
+              solver.solved
+                ? "text-green-600"
+                : solver.failed
+                  ? "text-red-600"
+                  : "text-blue-600"
+            }`}
           >
             {solver.solved ? "Solved" : solver.failed ? "Failed" : "No Errors"}
           </span>
@@ -780,7 +794,7 @@ export const AutoroutingPipelineDebugger = ({
                           nodeId,
                           nodeIdToSegmentIds: umss.nodeIdToSegmentIds,
                           segmentIdToNodeIds: umss.segmentIdToNodeIds,
-                          hops: 5,
+                          hops: 8,
                         }),
                       )
 
@@ -1083,7 +1097,7 @@ export const AutoroutingPipelineDebugger = ({
           Download Circuit Json
         </button>
       </div>
-      <CacheDebugger />
+      <CacheDebugger cacheProvider={cacheProvider} />
     </div>
   )
 }

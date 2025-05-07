@@ -134,4 +134,15 @@ export class LocalStorageCache implements CacheProvider {
       this.cacheMisses = 0
     }
   }
+
+  getAllCacheKeys(): string[] {
+    const cacheKeys: string[] = []
+    for (let i = 0; i < 10_000; i++) {
+      const keyName = localStorage.key(i)
+      if (!keyName) break
+      if (!keyName.includes(CACHE_PREFIX)) continue
+      cacheKeys.push(keyName)
+    }
+    return cacheKeys
+  }
 }
