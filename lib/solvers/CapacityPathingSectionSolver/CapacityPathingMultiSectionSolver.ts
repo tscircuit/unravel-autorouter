@@ -21,7 +21,7 @@ import {
 import {
   CapacityPathingSingleSectionPathingSolver,
   CapacityPathingSingleSectionSolver,
-} from "./CapacityPathingSingleSectionPathingSolver"
+} from "./CapacityPathingSingleSectionSolver"
 import {
   CapacityPathingSection,
   computeSectionNodesTerminalsAndEdges,
@@ -60,10 +60,36 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     | HyperCapacityPathingSingleSectionSolver
     | null = null
 
-  MAX_ATTEMPTS_PER_NODE = 1
-  MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE = 0.05
-  MAX_EXPANSION_DEGREES = 5
-  stats: { successfulOptimizations: number; failedOptimizations: number }
+  currentScheduleIndex = 0
+
+  stats: {
+    successfulOptimizations: number
+    failedOptimizations: number
+    failedSectionSolvers: number
+    scheduleScores: Array<{
+      maxExpansionDegrees: number
+      sectionAttempts: number
+      endingScore: number
+      endingHighestNodePf: number
+    }>
+  }
+
+  OPTIMIZATION_SCHEDULE = [
+    {
+      MAX_ATTEMPTS_PER_NODE: 1,
+      MAX_EXPANSION_DEGREES: 5,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.1,
+    },
+    {
+      MAX_ATTEMPTS_PER_NODE: 2,
+      MAX_EXPANSION_DEGREES: 3,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
+    },
+  ]
+
+  get currentSchedule() {
+    return this.OPTIMIZATION_SCHEDULE[this.currentScheduleIndex] ?? null
+  }
 
   constructor(
     params: ConstructorParameters<typeof CapacityPathingSolver>[0] & {
@@ -74,6 +100,15 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     this.stats = {
       successfulOptimizations: 0,
       failedOptimizations: 0,
+      failedSectionSolvers: 0,
+      scheduleScores: this.OPTIMIZATION_SCHEDULE.map(
+        ({ MAX_EXPANSION_DEGREES }) => ({
+          maxExpansionDegrees: MAX_EXPANSION_DEGREES,
+          endingScore: 0,
+          endingHighestNodePf: 0,
+          sectionAttempts: 0,
+        }),
+      ),
     }
 
     this.MAX_ITERATIONS = 10e6
@@ -152,9 +187,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       )
       const nodePfDivAttempts = nodePf / (attemptCount + 1)
       if (
-        attemptCount < this.MAX_ATTEMPTS_PER_NODE &&
+        attemptCount < this.currentSchedule.MAX_ATTEMPTS_PER_NODE &&
         nodePfDivAttempts > highestNodePfDivAttempts &&
-        nodePf > this.MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE
+        nodePf > this.currentSchedule.MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE
       ) {
         highestNodePfDivAttempts = nodePfDivAttempts
         highestNodePf = nodePf
@@ -165,12 +200,52 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     return nodeWithHighestPercentCapacityUsed
   }
 
+  getOverallScore() {
+    let highestNodePf = 0
+    for (const node of this.nodes) {
+      if (node._containsTarget) continue
+      const totalCapacity = this.totalNodeCapacityMap.get(
+        node.capacityMeshNodeId,
+      )!
+      const nodePf = calculateNodeProbabilityOfFailure(
+        this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0,
+        totalCapacity,
+        node.availableZ.length,
+      )
+
+      if (nodePf > highestNodePf) {
+        highestNodePf = nodePf
+      }
+    }
+    return {
+      highestNodePf,
+      score: computeSectionScore({
+        totalNodeCapacityMap: this.totalNodeCapacityMap,
+        usedNodeCapacityMap: this.usedNodeCapacityMap,
+        nodeMap: this.nodeMap,
+        sectionNodeIds: new Set(
+          this.nodes.map((node) => node.capacityMeshNodeId),
+        ),
+      }),
+    }
+  }
+
   _stepSectionOptimization() {
     if (!this.sectionSolver) {
       const centerNodeId = this._getNextNodeToOptimize()
       if (!centerNodeId) {
+        const { highestNodePf, score } = this.getOverallScore()
+        this.stats.scheduleScores[
+          this.currentScheduleIndex
+        ].endingHighestNodePf = highestNodePf
+        this.stats.scheduleScores[this.currentScheduleIndex].endingScore = score
+
         // No more nodes to optimize
-        this.solved = true
+        this.currentScheduleIndex++
+
+        if (!this.currentSchedule) {
+          this.solved = true
+        }
         return
       }
 
@@ -179,16 +254,18 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         connectionsWithNodes: this.connectionsWithNodes,
         nodeMap: this.nodeMap,
         edges: this.edges,
-        expansionDegrees: this.MAX_EXPANSION_DEGREES,
+        expansionDegrees: this.currentSchedule.MAX_EXPANSION_DEGREES, // Corrected
         nodeEdgeMap: this.nodeEdgeMap,
       })
+      this.stats.scheduleScores[this.currentScheduleIndex].sectionAttempts++
       this.currentSection = section
       this.sectionSolver = new HyperCapacityPathingSingleSectionSolver({
-        sectionConnectionTerminals: section.sectionConnectionTerminals,
-        sectionEdges: section.sectionEdges,
-        sectionNodes: section.sectionNodes,
+        sectionNodes: this.currentSection.sectionNodes,
+        sectionEdges: this.currentSection.sectionEdges,
+        sectionConnectionTerminals:
+          this.currentSection.sectionConnectionTerminals,
         colorMap: this.colorMap,
-        centerNodeId: section.centerNodeId,
+        centerNodeId: this.currentSection.centerNodeId,
         nodeEdgeMap: this.nodeEdgeMap,
       })
 
@@ -205,8 +282,12 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       // If the section solver fails, mark the node as attempted but don't update paths
       // TODO: Consider more sophisticated failure handling? Maybe increase expansionDegrees?
       console.warn(
-        `Section solver failed for node ${this.currentSection!.centerNodeId}. Error: ${this.sectionSolver.error}`,
+        `Section solver failed for node ${
+          this.currentSection!.centerNodeId
+        }. Error: ${this.sectionSolver.error}`,
       )
+      this.stats.failedSectionSolvers++
+      this.stats.failedOptimizations++
       this.sectionSolver = null
       this.activeSubSolver = null
       return // Try the next node in the next step
@@ -220,7 +301,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       this.activeSubSolver = null
       if (!pathingSolver || !pathingSolver.solved) {
         console.warn(
-          `Pathing sub-solver for section ${this.currentSection!.centerNodeId} did not complete successfully. Discarding results.`,
+          `Pathing sub-solver for section ${
+            this.currentSection!.centerNodeId
+          } did not complete successfully. Discarding results.`,
         )
         return // Skip scoring and merging
       }

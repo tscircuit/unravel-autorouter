@@ -11,7 +11,7 @@ export class BaseSolver {
   activeSubSolver?: BaseSolver | null
   failedSubSolvers?: BaseSolver[]
   timeToSolve?: number
-  stats: Record<string, number> = {}
+  stats: Record<string, any> = {}
 
   /**
    * For cached solvers
@@ -34,7 +34,7 @@ export class BaseSolver {
       throw e
     }
     if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
-      this.error = `${this.constructor.name} did not converge`
+      this.error = `${this.constructor.name} ran out of iterations`
       console.error(this.error)
       this.failed = true
     }
