@@ -83,6 +83,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   constructor(params: CapacityPathingSingleSectionPathingSolverParams) {
     super()
 
+    this.MAX_ITERATIONS = 10e3
     this.centerNodeId = params.centerNodeId
     this.sectionNodes = params.sectionNodes
     this.sectionEdges = params.sectionEdges

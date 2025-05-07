@@ -34,7 +34,7 @@ export class BaseSolver {
       throw e
     }
     if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
-      this.error = `${this.constructor.name} did not converge`
+      this.error = `${this.constructor.name} ran out of iterations`
       console.error(this.error)
       this.failed = true
     }

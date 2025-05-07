@@ -350,7 +350,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     public opts: CapacityMeshSolverOptions = {},
   ) {
     super()
-    this.MAX_ITERATIONS = 10e6
+    this.MAX_ITERATIONS = 100e6
 
     // If capacityDepth is not provided, calculate it automatically
     if (opts.capacityDepth === undefined) {
