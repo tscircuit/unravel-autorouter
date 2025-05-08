@@ -66,6 +66,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     successfulOptimizations: number
     failedOptimizations: number
     failedSectionSolvers: number
+    startingScore: number
     scheduleScores: Array<{
       maxExpansionDegrees: number
       sectionAttempts: number
@@ -75,21 +76,21 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   OPTIMIZATION_SCHEDULE = [
-    {
-      MAX_ATTEMPTS_PER_NODE: 1,
-      MAX_EXPANSION_DEGREES: 3,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
-    },
+    // {
+    //   MAX_ATTEMPTS_PER_NODE: 1,
+    //   MAX_EXPANSION_DEGREES: 3,
+    //   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
+    // },
     {
       MAX_ATTEMPTS_PER_NODE: 2,
       MAX_EXPANSION_DEGREES: 5,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.2,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
     },
-    {
-      MAX_ATTEMPTS_PER_NODE: 3,
-      MAX_EXPANSION_DEGREES: 7,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.3,
-    },
+    // {
+    //   MAX_ATTEMPTS_PER_NODE: 3,
+    //   MAX_EXPANSION_DEGREES: 7,
+    //   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
+    // },
   ]
 
   get currentSchedule() {
@@ -106,6 +107,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       successfulOptimizations: 0,
       failedOptimizations: 0,
       failedSectionSolvers: 0,
+      startingScore: 0,
       scheduleScores: this.OPTIMIZATION_SCHEDULE.map(
         ({ MAX_EXPANSION_DEGREES }) => ({
           maxExpansionDegrees: MAX_EXPANSION_DEGREES,
@@ -167,7 +169,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       }
 
       this.connectionsWithNodes = this.initialSolver.connectionsWithNodes
-
+      this.stats.startingScore = 0 // TODO compute starting score
       this.stage = "section-optimization"
     }
   }
