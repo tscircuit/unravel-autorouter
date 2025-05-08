@@ -80,7 +80,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     {
       MAX_ATTEMPTS_PER_NODE: 1,
       MAX_EXPANSION_DEGREES: 3,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.2,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
     },
     {
       MAX_ATTEMPTS_PER_NODE: 2,
