@@ -48,6 +48,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   stage: "initialization" | "section-optimization" = "initialization"
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode> = new Map()
+  allNodeIdsSet: Set<CapacityMeshNodeId>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number> = new Map()
   totalNodeCapacityMap: Map<CapacityMeshNodeId, number> = new Map() // Added
 
@@ -76,21 +77,21 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   }
 
   OPTIMIZATION_SCHEDULE = [
-    // {
-    //   MAX_ATTEMPTS_PER_NODE: 1,
-    //   MAX_EXPANSION_DEGREES: 3,
-    //   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
-    // },
+    {
+      MAX_ATTEMPTS_PER_NODE: 1,
+      MAX_EXPANSION_DEGREES: 3,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.2,
+    },
     {
       MAX_ATTEMPTS_PER_NODE: 2,
       MAX_EXPANSION_DEGREES: 5,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.2,
     },
-    // {
-    //   MAX_ATTEMPTS_PER_NODE: 3,
-    //   MAX_EXPANSION_DEGREES: 7,
-    //   MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.05,
-    // },
+    {
+      MAX_ATTEMPTS_PER_NODE: 3,
+      MAX_EXPANSION_DEGREES: 7,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.3,
+    },
   ]
 
   get currentSchedule() {
@@ -143,6 +144,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       const totalCapacity = this.initialSolver.getTotalCapacity(node)
       this.totalNodeCapacityMap.set(node.capacityMeshNodeId, totalCapacity)
     }
+
+    this.allNodeIdsSet = new Set(this.nodes.map((n) => n.capacityMeshNodeId))
   }
 
   _stepInitialization() {
@@ -169,7 +172,12 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       }
 
       this.connectionsWithNodes = this.initialSolver.connectionsWithNodes
-      this.stats.startingScore = 0 // TODO compute starting score
+      this.stats.startingScore = computeSectionScore({
+        totalNodeCapacityMap: this.totalNodeCapacityMap,
+        usedNodeCapacityMap: this.usedNodeCapacityMap,
+        nodeMap: this.nodeMap,
+        sectionNodeIds: this.allNodeIdsSet,
+      })
       this.stage = "section-optimization"
     }
   }
@@ -230,9 +238,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         totalNodeCapacityMap: this.totalNodeCapacityMap,
         usedNodeCapacityMap: this.usedNodeCapacityMap,
         nodeMap: this.nodeMap,
-        sectionNodeIds: new Set(
-          this.nodes.map((node) => node.capacityMeshNodeId),
-        ),
+        sectionNodeIds: this.allNodeIdsSet,
       }),
     }
   }
