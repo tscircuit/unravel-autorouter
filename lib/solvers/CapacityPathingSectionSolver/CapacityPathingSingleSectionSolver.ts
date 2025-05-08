@@ -9,6 +9,7 @@ import { visualizeSection } from "./visualizeSection"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap" // Added import
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1" // Added import
 import { distance } from "@tscircuit/math-utils" // Added import
+import { computeSectionScore } from "./computeSectionScore" // Added import
 import { safeTransparentize } from "../colors" // Added import
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode" // Added import
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
@@ -58,6 +59,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]> // Edges *within the section*
   colorMap: Record<string, string>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number> // Tracks capacity usage *within this solver's run*
+  totalNodeCapacityMap: Map<CapacityMeshNodeId, number> // Added: Stores total capacity for each node
   centerNodeId: string
 
   MAX_CANDIDATES_IN_MEMORY = 10_000
@@ -100,6 +102,12 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     // Initialize capacity map, potentially with starting values
     this.usedNodeCapacityMap = new Map(
       this.sectionNodes.map((node) => [node.capacityMeshNodeId, 0]),
+    )
+    this.totalNodeCapacityMap = new Map(
+      this.sectionNodes.map((node) => [
+        node.capacityMeshNodeId,
+        this.getTotalCapacity(node),
+      ]),
     )
 
     if (params.hyperParameters?.SHUFFLE_SEED) {
@@ -259,6 +267,19 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     }
   }
 
+  getSolvedSectionScore(): number {
+    const sectionNodeIds = new Set(
+      this.sectionNodes.map((n) => n.capacityMeshNodeId),
+    )
+
+    return computeSectionScore({
+      totalNodeCapacityMap: this.totalNodeCapacityMap,
+      usedNodeCapacityMap: this.usedNodeCapacityMap,
+      nodeMap: this.nodeMap,
+      sectionNodeIds,
+    })
+  }
+
   _step() {
     const currentTerminal =
       this.sectionConnectionTerminals[this.currentConnectionIndex]
@@ -370,10 +391,6 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     // Mark current node as fully processed (closed list) - This happens when the node is popped from candidates and added to visitedNodes.
     // No, visitedNodes is the open list + closed list. Let's stick to adding when pushing to candidates.
     // this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId); // This seems redundant if added above
-  }
-
-  getSolvedSectionScore() {
-    // TODO
   }
 
   computeProgress(): number {

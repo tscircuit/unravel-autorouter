@@ -26,11 +26,13 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
   // TODO this needs to use the section score, ideally incorporating the current best candidate
   // of the paths being explored inside the single section
   computeG(solver: CapacityPathingSingleSectionPathingSolver): number {
-    return solver.iterations / 100
+    // return solver.iterations / 100
+    return -solver.getSolvedSectionScore()
   }
 
   computeH(solver: CapacityPathingSingleSectionPathingSolver): number {
-    return solver.computeProgress()
+    return 0
+    // return solver.computeProgress()
   }
 
   getCombinationDefs(): Array<Array<string>> | null {
