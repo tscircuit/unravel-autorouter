@@ -372,6 +372,10 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     // this.visitedNodes!.add(currentCandidate.node.capacityMeshNodeId); // This seems redundant if added above
   }
 
+  getSolvedSectionScore() {
+    // TODO
+  }
+
   computeProgress(): number {
     const totalConnections = this.sectionConnectionTerminals.length
     if (totalConnections === 0) return 1 // No work to do
