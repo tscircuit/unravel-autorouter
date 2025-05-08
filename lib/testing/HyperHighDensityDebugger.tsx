@@ -10,7 +10,7 @@ import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 interface HyperHighDensityDebuggerProps {
   nodeWithPortPoints: NodeWithPortPoints
-  connMap: ConnectivityMap
+  connMap?: ConnectivityMap
   colorMap?: Record<string, string>
 }
 
