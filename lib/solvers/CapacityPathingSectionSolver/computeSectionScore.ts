@@ -26,6 +26,39 @@ export const calculateNodeProbabilityOfFailure = (
 }
 
 /**
+ * Calculates the log(probability of success) for a single node.
+ * Higher is better. Returns 0 if the node is a target or not over capacity.
+ */
+export const calculateSingleNodeLogSuccessProbability = (
+  usedCapacity: number,
+  totalCapacity: number,
+  node: CapacityMeshNode, // Used for availableZ.length and _containsTarget
+): number => {
+  // If the node is a target, it doesn't contribute negatively to the score based on capacity.
+  // Its "success" is tied to being reached, not its capacity pressure for other paths.
+  // We return 0, as log(1) = 0, implying full probability of success from a capacity standpoint.
+  if (node._containsTarget) return 0
+
+  // If used capacity is not greater than total capacity, probability of success is 1.
+  // log(1) = 0, so it doesn't negatively impact the sum.
+  if (usedCapacity <= totalCapacity) return 0
+
+  const probabilityOfFailure = calculateNodeProbabilityOfFailure(
+    usedCapacity,
+    totalCapacity,
+    node.availableZ.length,
+  )
+  const probabilityOfSuccess = 1 - probabilityOfFailure
+
+  // Avoid log(0) or log(<0) if probabilityOfFailure results in non-positive success probability
+  if (probabilityOfSuccess <= 0) {
+    return -1e9 // Represents an extremely low (effectively zero) probability of success
+  } else {
+    return Math.log(probabilityOfSuccess)
+  }
+}
+
+/**
  * Returns log(probability of success) for the section. Higher is better.
  */
 export const computeSectionScore = ({
@@ -48,30 +81,14 @@ export const computeSectionScore = ({
     const node = nodeMap.get(nodeId)
     if (!node) continue
 
-    if (node._containsTarget) continue
-
     const totalCapacity = totalNodeCapacityMap.get(nodeId)!
     const usedCapacity = usedNodeCapacityMap.get(nodeId) ?? 0
 
-    // Skip calculation if node is not over capacity (prob success = 1, log(1) = 0)
-    // This avoids issues with log(0) if probabilityOfSuccess is exactly 1.
-    if (usedCapacity <= totalCapacity) continue
-
-    const probabilityOfFailure = calculateNodeProbabilityOfFailure(
+    logProbabilityOfSuccessSum += calculateSingleNodeLogSuccessProbability(
       usedCapacity,
       totalCapacity,
-      node.availableZ.length,
+      node,
     )
-    const probabilityOfSuccess = 1 - probabilityOfFailure
-
-    // Avoid log(0) or log(<0) if probabilityOfFailure >= 1
-    if (probabilityOfSuccess <= 0) {
-      // Assign a very large negative number to represent extremely low probability
-      // This handles cases where a node is massively over capacity.
-      logProbabilityOfSuccessSum += -1e9 // Or return -Infinity immediately?
-    } else {
-      logProbabilityOfSuccessSum += Math.log(probabilityOfSuccess)
-    }
   }
 
   return logProbabilityOfSuccessSum
