@@ -27,6 +27,7 @@ import {
   computeSectionNodesTerminalsAndEdges,
 } from "./computeSectionNodesTerminalsAndEdges"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
+import { CachedHyperCapacityPathingSingleSectionSolver } from "./CachedHyperCapacityPathingSingleSectionSolver"
 
 type CapacityMeshEdgeId = string
 
@@ -272,7 +273,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       })
       this.stats.scheduleScores[this.currentScheduleIndex].sectionAttempts++
       this.currentSection = section
-      this.sectionSolver = new HyperCapacityPathingSingleSectionSolver({
+      this.sectionSolver = new CachedHyperCapacityPathingSingleSectionSolver({
         sectionNodes: this.currentSection.sectionNodes,
         sectionEdges: this.currentSection.sectionEdges,
         sectionConnectionTerminals:
