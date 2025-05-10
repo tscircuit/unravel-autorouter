@@ -2,6 +2,7 @@ import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { SegmentWithAssignedPoints } from "../CapacityMeshSolver/CapacitySegmentToPointSolver"
 import { UnravelSectionSolver } from "./UnravelSectionSolver"
+import { CachedUnravelSectionSolver } from "./CachedUnravelSectionSolver"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { NodePortSegment } from "lib/types/capacity-edges-to-port-segments-types"
 import { getDedupedSegments } from "./getDedupedSegments"
@@ -20,6 +21,7 @@ import {
 import { createSegmentPointMap } from "./createSegmentPointMap"
 import { getIntraNodeCrossingsFromSegmentPoints } from "lib/utils/getIntraNodeCrossingsFromSegmentPoints"
 import { getNodesNearNode } from "./getNodesNearNode"
+import { CacheProvider } from "lib/cache/types"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
@@ -51,10 +53,13 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   segmentPointMap: SegmentPointMap
 
+  cacheProvider: CacheProvider | null = null
+
   constructor({
     assignedSegments,
     colorMap,
     nodes,
+    cacheProvider,
   }: {
     assignedSegments: NodePortSegment[]
     colorMap?: Record<string, string>
@@ -63,8 +68,16 @@ export class UnravelMultiSectionSolver extends BaseSolver {
      * for the result datatype (the center, width, height of the node)
      */
     nodes: CapacityMeshNode[]
+    cacheProvider?: CacheProvider | null
   }) {
     super()
+
+    this.stats.successfulOptimizations = 0
+    this.stats.failedOptimizations = 0
+    this.stats.cacheHits = 0
+    this.stats.cacheMisses = 0
+
+    this.cacheProvider = cacheProvider ?? null
 
     this.MAX_ITERATIONS = 1e6
 
@@ -171,7 +184,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         highestPfNodeId,
         (this.attemptsToFixNode.get(highestPfNodeId) ?? 0) + 1,
       )
-      this.activeSubSolver = new UnravelSectionSolver({
+      this.activeSubSolver = new CachedUnravelSectionSolver({
         dedupedSegments: this.dedupedSegments,
         dedupedSegmentMap: this.dedupedSegmentMap,
         nodeMap: this.nodeMap,
@@ -183,6 +196,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         segmentPointMap: this.segmentPointMap,
         nodeToSegmentPointMap: this.nodeToSegmentPointMap,
         segmentToSegmentPointMap: this.segmentToSegmentPointMap,
+        cacheProvider: this.cacheProvider,
       })
     }
 
@@ -191,23 +205,29 @@ export class UnravelMultiSectionSolver extends BaseSolver {
     const { bestCandidate, originalCandidate, lastProcessedCandidate } =
       this.activeSubSolver
 
-    // const giveUpFactor =
-    //   1 + 4 * (1 - Math.min(1, this.activeSubSolver.iterations / 40))
     // const shouldEarlyStop =
-    //   lastProcessedCandidate &&
-    //   lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
-    const shouldEarlyStop =
-      this.activeSubSolver.iterationsSinceImprovement >
-      this.MAX_ITERATIONS_WITHOUT_IMPROVEMENT
+    //   this.activeSubSolver.iterationsSinceImprovement >
+    //   this.MAX_ITERATIONS_WITHOUT_IMPROVEMENT
 
     // cn90994
-    if (this.activeSubSolver.solved || shouldEarlyStop) {
-      // Incorporate the changes from the active solver
+    if (this.activeSubSolver.failed) {
+      this.stats.failedOptimizations += 1
+      this.activeSubSolver = null
+      return
+    }
+    if (this.activeSubSolver.solved) {
+      if (this.activeSubSolver.cacheHit) {
+        this.stats.cacheHits += 1
+      } else {
+        this.stats.cacheMisses += 1
+      }
 
+      // Incorporate the changes from the active solver
       const foundBetterSolution =
         bestCandidate && bestCandidate.g < originalCandidate!.g
 
       if (foundBetterSolution) {
+        this.stats.successfulOptimizations += 1
         // Modify the points using the pointModifications of the candidate
         for (const [
           segmentPointId,
@@ -226,6 +246,9 @@ export class UnravelMultiSectionSolver extends BaseSolver {
             this.computeNodePf(this.nodeMap.get(nodeId)!),
           )
         }
+      } else {
+        // did not find better solution
+        this.stats.failedOptimizations += 1
       }
 
       this.activeSubSolver = null

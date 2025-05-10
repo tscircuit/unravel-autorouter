@@ -1,4 +1,5 @@
 import type { GraphicsObject } from "graphics-debug"
+import { CachableSolver, CacheProvider } from "lib/cache/types"
 
 export class BaseSolver {
   MAX_ITERATIONS = 1000
@@ -10,7 +11,14 @@ export class BaseSolver {
   activeSubSolver?: BaseSolver | null
   failedSubSolvers?: BaseSolver[]
   timeToSolve?: number
-  stats: Record<string, number> = {}
+  stats: Record<string, any> = {}
+
+  /**
+   * For cached solvers
+   **/
+  cacheHit?: boolean
+  cacheKey?: string
+  cacheToSolveSpaceTransform?: any
 
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {
@@ -26,7 +34,7 @@ export class BaseSolver {
       throw e
     }
     if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
-      this.error = `${this.constructor.name} did not converge`
+      this.error = `${this.constructor.name} ran out of iterations`
       console.error(this.error)
       this.failed = true
     }

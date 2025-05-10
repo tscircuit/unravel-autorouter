@@ -7,7 +7,7 @@ import {
 import {
   CapacityPathingSingleSectionPathingSolver,
   CapacityPathingSingleSectionPathingSolverParams,
-} from "./CapacityPathingSingleSectionPathingSolver"
+} from "./CapacityPathingSingleSectionSolver"
 
 export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSupervisorSolver<CapacityPathingSingleSectionPathingSolver> {
   constructorParams: CapacityPathingSingleSectionPathingSolverParams
@@ -19,7 +19,7 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
     >[0],
   ) {
     super()
-    this.MAX_ITERATIONS = 10e3
+    this.MAX_ITERATIONS = 100e3
     this.constructorParams = params
   }
 
@@ -32,6 +32,7 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
   }
 
   getCombinationDefs(): Array<Array<string>> | null {
+    // TODO change combination defs based on hyperParameters.EXPANSION_DEGREES
     return [["orderings10"]]
   }
 

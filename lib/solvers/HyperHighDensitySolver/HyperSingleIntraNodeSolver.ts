@@ -19,10 +19,12 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
   constructorParams: ConstructorParameters<typeof IntraNodeRouteSolver>[0]
   solvedRoutes: HighDensityIntraNodeRoute[] = []
   nodeWithPortPoints: NodeWithPortPoints
+  connMap?: ConnectivityMap
 
   constructor(opts: ConstructorParameters<typeof IntraNodeRouteSolver>[0]) {
     super()
     this.nodeWithPortPoints = opts.nodeWithPortPoints
+    this.connMap = opts.connMap
     this.constructorParams = opts
     this.MAX_ITERATIONS = 250_000
     this.GREEDY_MULTIPLIER = 5
@@ -177,6 +179,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
     if (hyperParameters.MULTI_HEAD_POLYLINE_SOLVER) {
       return new MultiHeadPolyLineIntraNodeSolver3({
         nodeWithPortPoints: this.nodeWithPortPoints,
+        connMap: this.connMap,
         hyperParameters: hyperParameters,
       }) as any
     }

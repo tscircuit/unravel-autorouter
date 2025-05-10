@@ -46,10 +46,12 @@ import { CapacityMeshEdgeSolver2_NodeTreeOptimization } from "./CapacityMeshSolv
 import { UselessViaRemovalSolver } from "./UselessViaRemovalSolver/UselessViaRemovalSolver"
 import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
 import { CapacityPathingGreedySolver } from "./CapacityPathingSectionSolver/CapacityPathingGreedySolver"
+import { CacheProvider } from "lib/cache/types"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
   targetMinCapacity?: number
+  cacheProvider?: CacheProvider | null
 }
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
@@ -111,6 +113,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   connMap: ConnectivityMap
   srjWithPointPairs?: SimpleRouteJson
   capacityNodes: CapacityMeshNode[] | null = null
+
+  cacheProvider: CacheProvider | null = null
 
   pipelineDef = [
     definePipelineStep(
@@ -261,6 +265,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
           assignedSegments: cms.segmentToPointSolver?.solvedSegments || [],
           colorMap: cms.colorMap,
           nodes: cms.capacityNodes!,
+          cacheProvider: this.cacheProvider,
         },
       ],
     ),
@@ -345,7 +350,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     public opts: CapacityMeshSolverOptions = {},
   ) {
     super()
-    this.MAX_ITERATIONS = 10e6
+    this.MAX_ITERATIONS = 100e6
 
     // If capacityDepth is not provided, calculate it automatically
     if (opts.capacityDepth === undefined) {
@@ -364,6 +369,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
 
     this.connMap = getConnectivityMapFromSimpleRouteJson(srj)
     this.colorMap = getColorMap(srj, this.connMap)
+    this.cacheProvider = opts.cacheProvider ?? null
     this.startTimeOfPhase = {}
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}

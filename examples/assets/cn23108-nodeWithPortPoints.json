@@ -1,0 +1,35 @@
+{
+  "capacityMeshNodeId": "cn23108",
+  "portPoints": [
+    {
+      "x": -141.09375,
+      "y": 15.677083333333332,
+      "z": 1,
+      "connectionName": "source_net_0_mst156"
+    },
+    {
+      "x": -141.09375,
+      "y": 15.257161458333332,
+      "z": 1,
+      "connectionName": "source_net_0_mst19"
+    },
+    {
+      "x": -141.93359375,
+      "y": 15.397135416666666,
+      "z": 0,
+      "connectionName": "source_net_0_mst156"
+    },
+    {
+      "x": -141.93359375,
+      "y": 15.677083333333334,
+      "z": 0,
+      "connectionName": "source_net_0_mst19"
+    }
+  ],
+  "center": {
+    "x": -141.513671875,
+    "y": 15.537109375
+  },
+  "width": 0.83984375,
+  "height": 0.83984375
+}
