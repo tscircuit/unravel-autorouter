@@ -109,9 +109,14 @@ export class SegmentTree {
 
     segments.forEach((sw) => {
       const bounds = getSegmentBounds([sw[0], sw[1]])
-      for (let x = bounds.minX; x <= bounds.maxX; x += this.cellSize) {
-        for (let y = bounds.minY; y <= bounds.maxY; y += this.cellSize) {
-          const key = `${Math.floor(x / this.cellSize)}x${Math.floor(y / this.cellSize)}`
+      const minIndexX = Math.floor(bounds.minX / this.cellSize)
+      const maxIndexX = Math.floor(bounds.maxX / this.cellSize)
+      const minIndexY = Math.floor(bounds.minY / this.cellSize)
+      const maxIndexY = Math.floor(bounds.maxY / this.cellSize)
+
+      for (let ix = minIndexX; ix <= maxIndexX; ix++) {
+        for (let iy = minIndexY; iy <= maxIndexY; iy++) {
+          const key = `${ix}x${iy}`
           const bucket = buckets.get(key) || []
           if (!bucket.find((s) => s[2] === sw[2])) {
             bucket.push(sw)
@@ -127,9 +132,14 @@ export class SegmentTree {
       },
       search: (minX, minY, maxX, maxY) => {
         const result = new Set<SegmentWithId>()
-        for (let x = minX; x <= maxX; x += this.cellSize) {
-          for (let y = minY; y <= maxY; y += this.cellSize) {
-            const key = `${Math.floor(x / this.cellSize)}x${Math.floor(y / this.cellSize)}`
+        const minIndexX = Math.floor(minX / this.cellSize)
+        const maxIndexX = Math.floor(maxX / this.cellSize)
+        const minIndexY = Math.floor(minY / this.cellSize)
+        const maxIndexY = Math.floor(maxY / this.cellSize)
+
+        for (let ix = minIndexX; ix <= maxIndexX; ix++) {
+          for (let iy = minIndexY; iy <= maxIndexY; iy++) {
+            const key = `${ix}x${iy}`
             buckets.get(key)?.forEach((sw) => result.add(sw))
           }
         }
