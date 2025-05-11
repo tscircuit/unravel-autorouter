@@ -144,6 +144,21 @@ export const AutoroutingPipelineMenuBar = ({
           <MenubarItem disabled>
             Cache Misses: {cacheProvider?.cacheMisses}
           </MenubarItem>
+          <MenubarSeparator />
+          {cacheProvider?.cacheHitsByPrefix &&
+            Object.entries(cacheProvider.cacheHitsByPrefix).map(
+              ([prefix, hits]) => {
+                const misses = cacheProvider.cacheMissesByPrefix?.[prefix] || 0
+                const total = hits + misses
+                const percentage =
+                  total > 0 ? ((hits / total) * 100).toFixed(1) : "N/A"
+                return (
+                  <MenubarItem key={`hits-${prefix}`} disabled>
+                    {prefix} {percentage}%
+                  </MenubarItem>
+                )
+              },
+            )}
         </MenubarContent>
       </MenubarMenu>
     </Menubar>

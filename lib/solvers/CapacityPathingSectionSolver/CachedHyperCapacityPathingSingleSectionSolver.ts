@@ -231,7 +231,7 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       terminals,
     }
 
-    const cacheKey = objectHash(cacheKeyContent)
+    const cacheKey = `capacitypathing:${objectHash(cacheKeyContent)}`
 
     const cacheToSolveSpaceTransform: CacheToHyperCapacityPathingTransform = {
       cacheSpaceToRealConnectionId,
