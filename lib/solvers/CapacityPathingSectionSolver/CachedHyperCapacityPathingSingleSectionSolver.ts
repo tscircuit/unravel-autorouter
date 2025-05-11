@@ -141,6 +141,11 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     cacheKey: string
     cacheToSolveSpaceTransform: CacheToHyperCapacityPathingTransform
   } {
+    const nodeOrdering = this._computeBfsOrderingOfNodesInSection()
+    const realIdToCacheSpaceId = Object.fromEntries(
+      nodeOrdering.map((nodeId, i) => [nodeId, `node${i}`]),
+    )
+
     // The relevant information for computing a cache key is the connections between nodes in the section
     // and the capacities of all the nodes. All problems with the same connections and node capacities will
     // have the same solution, so this is the best data to construct a cacheKey with
