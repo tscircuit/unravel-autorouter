@@ -56,7 +56,7 @@ export const AutoroutingPipelineMenuBar = ({
   onClearCache,
 }: AutoroutingPipelineMenuBarProps) => {
   return (
-    <Menubar className="rounded-none border-b border-none px-2 lg:px-4 mb-4">
+    <Menubar className="rounded-none border-b border-none px-2 lg:px-4 mb-4 light">
       <MenubarMenu>
         <MenubarTrigger>Renderer</MenubarTrigger>
         <MenubarContent>
