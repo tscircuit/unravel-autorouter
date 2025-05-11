@@ -25,6 +25,7 @@ import {
 import {
   CapacityPathingSection,
   computeSectionNodesTerminalsAndEdges,
+  SectionConnectionTerminal,
 } from "./computeSectionNodesTerminalsAndEdges"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 import { CachedHyperCapacityPathingSingleSectionSolver } from "./CachedHyperCapacityPathingSingleSectionSolver"
@@ -308,12 +309,14 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
 
     if (this.sectionSolver!.solved) {
-      const solvedSectionSolver = this.sectionSolver
-      const pathingSolver: CapacityPathingSingleSectionPathingSolver =
-        (solvedSectionSolver?.activeSubSolver || solvedSectionSolver) as any
+      const sectionConnectionTerminals =
+        this.sectionSolver.sectionConnectionTerminals
+      const sectionNodes = this.sectionSolver.sectionNodes
+      const centerNodeId = this.sectionSolver.centerNodeId
+
       this.sectionSolver = null // Clear active solver regardless of merge outcome
       this.activeSubSolver = null
-      if (!pathingSolver || !pathingSolver.solved) {
+      if (!sectionConnectionTerminals) {
         console.warn(
           `Pathing sub-solver for section ${
             this.currentSection!.centerNodeId
@@ -323,7 +326,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       }
 
       const sectionNodeIds = new Set(
-        solvedSectionSolver.sectionNodes.map((n) => n.capacityMeshNodeId),
+        sectionNodes.map((n) => n.capacityMeshNodeId),
       )
 
       // --- Calculate Before Score ---
@@ -337,7 +340,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       // --- Calculate After Score (Simulated) ---
       // 1. Create a temporary capacity map reflecting the state *after* applying new paths
       const afterUsedCapacityMap = new Map(this.usedNodeCapacityMap)
-      const newSectionPaths = pathingSolver.sectionConnectionTerminals
+      const newSectionPaths = sectionConnectionTerminals
 
       // 2. Decrement capacity for original paths within the section
       for (const terminal of newSectionPaths) {
@@ -393,7 +396,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         //   )} -> ${afterScore.toFixed(2)}). Merging results.`,
         // )
         // Section solver succeeded AND improved score, merge the results
-        this._mergeSolvedSectionPaths(solvedSectionSolver) // Pass the original section solver instance
+        this._mergeSolvedSectionPaths({
+          centerNodeId,
+          sectionConnectionTerminals,
+        }) // Pass the original section solver instance
         this._recalculateNodeCapacityUsage() // Recalculate global capacity after merging
       } else {
         this.stats.failedOptimizations++
@@ -413,23 +419,14 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
    * Merges the paths found by a successful section solver back into the main
    * connectionsWithNodes list.
    */
-  private _mergeSolvedSectionPaths(
-    solvedSectionSolver:
-      | CapacityPathingSingleSectionPathingSolver
-      | HyperCapacityPathingSingleSectionSolver,
-  ) {
-    const centerNodeId = solvedSectionSolver.centerNodeId
-    // Ensure the pathing sub-solver actually ran and has results
-    if (!solvedSectionSolver || !solvedSectionSolver.solved) {
-      console.warn(
-        `Pathing sub-solver for section ${centerNodeId} did not complete successfully. Skipping merge.`,
-      )
-      return
-    }
-
-    const solvedTerminals = solvedSectionSolver.sectionConnectionTerminals!
-
-    for (const solvedTerminal of solvedTerminals) {
+  private _mergeSolvedSectionPaths({
+    centerNodeId,
+    sectionConnectionTerminals,
+  }: {
+    centerNodeId: string
+    sectionConnectionTerminals: SectionConnectionTerminal[]
+  }) {
+    for (const solvedTerminal of sectionConnectionTerminals) {
       if (!solvedTerminal.path) {
         // Pathing might have failed for this specific connection within the section
         console.warn(
@@ -444,7 +441,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
       if (!originalConnection || !originalConnection.path) {
         console.warn(
-          `Original connection or path not found for ${solvedTerminal.connectionName} while merging section ${solvedSectionSolver.centerNodeId}`,
+          `Original connection or path not found for ${solvedTerminal.connectionName} while merging section ${centerNodeId}`,
         )
         continue
       }
