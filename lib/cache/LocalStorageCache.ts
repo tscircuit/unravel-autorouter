@@ -12,6 +12,9 @@ export class LocalStorageCache implements CacheProvider {
   cacheHits = 0
   cacheMisses = 0
 
+  cacheHitsByPrefix: Record<string, number> = {}
+  cacheMissesByPrefix: Record<string, number> = {}
+
   constructor() {
     if (typeof localStorage === "undefined") {
       console.warn(
