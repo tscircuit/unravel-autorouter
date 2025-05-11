@@ -142,18 +142,100 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     cacheToSolveSpaceTransform: CacheToHyperCapacityPathingTransform
   } {
     const nodeOrdering = this._computeBfsOrderingOfNodesInSection()
-    const realIdToCacheSpaceId = Object.fromEntries(
-      nodeOrdering.map((nodeId, i) => [nodeId, `node${i}`]),
-    )
+    const realToCacheSpaceNodeIdMap = new Map<
+      CapacityMeshNodeId,
+      CacheSpaceNodeId
+    >()
+    const cacheSpaceToRealNodeIdMap = new Map<
+      CacheSpaceNodeId,
+      CapacityMeshNodeId
+    >()
 
-    // The relevant information for computing a cache key is the connections between nodes in the section
-    // and the capacities of all the nodes. All problems with the same connections and node capacities will
-    // have the same solution, so this is the best data to construct a cacheKey with
-    // For the cacheToSolveSpaceTransform, we just need to have something that allows us to convert from
-    // a path in normalized (cache space) ids to the ids in this problem
-    // this.cacheKey = cacheKey
-    // this.cacheToSolveSpaceTransform = cacheToSolveSpaceTransform
-    // return { cacheKey, cacheToSolveSpaceTransform }
+    nodeOrdering.forEach((realNodeId, i) => {
+      const cacheNodeId = `node${i}` as CacheSpaceNodeId
+      realToCacheSpaceNodeIdMap.set(realNodeId, cacheNodeId)
+      cacheSpaceToRealNodeIdMap.set(cacheNodeId, realNodeId)
+    })
+
+    const node_capacity_map: Record<CacheSpaceNodeId, CacheCapacity> = {}
+    for (const realNodeId of nodeOrdering) {
+      const cacheNodeId = realToCacheSpaceNodeIdMap.get(realNodeId)!
+      const node = this.constructorParams.nodeMap!.get(realNodeId)!
+      const capacity = getTunedTotalCapacity1(node)
+      node_capacity_map[cacheNodeId] = roundCapacity(capacity).toFixed(
+        1,
+      ) as CacheCapacity
+    }
+
+    const node_edge_map_set = new Set<string>()
+    const node_edge_map: Array<[CacheSpaceNodeId, CacheSpaceNodeId]> = []
+    for (const realNodeId1 of nodeOrdering) {
+      const cacheNodeId1 = realToCacheSpaceNodeIdMap.get(realNodeId1)!
+      const neighbors =
+        this.constructorParams.nodeEdgeMap!.get(realNodeId1) ?? []
+      for (const edge of neighbors) {
+        const realNodeId2 = edge.nodeIds.find((id) => id !== realNodeId1)!
+        if (this.sectionNodeIdSet.has(realNodeId2)) {
+          const cacheNodeId2 = realToCacheSpaceNodeIdMap.get(realNodeId2)!
+          const pair = [cacheNodeId1, cacheNodeId2].sort() as [
+            CacheSpaceNodeId,
+            CacheSpaceNodeId,
+          ]
+          const pairKey = `${pair[0]}-${pair[1]}`
+          if (!node_edge_map_set.has(pairKey)) {
+            node_edge_map.push(pair)
+            node_edge_map_set.add(pairKey)
+          }
+        }
+      }
+    }
+    // Sort the edge map for consistent hashing
+    node_edge_map.sort((a, b) => {
+      if (a[0] !== b[0]) return a[0].localeCompare(b[0])
+      return a[1].localeCompare(b[1])
+    })
+
+    const terminals: CacheKeyContent["terminals"] = {}
+    const cacheSpaceToRealConnectionId = new Map<
+      CacheSpaceConnectionId,
+      string
+    >()
+
+    for (const conn of this.constructorParams.sectionConnectionTerminals) {
+      const cacheStartNodeId = realToCacheSpaceNodeIdMap.get(conn.startNodeId)!
+      const cacheEndNodeId = realToCacheSpaceNodeIdMap.get(conn.endNodeId)!
+
+      const cacheSpaceConnectionId: CacheSpaceConnectionId =
+        cacheStartNodeId < cacheEndNodeId
+          ? `${cacheStartNodeId}->${cacheEndNodeId}`
+          : `${cacheEndNodeId}->${cacheStartNodeId}`
+
+      terminals[cacheSpaceConnectionId] = {
+        start: cacheStartNodeId,
+        end: cacheEndNodeId,
+      }
+      cacheSpaceToRealConnectionId.set(
+        cacheSpaceConnectionId,
+        conn.connectionName,
+      )
+    }
+
+    const cacheKeyContent: CacheKeyContent = {
+      node_capacity_map,
+      node_edge_map,
+      terminals,
+    }
+
+    const cacheKey = objectHash(cacheKeyContent)
+
+    const cacheToSolveSpaceTransform: CacheToHyperCapacityPathingTransform = {
+      cacheSpaceToRealConnectionId,
+      cacheSpaceToRealNodeId: cacheSpaceToRealNodeIdMap,
+    }
+
+    this.cacheKey = cacheKey
+    this.cacheToSolveSpaceTransform = cacheToSolveSpaceTransform
+    return { cacheKey, cacheToSolveSpaceTransform }
   }
 
   applyCachedSolution(
