@@ -10,41 +10,25 @@ import {
 } from "lib/cache/setupGlobalCaches"
 import { translate, type Matrix, applyToPoint } from "transformation-matrix"
 
-// Normalized IDs are simple strings like "node_0", "connection_1", etc.
-type NormalizedId = string
+// The cache space node id needs to be deterministic based on the connections of the
+// node. If there is a predictable traversal order you can just order them node0, node1 etc.
+type CacheSpaceNodeId = string
 
-// Helper function to round to nearest 50 microns (0.05 mm) and return as string
-const approximateCoordinate = (coord: number): string => {
-  // Multiply by 20 (1 / 0.05), round, then divide by 20
-  // Use toFixed(2) to ensure consistent string format like "1.20" or "0.05"
-  return (Math.round(coord * 0.1) / 0.1).toFixed(2)
-}
+// A normalized connection id - note that the first id is always lower than the second
+type CacheSpaceConnectionId = `${CacheSpaceNodeId}->${CacheSpaceNodeId}`
 
 interface CacheToHyperCapacityPathingTransform {
-  realToCacheTransform: Matrix
-  // Mappings from original UUIDs to normalized IDs
-  nodeIdMap: Map<CapacityMeshNodeId, NormalizedId>
-  // Reverse mappings from normalized IDs back to original UUIDs
-  reverseNodeIdMap: Map<NormalizedId, CapacityMeshNodeId>
+  cacheSpaceToRealConnectionId: Map<CacheSpaceConnectionId, string>
+  cacheSpaceToRealNodeId: Map<CacheSpaceNodeId, string>
 }
 
-interface CachedSolvedHyperCapacityPathingSection {
-  success: boolean
-  // Store the winning solver's hyperParameters
-  winningHyperParameters?: any
-  // Store additional metadata if needed for reconstruction
-  sectionScore?: number
-  // Store the actual solution paths
-  sectionConnectionTerminals?: Array<{
-    connectionName: string
-    startNodeId: CapacityMeshNodeId
-    endNodeId: CapacityMeshNodeId
-    // Store the path node IDs rather than the full nodes to save space
-    pathNodeIds?: CapacityMeshNodeId[]
-  }>
-}
-
-setupGlobalCaches()
+type CachedSolvedHyperCapacityPathingSection =
+  | { success: false }
+  | {
+      success: true
+      sectionScore: number
+      solutionPaths: Record<CacheSpaceConnectionId, CacheSpaceNodeId[]>
+    }
 
 export class CachedHyperCapacityPathingSingleSectionSolver
   extends HyperCapacityPathingSingleSectionSolver
@@ -60,7 +44,6 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     | CacheToHyperCapacityPathingTransform
     | undefined
   hasAttemptedToUseCache = false
-  cacheKey?: string
 
   constructor(
     params: ConstructorParameters<
@@ -90,122 +73,14 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     cacheKey: string
     cacheToSolveSpaceTransform: CacheToHyperCapacityPathingTransform
   } {
-    // 1. Calculate Transformation Matrix (currently just translation)
-    const sectionNodes = this.sectionNodes
-    const centerNode = sectionNodes.find(
-      (node) => node.capacityMeshNodeId === this.centerNodeId,
-    )!
-
-    // Create a transform that centers the problem at the origin
-    const realToCacheTransform = translate(
-      -centerNode.center.x,
-      -centerNode.center.y,
-    )
-
-    // 2. Create ID Mappings
-    const nodeIdMap = new Map<CapacityMeshNodeId, NormalizedId>()
-    const reverseNodeIdMap = new Map<NormalizedId, CapacityMeshNodeId>()
-
-    let nodeCounter = 0
-
-    // Sort node IDs for deterministic normalized IDs based on coordinates (x then y)
-    const sortedNodeIds = [
-      ...sectionNodes.map((node) => node.capacityMeshNodeId),
-    ].sort((aNId, bNId) => {
-      const n1 = sectionNodes.find((node) => node.capacityMeshNodeId === aNId)!
-      const n2 = sectionNodes.find((node) => node.capacityMeshNodeId === bNId)!
-
-      if (n1.center.x !== n2.center.x) {
-        return n1.center.x - n2.center.x
-      }
-      return n1.center.y - n2.center.y
-    })
-    for (const nodeId of sortedNodeIds) {
-      const normId = `node_${nodeCounter++}`
-      nodeIdMap.set(nodeId, normId)
-      reverseNodeIdMap.set(normId, nodeId)
-    }
-
-    // 3. Create Normalized Structure for Hashing
-    const normalizedNodes: Record<
-      NormalizedId,
-      {
-        width: number
-        height: number
-        availableZ: number[]
-        center: { x: string; y: string } // Coordinates are approximated strings
-      }
-    > = {}
-    for (const [nodeId, normNodeId] of nodeIdMap.entries()) {
-      const node = sectionNodes.find((n) => n.capacityMeshNodeId === nodeId)!
-      const transformedCenter = applyToPoint(realToCacheTransform, node.center)
-      normalizedNodes[normNodeId] = {
-        width: node.width,
-        height: node.height,
-        availableZ: node.availableZ,
-        center: {
-          x: approximateCoordinate(transformedCenter.x),
-          y: approximateCoordinate(transformedCenter.y),
-        },
-      }
-    }
-
-    // Create a normalized version of the section terminals for hashing
-    const normalizedConnectionTerminals =
-      this.constructorParams.sectionConnectionTerminals.map((terminal) => {
-        // SectionConnectionTerminal does not have 'position' property, only startNodeId and endNodeId
-        // Find the nodes and use their centers for caching purposes
-        const startNode = sectionNodes.find(
-          (node) => node.capacityMeshNodeId === terminal.startNodeId,
-        )!
-        const endNode = sectionNodes.find(
-          (node) => node.capacityMeshNodeId === terminal.endNodeId,
-        )!
-
-        return {
-          startNodeId: nodeIdMap.get(terminal.startNodeId)!,
-          endNodeId: nodeIdMap.get(terminal.endNodeId)!,
-          connectionName: terminal.connectionName,
-          // Include normalized positions of both nodes for deterministic hashing
-          startPosition: {
-            x: approximateCoordinate(
-              applyToPoint(realToCacheTransform, startNode.center).x,
-            ),
-            y: approximateCoordinate(
-              applyToPoint(realToCacheTransform, startNode.center).y,
-            ),
-          },
-          endPosition: {
-            x: approximateCoordinate(
-              applyToPoint(realToCacheTransform, endNode.center).x,
-            ),
-            y: approximateCoordinate(
-              applyToPoint(realToCacheTransform, endNode.center).y,
-            ),
-          },
-        }
-      })
-
-    // Hash the normalized data for cache key
-    const keyData = {
-      hyperParameters: this.constructorParams.hyperParameters,
-      normalizedNodes,
-      normalizedConnectionTerminals,
-      // Include any other parameters that would affect the solution
-    }
-
-    const cacheKey = `hpercappsec:${objectHash(keyData)}`
-
-    const cacheToSolveSpaceTransform: CacheToHyperCapacityPathingTransform = {
-      realToCacheTransform,
-      nodeIdMap,
-      reverseNodeIdMap,
-    }
-
-    this.cacheKey = cacheKey
-    this.cacheToSolveSpaceTransform = cacheToSolveSpaceTransform
-
-    return { cacheKey, cacheToSolveSpaceTransform }
+    // The relevant information for computing a cache key is the connections between nodes in the section
+    // and the capacities of all the nodes. All problems with the same connections and node capacities will
+    // have the same solution, so this is the best data to construct a cacheKey with
+    // For the cacheToSolveSpaceTransform, we just need to have something that allows us to convert from
+    // a path in normalized (cache space) ids to the ids in this problem
+    // this.cacheKey = cacheKey
+    // this.cacheToSolveSpaceTransform = cacheToSolveSpaceTransform
+    // return { cacheKey, cacheToSolveSpaceTransform }
   }
 
   applyCachedSolution(
@@ -215,41 +90,7 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       this.failed = true
       return
     }
-
-    // Create a solver with the winning hyperParameters from cache
-    const winningSolver = this.generateSolver(
-      cachedSolution.winningHyperParameters,
-    )
-
-    // If we have cached paths, restore them
-    if (cachedSolution.sectionConnectionTerminals && cachedSolution.sectionConnectionTerminals.length > 0) {
-      // Map cached paths back to actual node objects
-      for (let i = 0; i < cachedSolution.sectionConnectionTerminals.length; i++) {
-        const cachedTerminal = cachedSolution.sectionConnectionTerminals[i];
-        const matchingTerminal = winningSolver.sectionConnectionTerminals.find(
-          t => t.connectionName === cachedTerminal.connectionName
-        );
-
-        if (matchingTerminal && cachedTerminal.pathNodeIds) {
-          // Restore the path using the node IDs
-          matchingTerminal.path = cachedTerminal.pathNodeIds.map(
-            nodeId => this.sectionNodes.find(node => node.capacityMeshNodeId === nodeId)!
-          );
-
-          // Also update capacity usage in the solver
-          if (matchingTerminal.path) {
-            winningSolver.reduceCapacityAlongPath(matchingTerminal.path);
-          }
-        }
-      }
-    }
-
-    // Set it as the winning solver
-    this.winningSolver = winningSolver
-
-    // Mark the solver as successful
-    this.cacheHit = true
-    this.solved = true
+    // TODO
   }
 
   attemptToUseCacheSync(): boolean {
@@ -294,27 +135,9 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       return
     }
 
-    const cachedSolution: CachedSolvedHyperCapacityPathingSection = {
-      success: !this.failed && !!this.winningSolver,
-    }
+    // TODO
 
-    // If we have a winning solver, save its hyperParameters and solution
-    if (this.winningSolver) {
-      cachedSolution.winningHyperParameters = this.winningSolver.hyperParameters
-      cachedSolution.sectionScore = this.winningSolver.getSolvedSectionScore()
-
-      // Save the actual solution paths (store node IDs only to save space)
-      if (this.winningSolver.sectionConnectionTerminals) {
-        cachedSolution.sectionConnectionTerminals = this.winningSolver.sectionConnectionTerminals.map(terminal => ({
-          connectionName: terminal.connectionName,
-          startNodeId: terminal.startNodeId,
-          endNodeId: terminal.endNodeId,
-          // Store only the node IDs, not the full node objects
-          pathNodeIds: terminal.path ? terminal.path.map(node => node.capacityMeshNodeId) : undefined
-        }));
-      }
-    }
-
-    this.cacheProvider?.setCachedSolutionSync(this.cacheKey, cachedSolution)
+    // const cachedSolution = ...
+    // this.cacheProvider?.setCachedSolutionSync(this.cacheKey, cachedSolution)
   }
 }
