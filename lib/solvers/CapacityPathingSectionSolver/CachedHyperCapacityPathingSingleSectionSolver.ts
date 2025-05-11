@@ -260,9 +260,9 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       return
     }
 
-    this.solutionPaths = new Map()
+    this.cachedSectionConnectionTerminals = []
     const { cacheSpaceToRealNodeId, cacheSpaceToRealConnectionId } =
-      this.cacheToSolveSpaceTransform
+      this.cacheToSolveSpaceTransform! // Assert non-null as checked above
 
     for (const [cacheConnId, cachePathNodeIds] of Object.entries(
       cachedSolution.solutionPaths,
@@ -274,17 +274,48 @@ export class CachedHyperCapacityPathingSingleSectionSolver
         console.warn(`Could not find real connection name for ${cacheConnId}`)
         continue
       }
-      const realPathNodeIds = cachePathNodeIds.map((cacheNodeId) => {
-        const realNodeId = cacheSpaceToRealNodeId.get(cacheNodeId)
-        if (!realNodeId) {
-          throw new Error(
-            `Could not map cache node ID ${cacheNodeId} to real node ID for connection ${realConnectionName}`,
-          )
-        }
-        return realNodeId
+
+      const originalTerminal =
+        this.constructorParams.sectionConnectionTerminals.find(
+          (t) => t.connectionName === realConnectionName,
+        )
+
+      if (!originalTerminal) {
+        console.warn(
+          `Could not find original terminal for connection name ${realConnectionName}`,
+        )
+        continue
+      }
+
+      const realPathNodes: CapacityMeshNode[] = cachePathNodeIds.map(
+        (cacheNodeId) => {
+          const realNodeId = cacheSpaceToRealNodeId.get(cacheNodeId)
+          if (!realNodeId) {
+            throw new Error(
+              `Could not map cache node ID ${cacheNodeId} to real node ID for connection ${realConnectionName}`,
+            )
+          }
+          const node = this.constructorParams.nodeMap!.get(realNodeId)
+          if (!node) {
+            throw new Error(
+              `Could not find node with ID ${realNodeId} in nodeMap for connection ${realConnectionName}`,
+            )
+          }
+          return node
+        },
+      )
+
+      this.cachedSectionConnectionTerminals.push({
+        ...originalTerminal,
+        path: realPathNodes,
       })
-      this.solutionPaths.set(realConnectionName, realPathNodeIds)
     }
+
+    // Ensure all original terminals are present, even if no path was found in cache (e.g. if cache format changes or is partial)
+    // This might be overly cautious or lead to unexpected behavior if a cached solution is intentionally partial.
+    // For now, we assume a cached solution is complete for the terminals it covers.
+    // If a terminal from constructorParams is not in cachedSolution.solutionPaths, it won't be added to cachedSectionConnectionTerminals.
+    // This matches the behavior of not setting a path for it.
 
     this.sectionScore = cachedSolution.sectionScore
     this.solved = true
@@ -366,7 +397,11 @@ export class CachedHyperCapacityPathingSingleSectionSolver
         realToCacheSpaceConnectionId.set(realConnName, cacheConnId)
       }
 
-      for (const [realConnectionName, realPathNodeIds] of this.solutionPaths) {
+      const realSolutionPaths = [] // todo add type
+
+      // TODO create real solution paths using super.sectionConnectionTerminals
+
+      for (const [realConnectionName, realPathNodeIds] of realSolutionPaths) {
         const cacheConnectionId =
           realToCacheSpaceConnectionId.get(realConnectionName)
         if (!cacheConnectionId) {
@@ -414,6 +449,7 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       }>
     | undefined {
     if (this.cacheHit && this.solved && this.cachedSectionConnectionTerminals) {
+      console.log("returning the cached section connection terminals")
       return this.cachedSectionConnectionTerminals
     }
     return super.sectionConnectionTerminals
