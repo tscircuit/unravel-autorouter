@@ -30,6 +30,20 @@ type CachedSolvedHyperCapacityPathingSection =
       solutionPaths: Record<CacheSpaceConnectionId, CacheSpaceNodeId[]>
     }
 
+type CacheCapacity = string // "10.00", (number).toFixed(2)
+
+interface CacheKeyContent {
+  node_capacity_map: Record<CacheSpaceNodeId, CacheCapacity>
+  node_edge_map: Array<[CacheSpaceNodeId, CacheSpaceNodeId]>
+  terminals: Record<
+    CacheSpaceConnectionId,
+    {
+      start: CacheSpaceNodeId
+      end: CacheSpaceNodeId
+    }
+  >
+}
+
 export class CachedHyperCapacityPathingSingleSectionSolver
   extends HyperCapacityPathingSingleSectionSolver
   implements
