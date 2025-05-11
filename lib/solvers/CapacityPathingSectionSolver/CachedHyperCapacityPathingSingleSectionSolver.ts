@@ -10,8 +10,6 @@ import {
 } from "lib/cache/setupGlobalCaches"
 import { translate, type Matrix, applyToPoint } from "transformation-matrix"
 
-// The cache space node id needs to be deterministic based on the connections of the
-// node. If there is a predictable traversal order you can just order them node0, node1 etc.
 type CacheSpaceNodeId = string
 
 // A normalized connection id - note that the first id is always lower than the second
@@ -81,6 +79,12 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     if ((this.solved || this.failed) && this.cacheProvider) {
       this.saveToCacheSync()
     }
+  }
+
+  // Get a key that can be used to sort the nodes
+  _getCacheSpaceNodeFingerprint(capacityMeshNodeId: string) {
+    // TODO the cache space node id is:
+    // `${node.capacity}-${adjNodes.map(adjNode => adjNode.capacity).join(",")}`
   }
 
   computeCacheKeyAndTransform(): {
