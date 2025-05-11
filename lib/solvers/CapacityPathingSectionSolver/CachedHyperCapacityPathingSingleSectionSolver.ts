@@ -61,6 +61,11 @@ export class CachedHyperCapacityPathingSingleSectionSolver
   hasAttemptedToUseCache = false
   sectionNodeIdSet: Set<string>
 
+  public cachedSectionConnectionTerminals:
+    | typeof this.sectionConnectionTerminals
+    | null = null
+  public sectionScore: number = 0
+
   constructor(
     params: ConstructorParameters<
       typeof HyperCapacityPathingSingleSectionSolver
@@ -241,11 +246,49 @@ export class CachedHyperCapacityPathingSingleSectionSolver
   applyCachedSolution(
     cachedSolution: CachedSolvedHyperCapacityPathingSection,
   ): void {
-    if (!cachedSolution.success) {
-      this.failed = true
+    if (!this.cacheToSolveSpaceTransform) {
+      console.error(
+        "Cache transform not available, cannot apply cached solution.",
+      )
+      // Potentially re-compute or treat as cache miss
+      this.failed = true // Or handle differently
       return
     }
-    // TODO
+    if (!cachedSolution.success) {
+      this.failed = true
+      this.cacheHit = true // It was a hit, but the solution was a failure
+      return
+    }
+
+    this.solutionPaths = new Map()
+    const { cacheSpaceToRealNodeId, cacheSpaceToRealConnectionId } =
+      this.cacheToSolveSpaceTransform
+
+    for (const [cacheConnId, cachePathNodeIds] of Object.entries(
+      cachedSolution.solutionPaths,
+    )) {
+      const realConnectionName = cacheSpaceToRealConnectionId.get(
+        cacheConnId as CacheSpaceConnectionId,
+      )
+      if (!realConnectionName) {
+        console.warn(`Could not find real connection name for ${cacheConnId}`)
+        continue
+      }
+      const realPathNodeIds = cachePathNodeIds.map((cacheNodeId) => {
+        const realNodeId = cacheSpaceToRealNodeId.get(cacheNodeId)
+        if (!realNodeId) {
+          throw new Error(
+            `Could not map cache node ID ${cacheNodeId} to real node ID for connection ${realConnectionName}`,
+          )
+        }
+        return realNodeId
+      })
+      this.solutionPaths.set(realConnectionName, realPathNodeIds)
+    }
+
+    this.sectionScore = cachedSolution.sectionScore
+    this.solved = true
+    this.cacheHit = true
   }
 
   attemptToUseCacheSync(): boolean {
@@ -290,9 +333,89 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       return
     }
 
-    // TODO
+    if (!this.cacheToSolveSpaceTransform) {
+      console.error(
+        "Cache transform not available, cannot save solution to cache.",
+      )
+      return
+    }
 
-    // const cachedSolution = ...
-    // this.cacheProvider?.setCachedSolutionSync(this.cacheKey, cachedSolution)
+    let cachedSolution: CachedSolvedHyperCapacityPathingSection
+
+    if (this.failed) {
+      cachedSolution = { success: false }
+    } else if (this.solved) {
+      const solutionPathsInCacheSpace: Record<
+        CacheSpaceConnectionId,
+        CacheSpaceNodeId[]
+      > = {}
+      const { cacheSpaceToRealNodeId, cacheSpaceToRealConnectionId } =
+        this.cacheToSolveSpaceTransform
+
+      // Create reverse maps for easier lookup
+      const realToCacheSpaceNodeId = new Map<string, CacheSpaceNodeId>()
+      for (const [cacheId, realId] of cacheSpaceToRealNodeId) {
+        realToCacheSpaceNodeId.set(realId, cacheId)
+      }
+
+      const realToCacheSpaceConnectionId = new Map<
+        string,
+        CacheSpaceConnectionId
+      >()
+      for (const [cacheConnId, realConnName] of cacheSpaceToRealConnectionId) {
+        realToCacheSpaceConnectionId.set(realConnName, cacheConnId)
+      }
+
+      for (const [realConnectionName, realPathNodeIds] of this.solutionPaths) {
+        const cacheConnectionId =
+          realToCacheSpaceConnectionId.get(realConnectionName)
+        if (!cacheConnectionId) {
+          console.warn(
+            `Could not find cache space connection ID for ${realConnectionName} when saving to cache.`,
+          )
+          continue
+        }
+
+        const cachePathNodeIds = realPathNodeIds.map((realNodeId) => {
+          const cacheNodeId = realToCacheSpaceNodeId.get(realNodeId)
+          if (!cacheNodeId) {
+            throw new Error(
+              `Could not map real node ID ${realNodeId} to cache node ID for connection ${realConnectionName} when saving to cache.`,
+            )
+          }
+          return cacheNodeId
+        })
+        solutionPathsInCacheSpace[cacheConnectionId] = cachePathNodeIds
+      }
+
+      cachedSolution = {
+        success: true,
+        sectionScore: this.sectionScore,
+        solutionPaths: solutionPathsInCacheSpace,
+      }
+    } else {
+      // Not solved and not failed, so nothing to save yet.
+      return
+    }
+
+    try {
+      this.cacheProvider?.setCachedSolutionSync(this.cacheKey, cachedSolution)
+    } catch (error) {
+      console.error("Error saving solution to cache:", error)
+    }
+  }
+
+  override get sectionConnectionTerminals():
+    | Array<{
+        connectionName: string
+        startNodeId: CapacityMeshNodeId
+        endNodeId: CapacityMeshNodeId
+        path?: CapacityMeshNode[]
+      }>
+    | undefined {
+    if (this.cacheHit && this.solved && this.cachedSectionConnectionTerminals) {
+      return this.cachedSectionConnectionTerminals
+    }
+    return super.sectionConnectionTerminals
   }
 }
