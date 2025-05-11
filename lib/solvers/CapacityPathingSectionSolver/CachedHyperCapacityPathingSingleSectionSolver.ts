@@ -397,9 +397,18 @@ export class CachedHyperCapacityPathingSingleSectionSolver
         realToCacheSpaceConnectionId.set(realConnName, cacheConnId)
       }
 
-      const realSolutionPaths = [] // todo add type
+      const realSolutionPaths: Array<[string, string[]]> = []
 
-      // TODO create real solution paths using super.sectionConnectionTerminals
+      if (super.sectionConnectionTerminals) {
+        for (const terminal of super.sectionConnectionTerminals) {
+          if (terminal.path && terminal.path.length > 0) {
+            const realPathNodeIds = terminal.path.map(
+              (node) => node.capacityMeshNodeId,
+            )
+            realSolutionPaths.push([terminal.connectionName, realPathNodeIds])
+          }
+        }
+      }
 
       for (const [realConnectionName, realPathNodeIds] of realSolutionPaths) {
         const cacheConnectionId =
