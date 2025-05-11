@@ -2,13 +2,14 @@ import { CachableSolver, CacheProvider } from "lib/cache/types"
 import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingSingleSectionSolver"
 import { CapacityPathingSingleSectionPathingSolver } from "./CapacityPathingSingleSectionSolver"
 import { InMemoryCache } from "lib/cache/InMemoryCache"
-import { CapacityMeshNodeId } from "lib/types"
+import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import objectHash from "object-hash"
 import {
   getGlobalLocalStorageCache,
   setupGlobalCaches,
 } from "lib/cache/setupGlobalCaches"
 import { translate, type Matrix, applyToPoint } from "transformation-matrix"
+import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 
 type CacheSpaceNodeId = string
 
@@ -28,7 +29,9 @@ type CachedSolvedHyperCapacityPathingSection =
       solutionPaths: Record<CacheSpaceConnectionId, CacheSpaceNodeId[]>
     }
 
-type CacheCapacity = string // "10.00", (number).toFixed(2)
+const roundCapacity = (capacity: number) => Math.floor(capacity * 10) / 10
+
+type CacheCapacity = string // "10.0", (number).toFixed(1)
 
 interface CacheKeyContent {
   node_capacity_map: Record<CacheSpaceNodeId, CacheCapacity>
@@ -56,6 +59,7 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     | CacheToHyperCapacityPathingTransform
     | undefined
   hasAttemptedToUseCache = false
+  sectionNodeIdSet: Set<string>
 
   constructor(
     params: ConstructorParameters<
@@ -64,7 +68,13 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       cacheProvider?: CacheProvider | null
     },
   ) {
+    params.nodeMap =
+      params.nodeMap ??
+      new Map(params.sectionNodes.map((n) => [n.capacityMeshNodeId, n]))
     super(params)
+    this.sectionNodeIdSet = new Set(
+      params.sectionNodes.map((sn) => sn.capacityMeshNodeId),
+    )
     this.cacheProvider =
       params.cacheProvider === undefined
         ? getGlobalLocalStorageCache() // Default to localStorage if undefined
@@ -81,10 +91,50 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     }
   }
 
-  // Get a key that can be used to sort the nodes
-  _getCacheSpaceNodeFingerprint(capacityMeshNodeId: string) {
-    // TODO the cache space node id is:
-    // `${node.capacity}-${adjNodes.map(adjNode => adjNode.capacity).join(",")}`
+  _computeBfsOrderingOfNodesInSection(): CapacityMeshNodeId[] {
+    const seenNodeIds = new Set<string>(this.constructorParams.centerNodeId)
+    const ordering: CapacityMeshNodeId[] = []
+
+    const candidates: Array<{
+      ancestorCapacitySum: number
+      capacity: number
+      g: number // ancestorCapacitySum + capacity
+      capacityMeshNodeId: CapacityMeshNodeId
+    }> = [
+      {
+        ancestorCapacitySum: 0,
+        capacity: 0,
+        g: 0,
+        capacityMeshNodeId: this.constructorParams.centerNodeId,
+      },
+    ]
+    // Run a breadth first search using the rounded capacity as a penalty for the ordering
+    while (candidates.length > 0) {
+      candidates.sort((a, b) => b.g - a.g)
+      const candidate = candidates.pop()
+      if (!candidate) break
+      ordering.push(candidate.capacityMeshNodeId)
+
+      // Add all the candidate's neighbors (if they are in the section)
+      const neighborNodeIds = this.constructorParams
+        .nodeEdgeMap!.get(candidate.capacityMeshNodeId)!
+        .flatMap((edge) => edge.nodeIds)!
+        .filter((nodeId) => !seenNodeIds.has(nodeId))
+        .filter((nodeId) => this.sectionNodeIdSet.has(nodeId))
+
+      for (const neighborNodeId of neighborNodeIds) {
+        seenNodeIds.add(neighborNodeId)
+        const neighbor = this.constructorParams.nodeMap!.get(neighborNodeId)!
+        const capacity = getTunedTotalCapacity1(neighbor)
+        candidates.push({
+          ancestorCapacitySum: candidate.g,
+          capacity,
+          g: candidate.g + capacity,
+          capacityMeshNodeId: neighborNodeId,
+        })
+      }
+    }
+    return ordering
   }
 
   computeCacheKeyAndTransform(): {
