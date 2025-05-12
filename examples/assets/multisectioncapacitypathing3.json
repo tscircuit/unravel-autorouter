@@ -5,7 +5,7 @@
         "minX": 0,
         "maxX": 8,
         "minY": 0,
-        "maxY": 10
+        "maxY": 12
       },
       "obstacles": [],
       "connections": [
@@ -14,11 +14,11 @@
           "pointsToConnect": [
             {
               "x": 1,
-              "y": 3
+              "y": 1
             },
             {
               "x": 1,
-              "y": 7
+              "y": 11
             }
           ]
         },
@@ -41,6 +41,24 @@
       {
         "capacityMeshNodeId": "nodeA",
         "center": { "x": 1, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true
+      },
+      {
+        "capacityMeshNodeId": "nodeA0",
+        "center": { "x": 1, "y": 1 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true
+      },
+      {
+        "capacityMeshNodeId": "nodeA0",
+        "center": { "x": 1, "y": 1 },
         "width": 1,
         "height": 1,
         "availableZ": [0, 1],
@@ -147,6 +165,24 @@
         "_containsTarget": true
       },
       {
+        "capacityMeshNodeId": "nodeB1",
+        "center": { "x": 1, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true
+      },
+      {
+        "capacityMeshNodeId": "nodeB2",
+        "center": { "x": 1, "y": 11 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true
+      },
+      {
         "capacityMeshNodeId": "nodeE",
         "center": { "x": 7, "y": 9 },
         "width": 1,
@@ -157,6 +193,7 @@
       }
     ],
     "edges": [
+      { "nodeIds": ["nodeA0", "nodeA"], "capacityMeshEdgeId": "edgeA0_A" },
       { "nodeIds": ["nodeC", "nodeF"], "capacityMeshEdgeId": "edgeC_F" },
       { "nodeIds": ["nodeF", "nodeR2C4"], "capacityMeshEdgeId": "edgeF_R2C4" },
       { "nodeIds": ["nodeC", "nodeR2C3"], "capacityMeshEdgeId": "edgeC_R2C3" },
@@ -191,7 +228,9 @@
         "capacityMeshEdgeId": "edgeR4C2_R4C3"
       },
       { "nodeIds": ["nodeR4C3", "nodeD"], "capacityMeshEdgeId": "edgeR4C3_D" },
-      { "nodeIds": ["nodeD", "nodeE"], "capacityMeshEdgeId": "edgeD_E" }
+      { "nodeIds": ["nodeD", "nodeE"], "capacityMeshEdgeId": "edgeD_E" },
+      { "nodeIds": ["nodeB", "nodeB1"], "capacityMeshEdgeId": "edgeB_B1" },
+      { "nodeIds": ["nodeB1", "nodeB2"], "capacityMeshEdgeId": "edgeB1_B2" }
     ],
     "connectionsWithNodes": [
       {
@@ -317,6 +356,24 @@
         "_containsTarget": true
       },
       {
+        "capacityMeshNodeId": "nodeB1",
+        "center": { "x": 1, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true
+      },
+      {
+        "capacityMeshNodeId": "nodeB2",
+        "center": { "x": 1, "y": 11 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true
+      },
+      {
         "capacityMeshNodeId": "nodeE",
         "center": { "x": 7, "y": 9 },
         "width": 1,
@@ -327,6 +384,7 @@
       }
     ],
     "sectionEdges": [
+      { "nodeIds": ["nodeA0", "nodeA"], "capacityMeshEdgeId": "edgeA0_A" },
       { "nodeIds": ["nodeC", "nodeF"], "capacityMeshEdgeId": "edgeC_F" },
       { "nodeIds": ["nodeF", "nodeR2C4"], "capacityMeshEdgeId": "edgeF_R2C4" },
       { "nodeIds": ["nodeC", "nodeR2C3"], "capacityMeshEdgeId": "edgeC_R2C3" },
@@ -361,17 +419,19 @@
         "capacityMeshEdgeId": "edgeR4C2_R4C3"
       },
       { "nodeIds": ["nodeR4C3", "nodeD"], "capacityMeshEdgeId": "edgeR4C3_D" },
-      { "nodeIds": ["nodeD", "nodeE"], "capacityMeshEdgeId": "edgeD_E" }
+      { "nodeIds": ["nodeD", "nodeE"], "capacityMeshEdgeId": "edgeD_E" },
+      { "nodeIds": ["nodeB", "nodeB1"], "capacityMeshEdgeId": "edgeB_B1" },
+      { "nodeIds": ["nodeB1", "nodeB2"], "capacityMeshEdgeId": "edgeB1_B2" }
     ],
     "sectionConnectionTerminals": [
       {
         "connectionName": "connection_A_B",
-        "startNodeId": "nodeC",
-        "endNodeId": "nodeB"
+        "startNodeId": "nodeA0",
+        "endNodeId": "nodeB2"
       },
       {
         "connectionName": "connection_C_D",
-        "startNodeId": "nodeA",
+        "startNodeId": "nodeC",
         "endNodeId": "nodeD"
       }
     ],

@@ -126,6 +126,7 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
       sectionNodeIds: initialSectionNodeIds,
     })
 
+    console.log(this.sectionConnectionTerminals)
     if (params.hyperParameters?.SHUFFLE_SEED) {
       this.sectionConnectionTerminals = cloneAndShuffleArray(
         this.sectionConnectionTerminals,

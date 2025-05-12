@@ -1,10 +1,10 @@
 import { CapacityMeshNode, CapacityMeshEdge } from "lib/types"
 
 // Node Definitions (12 nodes, specific layout based on 5x4 grid + additions)
-// Row 1: 0 0 A F
-const nodeA = {
+// Row 1: 0 0 C F (Note: Node C is now here based on JSON coordinates)
+const nodeA = { // Note: This variable name remains 'nodeA', but its data matches nodeA from JSON
   capacityMeshNodeId: "nodeA",
-  center: { x: 5, y: 1 },
+  center: { x: 1, y: 3 }, // Updated coordinates from JSON
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -20,10 +20,10 @@ const nodeF = {
   layer: "top",
   _containsTarget: true,
 }
-// Row 2: C 1 1 1
-const nodeC = {
+// Row 2: A 1 1 1 (Note: Node A is now here based on JSON coordinates)
+const nodeC = { // Note: This variable name remains 'nodeC', but its data matches nodeC from JSON
   capacityMeshNodeId: "nodeC",
-  center: { x: 1, y: 3 },
+  center: { x: 5, y: 1 }, // Updated coordinates from JSON
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -142,10 +142,10 @@ export const sectionNodes: CapacityMeshNode[] = [
 
 // Edge Definitions (connecting adjacent nodes)
 export const sectionEdges: CapacityMeshEdge[] = [
-  { nodeIds: ["nodeA", "nodeF"], capacityMeshEdgeId: "edgeA_F" },
+  { nodeIds: ["nodeC", "nodeF"], capacityMeshEdgeId: "edgeC_F" }, // Updated from edgeA_F
   { nodeIds: ["nodeF", "nodeR2C4"], capacityMeshEdgeId: "edgeF_R2C4" },
-  { nodeIds: ["nodeA", "nodeR2C3"], capacityMeshEdgeId: "edgeA_R2C3" },
-  { nodeIds: ["nodeC", "nodeR2C2"], capacityMeshEdgeId: "edgeC_R2C2" },
+  { nodeIds: ["nodeC", "nodeR2C3"], capacityMeshEdgeId: "edgeC_R2C3" }, // Updated from edgeA_R2C3
+  { nodeIds: ["nodeA", "nodeR2C2"], capacityMeshEdgeId: "edgeA_R2C2" }, // Updated from edgeC_R2C2
   { nodeIds: ["nodeR2C2", "nodeR2C3"], capacityMeshEdgeId: "edgeR2C2_R2C3" },
   { nodeIds: ["nodeR2C3", "nodeR2C4"], capacityMeshEdgeId: "edgeR2C3_R2C4" },
   { nodeIds: ["nodeR2C3", "nodeR3C3"], capacityMeshEdgeId: "edgeR2C3_R3C3" },
@@ -166,12 +166,12 @@ export const sectionConnectionTerminals: Array<{
 }> = [
   {
     connectionName: "connection_A_B",
-    startNodeId: "nodeA",
+    startNodeId: "nodeC", // Updated from nodeA
     endNodeId: "nodeB",
   },
   {
     connectionName: "connection_C_D",
-    startNodeId: "nodeC",
+    startNodeId: "nodeA", // Updated from nodeC
     endNodeId: "nodeD",
   },
 ]

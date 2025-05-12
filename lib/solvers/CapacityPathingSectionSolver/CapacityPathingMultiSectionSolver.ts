@@ -274,7 +274,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       })
       this.stats.scheduleScores[this.currentScheduleIndex].sectionAttempts++
       this.currentSection = section
-      this.sectionSolver = new CachedHyperCapacityPathingSingleSectionSolver({
+      console.log("creating section solver")
+      this.sectionSolver = new CapacityPathingSingleSectionSolver({
         sectionNodes: this.currentSection.sectionNodes,
         sectionEdges: this.currentSection.sectionEdges,
         sectionConnectionTerminals:
@@ -282,6 +283,9 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         colorMap: this.colorMap,
         centerNodeId: this.currentSection.centerNodeId,
         nodeEdgeMap: this.nodeEdgeMap,
+        hyperParameters: {
+          EXPANSION_DEGREES: this.currentSchedule.MAX_EXPANSION_DEGREES,
+        },
       })
 
       this.activeSubSolver = this.sectionSolver
