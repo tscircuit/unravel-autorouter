@@ -1,42 +1,42 @@
 import { CapacityMeshNode, CapacityMeshEdge } from "lib/types"
 
-// Create test nodes with varying capacities
+// Create test nodes with varying capacities and proper structure
 export const sectionNodes: CapacityMeshNode[] = [
   {
     capacityMeshNodeId: "node1",
     center: { x: 10, y: 10 },
-    bounds: { minX: 5, minY: 5, maxX: 15, maxY: 15 },
-    totalCapacity: 10.5,
-    usedCapacity: 2.0,
-    z: 0,
+    width: 10, // Width derived from bounds (maxX - minX)
+    height: 10, // Height derived from bounds (maxY - minY)
+    availableZ: [0, 1], // Available Z levels (two layers)
     layer: "top",
+    _containsTarget: true, // Adding target flag for node1
   },
   {
     capacityMeshNodeId: "node2",
     center: { x: 30, y: 10 },
-    bounds: { minX: 25, minY: 5, maxX: 35, maxY: 15 },
-    totalCapacity: 8.0,
-    usedCapacity: 1.0,
-    z: 0,
+    width: 10,
+    height: 10,
+    availableZ: [0, 1],
     layer: "top",
+    _containsTarget: true, // Adding target flag for node2
   },
   {
     capacityMeshNodeId: "node3",
     center: { x: 10, y: 30 },
-    bounds: { minX: 5, minY: 25, maxX: 15, maxY: 35 },
-    totalCapacity: 12.0,
-    usedCapacity: 0.0,
-    z: 0,
+    width: 10,
+    height: 10,
+    availableZ: [0, 1],
     layer: "top",
+    _containsTarget: true, // Adding target flag for node3
   },
   {
     capacityMeshNodeId: "node4",
     center: { x: 30, y: 30 },
-    bounds: { minX: 25, minY: 25, maxX: 35, maxY: 35 },
-    totalCapacity: 9.0,
-    usedCapacity: 3.0,
-    z: 0,
+    width: 10,
+    height: 10,
+    availableZ: [0, 1],
     layer: "top",
+    _containsTarget: true, // Adding target flag for node4
   },
 ]
 
@@ -45,22 +45,18 @@ export const sectionEdges: CapacityMeshEdge[] = [
   {
     nodeIds: ["node1", "node2"],
     capacityMeshEdgeId: "edge1",
-    bounds: { minX: 15, minY: 7.5, maxX: 25, maxY: 12.5 },
   },
   {
     nodeIds: ["node1", "node3"],
     capacityMeshEdgeId: "edge2",
-    bounds: { minX: 7.5, minY: 15, maxX: 12.5, maxY: 25 },
   },
   {
     nodeIds: ["node2", "node4"],
     capacityMeshEdgeId: "edge3",
-    bounds: { minX: 27.5, minY: 15, maxX: 32.5, maxY: 25 },
   },
   {
     nodeIds: ["node3", "node4"],
     capacityMeshEdgeId: "edge4",
-    bounds: { minX: 15, minY: 27.5, maxX: 25, maxY: 32.5 },
   },
 ]
 

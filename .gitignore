@@ -183,3 +183,4 @@ repomix-output.txt
 cosmos-export
 .yalc
 yalc.lock
+**/.claude/settings.local.json

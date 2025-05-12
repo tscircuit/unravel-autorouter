@@ -8,6 +8,7 @@ import {
   nodeEdgeMap,
   sectionEdges,
 } from "./problem1"
+import { getSvgFromGraphicsObject } from "graphics-debug"
 
 describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
   const cache = new InMemoryCache()
@@ -28,6 +29,11 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
     const { cacheKey, cacheToSolveSpaceTransform } =
       solver.computeCacheKeyAndTransform()
 
+    solver.initializeSolvers()
+    const svg = getSvgFromGraphicsObject(await solver.visualize(), {
+      includeTextLabels: true,
+    })
+    expect(svg).toMatchSvgSnapshot(import.meta.path)
     // Actually solve the problem, this should save to cache
     await solver.solve()
 

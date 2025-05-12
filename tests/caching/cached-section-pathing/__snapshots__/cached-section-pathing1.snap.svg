@@ -1,0 +1,93 @@
+<svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <circle data-type="point" data-label="Start: connection1
+(node1)" data-x="10" data-y="10" cx="130.16949152542372" cy="509.8305084745763" r="3" fill="black" /><text x="135.16949152542372" y="504.8305084745763" font-family="sans-serif" font-size="12">Start: connection1
+      (node1)</text>
+  </g>
+  <g>
+    <circle data-type="point" data-label="End: connection1
+(node4)" data-x="30" data-y="30" cx="509.8305084745763" cy="130.16949152542372" r="3" fill="black" /><text x="514.8305084745763" y="125.16949152542372" font-family="sans-serif" font-size="12">End: connection1
+      (node4)</text>
+  </g>
+  <g>
+    <circle data-type="point" data-label="Start: connection2
+(node2)" data-x="30.204" data-y="10.204" cx="513.7030508474576" cy="505.9579661016949" r="3" fill="black" /><text x="518.7030508474576" y="500.9579661016949" font-family="sans-serif" font-size="12">Start: connection2
+      (node2)</text>
+  </g>
+  <g>
+    <circle data-type="point" data-label="End: connection2
+(node3)" data-x="10.204" data-y="30.204" cx="134.04203389830508" cy="126.29694915254242" r="3" fill="black" /><text x="139.04203389830508" y="121.29694915254242" font-family="sans-serif" font-size="12">End: connection2
+      (node3)</text>
+  </g>
+  <polyline data-points="13,10 27,10" data-type="line" points="187.1186440677966,509.8305084745763 452.8813559322034,509.8305084745763" fill="none" stroke="rgba(0, 0, 0, 0.2)" stroke-width="1" />
+  <polyline data-points="10,13 10,27" data-type="line" points="130.16949152542372,452.8813559322034 130.16949152542372,187.1186440677966" fill="none" stroke="rgba(0, 0, 0, 0.2)" stroke-width="1" />
+  <polyline data-points="30,13 30,27" data-type="line" points="509.8305084745763,452.8813559322034 509.8305084745763,187.1186440677966" fill="none" stroke="rgba(0, 0, 0, 0.2)" stroke-width="1" />
+  <polyline data-points="13,30 27,30" data-type="line" points="187.1186440677966,130.16949152542372 452.8813559322034,130.16949152542372" fill="none" stroke="rgba(0, 0, 0, 0.2)" stroke-width="1" />
+  <polyline data-points="10,10 10,10" data-type="line" points="130.16949152542372,509.8305084745763 130.16949152542372,509.8305084745763" fill="none" stroke="gray" stroke-width="1" />
+  <polyline data-points="30,30 30,30" data-type="line" points="509.8305084745763,130.16949152542372 509.8305084745763,130.16949152542372" fill="none" stroke="gray" stroke-width="1" />
+  <polyline data-points="10,10 30,30" data-type="line" points="130.16949152542372,509.8305084745763 509.8305084745763,130.16949152542372" fill="none" stroke="black" stroke-width="1" />
+  <polyline data-points="30,10 30.204,10.204" data-type="line" points="509.8305084745763,509.8305084745763 513.7030508474576,505.9579661016949" fill="none" stroke="gray" stroke-width="1" />
+  <polyline data-points="10,30 10.204,30.204" data-type="line" points="130.16949152542372,130.16949152542372 134.04203389830508,126.29694915254242" fill="none" stroke="gray" stroke-width="1" />
+  <polyline data-points="30.204,10.204 10.204,30.204" data-type="line" points="513.7030508474576,505.9579661016949 134.04203389830508,126.29694915254242" fill="none" stroke="black" stroke-width="1" />
+  <rect data-type="rect" data-label="" data-x="10" data-y="10" x="39.999999999999986" y="419.66101694915255" width="180.33898305084745" height="180.33898305084745" fill="rgba(128, 0, 128, 0.1)" stroke="rgba(128, 0, 128, 0.1)" stroke-width="0.05267857142857143" />
+  <rect data-type="rect" data-label="" data-x="30" data-y="10" x="419.6610169491525" y="419.66101694915255" width="180.3389830508475" height="180.33898305084745" fill="rgba(128, 0, 128, 0.1)" stroke="rgba(128, 0, 128, 0.1)" stroke-width="0.05267857142857143" />
+  <rect data-type="rect" data-label="" data-x="10" data-y="30" x="39.999999999999986" y="40" width="180.33898305084745" height="180.3389830508475" fill="rgba(128, 0, 128, 0.1)" stroke="rgba(128, 0, 128, 0.1)" stroke-width="0.05267857142857143" />
+  <rect data-type="rect" data-label="" data-x="30" data-y="30" x="419.6610169491525" y="40" width="180.3389830508475" height="180.3389830508475" fill="rgba(128, 0, 128, 0.1)" stroke="rgba(128, 0, 128, 0.1)" stroke-width="0.05267857142857143" />
+  <g id="crosshair" style="display: none">
+    <line id="crosshair-h" y1="0" y2="640" stroke="#666" stroke-width="0.5" />
+    <line id="crosshair-v" x1="0" x2="640" stroke="#666" stroke-width="0.5" /><text id="coordinates" font-family="monospace" font-size="12" fill="#666"></text>
+  </g>
+  <script>
+    <![CDATA[
+    document.currentScript.parentElement.addEventListener('mousemove', (e) => {
+      const svg = e.currentTarget;
+      const rect = svg.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const crosshair = svg.getElementById('crosshair');
+      const h = svg.getElementById('crosshair-h');
+      const v = svg.getElementById('crosshair-v');
+      const coords = svg.getElementById('coordinates');
+
+      crosshair.style.display = 'block';
+      h.setAttribute('x1', '0');
+      h.setAttribute('x2', '640');
+      h.setAttribute('y1', y);
+      h.setAttribute('y2', y);
+      v.setAttribute('x1', x);
+      v.setAttribute('x2', x);
+      v.setAttribute('y1', '0');
+      v.setAttribute('y2', '640');
+
+      // Calculate real coordinates using inverse transformation
+      const matrix = {
+        "a": 18.983050847457626,
+        "c": 0,
+        "e": -59.661016949152554,
+        "b": 0,
+        "d": -18.983050847457626,
+        "f": 699.6610169491526
+      };
+      // Manually invert and apply the affine transform
+      // Since we only use translate and scale, we can directly compute:
+      // x' = (x - tx) / sx
+      // y' = (y - ty) / sy
+      const sx = matrix.a;
+      const sy = matrix.d;
+      const tx = matrix.e;
+      const ty = matrix.f;
+      const realPoint = {
+        x: (x - tx) / sx,
+        y: (y - ty) / sy // Flip y back since we used negative scale
+      }
+
+      coords.textContent = `(${realPoint.x.toFixed(2)}, ${realPoint.y.toFixed(2)})`;
+      coords.setAttribute('x', (x + 5).toString());
+      coords.setAttribute('y', (y - 5).toString());
+    });
+    document.currentScript.parentElement.addEventListener('mouseleave', () => {
+      document.currentScript.parentElement.getElementById('crosshair').style.display = 'none';
+    });
+    ]]>
+  </script>
+</svg>
