@@ -1,22 +1,22 @@
 <svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
   <g>
     <circle data-type="point" data-label="Start: connection1
-(node1)" data-x="10" data-y="10" cx="130.16949152542372" cy="509.8305084745763" r="3" fill="black" /><text x="135.16949152542372" y="504.8305084745763" font-family="sans-serif" font-size="12">Start: connection1
+(node1)" data-x="10" data-y="10" cx="130.16949152542372" cy="509.8305084745763" r="3" fill="red" /><text x="135.16949152542372" y="504.8305084745763" font-family="sans-serif" font-size="12">Start: connection1
       (node1)</text>
   </g>
   <g>
     <circle data-type="point" data-label="End: connection1
-(node4)" data-x="30" data-y="30" cx="509.8305084745763" cy="130.16949152542372" r="3" fill="black" /><text x="514.8305084745763" y="125.16949152542372" font-family="sans-serif" font-size="12">End: connection1
+(node4)" data-x="30" data-y="30" cx="509.8305084745763" cy="130.16949152542372" r="3" fill="red" /><text x="514.8305084745763" y="125.16949152542372" font-family="sans-serif" font-size="12">End: connection1
       (node4)</text>
   </g>
   <g>
     <circle data-type="point" data-label="Start: connection2
-(node2)" data-x="30.204" data-y="10.204" cx="513.7030508474576" cy="505.9579661016949" r="3" fill="black" /><text x="518.7030508474576" y="500.9579661016949" font-family="sans-serif" font-size="12">Start: connection2
+(node2)" data-x="30.204" data-y="10.204" cx="513.7030508474576" cy="505.9579661016949" r="3" fill="blue" /><text x="518.7030508474576" y="500.9579661016949" font-family="sans-serif" font-size="12">Start: connection2
       (node2)</text>
   </g>
   <g>
     <circle data-type="point" data-label="End: connection2
-(node3)" data-x="10.204" data-y="30.204" cx="134.04203389830508" cy="126.29694915254242" r="3" fill="black" /><text x="139.04203389830508" y="121.29694915254242" font-family="sans-serif" font-size="12">End: connection2
+(node3)" data-x="10.204" data-y="30.204" cx="134.04203389830508" cy="126.29694915254242" r="3" fill="blue" /><text x="139.04203389830508" y="121.29694915254242" font-family="sans-serif" font-size="12">End: connection2
       (node3)</text>
   </g>
   <polyline data-points="13,10 27,10" data-type="line" points="187.1186440677966,509.8305084745763 452.8813559322034,509.8305084745763" fill="none" stroke="rgba(0, 0, 0, 0.2)" stroke-width="1" />
@@ -25,10 +25,12 @@
   <polyline data-points="13,30 27,30" data-type="line" points="187.1186440677966,130.16949152542372 452.8813559322034,130.16949152542372" fill="none" stroke="rgba(0, 0, 0, 0.2)" stroke-width="1" />
   <polyline data-points="10,10 10,10" data-type="line" points="130.16949152542372,509.8305084745763 130.16949152542372,509.8305084745763" fill="none" stroke="gray" stroke-width="1" />
   <polyline data-points="30,30 30,30" data-type="line" points="509.8305084745763,130.16949152542372 509.8305084745763,130.16949152542372" fill="none" stroke="gray" stroke-width="1" />
-  <polyline data-points="10,10 30,30" data-type="line" points="130.16949152542372,509.8305084745763 509.8305084745763,130.16949152542372" fill="none" stroke="black" stroke-width="1" />
+  <polyline data-points="10,10 30,30" data-type="line" points="130.16949152542372,509.8305084745763 509.8305084745763,130.16949152542372" fill="none" stroke="red" stroke-width="1" />
   <polyline data-points="30,10 30.204,10.204" data-type="line" points="509.8305084745763,509.8305084745763 513.7030508474576,505.9579661016949" fill="none" stroke="gray" stroke-width="1" />
   <polyline data-points="10,30 10.204,30.204" data-type="line" points="130.16949152542372,130.16949152542372 134.04203389830508,126.29694915254242" fill="none" stroke="gray" stroke-width="1" />
-  <polyline data-points="30.204,10.204 10.204,30.204" data-type="line" points="513.7030508474576,505.9579661016949 134.04203389830508,126.29694915254242" fill="none" stroke="black" stroke-width="1" />
+  <polyline data-points="30.204,10.204 10.204,30.204" data-type="line" points="513.7030508474576,505.9579661016949 134.04203389830508,126.29694915254242" fill="none" stroke="blue" stroke-width="1" />
+  <polyline data-points="10,10 30,10 30,30" data-type="line" points="130.16949152542372,509.8305084745763 509.8305084745763,509.8305084745763 509.8305084745763,130.16949152542372" fill="none" stroke="rgba(255,0,0,0.8)" stroke-width="0.5694915254237287" />
+  <polyline data-points="30.0306,10.0306 10.0306,10.0306 10.0306,30.0306" data-type="line" points="510.4113898305085,509.24962711864407 130.7503728813559,509.24962711864407 130.7503728813559,129.58861016949152" fill="none" stroke="rgba(0,0,255,0.8)" stroke-width="0.5694915254237287" />
   <rect data-type="rect" data-label="" data-x="10" data-y="10" x="39.999999999999986" y="419.66101694915255" width="180.33898305084745" height="180.33898305084745" fill="rgba(128, 0, 128, 0.1)" stroke="rgba(128, 0, 128, 0.1)" stroke-width="0.05267857142857143" />
   <rect data-type="rect" data-label="" data-x="30" data-y="10" x="419.6610169491525" y="419.66101694915255" width="180.3389830508475" height="180.33898305084745" fill="rgba(128, 0, 128, 0.1)" stroke="rgba(128, 0, 128, 0.1)" stroke-width="0.05267857142857143" />
   <rect data-type="rect" data-label="" data-x="10" data-y="30" x="39.999999999999986" y="40" width="180.33898305084745" height="180.3389830508475" fill="rgba(128, 0, 128, 0.1)" stroke="rgba(128, 0, 128, 0.1)" stroke-width="0.05267857142857143" />

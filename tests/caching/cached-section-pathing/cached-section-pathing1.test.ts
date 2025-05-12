@@ -22,6 +22,10 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
       centerNodeId: "node1",
       nodeMap,
       nodeEdgeMap,
+      colorMap: {
+        connection1: "red",
+        connection2: "blue",
+      },
       cacheProvider: cache,
     })
 
@@ -30,12 +34,17 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
       solver.computeCacheKeyAndTransform()
 
     solver.initializeSolvers()
+    // const svg = getSvgFromGraphicsObject(await solver.visualize(), {
+    //   includeTextLabels: true,
+    // })
+    // expect(svg).toMatchSvgSnapshot(import.meta.path)
+    // Actually solve the problem, this should save to cache
+    await solver.solve()
+
     const svg = getSvgFromGraphicsObject(await solver.visualize(), {
       includeTextLabels: true,
     })
     expect(svg).toMatchSvgSnapshot(import.meta.path)
-    // Actually solve the problem, this should save to cache
-    await solver.solve()
 
     // Create a new solver that should use the cache
     const newSolver = new CachedHyperCapacityPathingSingleSectionSolver({
