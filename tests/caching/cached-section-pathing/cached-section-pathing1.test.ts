@@ -19,12 +19,12 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
       sectionNodes,
       sectionEdges,
       sectionConnectionTerminals,
-      centerNodeId: "node1",
+      centerNodeId: "nodeR3C3", // Using a central node for cache key generation
       nodeMap,
       nodeEdgeMap,
       colorMap: {
-        connection1: "red",
-        connection2: "blue",
+        connection_A_B: "red",
+        connection_C_D: "blue",
       },
       cacheProvider: cache,
     })
@@ -51,7 +51,7 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
       sectionNodes,
       sectionEdges,
       sectionConnectionTerminals,
-      centerNodeId: "node1",
+      centerNodeId: "nodeR3C3", // Using a central node for cache key generation
       nodeMap,
       nodeEdgeMap,
       cacheProvider: cache,
