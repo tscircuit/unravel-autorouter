@@ -13,8 +13,8 @@
           "name": "connection_A_B",
           "pointsToConnect": [
             {
-              "x": 5,
-              "y": 1
+              "x": 1,
+              "y": 3
             },
             {
               "x": 1,
@@ -30,8 +30,8 @@
               "y": 9
             },
             {
-              "x": 1,
-              "y": 3
+              "x": 5,
+              "y": 1
             }
           ]
         }
@@ -40,7 +40,7 @@
     "nodes": [
       {
         "capacityMeshNodeId": "nodeA",
-        "center": { "x": 5, "y": 1 },
+        "center": { "x": 1, "y": 3 },
         "width": 1,
         "height": 1,
         "availableZ": [0, 1],
@@ -58,7 +58,7 @@
       },
       {
         "capacityMeshNodeId": "nodeC",
-        "center": { "x": 1, "y": 3 },
+        "center": { "x": 5, "y": 1 },
         "width": 1,
         "height": 1,
         "availableZ": [0, 1],
@@ -157,10 +157,10 @@
       }
     ],
     "edges": [
-      { "nodeIds": ["nodeA", "nodeF"], "capacityMeshEdgeId": "edgeA_F" },
+      { "nodeIds": ["nodeC", "nodeF"], "capacityMeshEdgeId": "edgeC_F" },
       { "nodeIds": ["nodeF", "nodeR2C4"], "capacityMeshEdgeId": "edgeF_R2C4" },
-      { "nodeIds": ["nodeA", "nodeR2C3"], "capacityMeshEdgeId": "edgeA_R2C3" },
-      { "nodeIds": ["nodeC", "nodeR2C2"], "capacityMeshEdgeId": "edgeC_R2C2" },
+      { "nodeIds": ["nodeC", "nodeR2C3"], "capacityMeshEdgeId": "edgeC_R2C3" },
+      { "nodeIds": ["nodeA", "nodeR2C2"], "capacityMeshEdgeId": "edgeA_R2C2" },
       {
         "nodeIds": ["nodeR2C2", "nodeR2C3"],
         "capacityMeshEdgeId": "edgeR2C2_R2C3"
@@ -210,7 +210,7 @@
     "sectionNodes": [
       {
         "capacityMeshNodeId": "nodeA",
-        "center": { "x": 5, "y": 1 },
+        "center": { "x": 1, "y": 3 },
         "width": 1,
         "height": 1,
         "availableZ": [0, 1],
@@ -228,7 +228,7 @@
       },
       {
         "capacityMeshNodeId": "nodeC",
-        "center": { "x": 1, "y": 3 },
+        "center": { "x": 5, "y": 1 },
         "width": 1,
         "height": 1,
         "availableZ": [0, 1],
@@ -327,10 +327,10 @@
       }
     ],
     "sectionEdges": [
-      { "nodeIds": ["nodeA", "nodeF"], "capacityMeshEdgeId": "edgeA_F" },
+      { "nodeIds": ["nodeC", "nodeF"], "capacityMeshEdgeId": "edgeC_F" },
       { "nodeIds": ["nodeF", "nodeR2C4"], "capacityMeshEdgeId": "edgeF_R2C4" },
-      { "nodeIds": ["nodeA", "nodeR2C3"], "capacityMeshEdgeId": "edgeA_R2C3" },
-      { "nodeIds": ["nodeC", "nodeR2C2"], "capacityMeshEdgeId": "edgeC_R2C2" },
+      { "nodeIds": ["nodeC", "nodeR2C3"], "capacityMeshEdgeId": "edgeC_R2C3" },
+      { "nodeIds": ["nodeA", "nodeR2C2"], "capacityMeshEdgeId": "edgeA_R2C2" },
       {
         "nodeIds": ["nodeR2C2", "nodeR2C3"],
         "capacityMeshEdgeId": "edgeR2C2_R2C3"
@@ -366,12 +366,12 @@
     "sectionConnectionTerminals": [
       {
         "connectionName": "connection_A_B",
-        "startNodeId": "nodeA",
+        "startNodeId": "nodeC",
         "endNodeId": "nodeB"
       },
       {
         "connectionName": "connection_C_D",
-        "startNodeId": "nodeC",
+        "startNodeId": "nodeA",
         "endNodeId": "nodeD"
       }
     ],
