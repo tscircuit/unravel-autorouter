@@ -228,7 +228,7 @@ export function visualizeSection({
             y: y + offset.y,
           })),
           strokeColor: safeTransparentize(pathColor, 0.2), // Make solved paths semi-transparent
-          strokeWidth: 0.03,
+          // strokeWidth: 0.03,
         })
       }
     })
