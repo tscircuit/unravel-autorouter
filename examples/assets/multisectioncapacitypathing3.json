@@ -45,7 +45,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeA0",
@@ -54,16 +54,8 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
-      },
-      {
-        "capacityMeshNodeId": "nodeA0",
-        "center": { "x": 1, "y": 1 },
-        "width": 1,
-        "height": 1,
-        "availableZ": [0, 1],
-        "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": true,
+        "_containsObstacle": true
       },
       {
         "capacityMeshNodeId": "nodeF",
@@ -72,7 +64,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeC",
@@ -81,7 +73,8 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": true,
+        "_containsObstacle": true
       },
       {
         "capacityMeshNodeId": "nodeR2C2",
@@ -90,7 +83,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR2C3",
@@ -99,7 +92,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR2C4",
@@ -108,7 +101,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR3C3",
@@ -117,7 +110,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR3C4",
@@ -126,7 +119,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeB",
@@ -135,7 +128,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR4C2",
@@ -144,7 +137,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR4C3",
@@ -153,7 +146,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeD",
@@ -162,7 +155,8 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": true,
+        "_containsObstacle": true
       },
       {
         "capacityMeshNodeId": "nodeB1",
@@ -171,7 +165,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeB2",
@@ -180,7 +174,8 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": true,
+        "_containsObstacle": true
       },
       {
         "capacityMeshNodeId": "nodeE",
@@ -189,7 +184,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       }
     ],
     "edges": [
@@ -254,7 +249,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeF",
@@ -263,7 +258,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeC",
@@ -272,7 +267,8 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": true,
+        "_containsObstacle": true
       },
       {
         "capacityMeshNodeId": "nodeR2C2",
@@ -281,7 +277,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR2C3",
@@ -290,7 +286,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR2C4",
@@ -299,7 +295,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR3C3",
@@ -308,7 +304,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR3C4",
@@ -317,7 +313,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeB",
@@ -326,7 +322,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR4C2",
@@ -335,7 +331,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeR4C3",
@@ -344,7 +340,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeD",
@@ -353,7 +349,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeB1",
@@ -362,7 +358,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       },
       {
         "capacityMeshNodeId": "nodeB2",
@@ -371,7 +367,8 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": true,
+        "_containsObstacle": true
       },
       {
         "capacityMeshNodeId": "nodeE",
@@ -380,7 +377,7 @@
         "height": 1,
         "availableZ": [0, 1],
         "layer": "top",
-        "_containsTarget": true
+        "_containsTarget": false
       }
     ],
     "sectionEdges": [
