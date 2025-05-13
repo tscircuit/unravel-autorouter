@@ -9,13 +9,16 @@ import {
   sectionEdges,
 } from "./problem1"
 import { getSvgFromGraphicsObject } from "graphics-debug"
+import { CapacityPathingMultiSectionSolver } from "lib/solvers/CapacityPathingSectionSolver/CapacityPathingMultiSectionSolver"
+import { CapacityPathingSingleSectionPathingSolver } from "lib/solvers/CapacityPathingSectionSolver/CapacityPathingSingleSectionSolver"
 
 describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
   const cache = new InMemoryCache()
 
   it("should correctly encode to cache space and decode back to original space", async () => {
-    // Create solver with cache
-    const solver = new CachedHyperCapacityPathingSingleSectionSolver({
+    const problemInput: ConstructorParameters<
+      typeof CapacityPathingSingleSectionPathingSolver
+    >[0] = {
       sectionNodes,
       sectionEdges,
       sectionConnectionTerminals,
@@ -26,6 +29,10 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
         connection_A_B: "red",
         connection_C_D: "blue",
       },
+    }
+    // Create solver with cache
+    const solver = new CachedHyperCapacityPathingSingleSectionSolver({
+      ...problemInput,
       cacheProvider: cache,
     })
 
@@ -34,10 +41,7 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
       solver.computeCacheKeyAndTransform()
 
     solver.initializeSolvers()
-    // const svg = getSvgFromGraphicsObject(await solver.visualize(), {
-    //   includeTextLabels: true,
-    // })
-    // expect(svg).toMatchSvgSnapshot(import.meta.path)
+
     // Actually solve the problem, this should save to cache
     await solver.solve()
 
@@ -48,12 +52,8 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
 
     // Create a new solver that should use the cache
     const newSolver = new CachedHyperCapacityPathingSingleSectionSolver({
-      sectionNodes,
-      sectionEdges,
-      sectionConnectionTerminals,
-      centerNodeId: "nodeR3C3", // Using a central node for cache key generation
-      nodeMap,
-      nodeEdgeMap,
+      ...problemInput,
+      // centerNodeId: "nodeR4C2", // the center node shouldn't effect the cache key
       cacheProvider: cache,
     })
 
