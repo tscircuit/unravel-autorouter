@@ -47,6 +47,7 @@ import { UselessViaRemovalSolver } from "./UselessViaRemovalSolver/UselessViaRem
 import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
 import { CapacityPathingGreedySolver } from "./CapacityPathingSectionSolver/CapacityPathingGreedySolver"
 import { CacheProvider } from "lib/cache/types"
+import { getGlobalInMemoryCache } from "lib/cache/setupGlobalCaches"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -209,6 +210,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
           nodes: cms.capacityNodes!,
           edges: cms.edgeSolver?.edges || [],
           colorMap: cms.colorMap,
+          cacheProvider: cms.cacheProvider,
           hyperParameters: {
             MAX_CAPACITY_FACTOR: 1,
           },
@@ -369,7 +371,12 @@ export class AutoroutingPipelineSolver extends BaseSolver {
 
     this.connMap = getConnectivityMapFromSimpleRouteJson(srj)
     this.colorMap = getColorMap(srj, this.connMap)
-    this.cacheProvider = opts.cacheProvider ?? null
+    this.cacheProvider =
+      opts.cacheProvider === undefined
+        ? getGlobalInMemoryCache()
+        : opts.cacheProvider === null
+          ? null
+          : opts.cacheProvider
     this.startTimeOfPhase = {}
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}

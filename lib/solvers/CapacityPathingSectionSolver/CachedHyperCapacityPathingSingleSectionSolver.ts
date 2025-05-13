@@ -5,6 +5,7 @@ import { InMemoryCache } from "lib/cache/InMemoryCache"
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import objectHash from "object-hash"
 import {
+  getGlobalInMemoryCache,
   getGlobalLocalStorageCache,
   setupGlobalCaches,
 } from "lib/cache/setupGlobalCaches"
@@ -84,7 +85,7 @@ export class CachedHyperCapacityPathingSingleSectionSolver
     )
     this.cacheProvider =
       params.cacheProvider === undefined
-        ? getGlobalLocalStorageCache() // Default to localStorage if undefined
+        ? getGlobalInMemoryCache() // Default to localStorage if undefined
         : params.cacheProvider // Use null if explicitly passed as null
   }
 

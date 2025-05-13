@@ -29,6 +29,7 @@ import {
 } from "./computeSectionNodesTerminalsAndEdges"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
 import { CachedHyperCapacityPathingSingleSectionSolver } from "./CachedHyperCapacityPathingSingleSectionSolver"
+import { CacheProvider } from "lib/cache/types"
 
 type CapacityMeshEdgeId = string
 
@@ -46,6 +47,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
 
   initialSolver: CapacityPathingGreedySolver
+  cacheProvider?: CacheProvider | null
 
   stage: "initialization" | "section-optimization" = "initialization"
 
@@ -78,6 +80,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }>
   }
 
+  // Adjusting this schedule is a trade-off between optimization speed and quality.
   OPTIMIZATION_SCHEDULE = [
     {
       MAX_ATTEMPTS_PER_NODE: 1,
@@ -92,7 +95,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     {
       MAX_ATTEMPTS_PER_NODE: 3,
       MAX_EXPANSION_DEGREES: 7,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.3,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.9,
     },
   ]
 
@@ -103,6 +106,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   constructor(
     params: ConstructorParameters<typeof CapacityPathingSolver>[0] & {
       initialPathingSolver?: CapacityPathingGreedySolver
+      cacheProvider?: CacheProvider | null
     },
   ) {
     super()
@@ -122,6 +126,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
 
     this.MAX_ITERATIONS = 10e6
+    this.cacheProvider = params.cacheProvider
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
     this.edges = params.edges
@@ -274,7 +279,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       })
       this.stats.scheduleScores[this.currentScheduleIndex].sectionAttempts++
       this.currentSection = section
-      this.sectionSolver = new HyperCapacityPathingSingleSectionSolver({
+      this.sectionSolver = new CachedHyperCapacityPathingSingleSectionSolver({
         sectionNodes: this.currentSection.sectionNodes,
         sectionEdges: this.currentSection.sectionEdges,
         sectionConnectionTerminals:
@@ -285,6 +290,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         hyperParameters: {
           EXPANSION_DEGREES: this.currentSchedule.MAX_EXPANSION_DEGREES,
         },
+        cacheProvider: this.cacheProvider,
       })
 
       this.activeSubSolver = this.sectionSolver
