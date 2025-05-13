@@ -110,7 +110,7 @@ export class CachedHyperSingleIntraNodeSolver
     const normalizedRelevantConnMap: string[][] = []
 
     for (const portPoint of normalizedPortPoints) {
-      const relevantConnMap = this.connMap.getIdsConnectedToNet(
+      const relevantConnMap = this.connMap?.getIdsConnectedToNet(
         portPoint.connectionName,
       )
       if (relevantConnMap) {
