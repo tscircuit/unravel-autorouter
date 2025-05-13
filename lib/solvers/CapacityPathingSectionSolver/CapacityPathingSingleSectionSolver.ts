@@ -9,6 +9,10 @@ import { visualizeSection } from "./visualizeSection"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap" // Added import
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1" // Added import
 import { distance } from "@tscircuit/math-utils" // Added import
+import {
+  computeSectionScore,
+  calculateSingleNodeLogSuccessProbability,
+} from "./computeSectionScore" // Added import & calculateSingleNodeLogSuccessProbability
 import { safeTransparentize } from "../colors" // Added import
 import { createRectFromCapacityNode } from "lib/utils/createRectFromCapacityNode" // Added import
 import { cloneAndShuffleArray } from "lib/utils/cloneAndShuffleArray"
@@ -40,6 +44,7 @@ export interface CapacityPathingSingleSectionPathingSolverParams {
   }>
   colorMap?: Record<string, string> // Make colorMap optional in params
   centerNodeId: string
+  nodeMap?: Map<CapacityMeshNodeId, CapacityMeshNode>
   nodeEdgeMap?: Map<CapacityMeshNodeId, CapacityMeshEdge[]>
   hyperParameters?: CpssPathingSolverHyperParameters
 }
@@ -58,7 +63,9 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
   nodeEdgeMap: Map<CapacityMeshNodeId, CapacityMeshEdge[]> // Edges *within the section*
   colorMap: Record<string, string>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number> // Tracks capacity usage *within this solver's run*
+  totalNodeCapacityMap: Map<CapacityMeshNodeId, number> // Added: Stores total capacity for each node
   centerNodeId: string
+  private currentSectionScore: number = 0
 
   MAX_CANDIDATES_IN_MEMORY = 10_000
 
@@ -91,9 +98,9 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.sectionConnectionTerminals = params.sectionConnectionTerminals.map(
       (t) => ({ ...t, path: undefined }),
     )
-    this.nodeMap = new Map(
-      this.sectionNodes.map((n) => [n.capacityMeshNodeId, n]),
-    )
+    this.nodeMap =
+      params.nodeMap ??
+      new Map(this.sectionNodes.map((n) => [n.capacityMeshNodeId, n]))
     this.nodeEdgeMap = params.nodeEdgeMap ?? getNodeEdgeMap(this.sectionEdges) // Use only section edges
     this.colorMap = params.colorMap ?? {}
 
@@ -101,6 +108,23 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
     this.usedNodeCapacityMap = new Map(
       this.sectionNodes.map((node) => [node.capacityMeshNodeId, 0]),
     )
+    this.totalNodeCapacityMap = new Map(
+      this.sectionNodes.map((node) => [
+        node.capacityMeshNodeId,
+        this.getTotalCapacity(node),
+      ]),
+    )
+
+    // Initialize currentSectionScore based on the initial state of capacities
+    const initialSectionNodeIds = new Set(
+      this.sectionNodes.map((n) => n.capacityMeshNodeId),
+    )
+    this.currentSectionScore = computeSectionScore({
+      totalNodeCapacityMap: this.totalNodeCapacityMap,
+      usedNodeCapacityMap: this.usedNodeCapacityMap, // Reflects initial capacities
+      nodeMap: this.nodeMap,
+      sectionNodeIds: initialSectionNodeIds,
+    })
 
     if (params.hyperParameters?.SHUFFLE_SEED) {
       this.sectionConnectionTerminals = cloneAndShuffleArray(
@@ -248,15 +272,50 @@ export class CapacityPathingSingleSectionSolver extends BaseSolver {
 
   // Adapted from CapacityPathingSolver - uses section's capacity map
   reduceCapacityAlongPath(path: CapacityMeshNode[]) {
-    for (const node of path) {
-      // Only reduce capacity for nodes within our section
-      if (this.usedNodeCapacityMap.has(node.capacityMeshNodeId)) {
-        this.usedNodeCapacityMap.set(
-          node.capacityMeshNodeId,
-          (this.usedNodeCapacityMap.get(node.capacityMeshNodeId) ?? 0) + 1,
-        )
+    for (const pathNode of path) {
+      // Only reduce capacity and update score for nodes within our section
+      if (this.usedNodeCapacityMap.has(pathNode.capacityMeshNodeId)) {
+        const nodeId = pathNode.capacityMeshNodeId
+        const nodeInSection = this.nodeMap.get(nodeId)
+
+        if (!nodeInSection) {
+          // This should ideally not happen if paths are constrained to section nodes
+          console.warn(
+            `Node ${nodeId} from path not found in section's nodeMap during score update.`,
+          )
+          continue
+        }
+
+        const totalCapacity = this.totalNodeCapacityMap.get(nodeId)!
+        const oldUsedCapacity = this.usedNodeCapacityMap.get(nodeId) ?? 0
+
+        // Subtract the score contribution of the node with its old capacity
+        const oldNodeScoreContribution =
+          calculateSingleNodeLogSuccessProbability(
+            oldUsedCapacity,
+            totalCapacity,
+            nodeInSection, // Use the node object from the section's map
+          )
+        this.currentSectionScore -= oldNodeScoreContribution
+
+        // Increment the used capacity for the node
+        const newUsedCapacity = oldUsedCapacity + 1
+        this.usedNodeCapacityMap.set(nodeId, newUsedCapacity)
+
+        // Add the score contribution of the node with its new capacity
+        const newNodeScoreContribution =
+          calculateSingleNodeLogSuccessProbability(
+            newUsedCapacity,
+            totalCapacity,
+            nodeInSection, // Use the node object from the section's map
+          )
+        this.currentSectionScore += newNodeScoreContribution
       }
     }
+  }
+
+  getSolvedSectionScore(): number {
+    return this.currentSectionScore
   }
 
   _step() {

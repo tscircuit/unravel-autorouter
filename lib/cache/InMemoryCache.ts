@@ -5,6 +5,8 @@ import { CacheProvider } from "./types"
  * Useful for testing or scenarios where persistence is not required.
  */
 export class InMemoryCache implements CacheProvider {
+  cacheHitsByPrefix: Record<string, number> = {}
+  cacheMissesByPrefix: Record<string, number> = {}
   isSyncCache = true
   cacheHits = 0
   cacheMisses = 0

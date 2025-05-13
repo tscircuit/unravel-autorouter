@@ -25,8 +25,11 @@ import {
 import {
   CapacityPathingSection,
   computeSectionNodesTerminalsAndEdges,
+  SectionConnectionTerminal,
 } from "./computeSectionNodesTerminalsAndEdges"
 import { getNodeEdgeMap } from "../CapacityMeshSolver/getNodeEdgeMap"
+import { CachedHyperCapacityPathingSingleSectionSolver } from "./CachedHyperCapacityPathingSingleSectionSolver"
+import { CacheProvider } from "lib/cache/types"
 
 type CapacityMeshEdgeId = string
 
@@ -44,10 +47,12 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   colorMap: Record<string, string>
 
   initialSolver: CapacityPathingGreedySolver
+  cacheProvider?: CacheProvider | null
 
   stage: "initialization" | "section-optimization" = "initialization"
 
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode> = new Map()
+  allNodeIdsSet: Set<CapacityMeshNodeId>
   usedNodeCapacityMap: Map<CapacityMeshNodeId, number> = new Map()
   totalNodeCapacityMap: Map<CapacityMeshNodeId, number> = new Map() // Added
 
@@ -66,6 +71,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     successfulOptimizations: number
     failedOptimizations: number
     failedSectionSolvers: number
+    startingScore: number
     scheduleScores: Array<{
       maxExpansionDegrees: number
       sectionAttempts: number
@@ -74,6 +80,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }>
   }
 
+  // Adjusting this schedule is a trade-off between optimization speed and quality.
   OPTIMIZATION_SCHEDULE = [
     {
       MAX_ATTEMPTS_PER_NODE: 1,
@@ -88,7 +95,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     {
       MAX_ATTEMPTS_PER_NODE: 3,
       MAX_EXPANSION_DEGREES: 7,
-      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.3,
+      MINIMUM_PROBABILITY_OF_FAILURE_TO_OPTIMIZE: 0.9,
     },
   ]
 
@@ -99,6 +106,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
   constructor(
     params: ConstructorParameters<typeof CapacityPathingSolver>[0] & {
       initialPathingSolver?: CapacityPathingGreedySolver
+      cacheProvider?: CacheProvider | null
     },
   ) {
     super()
@@ -106,6 +114,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       successfulOptimizations: 0,
       failedOptimizations: 0,
       failedSectionSolvers: 0,
+      startingScore: 0,
       scheduleScores: this.OPTIMIZATION_SCHEDULE.map(
         ({ MAX_EXPANSION_DEGREES }) => ({
           maxExpansionDegrees: MAX_EXPANSION_DEGREES,
@@ -117,6 +126,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
 
     this.MAX_ITERATIONS = 10e6
+    this.cacheProvider = params.cacheProvider
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
     this.edges = params.edges
@@ -141,6 +151,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       const totalCapacity = this.initialSolver.getTotalCapacity(node)
       this.totalNodeCapacityMap.set(node.capacityMeshNodeId, totalCapacity)
     }
+
+    this.allNodeIdsSet = new Set(this.nodes.map((n) => n.capacityMeshNodeId))
   }
 
   _stepInitialization() {
@@ -167,7 +179,12 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       }
 
       this.connectionsWithNodes = this.initialSolver.connectionsWithNodes
-
+      this.stats.startingScore = computeSectionScore({
+        totalNodeCapacityMap: this.totalNodeCapacityMap,
+        usedNodeCapacityMap: this.usedNodeCapacityMap,
+        nodeMap: this.nodeMap,
+        sectionNodeIds: this.allNodeIdsSet,
+      })
       this.stage = "section-optimization"
     }
   }
@@ -228,9 +245,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         totalNodeCapacityMap: this.totalNodeCapacityMap,
         usedNodeCapacityMap: this.usedNodeCapacityMap,
         nodeMap: this.nodeMap,
-        sectionNodeIds: new Set(
-          this.nodes.map((node) => node.capacityMeshNodeId),
-        ),
+        sectionNodeIds: this.allNodeIdsSet,
       }),
     }
   }
@@ -264,7 +279,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       })
       this.stats.scheduleScores[this.currentScheduleIndex].sectionAttempts++
       this.currentSection = section
-      this.sectionSolver = new HyperCapacityPathingSingleSectionSolver({
+      this.sectionSolver = new CachedHyperCapacityPathingSingleSectionSolver({
         sectionNodes: this.currentSection.sectionNodes,
         sectionEdges: this.currentSection.sectionEdges,
         sectionConnectionTerminals:
@@ -272,6 +287,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         colorMap: this.colorMap,
         centerNodeId: this.currentSection.centerNodeId,
         nodeEdgeMap: this.nodeEdgeMap,
+        hyperParameters: {
+          EXPANSION_DEGREES: this.currentSchedule.MAX_EXPANSION_DEGREES,
+        },
+        cacheProvider: this.cacheProvider,
       })
 
       this.activeSubSolver = this.sectionSolver
@@ -299,12 +318,14 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
 
     if (this.sectionSolver!.solved) {
-      const solvedSectionSolver = this.sectionSolver
-      const pathingSolver: CapacityPathingSingleSectionPathingSolver =
-        (solvedSectionSolver?.activeSubSolver || solvedSectionSolver) as any
+      const sectionConnectionTerminals =
+        this.sectionSolver.sectionConnectionTerminals
+      const sectionNodes = this.sectionSolver.sectionNodes
+      const centerNodeId = this.sectionSolver.centerNodeId
+
       this.sectionSolver = null // Clear active solver regardless of merge outcome
       this.activeSubSolver = null
-      if (!pathingSolver || !pathingSolver.solved) {
+      if (!sectionConnectionTerminals) {
         console.warn(
           `Pathing sub-solver for section ${
             this.currentSection!.centerNodeId
@@ -314,7 +335,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       }
 
       const sectionNodeIds = new Set(
-        solvedSectionSolver.sectionNodes.map((n) => n.capacityMeshNodeId),
+        sectionNodes.map((n) => n.capacityMeshNodeId),
       )
 
       // --- Calculate Before Score ---
@@ -328,7 +349,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       // --- Calculate After Score (Simulated) ---
       // 1. Create a temporary capacity map reflecting the state *after* applying new paths
       const afterUsedCapacityMap = new Map(this.usedNodeCapacityMap)
-      const newSectionPaths = pathingSolver.sectionConnectionTerminals
+      const newSectionPaths = sectionConnectionTerminals
 
       // 2. Decrement capacity for original paths within the section
       for (const terminal of newSectionPaths) {
@@ -384,7 +405,10 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
         //   )} -> ${afterScore.toFixed(2)}). Merging results.`,
         // )
         // Section solver succeeded AND improved score, merge the results
-        this._mergeSolvedSectionPaths(solvedSectionSolver) // Pass the original section solver instance
+        this._mergeSolvedSectionPaths({
+          centerNodeId,
+          sectionConnectionTerminals,
+        }) // Pass the original section solver instance
         this._recalculateNodeCapacityUsage() // Recalculate global capacity after merging
       } else {
         this.stats.failedOptimizations++
@@ -404,23 +428,14 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
    * Merges the paths found by a successful section solver back into the main
    * connectionsWithNodes list.
    */
-  private _mergeSolvedSectionPaths(
-    solvedSectionSolver:
-      | CapacityPathingSingleSectionPathingSolver
-      | HyperCapacityPathingSingleSectionSolver,
-  ) {
-    const centerNodeId = solvedSectionSolver.centerNodeId
-    // Ensure the pathing sub-solver actually ran and has results
-    if (!solvedSectionSolver || !solvedSectionSolver.solved) {
-      console.warn(
-        `Pathing sub-solver for section ${centerNodeId} did not complete successfully. Skipping merge.`,
-      )
-      return
-    }
-
-    const solvedTerminals = solvedSectionSolver.sectionConnectionTerminals!
-
-    for (const solvedTerminal of solvedTerminals) {
+  private _mergeSolvedSectionPaths({
+    centerNodeId,
+    sectionConnectionTerminals,
+  }: {
+    centerNodeId: string
+    sectionConnectionTerminals: SectionConnectionTerminal[]
+  }) {
+    for (const solvedTerminal of sectionConnectionTerminals) {
       if (!solvedTerminal.path) {
         // Pathing might have failed for this specific connection within the section
         console.warn(
@@ -435,7 +450,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
 
       if (!originalConnection || !originalConnection.path) {
         console.warn(
-          `Original connection or path not found for ${solvedTerminal.connectionName} while merging section ${solvedSectionSolver.centerNodeId}`,
+          `Original connection or path not found for ${solvedTerminal.connectionName} while merging section ${centerNodeId}`,
         )
         continue
       }
