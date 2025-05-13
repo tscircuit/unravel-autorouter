@@ -10,6 +10,8 @@ import {
 } from "lib/cache/setupGlobalCaches"
 import { translate, type Matrix, applyToPoint } from "transformation-matrix"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
+import { GraphicsObject } from "graphics-debug"
+import { visualizeSection } from "./visualizeSection"
 
 type CacheSpaceNodeId = string
 
@@ -462,5 +464,24 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       return this.cachedSectionConnectionTerminals
     }
     return super.sectionConnectionTerminals
+  }
+
+  visualize(): GraphicsObject {
+    if (!this.cacheHit) return super.visualize()
+
+    const graphics = visualizeSection({
+      sectionNodes: this.constructorParams.sectionNodes,
+      sectionEdges: this.constructorParams.sectionEdges,
+      sectionConnectionTerminals: this.cachedSectionConnectionTerminals!,
+      completedPaths: this.cachedSectionConnectionTerminals!.map((t) => ({
+        connectionName: t.connectionName,
+        path: t.path!,
+      })),
+      nodeMap: this.constructorParams.nodeMap!,
+      colorMap: this.constructorParams.colorMap!,
+      title: "CachedHyperCapacityPathingSingleSectionSolver",
+    })
+
+    return graphics
   }
 }
