@@ -212,17 +212,20 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       const cacheStartNodeId = realToCacheSpaceNodeIdMap.get(conn.startNodeId)!
       const cacheEndNodeId = realToCacheSpaceNodeIdMap.get(conn.endNodeId)!
 
-      const cacheSpaceConnectionId: CacheSpaceConnectionId =
-        cacheStartNodeId < cacheEndNodeId
-          ? `${cacheStartNodeId}->${cacheEndNodeId}`
-          : `${cacheEndNodeId}->${cacheStartNodeId}`
+      // Determine the canonical order for the connection ID key and value
+      const [sortedStartId, sortedEndId] = [
+        cacheStartNodeId,
+        cacheEndNodeId,
+      ].sort()
+      const cacheSpaceConnectionId: CacheSpaceConnectionId = `${sortedStartId}->${sortedEndId}`
 
+      // Store the terminals using the canonical sorted order for the value as well
       terminals[cacheSpaceConnectionId] = {
-        start: cacheStartNodeId,
-        end: cacheEndNodeId,
+        start: sortedStartId,
+        end: sortedEndId,
       }
       cacheSpaceToRealConnectionId.set(
-        cacheSpaceConnectionId,
+        cacheSpaceConnectionId, // Use the canonically sorted key
         conn.connectionName,
       )
     }
