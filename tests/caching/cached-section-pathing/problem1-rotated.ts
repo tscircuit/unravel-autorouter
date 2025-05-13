@@ -7,12 +7,11 @@ const rotatePoint = (point: { x: number; y: number }) => {
 }
 
 // Rotate nodes
-export const sectionNodes: CapacityMeshNode[] = originalProblem.sectionNodes.map(
-  (node) => ({
+export const sectionNodes: CapacityMeshNode[] =
+  originalProblem.sectionNodes.map((node) => ({
     ...node,
     center: rotatePoint(node.center),
-  }),
-)
+  }))
 
 // Edges remain the same in terms of node IDs
 export const sectionEdges: CapacityMeshEdge[] = originalProblem.sectionEdges

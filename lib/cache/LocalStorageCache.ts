@@ -43,13 +43,15 @@ export class LocalStorageCache implements CacheProvider {
         const solution = JSON.parse(cachedItem)
         this.cacheHits++
         const prefix = cacheKey.split(":")[0]
-        this.cacheHitsByPrefix[prefix] = (this.cacheHitsByPrefix[prefix] || 0) + 1
+        this.cacheHitsByPrefix[prefix] =
+          (this.cacheHitsByPrefix[prefix] || 0) + 1
         // console.log(`Cache hit (sync) for: ${cacheKey}`)
         return solution // No need for structuredClone, JSON parse creates a new object
       } else {
         this.cacheMisses++
         const prefix = cacheKey.split(":")[0]
-        this.cacheMissesByPrefix[prefix] = (this.cacheMissesByPrefix[prefix] || 0) + 1
+        this.cacheMissesByPrefix[prefix] =
+          (this.cacheMissesByPrefix[prefix] || 0) + 1
         // console.log(`Cache miss (sync) for: ${cacheKey}`)
         return undefined
       }
@@ -57,7 +59,8 @@ export class LocalStorageCache implements CacheProvider {
       console.error(`Error getting cached solution sync for ${key}:`, error)
       this.cacheMisses++ // Count as miss if retrieval/parsing fails
       const prefix = cacheKey.split(":")[0]
-      this.cacheMissesByPrefix[prefix] = (this.cacheMissesByPrefix[prefix] || 0) + 1
+      this.cacheMissesByPrefix[prefix] =
+        (this.cacheMissesByPrefix[prefix] || 0) + 1
       // Optionally remove the corrupted item
       // localStorage.removeItem(key);
       return undefined
