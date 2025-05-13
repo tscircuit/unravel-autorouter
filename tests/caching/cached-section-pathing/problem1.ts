@@ -25,7 +25,6 @@ const nodeA = {
 const nodeF = {
   capacityMeshNodeId: "nodeF",
   center: { x: 7, y: 1 },
-  center: { x: 7, y: 1 },
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -45,7 +44,6 @@ const nodeC = {
 const nodeR2C2 = {
   capacityMeshNodeId: "nodeR2C2",
   center: { x: 3, y: 3 },
-  center: { x: 3, y: 3 },
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -54,7 +52,6 @@ const nodeR2C2 = {
 }
 const nodeR2C3 = {
   capacityMeshNodeId: "nodeR2C3",
-  center: { x: 5, y: 3 },
   center: { x: 5, y: 3 },
   width: 1,
   height: 1,
@@ -65,7 +62,6 @@ const nodeR2C3 = {
 const nodeR2C4 = {
   capacityMeshNodeId: "nodeR2C4",
   center: { x: 7, y: 3 },
-  center: { x: 7, y: 3 },
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -74,7 +70,6 @@ const nodeR2C4 = {
 }
 const nodeR3C3 = {
   capacityMeshNodeId: "nodeR3C3",
-  center: { x: 5, y: 5 },
   center: { x: 5, y: 5 },
   width: 1,
   height: 1,
@@ -85,7 +80,6 @@ const nodeR3C3 = {
 const nodeR3C4 = {
   capacityMeshNodeId: "nodeR3C4",
   center: { x: 7, y: 5 },
-  center: { x: 7, y: 5 },
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -94,7 +88,6 @@ const nodeR3C4 = {
 }
 const nodeB = {
   capacityMeshNodeId: "nodeB",
-  center: { x: 1, y: 7 },
   center: { x: 1, y: 7 },
   width: 1,
   height: 1,
@@ -105,7 +98,6 @@ const nodeB = {
 const nodeR4C2 = {
   capacityMeshNodeId: "nodeR4C2",
   center: { x: 3, y: 7 },
-  center: { x: 3, y: 7 },
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -115,7 +107,6 @@ const nodeR4C2 = {
 const nodeR4C3 = {
   capacityMeshNodeId: "nodeR4C3",
   center: { x: 5, y: 7 },
-  center: { x: 5, y: 7 },
   width: 1,
   height: 1,
   availableZ: [0, 1],
@@ -124,7 +115,6 @@ const nodeR4C3 = {
 }
 const nodeD = {
   capacityMeshNodeId: "nodeD",
-  center: { x: 5, y: 9 },
   center: { x: 5, y: 9 },
   width: 1,
   height: 1,

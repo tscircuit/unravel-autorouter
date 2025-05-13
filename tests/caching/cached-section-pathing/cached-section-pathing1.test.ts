@@ -44,6 +44,7 @@ describe("CachedHyperCapacityPathingSingleSectionSolver Test 1", () => {
 
     // Actually solve the problem, this should save to cache
     await solver.solve()
+    expect(solver.cacheHit).toBe(false)
 
     const svg = getSvgFromGraphicsObject(await solver.visualize(), {
       includeTextLabels: true,
