@@ -274,7 +274,7 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       })
       this.stats.scheduleScores[this.currentScheduleIndex].sectionAttempts++
       this.currentSection = section
-      this.sectionSolver = new CapacityPathingSingleSectionSolver({
+      this.sectionSolver = new HyperCapacityPathingSingleSectionSolver({
         sectionNodes: this.currentSection.sectionNodes,
         sectionEdges: this.currentSection.sectionEdges,
         sectionConnectionTerminals:
