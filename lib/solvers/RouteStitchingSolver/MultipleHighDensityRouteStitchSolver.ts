@@ -18,6 +18,8 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
   activeSolver: SingleHighDensityRouteStitchSolver | null = null
   mergedHdRoutes: HighDensityIntraNodeRoute[] = []
   colorMap: Record<string, string> = {}
+  defaultTraceThickness: number
+  defaultViaDiameter: number
 
   constructor(opts: {
     connections: SimpleRouteConnection[]
@@ -27,6 +29,16 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
   }) {
     super()
     this.colorMap = opts.colorMap ?? {}
+
+    if (opts.hdRoutes.length > 0) {
+      this.defaultTraceThickness = opts.hdRoutes[0].traceThickness
+      this.defaultViaDiameter = opts.hdRoutes[0].viaDiameter
+    } else {
+      // Fallback defaults if no hdRoutes are provided at all
+      this.defaultTraceThickness = 0.15
+      this.defaultViaDiameter = 0.6
+    }
+
     this.unsolvedRoutes = opts.connections.map((c) => ({
       connectionName: c.name,
       hdRoutes: opts.hdRoutes.filter((r) => r.connectionName === c.name),
@@ -68,6 +80,8 @@ export class MultipleHighDensityRouteStitchSolver extends BaseSolver {
       start: unsolvedRoute.start,
       end: unsolvedRoute.end,
       colorMap: this.colorMap,
+      defaultTraceThickness: this.defaultTraceThickness,
+      defaultViaDiameter: this.defaultViaDiameter,
     })
   }
 
