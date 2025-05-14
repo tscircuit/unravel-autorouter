@@ -9,6 +9,9 @@ export default () => (
     createSolver={() => {
       const solver = new MultiHeadPolyLineIntraNodeSolver({
         nodeWithPortPoints: cn48169.nodeWithPortPoints,
+        hyperParameters: {
+          BOUNDARY_PADDING: -0.1,
+        },
       })
       return solver
     }}
