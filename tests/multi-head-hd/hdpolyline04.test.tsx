@@ -6,8 +6,11 @@ import "graphics-debug/matcher"
 test("hdpolyline04", () => {
   const solver = new MultiHeadPolyLineIntraNodeSolver({
     nodeWithPortPoints: cn48169.nodeWithPortPoints,
+    hyperParameters: {
+      BOUNDARY_PADDING: -0.1,
+    },
   })
   solver.solve()
-  expect(solver.solved).toBe(true)
   expect(solver.visualize()).toMatchGraphicsSvg(import.meta.path)
+  expect(solver.solved).toBe(true)
 })

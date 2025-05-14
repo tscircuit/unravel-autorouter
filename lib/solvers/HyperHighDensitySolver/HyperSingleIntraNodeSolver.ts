@@ -142,6 +142,13 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
           {
             MULTI_HEAD_POLYLINE_SOLVER: true,
             SEGMENTS_PER_POLYLINE: 6,
+            BOUNDARY_PADDING: 0.05,
+          },
+          {
+            MULTI_HEAD_POLYLINE_SOLVER: true,
+            SEGMENTS_PER_POLYLINE: 6,
+            BOUNDARY_PADDING: -0.05, // Allow vias/traces outside the boundary
+            ITERATION_PENALTY: 10000,
           },
         ],
       },
@@ -152,7 +159,8 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
     if (solver?.hyperParameters?.MULTI_HEAD_POLYLINE_SOLVER) {
       return (
         1000 +
-        solver.iterations / 10_000 +
+        ((solver.hyperParameters?.ITERATION_PENALTY ?? 0) + solver.iterations) /
+          10_000 +
         10_000 * (solver.hyperParameters.SEGMENTS_PER_POLYLINE! - 3)
       )
     }

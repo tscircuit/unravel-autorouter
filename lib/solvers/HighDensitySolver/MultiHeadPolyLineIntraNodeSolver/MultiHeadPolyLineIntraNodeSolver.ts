@@ -50,6 +50,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   availableZ: number[] = []
   uniqueConnections: number = 0
 
+  BOUNDARY_PADDING: number
+
   lastCandidate: Candidate | null = null
 
   maxViaCount: number
@@ -73,6 +75,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.hyperParameters = params.hyperParameters ?? {}
     this.SEGMENTS_PER_POLYLINE =
       params.hyperParameters?.SEGMENTS_PER_POLYLINE ?? 3
+    this.BOUNDARY_PADDING = params.hyperParameters?.BOUNDARY_PADDING ?? 0.05
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
@@ -551,35 +554,94 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                 const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
                 const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
 
-                // Force from seg2 onto i (applied to endpoints of seg1)
-                addForceContribution(
-                  i,
+                // helper to process one endpoint against the opposite segment
+                const endpointForce = (
+                  ep: MHPoint,
+                  epIdx: number,
+                  otherSeg: {
+                    p1: MHPoint
+                    p2: MHPoint
+                    p1Idx: number
+                    p2Idx: number
+                  },
+                  targetLine: number,
+                  oppLine: number,
+                  srcIdOpp: string,
+                  srcIdThis: string,
+                ) => {
+                  const cp = pointToSegmentClosestPoint(
+                    ep,
+                    otherSeg.p1,
+                    otherSeg.p2,
+                  )
+                  const dx = ep.x - cp.x
+                  const dy = ep.y - cp.y
+                  const dSq = dx * dx + dy * dy
+                  if (dSq <= EPSILON) return
+                  const dist = Math.sqrt(dSq)
+                  const mag =
+                    SEGMENT_FORCE_MULTIPLIER *
+                    FORCE_MAGNITUDE *
+                    Math.exp(-FORCE_DECAY_RATE * dist)
+                  const fx = (dx / dist) * mag
+                  const fy = (dy / dist) * mag
+
+                  // push this endpoint
+                  addForceContribution(targetLine, epIdx, srcIdOpp, fx, fy)
+                  // equal & opposite distributed onto the two endpoints of the other seg
+                  addForceContribution(
+                    oppLine,
+                    otherSeg.p1Idx,
+                    srcIdThis,
+                    -fx / 2,
+                    -fy / 2,
+                  )
+                  addForceContribution(
+                    oppLine,
+                    otherSeg.p2Idx,
+                    srcIdThis,
+                    -fx / 2,
+                    -fy / 2,
+                  )
+                }
+
+                // endpoints of s1 against s2
+                endpointForce(
+                  seg1.p1,
                   seg1.p1Idx,
-                  sourceIdSeg2,
-                  fx / 2,
-                  fy / 2,
-                )
-                addForceContribution(
+                  seg2,
                   i,
-                  seg1.p2Idx,
+                  j,
                   sourceIdSeg2,
-                  fx / 2,
-                  fy / 2,
+                  sourceIdSeg1,
                 )
-                // Force from seg1 onto j (applied to endpoints of seg2) - opposite direction
-                addForceContribution(
+                endpointForce(
+                  seg1.p2,
+                  seg1.p2Idx,
+                  seg2,
+                  i,
                   j,
+                  sourceIdSeg2,
+                  sourceIdSeg1,
+                )
+                // endpoints of s2 against s1
+                endpointForce(
+                  seg2.p1,
                   seg2.p1Idx,
-                  sourceIdSeg1,
-                  -fx / 2,
-                  -fy / 2,
-                )
-                addForceContribution(
+                  seg1,
                   j,
-                  seg2.p2Idx,
+                  i,
                   sourceIdSeg1,
-                  -fx / 2,
-                  -fy / 2,
+                  sourceIdSeg2,
+                )
+                endpointForce(
+                  seg2.p2,
+                  seg2.p2Idx,
+                  seg1,
+                  j,
+                  i,
+                  sourceIdSeg1,
+                  sourceIdSeg2,
                 )
               }
             }
@@ -876,7 +938,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           let boundaryForceY = 0
 
           // Use a margin appropriate for vias pushing away from the edge
-          const forceMargin = this.viaDiameter / 2 // Or perhaps obstacleMargin?
+          const baseForceMargin = this.viaDiameter / 2 // Or perhaps obstacleMargin
+          const forceMargin = baseForceMargin + this.BOUNDARY_PADDING
 
           const minX = this.bounds.minX + forceMargin
           const maxX = this.bounds.maxX - forceMargin
@@ -919,7 +982,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           // newY = Math.max(this.bounds.minY + radius, Math.min(this.bounds.maxY - radius, newY));
         } else {
           // For regular points, CLAMP position to bounds + traceWidth/2 padding
-          const padding = this.traceWidth / 2
+          const basePadding = this.traceWidth / 2
+          const padding = basePadding + this.BOUNDARY_PADDING
           newX = Math.max(
             this.bounds.minX + padding,
             Math.min(this.bounds.maxX - padding, newX),
@@ -987,10 +1051,9 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     const allPointsWithinBounds = candidate.polyLines.every((polyLine) => {
       return polyLine.mPoints.every((mPoint) => {
-        const padding =
-          (mPoint.z1 !== mPoint.z2 ? this.viaDiameter / 2 : 0) *
-          // Forgiveness outside bounds
-          0.9
+        const basePadding =
+          mPoint.z1 !== mPoint.z2 ? this.viaDiameter / 2 : this.traceWidth / 2
+        const padding = basePadding + this.BOUNDARY_PADDING
         return withinBounds(mPoint, this.bounds, padding)
       })
     })
