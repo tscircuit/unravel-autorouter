@@ -11,15 +11,41 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
   colorMap: Record<string, string>
 
   constructor(opts: {
-    connectionName?: string
+    connectionName: string
     hdRoutes: HighDensityIntraNodeRoute[]
     start: { x: number; y: number; z: number }
     end: { x: number; y: number; z: number }
     colorMap?: Record<string, string>
+    defaultTraceThickness?: number
+    defaultViaDiameter?: number
   }) {
     super()
     this.remainingHdRoutes = [...opts.hdRoutes]
     this.colorMap = opts.colorMap ?? {} // Store colorMap, default to empty object
+
+    if (opts.hdRoutes.length === 0) {
+      this.start = opts.start
+      this.end = opts.end
+      const routePoints = [{ x: opts.start.x, y: opts.start.y, z: opts.start.z }]
+      const vias = []
+
+      if (opts.start.z !== opts.end.z) {
+        // If layers are different, add a via at the start point and a segment on the new layer
+        routePoints.push({ x: opts.start.x, y: opts.start.y, z: opts.end.z })
+        vias.push({ x: opts.start.x, y: opts.start.y })
+      }
+      routePoints.push({ x: opts.end.x, y: opts.end.y, z: opts.end.z })
+
+      this.mergedHdRoute = {
+        connectionName: opts.connectionName,
+        route: routePoints,
+        vias: vias,
+        viaDiameter: opts.defaultViaDiameter ?? 0.6, // Use default or fallback
+        traceThickness: opts.defaultTraceThickness ?? 0.15, // Use default or fallback
+      }
+      this.solved = true
+      return // Early exit as there's nothing to stitch
+    }
 
     const { firstRoute } = this.getDisjointedRoute()
 
@@ -41,7 +67,7 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
     }
 
     this.mergedHdRoute = {
-      connectionName: opts.connectionName ?? firstRoute.connectionName,
+      connectionName: opts.connectionName, // Use mandatory connectionName
       route: [
         {
           x: this.start.x,
