@@ -26,7 +26,9 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
     if (opts.hdRoutes.length === 0) {
       this.start = opts.start
       this.end = opts.end
-      const routePoints = [{ x: opts.start.x, y: opts.start.y, z: opts.start.z }]
+      const routePoints = [
+        { x: opts.start.x, y: opts.start.y, z: opts.start.z },
+      ]
       const vias = []
 
       if (opts.start.z !== opts.end.z) {
