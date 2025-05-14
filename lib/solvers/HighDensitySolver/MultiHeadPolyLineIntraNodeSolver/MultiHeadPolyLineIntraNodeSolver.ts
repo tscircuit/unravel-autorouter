@@ -551,35 +551,89 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                 const sourceIdSeg2 = `seg:${j}:${seg2.p1Idx}:${seg2.p2Idx}`
                 const sourceIdSeg1 = `seg:${i}:${seg1.p1Idx}:${seg1.p2Idx}`
 
-                // Force from seg2 onto i (applied to endpoints of seg1)
-                addForceContribution(
-                  i,
+                // helper to process one endpoint against the opposite segment
+                const endpointForce = (
+                  ep: MHPoint,
+                  epIdx: number,
+                  otherSeg: { p1: MHPoint; p2: MHPoint },
+                  targetLine: number,
+                  oppLine: number,
+                  srcIdOpp: string,
+                  srcIdThis: string,
+                ) => {
+                  const cp = pointToSegmentClosestPoint(
+                    ep,
+                    otherSeg.p1,
+                    otherSeg.p2,
+                  )
+                  const dx = ep.x - cp.x
+                  const dy = ep.y - cp.y
+                  const dSq = dx * dx + dy * dy
+                  if (dSq <= EPSILON) return
+                  const dist = Math.sqrt(dSq)
+                  const mag =
+                    SEGMENT_FORCE_MULTIPLIER *
+                    FORCE_MAGNITUDE *
+                    Math.exp(-FORCE_DECAY_RATE * dist)
+                  const fx = (dx / dist) * mag
+                  const fy = (dy / dist) * mag
+
+                  // push this endpoint
+                  addForceContribution(targetLine, epIdx, srcIdOpp, fx, fy)
+                  // equal & opposite distributed onto the two endpoints of the other seg
+                  addForceContribution(
+                    oppLine,
+                    otherSeg.p1Idx,
+                    srcIdThis,
+                    -fx / 2,
+                    -fy / 2,
+                  )
+                  addForceContribution(
+                    oppLine,
+                    otherSeg.p2Idx,
+                    srcIdThis,
+                    -fx / 2,
+                    -fy / 2,
+                  )
+                }
+
+                // endpoints of s1 against s2
+                endpointForce(
+                  seg1.p1,
                   seg1.p1Idx,
-                  sourceIdSeg2,
-                  fx / 2,
-                  fy / 2,
-                )
-                addForceContribution(
+                  seg2,
                   i,
-                  seg1.p2Idx,
+                  j,
                   sourceIdSeg2,
-                  fx / 2,
-                  fy / 2,
+                  sourceIdSeg1,
                 )
-                // Force from seg1 onto j (applied to endpoints of seg2) - opposite direction
-                addForceContribution(
+                endpointForce(
+                  seg1.p2,
+                  seg1.p2Idx,
+                  seg2,
+                  i,
                   j,
+                  sourceIdSeg2,
+                  sourceIdSeg1,
+                )
+                // endpoints of s2 against s1
+                endpointForce(
+                  seg2.p1,
                   seg2.p1Idx,
-                  sourceIdSeg1,
-                  -fx / 2,
-                  -fy / 2,
-                )
-                addForceContribution(
+                  seg1,
                   j,
-                  seg2.p2Idx,
+                  i,
                   sourceIdSeg1,
-                  -fx / 2,
-                  -fy / 2,
+                  sourceIdSeg2,
+                )
+                endpointForce(
+                  seg2.p2,
+                  seg2.p2Idx,
+                  seg1,
+                  j,
+                  i,
+                  sourceIdSeg1,
+                  sourceIdSeg2,
                 )
               }
             }

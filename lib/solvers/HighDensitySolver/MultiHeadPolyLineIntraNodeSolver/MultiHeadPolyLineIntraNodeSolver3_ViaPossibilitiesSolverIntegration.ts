@@ -26,7 +26,7 @@ function factorial(n: number) {
   return result
 }
 
-export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver2 {
+export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNodeSolver {
   constructor(
     params: ConstructorParameters<typeof MultiHeadPolyLineIntraNodeSolver2>[0],
   ) {
