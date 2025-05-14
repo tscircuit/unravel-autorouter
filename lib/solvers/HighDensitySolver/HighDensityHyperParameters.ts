@@ -11,4 +11,5 @@ export interface HighDensityHyperParameters {
   // Hyper Parameters for Multi-Head Polyline Solver
   MULTI_HEAD_POLYLINE_SOLVER: boolean
   SEGMENTS_PER_POLYLINE: number
+  BOUNDARY_PADDING: number
 }

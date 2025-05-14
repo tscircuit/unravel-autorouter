@@ -469,7 +469,8 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
           let boundaryForceY = 0
 
           // Use a margin appropriate for vias pushing away from the edge
-          const forceMargin = this.viaDiameter / 2
+          const baseForceMargin = this.viaDiameter / 2
+          const forceMargin = baseForceMargin + this.BOUNDARY_PADDING
 
           const minX = this.bounds.minX + forceMargin
           const maxX = this.bounds.maxX - forceMargin
@@ -512,7 +513,8 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
           // newY = Math.max(this.bounds.minY + radius, Math.min(this.bounds.maxY - radius, newY));
         } else {
           // For regular points, CLAMP position to bounds + traceWidth/2 padding
-          const padding = this.traceWidth / 2
+          const basePadding = this.traceWidth / 2
+          const padding = basePadding + this.BOUNDARY_PADDING
           newX = Math.max(
             this.bounds.minX + padding,
             Math.min(this.bounds.maxX - padding, newX),

@@ -50,6 +50,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
   availableZ: number[] = []
   uniqueConnections: number = 0
 
+  BOUNDARY_PADDING: number
+
   lastCandidate: Candidate | null = null
 
   maxViaCount: number
@@ -73,6 +75,7 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     this.hyperParameters = params.hyperParameters ?? {}
     this.SEGMENTS_PER_POLYLINE =
       params.hyperParameters?.SEGMENTS_PER_POLYLINE ?? 3
+    this.BOUNDARY_PADDING = params.hyperParameters?.BOUNDARY_PADDING ?? 0.05
     this.connMap = params.connMap
 
     // TODO swap with more sophisticated grid in SingleHighDensityRouteSolver
@@ -555,7 +558,12 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
                 const endpointForce = (
                   ep: MHPoint,
                   epIdx: number,
-                  otherSeg: { p1: MHPoint; p2: MHPoint },
+                  otherSeg: {
+                    p1: MHPoint
+                    p2: MHPoint
+                    p1Idx: number
+                    p2Idx: number
+                  },
                   targetLine: number,
                   oppLine: number,
                   srcIdOpp: string,
@@ -930,7 +938,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           let boundaryForceY = 0
 
           // Use a margin appropriate for vias pushing away from the edge
-          const forceMargin = this.viaDiameter / 2 // Or perhaps obstacleMargin?
+          const baseForceMargin = this.viaDiameter / 2 // Or perhaps obstacleMargin
+          const forceMargin = baseForceMargin + this.BOUNDARY_PADDING
 
           const minX = this.bounds.minX + forceMargin
           const maxX = this.bounds.maxX - forceMargin
@@ -973,7 +982,8 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
           // newY = Math.max(this.bounds.minY + radius, Math.min(this.bounds.maxY - radius, newY));
         } else {
           // For regular points, CLAMP position to bounds + traceWidth/2 padding
-          const padding = this.traceWidth / 2
+          const basePadding = this.traceWidth / 2
+          const padding = basePadding + this.BOUNDARY_PADDING
           newX = Math.max(
             this.bounds.minX + padding,
             Math.min(this.bounds.maxX - padding, newX),
@@ -1041,10 +1051,9 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
 
     const allPointsWithinBounds = candidate.polyLines.every((polyLine) => {
       return polyLine.mPoints.every((mPoint) => {
-        const padding =
-          (mPoint.z1 !== mPoint.z2 ? this.viaDiameter / 2 : 0) *
-          // Forgiveness outside bounds
-          0.9
+        const basePadding =
+          mPoint.z1 !== mPoint.z2 ? this.viaDiameter / 2 : this.traceWidth / 2
+        const padding = basePadding + this.BOUNDARY_PADDING
         return withinBounds(mPoint, this.bounds, padding)
       })
     })
