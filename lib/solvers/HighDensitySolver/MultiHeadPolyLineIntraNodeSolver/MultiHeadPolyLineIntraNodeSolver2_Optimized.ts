@@ -133,6 +133,37 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
     }
 
     // 2. Calculate forces between all pairs of polylines
+
+    // Helper to process one endpoint against the opposite segment
+    const endpointForce = (
+      ep: MHPoint2,
+      epIdx: number,
+      otherSeg: { p1: MHPoint2; p2: MHPoint2; p1Idx: number; p2Idx: number },
+      targetLine: number,
+      oppLine: number,
+      // srcIdOpp: string, // Not needed with addNetForce
+      // srcIdThis: string, // Not needed with addNetForce
+    ) => {
+      const cp = pointToSegmentClosestPoint(ep, otherSeg.p1, otherSeg.p2)
+      const dx = ep.x - cp.x
+      const dy = ep.y - cp.y
+      const dSq = dx * dx + dy * dy
+      if (dSq <= EPSILON) return
+      const dist = Math.sqrt(dSq)
+      const mag =
+        SEGMENT_FORCE_MULTIPLIER *
+        FORCE_MAGNITUDE *
+        Math.exp(-FORCE_DECAY_RATE * dist)
+      const fx = (dx / dist) * mag
+      const fy = (dy / dist) * mag
+
+      // push this endpoint
+      addNetForce(targetLine, epIdx, fx, fy)
+      // equal & opposite distributed onto the two endpoints of the other seg
+      addNetForce(oppLine, otherSeg.p1Idx, -fx / 2, -fy / 2)
+      addNetForce(oppLine, otherSeg.p2Idx, -fx / 2, -fy / 2)
+    }
+
     for (let i = 0; i < numPolyLines; i++) {
       for (let j = i + 1; j < numPolyLines; j++) {
         const polyLine1 = polyLines[i]
@@ -206,40 +237,12 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
                 seg2.p1,
                 seg2.p2,
               )
-              if (minDist < EPSILON) continue // Avoid division by zero if segments overlap significantly
-
-              // Simple repulsive force based on center-to-center distance for now
-              // TODO: A more sophisticated segment-segment force might be needed
-              const center1 = {
-                x: (seg1.p1.x + seg1.p2.x) / 2,
-                y: (seg1.p1.y + seg1.p2.y) / 2,
-              }
-              const center2 = {
-                x: (seg2.p1.x + seg2.p2.x) / 2,
-                y: (seg2.p1.y + seg2.p2.y) / 2,
-              }
-              const dx = center1.x - center2.x
-              const dy = center1.y - center2.y
-              const dSq = dx * dx + dy * dy
-
-              if (dSq > EPSILON) {
-                const dist = Math.sqrt(dSq)
-                // Exponential falloff: force = base * exp(-decay_rate * distance)
-                const forceMag =
-                  SEGMENT_FORCE_MULTIPLIER *
-                  FORCE_MAGNITUDE *
-                  Math.exp(-FORCE_DECAY_RATE * dist)
-                const fx = (dx / dist) * forceMag
-                const fy = (dy / dist) * forceMag
-
-                // Add force contributions directly to netForces
-                // Force from seg2 onto i (applied to endpoints of seg1)
-                addNetForce(i, seg1.p1Idx, fx / 2, fy / 2)
-                addNetForce(i, seg1.p2Idx, fx / 2, fy / 2)
-                // Force from seg1 onto j (applied to endpoints of seg2) - opposite direction
-                addNetForce(j, seg2.p1Idx, -fx / 2, -fy / 2)
-                addNetForce(j, seg2.p2Idx, -fx / 2, -fy / 2)
-              }
+              // endpoints of s1 against s2
+              endpointForce(seg1.p1, seg1.p1Idx, seg2, i, j)
+              endpointForce(seg1.p2, seg1.p2Idx, seg2, i, j)
+              // endpoints of s2 against s1
+              endpointForce(seg2.p1, seg2.p1Idx, seg1, j, i)
+              endpointForce(seg2.p2, seg2.p2Idx, seg1, j, i)
             }
           }
         }
@@ -466,7 +469,8 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
           let boundaryForceY = 0
 
           // Use a margin appropriate for vias pushing away from the edge
-          const forceMargin = this.viaDiameter / 2
+          const baseForceMargin = this.viaDiameter / 2
+          const forceMargin = baseForceMargin + this.BOUNDARY_PADDING
 
           const minX = this.bounds.minX + forceMargin
           const maxX = this.bounds.maxX - forceMargin
@@ -509,7 +513,8 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
           // newY = Math.max(this.bounds.minY + radius, Math.min(this.bounds.maxY - radius, newY));
         } else {
           // For regular points, CLAMP position to bounds + traceWidth/2 padding
-          const padding = this.traceWidth / 2
+          const basePadding = this.traceWidth / 2
+          const padding = basePadding + this.BOUNDARY_PADDING
           newX = Math.max(
             this.bounds.minX + padding,
             Math.min(this.bounds.maxX - padding, newX),

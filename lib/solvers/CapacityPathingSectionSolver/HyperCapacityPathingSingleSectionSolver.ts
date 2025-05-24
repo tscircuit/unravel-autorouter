@@ -9,6 +9,8 @@ import {
   CapacityPathingSingleSectionPathingSolverParams,
 } from "./CapacityPathingSingleSectionSolver"
 
+const range = (n: number) => Array.from({ length: n }, (_, i) => i)
+
 export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSupervisorSolver<CapacityPathingSingleSectionPathingSolver> {
   constructorParams: CapacityPathingSingleSectionPathingSolverParams
   winningSolver?: CapacityPathingSingleSectionPathingSolver
@@ -23,17 +25,31 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
     this.constructorParams = params
   }
 
+  // TODO this needs to use the section score, ideally incorporating the current best candidate
+  // of the paths being explored inside the single section
   computeG(solver: CapacityPathingSingleSectionPathingSolver): number {
-    return solver.iterations / 100
+    // return solver.iterations / 100
+    return -solver.getSolvedSectionScore()
   }
 
   computeH(solver: CapacityPathingSingleSectionPathingSolver): number {
-    return solver.computeProgress()
+    return 0
+    // return solver.computeProgress()
   }
 
   getCombinationDefs(): Array<Array<string>> | null {
     // TODO change combination defs based on hyperParameters.EXPANSION_DEGREES
-    return [["orderings10"]]
+    const numConnections =
+      this.constructorParams.sectionConnectionTerminals.length
+
+    if (numConnections === 2) {
+      return [["orderings2_for2"]]
+    } else if (numConnections === 3) {
+      return [["orderings6_for3"]]
+    } else if (numConnections === 4) {
+      return [["orderings24_for4"]]
+    }
+    return [["orderings30"]]
   }
 
   getFailureMessage() {
@@ -43,39 +59,28 @@ export class HyperCapacityPathingSingleSectionSolver extends HyperParameterSuper
   getHyperParameterDefs(): Array<HyperParameterDef> {
     return [
       {
-        name: "orderings10",
-        possibleValues: [
-          {
-            SHUFFLE_SEED: 0,
-          },
-          {
-            SHUFFLE_SEED: 1,
-          },
-          {
-            SHUFFLE_SEED: 2,
-          },
-          {
-            SHUFFLE_SEED: 3,
-          },
-          {
-            SHUFFLE_SEED: 4,
-          },
-          {
-            SHUFFLE_SEED: 5,
-          },
-          {
-            SHUFFLE_SEED: 6,
-          },
-          {
-            SHUFFLE_SEED: 7,
-          },
-          {
-            SHUFFLE_SEED: 8,
-          },
-          {
-            SHUFFLE_SEED: 9,
-          },
-        ],
+        name: "orderings2_for2",
+        possibleValues: range(2).map((i) => ({
+          SHUFFLE_SEED: i,
+        })),
+      },
+      {
+        name: "orderings6_for3",
+        possibleValues: range(6).map((i) => ({
+          SHUFFLE_SEED: i,
+        })),
+      },
+      {
+        name: "orderings24_for4",
+        possibleValues: range(24).map((i) => ({
+          SHUFFLE_SEED: i,
+        })),
+      },
+      {
+        name: "orderings30",
+        possibleValues: range(30).map((i) => ({
+          SHUFFLE_SEED: i,
+        })),
       },
     ]
   }

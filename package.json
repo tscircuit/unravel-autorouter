@@ -1,7 +1,7 @@
 {
   "name": "@tscircuit/capacity-autorouter",
   "main": "./dist/index.js",
-  "version": "0.0.62",
+  "version": "0.0.66",
   "type": "module",
   "files": [
     "dist"
@@ -13,7 +13,8 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "vercel-build": "cosmos-export",
-    "repomix:lib": "repomix --ignore 'testing/**,**/TwoRouteHighDensitySolver/**,**/RouteStitchingSolver/**,solvers/CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer.ts' lib"
+    "repomix:lib": "repomix --ignore 'testing/**,**/TwoRouteHighDensitySolver/**,**/RouteStitchingSolver/**,solvers/CapacitySegmentPointOptimizer/CapacitySegmentPointOptimizer.ts' lib",
+    "bug-report": "bun run scripts/download-bug-report.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -37,7 +38,7 @@
     "circuit-to-svg": "^0.0.110",
     "clsx": "^2.1.1",
     "flatbush": "^4.4.0",
-    "graphics-debug": "^0.0.42",
+    "graphics-debug": "^0.0.44",
     "rbush": "^4.0.1",
     "react": "18",
     "react-cosmos": "^6.2.3",

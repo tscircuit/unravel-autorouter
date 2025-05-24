@@ -684,7 +684,7 @@ export const GenericSolverDebugger = ({
                   return (
                     <tr key={k}>
                       <td className="p-1">{k}</td>
-                      <td className="p-1">{v}</td>
+                      <td className="p-1">{JSON.stringify(v)}</td>
                     </tr>
                   )
                 })}

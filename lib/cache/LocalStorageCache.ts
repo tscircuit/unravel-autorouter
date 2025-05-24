@@ -12,6 +12,9 @@ export class LocalStorageCache implements CacheProvider {
   cacheHits = 0
   cacheMisses = 0
 
+  cacheHitsByPrefix: Record<string, number> = {}
+  cacheMissesByPrefix: Record<string, number> = {}
+
   constructor() {
     if (typeof localStorage === "undefined") {
       console.warn(
@@ -39,16 +42,25 @@ export class LocalStorageCache implements CacheProvider {
       if (cachedItem !== null) {
         const solution = JSON.parse(cachedItem)
         this.cacheHits++
+        const prefix = cacheKey.split(":")[0]
+        this.cacheHitsByPrefix[prefix] =
+          (this.cacheHitsByPrefix[prefix] || 0) + 1
         // console.log(`Cache hit (sync) for: ${cacheKey}`)
         return solution // No need for structuredClone, JSON parse creates a new object
       } else {
         this.cacheMisses++
+        const prefix = cacheKey.split(":")[0]
+        this.cacheMissesByPrefix[prefix] =
+          (this.cacheMissesByPrefix[prefix] || 0) + 1
         // console.log(`Cache miss (sync) for: ${cacheKey}`)
         return undefined
       }
     } catch (error) {
       console.error(`Error getting cached solution sync for ${key}:`, error)
       this.cacheMisses++ // Count as miss if retrieval/parsing fails
+      const prefix = cacheKey.split(":")[0]
+      this.cacheMissesByPrefix[prefix] =
+        (this.cacheMissesByPrefix[prefix] || 0) + 1
       // Optionally remove the corrupted item
       // localStorage.removeItem(key);
       return undefined
@@ -132,6 +144,8 @@ export class LocalStorageCache implements CacheProvider {
     } finally {
       this.cacheHits = 0
       this.cacheMisses = 0
+      this.cacheHitsByPrefix = {}
+      this.cacheMissesByPrefix = {}
     }
   }
 

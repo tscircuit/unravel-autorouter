@@ -4,6 +4,8 @@ export interface CacheProvider {
 
   cacheHits: number
   cacheMisses: number
+  cacheHitsByPrefix: Record<string, number>
+  cacheMissesByPrefix: Record<string, number>
 
   getCachedSolutionSync(cacheKey: string): any
   getCachedSolution(cacheKey: string): Promise<any>
