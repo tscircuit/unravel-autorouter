@@ -15,13 +15,7 @@ export class LocalStorageCache implements CacheProvider {
   cacheHitsByPrefix: Record<string, number> = {}
   cacheMissesByPrefix: Record<string, number> = {}
 
-  constructor() {
-    if (typeof localStorage === "undefined") {
-      console.warn(
-        "LocalStorage is not available. LocalStorageCache will not function.",
-      )
-    }
-  }
+  constructor() { }
 
   private getKey(cacheKey: string): string {
     return `${CACHE_PREFIX}${cacheKey}`
