@@ -15,7 +15,7 @@ export class LocalStorageCache implements CacheProvider {
   cacheHitsByPrefix: Record<string, number> = {}
   cacheMissesByPrefix: Record<string, number> = {}
 
-  constructor() { }
+  constructor() {}
 
   private getKey(cacheKey: string): string {
     return `${CACHE_PREFIX}${cacheKey}`
