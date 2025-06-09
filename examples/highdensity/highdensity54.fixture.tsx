@@ -1,35 +1,22 @@
 import cn705 from "examples/assets/cn705-nodeWithPortPoints.json"
-import { IntraNodeRouteSolver } from "lib/solvers/HighDensitySolver/IntraNodeSolver"
 import { GenericSolverDebugger } from "lib/testing/GenericSolverDebugger"
-import { HyperHighDensityDebugger } from "lib/testing/HyperHighDensityDebugger"
-import { generateColorMapFromNodeWithPortPoints } from "lib/utils/generateColorMapFromNodeWithPortPoints"
-import { MultiHeadPolyLineIntraNodeSolver3 } from "../../lib/solvers/HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/MultiHeadPolyLineIntraNodeSolver3_ViaPossibilitiesSolverIntegration"
+import { MultiHeadPolyLineIntraNodeSolver } from "lib/solvers/HighDensitySolver/MultiHeadPolyLineIntraNodeSolver/MultiHeadPolyLineIntraNodeSolver"
 
 export const hyperParameters = {
+  MULTI_HEAD_POLYLINE_SOLVER: true,
   SEGMENTS_PER_POLYLINE: 6,
+  BOUNDARY_PADDING: -0.05,
 }
 
 export default () => {
   return (
-    <HyperHighDensityDebugger nodeWithPortPoints={cn705.nodeWithPortPoints} />
-    // <GenericSolverDebugger
-    //   createSolver={() =>
-    //     new MultiHeadPolyLineIntraNodeSolver3({
-    //       nodeWithPortPoints: cn310.nodeWithPortPoints,
-    //       hyperParameters,
-    //     })
-    //   }
-    // />
-    // <GenericSolverDebugger
-    //   createSolver={() =>
-    //     new IntraNodeRouteSolver({
-    //       nodeWithPortPoints: cn62169.nodeWithPortPoints,
-    //       colorMap: generateColorMapFromNodeWithPortPoints(
-    //         cn62169.nodeWithPortPoints,
-    //       ),
-    //       hyperParameters,
-    //     })
-    //   }
-    // />
+    <GenericSolverDebugger
+      createSolver={() =>
+        new MultiHeadPolyLineIntraNodeSolver({
+          nodeWithPortPoints: cn705.nodeWithPortPoints,
+          hyperParameters,
+        })
+      }
+    />
   )
 }
