@@ -172,6 +172,14 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
       const path1Vias = polyLineVias[i]
       // Start j from i + 1 to compare distinct pairs only once
       for (let j = i + 1; j < polyLines.length; j++) {
+        if (
+          this.connMap?.areIdsConnected(
+            polyLines[i].connectionName,
+            polyLines[j].connectionName,
+          )
+        ) {
+          continue
+        }
         const path2SegmentsByLayer = polyLineSegmentsByLayer[j]
         const path2Vias = polyLineVias[j]
 
