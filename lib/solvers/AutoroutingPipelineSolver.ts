@@ -48,6 +48,7 @@ import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingS
 import { CapacityPathingGreedySolver } from "./CapacityPathingSectionSolver/CapacityPathingGreedySolver"
 import { CacheProvider } from "lib/cache/types"
 import { getGlobalInMemoryCache } from "lib/cache/setupGlobalCaches"
+import { ForceShiftViasSolver } from "./ForceShiftViasSolver/ForceShiftViasSolver"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
@@ -105,6 +106,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   uselessViaRemovalSolver2?: UselessViaRemovalSolver
   multiSimplifiedPathSolver1?: MultiSimplifiedPathSolver
   multiSimplifiedPathSolver2?: MultiSimplifiedPathSolver
+  forceShiftViasSolver?: ForceShiftViasSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -345,6 +347,14 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep("forceShiftViasSolver", ForceShiftViasSolver, (cms) => [
+      {
+        hdRoutes: cms.multiSimplifiedPathSolver2!.simplifiedHdRoutes,
+        obstacles: cms.srj.obstacles,
+        connMap: cms.connMap,
+        layerCount: cms.srj.layerCount,
+      },
+    ]),
   ]
 
   constructor(
@@ -582,6 +592,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
 
   _getOutputHdRoutes(): HighDensityRoute[] {
     return (
+      this.forceShiftViasSolver?.hdRoutes ??
       this.multiSimplifiedPathSolver2?.simplifiedHdRoutes ??
       this.uselessViaRemovalSolver2?.getOptimizedHdRoutes() ??
       this.multiSimplifiedPathSolver1?.simplifiedHdRoutes ??
