@@ -92,6 +92,7 @@ test("cn11081 single transition solver routes without DRC errors", () => {
           "bottom",
         ],
         "outer_diameter": 0.6,
+        "pcb_trace_id": "trace_0",
         "pcb_via_id": "via_0",
         "type": "pcb_via",
         "x": -2.86875,
@@ -208,20 +209,6 @@ test("cn11081 single transition solver routes without DRC errors", () => {
 
   expect(errors).toMatchInlineSnapshot(`
     [
-      {
-        "center": {
-          "x": -2.56875,
-          "y": 10.56785576923077,
-        },
-        "error_type": "pcb_trace_error",
-        "message": "PCB trace trace[trace_0] overlaps with pcb_via "pcb_via[#via_0]" (gap: 0.000mm)",
-        "pcb_component_ids": [],
-        "pcb_port_ids": [],
-        "pcb_trace_error_id": "overlap_trace_0_via_0",
-        "pcb_trace_id": "trace_0",
-        "source_trace_id": "",
-        "type": "pcb_trace_error",
-      },
       {
         "center": {
           "x": -2.4107728716233803,
