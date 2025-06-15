@@ -215,13 +215,28 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       viaBounds.maxX = viaBounds.minX
     }
 
-    return findClosestPointToABCWithinBounds(
+    const viaPoint = findClosestPointToABCWithinBounds(
       A,
       B,
       C,
       marginFromBorderWithTrace,
       viaBounds,
     )
+
+    const minDistFromTrace =
+      this.viaDiameter / 2 + this.traceThickness / 2 + this.obstacleMargin
+    const distToFlat = pointToSegmentDistance(viaPoint, A, C)
+
+    if (distToFlat < minDistFromTrace) {
+      const dx = C.y - A.y
+      const dy = A.x - C.x
+      const len = Math.sqrt(dx * dx + dy * dy) || 1
+      const offset = minDistFromTrace - distToFlat + 0.001
+      viaPoint.x += (dx / len) * offset
+      viaPoint.y += (dy / len) * offset
+    }
+
+    return viaPoint
   }
   /**
    * Create a single transition route with properly placed via
@@ -280,14 +295,16 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       const dx = b.x - a.x
       const dy = b.y - a.y
 
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1
+
       const effectiveA = {
-        x: a.x + dx * aMargin,
-        y: a.y + dy * aMargin,
+        x: a.x + (dx / dist) * aMargin,
+        y: a.y + (dy / dist) * aMargin,
       }
 
       const effectiveB = {
-        x: b.x - dx * bMargin,
-        y: b.y - dy * bMargin,
+        x: b.x - (dx / dist) * bMargin,
+        y: b.y - (dy / dist) * bMargin,
       }
 
       return middle(effectiveA, effectiveB)
