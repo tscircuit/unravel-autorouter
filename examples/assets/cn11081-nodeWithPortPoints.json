@@ -1,0 +1,146 @@
+{
+  "nodeId": "cn11081",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn11081",
+    "center": {
+      "x": -3.328125,
+      "y": 9.984375
+    },
+    "width": 2.21875,
+    "height": 2.21875,
+    "layer": "top",
+    "availableZ": [0, 1],
+    "_depth": 6,
+    "_parent": {
+      "capacityMeshNodeId": "cn11078",
+      "center": {
+        "x": -2.21875,
+        "y": 11.09375
+      },
+      "width": 4.4375,
+      "height": 4.4375,
+      "layer": "top",
+      "availableZ": [0, 1],
+      "_depth": 5,
+      "_parent": {
+        "capacityMeshNodeId": "cn11076",
+        "center": {
+          "x": -4.4375,
+          "y": 13.3125
+        },
+        "width": 8.875,
+        "height": 8.875,
+        "layer": "top",
+        "availableZ": [0, 1],
+        "_depth": 4,
+        "_parent": {
+          "capacityMeshNodeId": "cn10558",
+          "center": {
+            "x": -8.875,
+            "y": 8.875
+          },
+          "width": 17.75,
+          "height": 17.75,
+          "layer": "top",
+          "availableZ": [0, 1],
+          "_depth": 3,
+          "_parent": {
+            "capacityMeshNodeId": "cn6434",
+            "center": {
+              "x": -17.75,
+              "y": 17.75
+            },
+            "width": 35.5,
+            "height": 35.5,
+            "layer": "top",
+            "availableZ": [0, 1],
+            "_depth": 2,
+            "_parent": {
+              "capacityMeshNodeId": "cn3",
+              "center": {
+                "x": -35.5,
+                "y": 35.5
+              },
+              "width": 71,
+              "height": 71,
+              "layer": "top",
+              "availableZ": [0, 1],
+              "_depth": 1,
+              "_parent": {
+                "capacityMeshNodeId": "cn0",
+                "center": {
+                  "x": 0,
+                  "y": 0
+                },
+                "width": 142,
+                "height": 142,
+                "layer": "top",
+                "availableZ": [0, 1],
+                "_depth": 0,
+                "_containsTarget": true,
+                "_containsObstacle": true,
+                "_completelyInsideObstacle": false
+              },
+              "_containsObstacle": true,
+              "_targetConnectionName": "source_net_1_mst0",
+              "_containsTarget": true,
+              "_completelyInsideObstacle": false
+            },
+            "_containsObstacle": true,
+            "_targetConnectionName": "source_net_1_mst11",
+            "_containsTarget": true,
+            "_completelyInsideObstacle": false
+          },
+          "_containsObstacle": true,
+          "_targetConnectionName": "source_trace_70",
+          "_containsTarget": true,
+          "_completelyInsideObstacle": false
+        },
+        "_containsObstacle": true,
+        "_targetConnectionName": "source_net_0_mst22",
+        "_containsTarget": true,
+        "_completelyInsideObstacle": false
+      },
+      "_containsObstacle": true,
+      "_targetConnectionName": "source_net_0_mst22",
+      "_containsTarget": true,
+      "_completelyInsideObstacle": false
+    },
+    "_containsObstacle": false
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn11081",
+    "portPoints": [
+      {
+        "x": -2.21875,
+        "y": 10.81640625,
+        "z": 0,
+        "connectionName": "source_trace_76"
+      },
+      {
+        "x": -2.21875,
+        "y": 9.70703125,
+        "z": 1,
+        "connectionName": "source_trace_76"
+      },
+      {
+        "x": -2.21875,
+        "y": 10.26171875,
+        "z": 0,
+        "connectionName": "source_net_0_mst22"
+      },
+      {
+        "x": -3.328125,
+        "y": 11.09375,
+        "z": 0,
+        "connectionName": "source_net_0_mst22"
+      }
+    ],
+    "center": {
+      "x": -3.328125,
+      "y": 9.984375
+    },
+    "width": 2.21875,
+    "height": 2.21875
+  }
+}
