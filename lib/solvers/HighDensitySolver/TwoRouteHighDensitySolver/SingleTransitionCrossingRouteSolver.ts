@@ -171,7 +171,7 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const C = flatRoute.B
 
     const turnDirection = computeTurnDirection(A, B, C, this.bounds)
-    // const turnDirection = computeTurnDirection(A, B, C, this.bounds)
+    console.debug("turnDirection", turnDirection)
     const sideTraversal = calculateTraversalPercentages(
       A,
       B,
@@ -179,30 +179,31 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       this.bounds,
       turnDirection,
     )
+    console.debug("sideTraversal", sideTraversal)
 
     // console.log({ sideTraversal, turnDirection })
 
     const viaBounds = {
       minX:
         this.bounds.minX +
-        (sideTraversal.left > 0.5
-          ? marginFromBorderWithTrace
-          : marginFromBorderWithoutTrace),
+        (sideTraversal.left > 0.75
+          ? marginFromBorderWithoutTrace
+          : marginFromBorderWithTrace),
       minY:
         this.bounds.minY +
-        (sideTraversal.bottom > 0.5
-          ? marginFromBorderWithTrace
-          : marginFromBorderWithoutTrace),
+        (sideTraversal.bottom > 0.75
+          ? marginFromBorderWithoutTrace
+          : marginFromBorderWithTrace),
       maxX:
         this.bounds.maxX -
-        (sideTraversal.right > 0.5
-          ? marginFromBorderWithTrace
-          : marginFromBorderWithoutTrace),
+        (sideTraversal.right > 0.75
+          ? marginFromBorderWithoutTrace
+          : marginFromBorderWithTrace),
       maxY:
         this.bounds.maxY -
-        (sideTraversal.top > 0.5
-          ? marginFromBorderWithTrace
-          : marginFromBorderWithoutTrace),
+        (sideTraversal.top > 0.75
+          ? marginFromBorderWithoutTrace
+          : marginFromBorderWithTrace),
     }
 
     if (viaBounds.maxY < viaBounds.minY) {
@@ -215,13 +216,15 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       viaBounds.maxX = viaBounds.minX
     }
 
-    return findClosestPointToABCWithinBounds(
+    let via = findClosestPointToABCWithinBounds(
       A,
       B,
       C,
       marginFromBorderWithTrace,
       viaBounds,
     )
+    via = { x: viaBounds.minX, y: viaBounds.maxY }
+    return via
   }
   /**
    * Create a single transition route with properly placed via
@@ -302,12 +305,10 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
 
     const minDistFromViaToTrace =
       this.viaDiameter / 2 + this.traceThickness / 2 + this.obstacleMargin
-    const p2 = middleWithMargin(
-      via,
-      this.viaDiameter,
-      otherRouteStart.z !== flatStart.z ? otherRouteStart : otherRouteEnd,
-      this.traceThickness,
-    )
+    const p2 = {
+      x: via.x - minDistFromViaToTrace * 1.2,
+      y: via.y,
+    }
     const viaCircle = {
       center: { x: via.x, y: via.y },
       radius: minDistFromViaToTrace,
@@ -363,6 +364,7 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const flatRoute = routeAHasTransition ? routeB : routeA
 
     const viaPosition = this.calculateViaPosition(transitionRoute, flatRoute)
+    console.debug("viaPosition", viaPosition)
     if (viaPosition) {
       this.debugViaPositions.push({ via: viaPosition })
     } else {
