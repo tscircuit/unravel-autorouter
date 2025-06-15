@@ -28,7 +28,7 @@ export class HyperParameterSupervisorSolver<
   MIN_SUBSTEPS = 1
 
   supervisedSolvers?: Array<SupervisedSolver<T>>
-  winningSolver?: SupervisedSolver<T>
+  winningSolver?: T
 
   getHyperParameterDefs(): Array<HyperParameterDef> {
     throw new Error("Not implemented")
@@ -157,7 +157,7 @@ export class HyperParameterSupervisorSolver<
 
     if (supervisedSolver.solver.solved) {
       this.solved = true
-      this.winningSolver = supervisedSolver
+      this.winningSolver = supervisedSolver.solver
       this.onSolve?.(supervisedSolver)
     }
   }

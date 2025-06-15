@@ -64,7 +64,7 @@ test("cn11081 single transition solver routes without DRC errors", () => {
 
   expect(solver.solved).toBe(true)
 
-  const solverName = solver.winningSolver?.solver.constructor.name
+  const solverName = solver.winningSolver?.constructor.name
 
   // Convert routes to circuit json and run DRC
   const circuitJson = convertToCircuitJson(
