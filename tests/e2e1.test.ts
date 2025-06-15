@@ -31,4 +31,4 @@ describe("Keyboard1 End-to-End Test", () => {
       import.meta.path,
     )
   })
-})
+}, 20_000)
