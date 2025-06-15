@@ -215,41 +215,46 @@ function extractViasFromRoutes(
         })
       })
     } else {
-      // Extract vias from HighDensityRoutes by looking for layer changes
-      ;(routes as HighDensityRoute[]).forEach((route) => {
-        for (let i = 1; i < route.route.length; i++) {
-          const prevPoint = route.route[i - 1]
-          const currPoint = route.route[i]
-
-          // If z-coordinate changes, we have a via
-          if (
-            prevPoint.z !== currPoint.z &&
-            Math.abs(prevPoint.x - currPoint.x) < 0.01 &&
-            Math.abs(prevPoint.y - currPoint.y) < 0.01
-          ) {
-            const fromLayer = mapZToLayerName(prevPoint.z, 2)
-            const toLayer = mapZToLayerName(currPoint.z, 2)
-            const locationKey = `${currPoint.x},${currPoint.y},${fromLayer},${toLayer}`
-
-            if (!viaLocations.has(locationKey)) {
-              vias.push({
-                type: "pcb_via",
-                pcb_via_id: `via_${vias.length}`,
-                x: currPoint.x,
-                y: currPoint.y,
-                outer_diameter: minViaDiameter,
-                hole_diameter: minViaDiameter * 0.5,
-                layers: [fromLayer, toLayer] as LayerName[],
-              })
-              viaLocations.add(locationKey)
-            }
-          }
-        }
-      })
+      // HighDensityRoutes will be processed later when converting each trace
+      // This function intentionally does nothing for that case
     }
   }
 
   return vias
+}
+
+function extractViasFromHdRoute(
+  route: HighDensityRoute,
+  pcbTraceId: string,
+  viaIdStart: number,
+  minViaDiameter = 0.6,
+): { vias: PcbVia[]; nextViaId: number } {
+  const vias: PcbVia[] = []
+  let counter = viaIdStart
+  for (let i = 1; i < route.route.length; i++) {
+    const prevPoint = route.route[i - 1]
+    const currPoint = route.route[i]
+
+    if (
+      prevPoint.z !== currPoint.z &&
+      Math.abs(prevPoint.x - currPoint.x) < 0.01 &&
+      Math.abs(prevPoint.y - currPoint.y) < 0.01
+    ) {
+      const fromLayer = mapZToLayerName(prevPoint.z, 2)
+      const toLayer = mapZToLayerName(currPoint.z, 2)
+      vias.push({
+        type: "pcb_via",
+        pcb_via_id: `via_${counter++}`,
+        pcb_trace_id: pcbTraceId,
+        x: currPoint.x,
+        y: currPoint.y,
+        outer_diameter: minViaDiameter,
+        hole_diameter: minViaDiameter * 0.5,
+        layers: [fromLayer, toLayer] as LayerName[],
+      })
+    }
+  }
+  return { vias, nextViaId: counter }
 }
 
 /**
@@ -267,6 +272,7 @@ export function convertToCircuitJson(
 ): AnyCircuitElement[] {
   // Start with empty circuit JSON
   const circuitJson: AnyCircuitElement[] = []
+  let viaCounter = 0
 
   // Add source traces from connection information
   circuitJson.push(...createSourceTraces(srjWithPointPairs, routes))
@@ -274,8 +280,10 @@ export function convertToCircuitJson(
   // Add PCB ports for connection points
   circuitJson.push(...createPcbPorts(srjWithPointPairs))
 
-  // Extract and add vias as independent pcb_via elements
-  circuitJson.push(...extractViasFromRoutes(routes, minViaDiameter))
+  // Extract and add vias as independent pcb_via elements for simple traces
+  const preExtractedVias = extractViasFromRoutes(routes, minViaDiameter)
+  viaCounter += preExtractedVias.length
+  circuitJson.push(...preExtractedVias)
 
   // Build a map of connection names to simplify lookups
   const connectionMap = new Map<string, string>()
@@ -301,14 +309,23 @@ export function convertToCircuitJson(
       // Handle HighDensityRoutes
       ;(routes as HighDensityRoute[]).forEach((route, index) => {
         const connectionName = route.connectionName
+        const traceId = `trace_${index}`
         circuitJson.push(
           convertHdRouteToCircuitJson(
             route,
-            `trace_${index}`,
+            traceId,
             connectionMap.get(connectionName) || connectionName,
             minTraceWidth,
           ) as AnyCircuitElement,
         )
+        const { vias, nextViaId } = extractViasFromHdRoute(
+          route,
+          traceId,
+          viaCounter,
+          minViaDiameter,
+        )
+        viaCounter = nextViaId
+        circuitJson.push(...vias)
       })
     }
   }
