@@ -5,11 +5,12 @@ import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
 import node from "../../examples/assets/cn11081-nodeWithPortPoints.json" assert {
   type: "json",
 }
+import { createSrjFromNodeWithPortPoints } from "lib/utils/createSrjFromNodeWithPortPoints"
 
 const nodeWithPortPoints = (node as any).nodeWithPortPoints
 
 test("cn11081 single transition solver routes without DRC errors", () => {
-  const srj = createSrjFromNode(node)
+  const srj = createSrjFromNodeWithPortPoints(nodeWithPortPoints)
   const solver = new SingleTransitionCrossingRouteSolver({ nodeWithPortPoints })
 
   solver.solve()
