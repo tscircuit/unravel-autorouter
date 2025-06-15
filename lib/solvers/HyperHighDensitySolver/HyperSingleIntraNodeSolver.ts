@@ -33,7 +33,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
 
   getCombinationDefs() {
     return [
-      ["closedFormTwoTrace"],
+      // ["closedFormTwoTrace"],
       ["multiHeadPolyLine"],
       ["majorCombinations", "orderings6", "cellSizeFactor"],
       ["noVias"],
