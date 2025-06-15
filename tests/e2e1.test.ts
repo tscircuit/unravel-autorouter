@@ -9,26 +9,24 @@ import type {
 import { Line, Rect } from "graphics-debug"
 import { convertSrjToGraphicsObject } from "./fixtures/convertSrjToGraphicsObject"
 
-describe("Keyboard1 End-to-End Test", () => {
-  test("should solve keyboard1 board and produce valid SimpleRouteJson output", async () => {
-    // Create a solver with the keyboard1 input
-    const solver = new CapacityMeshSolver(
-      keyboardRoutes as unknown as SimpleRouteJson,
-    )
+test("should solve keyboard1 board and produce valid SimpleRouteJson output", async () => {
+  // Create a solver with the keyboard1 input
+  const solver = new CapacityMeshSolver(
+    keyboardRoutes as unknown as SimpleRouteJson,
+  )
 
-    // Run the solver until completion or failure
-    solver.solve()
+  // Run the solver until completion or failure
+  solver.solve()
 
-    // Verify solver completed successfully
-    expect(solver.failed).toBe(false)
-    expect(solver.solved).toBe(true)
+  // Verify solver completed successfully
+  expect(solver.failed).toBe(false)
+  expect(solver.solved).toBe(true)
 
-    // Get output SimpleRouteJson
-    const output = solver.getOutputSimpleRouteJson()
+  // Get output SimpleRouteJson
+  const output = solver.getOutputSimpleRouteJson()
 
-    // console.log(output.traces?.flatMap((t) => t.route))
-    expect(convertSrjToGraphicsObject(output)).toMatchGraphicsSvg(
-      import.meta.path,
-    )
-  })
+  // console.log(output.traces?.flatMap((t) => t.route))
+  expect(convertSrjToGraphicsObject(output)).toMatchGraphicsSvg(
+    import.meta.path,
+  )
 }, 20_000)
