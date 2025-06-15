@@ -2,6 +2,7 @@ import { test, expect } from "bun:test"
 import { HyperSingleIntraNodeSolver } from "lib/solvers/HyperHighDensitySolver/HyperSingleIntraNodeSolver"
 import { convertToCircuitJson } from "lib/testing/utils/convertToCircuitJson"
 import { checkEachPcbTraceNonOverlapping } from "@tscircuit/checks"
+import "graphics-debug/matcher"
 import node from "../../examples/assets/cn11081-nodeWithPortPoints.json" assert {
   type: "json",
 }
@@ -59,5 +60,6 @@ test("cn11081 high density routing fails DRC", () => {
   const errors = checkEachPcbTraceNonOverlapping(circuitJson)
 
   expect(errors.length).toBeGreaterThan(0)
-  expect(solverName).toBeTruthy()
+  expect(solver.visualize()).toMatchGraphicsSvg(import.meta.path)
+  expect(solverName).toMatchInlineSnapshot(`"SingleTransitionCrossingRouteSolver"`)
 })
