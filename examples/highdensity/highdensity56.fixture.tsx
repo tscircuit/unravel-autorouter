@@ -8,24 +8,5 @@ export const hyperParameters = {
 export default () => {
   return (
     <HyperHighDensityDebugger nodeWithPortPoints={cn818.nodeWithPortPoints} />
-    // <GenericSolverDebugger
-    //   createSolver={() =>
-    //     new MultiHeadPolyLineIntraNodeSolver3({
-    //       nodeWithPortPoints: cn310.nodeWithPortPoints,
-    //       hyperParameters,
-    //     })
-    //   }
-    // />
-    // <GenericSolverDebugger
-    //   createSolver={() =>
-    //     new IntraNodeRouteSolver({
-    //       nodeWithPortPoints: cn62169.nodeWithPortPoints,
-    //       colorMap: generateColorMapFromNodeWithPortPoints(
-    //         cn62169.nodeWithPortPoints,
-    //       ),
-    //       hyperParameters,
-    //     })
-    //   }
-    // />
   )
 }
