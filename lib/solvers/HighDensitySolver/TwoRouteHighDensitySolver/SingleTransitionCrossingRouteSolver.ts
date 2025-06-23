@@ -16,7 +16,11 @@ import { findClosestPointToABCWithinBounds } from "lib/utils/findClosestPointToA
 import { calculatePerpendicularPointsAtDistance } from "lib/utils/calculatePointsAtDistance"
 import { snapToNearestBound } from "lib/utils/snapToNearestBound"
 import { findPointToGetAroundCircle } from "lib/utils/findPointToGetAroundCircle"
-import { calculateTraversalPercentages } from "./calculateSideTraversal"
+import {
+  calculateTraversalPercentages,
+  pointToAngle,
+} from "./calculateSideTraversal"
+import { computeTurnDirection } from "./computeTurnDirection"
 
 type Point = { x: number; y: number; z?: number }
 type Route = {
@@ -166,7 +170,17 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const B = ntrP1
     const C = flatRoute.B
 
-    const sideTraversal = calculateTraversalPercentages(A, B, C, this.bounds)
+    const turnDirection = computeTurnDirection(A, B, C, this.bounds)
+    // const turnDirection = computeTurnDirection(A, B, C, this.bounds)
+    const sideTraversal = calculateTraversalPercentages(
+      A,
+      B,
+      C,
+      this.bounds,
+      turnDirection,
+    )
+
+    // console.log({ sideTraversal, turnDirection })
 
     const viaBounds = {
       minX:
@@ -294,30 +308,40 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       otherRouteStart.z !== flatStart.z ? otherRouteStart : otherRouteEnd,
       this.traceThickness,
     )
-    const p1 = findPointToGetAroundCircle(flatStart, p2, {
+    const viaCircle = {
       center: { x: via.x, y: via.y },
       radius: minDistFromViaToTrace,
-    }).E
-    const p3 = findPointToGetAroundCircle(p2, flatEnd, {
-      center: { x: via.x, y: via.y },
-      radius: minDistFromViaToTrace,
-    }).E
+    }
+    const p1 = findPointToGetAroundCircle(flatStart, p2, viaCircle).E
+    const p3 = findPointToGetAroundCircle(p2, flatEnd, viaCircle).E
 
     // Determine if we need p1 or if we can just go from flatStart to p2 without
     // intersecting the via
-    const p1IsNeeded =
-      pointToSegmentDistance(via, flatStart, p2) < minDistFromViaToTrace
-    const p3IsNeeded =
-      pointToSegmentDistance(via, p2, flatEnd) < minDistFromViaToTrace
+    // const p1IsNeeded =
+    //   pointToSegmentDistance(via, flatStart, p2) < minDistFromViaToTrace
+    // const p3IsNeeded = pointToSegmentDistance(via, p2, flatEnd) < minDistFromViaToTrace
+
+    // flatStart -> p0_5 -> p1 -> p1_5 -> p2 -> p2_5 -> p3 -> p3_5 -> flatEnd
+    const p0_5 = findPointToGetAroundCircle(flatStart, p1, viaCircle).E
+    const p1_5 = findPointToGetAroundCircle(p1, p2, viaCircle).E
+    const p2_5 = findPointToGetAroundCircle(p2, p3, viaCircle).E
+    const p3_5 = findPointToGetAroundCircle(p3, flatEnd, viaCircle).E
+
+    const p2_better = findPointToGetAroundCircle(p1_5, p2_5, viaCircle).E
 
     // We need to navigate around the via
     return {
       connectionName: flatRouteConnectionName,
       route: [
         { x: flatStart.x, y: flatStart.y, z: flatStart.z ?? 0 },
-        ...(p1IsNeeded ? [{ x: p1.x, y: p1.y, z: flatStart.z ?? 0 }] : []),
-        { x: p2.x, y: p2.y, z: flatStart.z ?? 0 },
-        ...(p3IsNeeded ? [{ x: p3.x, y: p3.y, z: flatStart.z ?? 0 }] : []),
+        { x: p0_5.x, y: p0_5.y, z: flatStart.z ?? 0 },
+        { x: p1.x, y: p1.y, z: flatStart.z ?? 0 },
+        { x: p1_5.x, y: p1_5.y, z: flatStart.z ?? 0 },
+        // { x: p2.x, y: p2.y, z: flatStart.z ?? 0 },
+        { x: p2_better.x, y: p2_better.y, z: flatStart.z ?? 0 },
+        { x: p2_5.x, y: p2_5.y, z: flatStart.z ?? 0 },
+        { x: p3.x, y: p3.y, z: flatStart.z ?? 0 },
+        { x: p3_5.x, y: p3_5.y, z: flatStart.z ?? 0 },
         { x: flatEnd.x, y: flatEnd.y, z: flatEnd.z ?? 0 },
       ],
       traceThickness: this.traceThickness,

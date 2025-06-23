@@ -7,4 +7,11 @@ export interface HighDensityHyperParameters {
   SHUFFLE_SEED: number
   CELL_SIZE_FACTOR: number
   FLIP_TRACE_ALIGNMENT_DIRECTION: boolean
+
+  // Hyper Parameters for Multi-Head Polyline Solver
+  MULTI_HEAD_POLYLINE_SOLVER: boolean
+  SEGMENTS_PER_POLYLINE: number
+  BOUNDARY_PADDING: number
+
+  ITERATION_PENALTY: number
 }

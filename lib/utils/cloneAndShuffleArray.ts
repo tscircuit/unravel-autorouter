@@ -32,8 +32,62 @@ export function seededRandom(seed: number) {
   }
 }
 
+// We have preshuffled cases because for small arrays, there's very few possible
+// orderings, and the shuffle seed often starts at 0 and increments by 1. So we
+// want to ensure for simple cases we're definitely hitting all the cases.
+const PRESHUFFLED_CASES = {
+  1: [[0]],
+  2: [
+    [0, 1],
+    [1, 0],
+  ],
+  3: [
+    [0, 1, 2],
+    [2, 0, 1],
+    [1, 0, 2],
+    [0, 2, 1],
+    [1, 2, 0],
+    [2, 1, 0],
+  ],
+  4: [
+    [0, 1, 2, 3],
+    [2, 0, 1, 3],
+    [1, 3, 2, 0],
+    [3, 0, 1, 2],
+    [0, 2, 1, 3],
+    [2, 1, 3, 0],
+    [3, 0, 2, 1],
+    [1, 2, 0, 3],
+    [3, 1, 0, 2],
+    [0, 3, 2, 1],
+    [2, 3, 0, 1],
+    [2, 3, 1, 0],
+    [1, 2, 3, 0],
+    [3, 1, 2, 0],
+    [0, 1, 3, 2],
+    [0, 2, 3, 1],
+    [0, 3, 1, 2],
+    [1, 0, 2, 3],
+    [1, 0, 3, 2],
+    [1, 3, 0, 2],
+    [2, 0, 3, 1],
+    [2, 1, 0, 3],
+    [3, 2, 0, 1],
+    [3, 2, 1, 0],
+  ],
+}
+
 export function cloneAndShuffleArray<T>(arr: T[], seed: number): T[] {
   if (seed === 0) return arr
+
+  if (arr.length <= 4) {
+    const preshuffledOptions =
+      PRESHUFFLED_CASES[arr.length as keyof typeof PRESHUFFLED_CASES]
+    const preshuffledCase = preshuffledOptions[seed % preshuffledOptions.length]
+
+    return preshuffledCase.map((orderIndex) => arr[orderIndex])
+  }
+
   const random = seededRandom(seed)
   // if (arr.length === 2) {
   //   console.log(random(), seed)

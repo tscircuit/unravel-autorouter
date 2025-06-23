@@ -12,6 +12,28 @@
       polyline {
         fill: none;
       }
+      /* Force light mode for menu components */
+      .light {
+        color-scheme: light;
+      }
+      /* Override dark mode styles for Shadcn menubar */
+      .light,
+      .light * {
+        --tw-text-opacity: 1 !important;
+        color: rgba(0, 0, 0, var(--tw-text-opacity)) !important;
+        background-color: white !important;
+        border-color: rgba(229, 231, 235, 1) !important;
+      }
+      /* Ensure menu items are visible */
+      .light [data-state=open],
+      .light [data-state=open] * {
+        color: black !important;
+        background-color: white !important;
+      }
+      /* Preserve red error count */
+      .light .text-red-500 {
+        color: rgba(239, 68, 68, 1) !important;
+      }
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>

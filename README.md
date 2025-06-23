@@ -6,6 +6,12 @@ An MIT-licensed full-pipeline PCB autorouter library for node.js and TypeScript 
 
 Check out this [short youtube explanation of this autorouter](https://youtu.be/MmTk0806fAo)
 
+## How to file a bug report
+
+1. You should have [created a bug report via the tscircuit errors tab](https://docs.tscircuit.com/contributing/report-autorouter-bugs)
+2. Run `bun run bug-report <bug-report-url>`
+3. This will download the bug report and create a debugging fixture file in the `examples/bug-reports` directory, you can then find the bug report in the server (via `bun run start`)
+
 ## Installation
 
 ```bash

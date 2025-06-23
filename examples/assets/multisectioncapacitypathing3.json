@@ -1,0 +1,440 @@
+[
+  {
+    "simpleRouteJson": {
+      "bounds": {
+        "minX": 0,
+        "maxX": 8,
+        "minY": 0,
+        "maxY": 12
+      },
+      "obstacles": [],
+      "connections": [
+        {
+          "name": "connection_A_B",
+          "pointsToConnect": [
+            {
+              "x": 1,
+              "y": 1
+            },
+            {
+              "x": 1,
+              "y": 11
+            }
+          ]
+        },
+        {
+          "name": "connection_C_D",
+          "pointsToConnect": [
+            {
+              "x": 5,
+              "y": 9
+            },
+            {
+              "x": 5,
+              "y": 1
+            }
+          ]
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "capacityMeshNodeId": "nodeA",
+        "center": { "x": 1, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeA0",
+        "center": { "x": 1, "y": 1 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true,
+        "_containsObstacle": true
+      },
+      {
+        "capacityMeshNodeId": "nodeF",
+        "center": { "x": 7, "y": 1 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeC",
+        "center": { "x": 5, "y": 1 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true,
+        "_containsObstacle": true
+      },
+      {
+        "capacityMeshNodeId": "nodeR2C2",
+        "center": { "x": 3, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR2C3",
+        "center": { "x": 5, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR2C4",
+        "center": { "x": 7, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR3C3",
+        "center": { "x": 5, "y": 5 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR3C4",
+        "center": { "x": 7, "y": 5 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeB",
+        "center": { "x": 1, "y": 7 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR4C2",
+        "center": { "x": 3, "y": 7 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR4C3",
+        "center": { "x": 5, "y": 7 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeD",
+        "center": { "x": 5, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true,
+        "_containsObstacle": true
+      },
+      {
+        "capacityMeshNodeId": "nodeB1",
+        "center": { "x": 1, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeB2",
+        "center": { "x": 1, "y": 11 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true,
+        "_containsObstacle": true
+      },
+      {
+        "capacityMeshNodeId": "nodeE",
+        "center": { "x": 7, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      }
+    ],
+    "edges": [
+      { "nodeIds": ["nodeA0", "nodeA"], "capacityMeshEdgeId": "edgeA0_A" },
+      { "nodeIds": ["nodeC", "nodeF"], "capacityMeshEdgeId": "edgeC_F" },
+      { "nodeIds": ["nodeF", "nodeR2C4"], "capacityMeshEdgeId": "edgeF_R2C4" },
+      { "nodeIds": ["nodeC", "nodeR2C3"], "capacityMeshEdgeId": "edgeC_R2C3" },
+      { "nodeIds": ["nodeA", "nodeR2C2"], "capacityMeshEdgeId": "edgeA_R2C2" },
+      {
+        "nodeIds": ["nodeR2C2", "nodeR2C3"],
+        "capacityMeshEdgeId": "edgeR2C2_R2C3"
+      },
+      {
+        "nodeIds": ["nodeR2C3", "nodeR2C4"],
+        "capacityMeshEdgeId": "edgeR2C3_R2C4"
+      },
+      {
+        "nodeIds": ["nodeR2C3", "nodeR3C3"],
+        "capacityMeshEdgeId": "edgeR2C3_R3C3"
+      },
+      {
+        "nodeIds": ["nodeR2C4", "nodeR3C4"],
+        "capacityMeshEdgeId": "edgeR2C4_R3C4"
+      },
+      {
+        "nodeIds": ["nodeR3C3", "nodeR3C4"],
+        "capacityMeshEdgeId": "edgeR3C3_R3C4"
+      },
+      {
+        "nodeIds": ["nodeR3C3", "nodeR4C3"],
+        "capacityMeshEdgeId": "edgeR3C3_R4C3"
+      },
+      { "nodeIds": ["nodeB", "nodeR4C2"], "capacityMeshEdgeId": "edgeB_R4C2" },
+      {
+        "nodeIds": ["nodeR4C2", "nodeR4C3"],
+        "capacityMeshEdgeId": "edgeR4C2_R4C3"
+      },
+      { "nodeIds": ["nodeR4C3", "nodeD"], "capacityMeshEdgeId": "edgeR4C3_D" },
+      { "nodeIds": ["nodeD", "nodeE"], "capacityMeshEdgeId": "edgeD_E" },
+      { "nodeIds": ["nodeB", "nodeB1"], "capacityMeshEdgeId": "edgeB_B1" },
+      { "nodeIds": ["nodeB1", "nodeB2"], "capacityMeshEdgeId": "edgeB1_B2" }
+    ],
+    "connectionsWithNodes": [
+      {
+        "connection": {
+          "name": "connection_A_B"
+        },
+        "path": []
+      },
+      {
+        "connection": {
+          "name": "connection_C_D"
+        },
+        "path": []
+      }
+    ],
+    "sectionNodes": [
+      {
+        "capacityMeshNodeId": "nodeA",
+        "center": { "x": 1, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeF",
+        "center": { "x": 7, "y": 1 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeC",
+        "center": { "x": 5, "y": 1 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true,
+        "_containsObstacle": true
+      },
+      {
+        "capacityMeshNodeId": "nodeR2C2",
+        "center": { "x": 3, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR2C3",
+        "center": { "x": 5, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR2C4",
+        "center": { "x": 7, "y": 3 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR3C3",
+        "center": { "x": 5, "y": 5 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR3C4",
+        "center": { "x": 7, "y": 5 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeB",
+        "center": { "x": 1, "y": 7 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR4C2",
+        "center": { "x": 3, "y": 7 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeR4C3",
+        "center": { "x": 5, "y": 7 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeD",
+        "center": { "x": 5, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeB1",
+        "center": { "x": 1, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      },
+      {
+        "capacityMeshNodeId": "nodeB2",
+        "center": { "x": 1, "y": 11 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": true,
+        "_containsObstacle": true
+      },
+      {
+        "capacityMeshNodeId": "nodeE",
+        "center": { "x": 7, "y": 9 },
+        "width": 1,
+        "height": 1,
+        "availableZ": [0, 1],
+        "layer": "top",
+        "_containsTarget": false
+      }
+    ],
+    "sectionEdges": [
+      { "nodeIds": ["nodeA0", "nodeA"], "capacityMeshEdgeId": "edgeA0_A" },
+      { "nodeIds": ["nodeC", "nodeF"], "capacityMeshEdgeId": "edgeC_F" },
+      { "nodeIds": ["nodeF", "nodeR2C4"], "capacityMeshEdgeId": "edgeF_R2C4" },
+      { "nodeIds": ["nodeC", "nodeR2C3"], "capacityMeshEdgeId": "edgeC_R2C3" },
+      { "nodeIds": ["nodeA", "nodeR2C2"], "capacityMeshEdgeId": "edgeA_R2C2" },
+      {
+        "nodeIds": ["nodeR2C2", "nodeR2C3"],
+        "capacityMeshEdgeId": "edgeR2C2_R2C3"
+      },
+      {
+        "nodeIds": ["nodeR2C3", "nodeR2C4"],
+        "capacityMeshEdgeId": "edgeR2C3_R2C4"
+      },
+      {
+        "nodeIds": ["nodeR2C3", "nodeR3C3"],
+        "capacityMeshEdgeId": "edgeR2C3_R3C3"
+      },
+      {
+        "nodeIds": ["nodeR2C4", "nodeR3C4"],
+        "capacityMeshEdgeId": "edgeR2C4_R3C4"
+      },
+      {
+        "nodeIds": ["nodeR3C3", "nodeR3C4"],
+        "capacityMeshEdgeId": "edgeR3C3_R3C4"
+      },
+      {
+        "nodeIds": ["nodeR3C3", "nodeR4C3"],
+        "capacityMeshEdgeId": "edgeR3C3_R4C3"
+      },
+      { "nodeIds": ["nodeB", "nodeR4C2"], "capacityMeshEdgeId": "edgeB_R4C2" },
+      {
+        "nodeIds": ["nodeR4C2", "nodeR4C3"],
+        "capacityMeshEdgeId": "edgeR4C2_R4C3"
+      },
+      { "nodeIds": ["nodeR4C3", "nodeD"], "capacityMeshEdgeId": "edgeR4C3_D" },
+      { "nodeIds": ["nodeD", "nodeE"], "capacityMeshEdgeId": "edgeD_E" },
+      { "nodeIds": ["nodeB", "nodeB1"], "capacityMeshEdgeId": "edgeB_B1" },
+      { "nodeIds": ["nodeB1", "nodeB2"], "capacityMeshEdgeId": "edgeB1_B2" }
+    ],
+    "sectionConnectionTerminals": [
+      {
+        "connectionName": "connection_A_B",
+        "startNodeId": "nodeA0",
+        "endNodeId": "nodeB2"
+      },
+      {
+        "connectionName": "connection_C_D",
+        "startNodeId": "nodeC",
+        "endNodeId": "nodeD"
+      }
+    ],
+    "colorMap": {
+      "connection_A_B": "red",
+      "connection_C_D": "blue"
+    }
+  }
+]

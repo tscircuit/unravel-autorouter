@@ -8,30 +8,119 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
   remainingHdRoutes: HighDensityIntraNodeRoute[]
   start: { x: number; y: number; z: number }
   end: { x: number; y: number; z: number }
+  colorMap: Record<string, string>
 
   constructor(opts: {
-    connectionName?: string
+    connectionName: string
     hdRoutes: HighDensityIntraNodeRoute[]
     start: { x: number; y: number; z: number }
     end: { x: number; y: number; z: number }
+    colorMap?: Record<string, string>
+    defaultTraceThickness?: number
+    defaultViaDiameter?: number
   }) {
     super()
     this.remainingHdRoutes = [...opts.hdRoutes]
+    this.colorMap = opts.colorMap ?? {} // Store colorMap, default to empty object
+
+    if (opts.hdRoutes.length === 0) {
+      this.start = opts.start
+      this.end = opts.end
+      const routePoints = [
+        { x: opts.start.x, y: opts.start.y, z: opts.start.z },
+      ]
+      const vias = []
+
+      if (opts.start.z !== opts.end.z) {
+        // If layers are different, add a via at the start point and a segment on the new layer
+        routePoints.push({ x: opts.start.x, y: opts.start.y, z: opts.end.z })
+        vias.push({ x: opts.start.x, y: opts.start.y })
+      }
+      routePoints.push({ x: opts.end.x, y: opts.end.y, z: opts.end.z })
+
+      this.mergedHdRoute = {
+        connectionName: opts.connectionName,
+        route: routePoints,
+        vias: vias,
+        viaDiameter: opts.defaultViaDiameter ?? 0.6, // Use default or fallback
+        traceThickness: opts.defaultTraceThickness ?? 0.15, // Use default or fallback
+      }
+      this.solved = true
+      return // Early exit as there's nothing to stitch
+    }
+
+    const { firstRoute } = this.getDisjointedRoute()
+
+    const firstRouteToStartDist = Math.min(
+      distance(firstRoute.route[0], opts.start),
+      distance(firstRoute.route[firstRoute.route.length - 1], opts.start),
+    )
+    const firstRouteToEndDist = Math.min(
+      distance(firstRoute.route[0], opts.end),
+      distance(firstRoute.route[firstRoute.route.length - 1], opts.end),
+    )
+
+    if (firstRouteToStartDist < firstRouteToEndDist) {
+      this.start = opts.start
+      this.end = opts.end
+    } else {
+      this.start = opts.end
+      this.end = opts.start
+    }
+
     this.mergedHdRoute = {
-      connectionName: opts.connectionName ?? opts.hdRoutes[0].connectionName,
+      connectionName: opts.connectionName, // Use mandatory connectionName
       route: [
         {
-          x: opts.start.x,
-          y: opts.start.y,
-          z: opts.start.z,
+          x: this.start.x,
+          y: this.start.y,
+          z: this.start.z,
         },
       ],
       vias: [],
-      viaDiameter: opts.hdRoutes?.[0]?.viaDiameter ?? 0.6,
-      traceThickness: opts.hdRoutes?.[0]?.traceThickness ?? 0.15,
+      viaDiameter: firstRoute.viaDiameter,
+      traceThickness: firstRoute.traceThickness,
     }
-    this.start = opts.start
-    this.end = opts.end
+  }
+
+  /**
+   * Scan `remainingHdRoutes` and find a route that has **one** end that is not
+   * within `5e-6` of the start or end of any other route on the same layer.
+   * That “lonely” end marks one extremity of the whole chain, which we use as
+   * our starting segment. If no such route exists (e.g., the data form a loop),
+   * we simply return the first route so the solver can proceed.
+   */
+  getDisjointedRoute() {
+    const TOL = 5e-6
+
+    for (const candidate of this.remainingHdRoutes) {
+      const candidateEnds = [
+        candidate.route[0],
+        candidate.route[candidate.route.length - 1],
+      ]
+
+      // true if at least one end of `candidate` is not matched by any other route
+      const hasLonelyEnd = candidateEnds.some((end) => {
+        // Look through every *other* route and its two ends
+        return !this.remainingHdRoutes.some((other) => {
+          if (other === candidate) return false
+          const otherEnds = [
+            other.route[0],
+            other.route[other.route.length - 1],
+          ]
+          return otherEnds.some(
+            (oe) => oe.z === end.z && distance(end, oe) < TOL,
+          )
+        })
+      })
+
+      if (hasLonelyEnd) {
+        return { firstRoute: candidate }
+      }
+    }
+
+    // Degenerate case: everything is paired (forms a loop) – just pick the first route
+    return { firstRoute: this.remainingHdRoutes[0] }
   }
 
   _step() {
@@ -63,12 +152,18 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       const firstPointInCandidate = hdRoute.route[0]
       const distToFirst = distance(lastMergedPoint, firstPointInCandidate)
       const distToLast = distance(lastMergedPoint, lastPointInCandidate)
-      if (distToFirst < closestDistance) {
+      if (
+        distToFirst < closestDistance &&
+        lastMergedPoint.z === firstPointInCandidate.z
+      ) {
         closestDistance = distToFirst
         closestRouteIndex = i
         matchedOn = "first"
       }
-      if (distToLast < closestDistance) {
+      if (
+        distToLast < closestDistance &&
+        lastMergedPoint.z === lastPointInCandidate.z
+      ) {
         closestDistance = distToLast
         closestRouteIndex = i
         matchedOn = "last"
@@ -140,17 +235,14 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       }
     }
 
-    // Visualize all remaining HD routes
-    const colorList = Array.from(
-      { length: this.remainingHdRoutes.length },
-      (_, i) => `hsl(${(i * 360) / this.remainingHdRoutes.length}, 100%, 50%)`,
-    )
+    // Visualize all remaining HD routes using colorMap
     for (const [i, hdRoute] of this.remainingHdRoutes.entries()) {
+      const routeColor = this.colorMap[hdRoute.connectionName] ?? "gray" // Default to gray if not in map
       if (hdRoute.route.length > 1) {
         // Create a line for the route
         graphics.lines?.push({
           points: hdRoute.route.map((point) => ({ x: point.x, y: point.y })),
-          strokeColor: colorList[i],
+          strokeColor: routeColor,
         })
       }
 
@@ -158,10 +250,10 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
       for (let pi = 0; pi < hdRoute.route.length; pi++) {
         const point = hdRoute.route[pi]
         graphics.points?.push({
-          x: point.x + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000,
+          x: point.x + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000, // Keep slight offset for visibility
           y: point.y + ((i % 2) - 0.5) / 500 + ((pi % 8) - 4) / 1000,
-          color: colorList[i],
-          label: `Route ${i} ${point === hdRoute.route[0] ? "First" : point === hdRoute.route[hdRoute.route.length - 1] ? "Last" : ""}`,
+          color: routeColor,
+          label: `Route ${hdRoute.connectionName} ${point === hdRoute.route[0] ? "First" : point === hdRoute.route[hdRoute.route.length - 1] ? "Last" : ""}`,
         })
       }
 
@@ -170,7 +262,7 @@ export class SingleHighDensityRouteStitchSolver extends BaseSolver {
         graphics.circles?.push({
           center: { x: via.x, y: via.y },
           radius: hdRoute.viaDiameter / 2,
-          fill: colorList[i],
+          fill: routeColor,
         })
       }
     }

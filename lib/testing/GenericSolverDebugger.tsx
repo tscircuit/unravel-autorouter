@@ -38,6 +38,10 @@ export const GenericSolverDebugger = ({
   const [lastTargetIteration, setLastTargetIteration] = useState<number>(
     parseInt(window.localStorage.getItem("lastTargetIteration") || "0", 10),
   )
+  const [selectedStatKey, setSelectedStatKey] = useState<string | null>(
+    window.localStorage.getItem("lastSelectedStatKey") || null,
+  )
+  const [showStatSelectionDialog, setShowStatSelectionDialog] = useState(false)
 
   const selectedSolver = useMemo(() => {
     if (selectedSolverKey === "main") {
@@ -50,13 +54,46 @@ export const GenericSolverDebugger = ({
     }
   }, [mainSolver, selectedSolverKey])
 
-  const speedLevels = [1, 2, 5, 10, 100]
-  const speedLabels = ["1x", "2x", "5x", "10x", "100x"]
+  const speedLevels = [1, 2, 5, 10, 100, 500, 1000, 2000]
+  const speedLabels = [
+    "1x",
+    "2x",
+    "5x",
+    "10x",
+    "100x",
+    "500x",
+    "1000x",
+    "2000x",
+  ]
 
   // Reset solver
   const resetSolver = () => {
     setMainSolver(createSolver())
     setSelectedSolverKey("main")
+    setSelectedStatKey(null)
+  }
+
+  const stats = useRef({
+    bestF: Infinity,
+    bestCandidateIteration: 0,
+    lastF: Infinity,
+    lastG: Infinity,
+    lastH: Infinity,
+  })
+
+  const stepWithStats = () => {
+    const nextCandidate =
+      (mainSolver as any).lastCandidate || (mainSolver as any).candidates?.[0]
+    if (nextCandidate) {
+      if (nextCandidate.f < stats.current.bestF) {
+        stats.current.bestF = nextCandidate.f
+        stats.current.bestCandidateIteration = mainSolver.iterations
+      }
+      stats.current.lastF = nextCandidate.f
+      stats.current.lastG = nextCandidate.g
+      stats.current.lastH = nextCandidate.h
+    }
+    mainSolver.step()
   }
 
   // Animation effect
@@ -71,7 +108,7 @@ export const GenericSolverDebugger = ({
           if (mainSolver.solved || mainSolver.failed) {
             break
           }
-          mainSolver.step()
+          stepWithStats()
         }
         setForceUpdate((prev) => prev + 1)
       }, animationSpeed)
@@ -87,7 +124,60 @@ export const GenericSolverDebugger = ({
   // Manual step function
   const handleStep = () => {
     if (!mainSolver.solved && !mainSolver.failed) {
-      mainSolver.step()
+      stepWithStats()
+      setForceUpdate((prev) => prev + 1)
+    }
+  }
+
+  // Step until selected stat changes
+  const handleStepStat = () => {
+    if (!selectedStatKey) {
+      setShowStatSelectionDialog(true)
+      return
+    }
+
+    if (mainSolver.solved || mainSolver.failed) {
+      return
+    }
+
+    const initialStatValue = mainSolver.stats[selectedStatKey]
+    let safetyBreak = 0
+    const MAX_STEPS_PER_CLICK = 5000 // Safety break
+
+    while (
+      !mainSolver.solved &&
+      !mainSolver.failed &&
+      safetyBreak < MAX_STEPS_PER_CLICK
+    ) {
+      stepWithStats()
+      safetyBreak++
+      // Check if the stat exists and has changed
+      if (
+        mainSolver.stats.hasOwnProperty(selectedStatKey) &&
+        mainSolver.stats[selectedStatKey] !== initialStatValue
+      ) {
+        break
+      }
+    }
+
+    if (safetyBreak >= MAX_STEPS_PER_CLICK) {
+      console.warn(
+        `Step Stat: Reached max steps (${MAX_STEPS_PER_CLICK}) without detecting a change in stat "${selectedStatKey}".`,
+      )
+    }
+
+    setForceUpdate((prev) => prev + 1)
+  }
+
+  // Substep function for deepest active subsolver
+  const handleSubStep = () => {
+    let deepestSolver = mainSolver.activeSubSolver
+    while (deepestSolver?.activeSubSolver) {
+      deepestSolver = deepestSolver.activeSubSolver
+    }
+
+    if (deepestSolver && !deepestSolver.solved && !deepestSolver.failed) {
+      deepestSolver.step()
       setForceUpdate((prev) => prev + 1)
     }
   }
@@ -275,6 +365,29 @@ export const GenericSolverDebugger = ({
         </button>
         <button
           className="border rounded-md p-2 hover:bg-gray-100"
+          onClick={handleStepStat}
+          disabled={mainSolver.solved || mainSolver.failed}
+          title={
+            selectedStatKey
+              ? `Step until stat "${selectedStatKey}" changes`
+              : "Step until selected stat changes"
+          }
+        >
+          Step Stat {selectedStatKey ? `(${selectedStatKey})` : ""}
+        </button>
+        {showDeepestVisualization && (
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100"
+            onClick={handleSubStep}
+            disabled={
+              !deepestActiveSubSolver || mainSolver.solved || mainSolver.failed
+            }
+          >
+            Substep
+          </button>
+        )}
+        <button
+          className="border rounded-md p-2 hover:bg-gray-100"
           onClick={handleNextStage}
           disabled={mainSolver.solved || mainSolver.failed}
         >
@@ -422,7 +535,63 @@ export const GenericSolverDebugger = ({
             Error: <span className="font-bold">{mainSolver.error}</span>
           </div>
         )}
+        {mainSolver.error && (
+          <div className="border p-2 rounded bg-red-100">
+            Error: <span className="font-bold">{mainSolver.error}</span>
+          </div>
+        )}
       </div>
+
+      {showStatSelectionDialog && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+          <div className="bg-white p-5 rounded-lg shadow-xl">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
+              Select Stat to Watch
+            </h3>
+            <select
+              className="border rounded-md p-2 w-full mb-4"
+              value={selectedStatKey || ""}
+              onChange={(e) => {
+                const newKey = e.target.value || null
+                setSelectedStatKey(newKey)
+                if (newKey) {
+                  window.localStorage.setItem("lastSelectedStatKey", newKey)
+                } else {
+                  window.localStorage.removeItem("lastSelectedStatKey")
+                }
+              }}
+            >
+              <option value="">-- Select a Stat --</option>
+              {Object.keys(mainSolver.stats).map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2">
+              <button
+                className="border rounded-md px-4 py-2 bg-gray-200 hover:bg-gray-300"
+                onClick={() => setShowStatSelectionDialog(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="border rounded-md px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+                onClick={() => {
+                  setShowStatSelectionDialog(false)
+                  // Optionally trigger the first step immediately after selection
+                  if (selectedStatKey) {
+                    handleStepStat() // Call handleStepStat again now that a key is selected
+                  }
+                }}
+                disabled={!selectedStatKey}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="border rounded-md p-4 mb-4">
         {objectSelectionEnabled || renderer === "vector" ? (
@@ -437,13 +606,91 @@ export const GenericSolverDebugger = ({
 
       <div className="mt-4 border-t pt-4">
         <h3 className="font-bold mb-2">Solver Information</h3>
-        <div className="border p-2 rounded mb-2">
-          Type:{" "}
-          <span className="font-bold">{selectedSolver?.constructor.name}</span>
-        </div>
-        <div className="border p-2 rounded mb-2">
-          Max Iterations:{" "}
-          <span className="font-bold">{selectedSolver?.MAX_ITERATIONS}</span>
+        <div className="flex">
+          <div>
+            <div className="border p-2 rounded mb-2">
+              Type:{" "}
+              <span className="font-bold">
+                {selectedSolver?.constructor.name}
+              </span>
+            </div>
+            <div className="border p-2 rounded mb-2">
+              Max Iterations:{" "}
+              <span className="font-bold">
+                {selectedSolver?.MAX_ITERATIONS}
+              </span>
+            </div>
+            {selectedSolver?.stats &&
+              Object.keys(selectedSolver?.stats).length > 0 && (
+                <div className="border p-2 rounded mb-2">
+                  <details>
+                    <summary>Stats</summary>
+                    <pre>
+                      {JSON.stringify(selectedSolver?.stats, null, "  ")}
+                    </pre>
+                  </details>
+                </div>
+              )}
+            {selectedSolver?.cacheKey && (
+              <div className="border p-2 rounded mb-2 whitespace-pre">
+                Cache Key: {selectedSolver.cacheKey as string}
+              </div>
+            )}
+            {(selectedSolver as any)?.candidates !== undefined && (
+              <div className="border p-2 rounded mb-2 flex flex-wrap space-x-4 [&>*]:w-36">
+                <div>
+                  Candidates:{" "}
+                  <span className="font-bold">
+                    {(selectedSolver as any).candidates.length}
+                  </span>
+                </div>
+                <div>
+                  Best F:{" "}
+                  <span className="font-bold">
+                    {stats.current.bestF.toFixed(3)}
+                  </span>
+                </div>
+                <div>
+                  Best F:{" "}
+                  <span className="font-bold">
+                    {stats.current.bestCandidateIteration}
+                  </span>
+                </div>
+                <div>
+                  Last F:{" "}
+                  <span className="font-bold">
+                    {stats.current.lastF?.toFixed(3)}
+                  </span>
+                </div>
+                <div>
+                  Last G:{" "}
+                  <span className="font-bold">
+                    {stats.current.lastG?.toFixed(3)}
+                  </span>
+                </div>
+                <div>
+                  Last H:{" "}
+                  <span className="font-bold">
+                    {stats.current.lastH?.toFixed(3)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div>
+            <table>
+              <tbody>
+                {Object.entries(mainSolver.stats).map(([k, v]) => {
+                  return (
+                    <tr key={k}>
+                      <td className="p-1">{k}</td>
+                      <td className="p-1">{JSON.stringify(v)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <div>
@@ -461,7 +708,7 @@ export const GenericSolverDebugger = ({
                   return
                 }
 
-                let params
+                let params: any
                 try {
                   params = deepestActiveSubSolver.getConstructorParams()
                 } catch (e: any) {
@@ -489,6 +736,23 @@ export const GenericSolverDebugger = ({
               {deepestActiveSubSolver?.constructor?.name})
             </button>
           )}
+          <button
+            className="border rounded-md p-2 hover:bg-gray-100"
+            onClick={() => {
+              const vizJson = JSON.stringify(visualization, null, 2)
+              const blob = new Blob([vizJson], { type: "application/json" })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement("a")
+              a.download = "visualization.json"
+              a.href = url
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+              URL.revokeObjectURL(url)
+            }}
+          >
+            Download Visualization JSON
+          </button>
         </div>
       </div>
     </div>

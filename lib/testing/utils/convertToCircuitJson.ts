@@ -1,7 +1,8 @@
 import type { AnyCircuitElement, PcbTrace, PcbVia } from "circuit-json"
-import { SimpleRouteJson, SimplifiedPcbTrace } from "lib/types"
+import { Obstacle, SimpleRouteJson, SimplifiedPcbTrace } from "lib/types"
 import { HighDensityRoute } from "lib/types/high-density-types"
 import { LayerName, mapZToLayerName } from "lib/utils/mapZToLayerName"
+import { pointToBoxDistance } from "@tscircuit/math-utils"
 
 /**
  * Convert a simplified PCB trace from the autorouter to a circuit-json compatible PCB trace
@@ -79,7 +80,10 @@ function convertHdRouteToCircuitJson(
  * Create source_trace elements from the SimpleRouteJson connections
  * These represent the logical connections between points
  */
-function createSourceTraces(srj: SimpleRouteJson): AnyCircuitElement[] {
+function createSourceTraces(
+  srj: SimpleRouteJson,
+  hdRoutes: SimplifiedPcbTrace[] | HighDensityRoute[],
+): AnyCircuitElement[] {
   const sourceTraces: AnyCircuitElement[] = []
 
   // Process each connection to create a source_trace
@@ -93,6 +97,28 @@ function createSourceTraces(srj: SimpleRouteJson): AnyCircuitElement[] {
     // Look for original connection name (might be MST-suffixed by NetToPointPairsSolver)
     const baseName = connection.name.replace(/_mst\d+$/, "")
     const netConnectionName = connection.netConnectionName || baseName
+
+    // Test for obstacles we're inside of
+    const obstaclesContainingEndpoints: Obstacle[] = []
+    const hdRoute = hdRoutes.find(
+      (r) =>
+        ((r as any).connection_name ?? (r as any).connectionName) ===
+        connection.name,
+    )
+    if (hdRoute) {
+      const endpoints = [
+        hdRoute.route[0],
+        hdRoute.route[hdRoute.route.length - 1],
+      ]
+
+      for (const endpoint of endpoints) {
+        for (const obstacle of srj.obstacles) {
+          if (pointToBoxDistance(endpoint, obstacle) <= 0) {
+            obstaclesContainingEndpoints.push(obstacle)
+          }
+        }
+      }
+    }
 
     // Check if this source_trace already exists
     const existingSourceTrace = sourceTraces.find(
@@ -114,7 +140,12 @@ function createSourceTraces(srj: SimpleRouteJson): AnyCircuitElement[] {
       sourceTraces.push({
         type: "source_trace",
         source_trace_id: netConnectionName,
-        connected_source_port_ids: connectedPortIds,
+        connected_source_port_ids: connectedPortIds.concat(
+          obstaclesContainingEndpoints.flatMap((o) => [
+            `obstacle_${o.center.x.toFixed(3)}_${o.center.y.toFixed(3)}_${o.layers.join(".")}`,
+            ...o.connectedTo,
+          ]),
+        ),
         connected_source_net_ids: [],
       })
     }
@@ -185,7 +216,8 @@ function extractViasFromRoutes(
       })
     } else {
       // Extract vias from HighDensityRoutes by looking for layer changes
-      ;(routes as HighDensityRoute[]).forEach((route) => {
+      ;(routes as HighDensityRoute[]).forEach((route, routeIndex) => {
+        const traceId = `trace_${routeIndex}`
         for (let i = 1; i < route.route.length; i++) {
           const prevPoint = route.route[i - 1]
           const currPoint = route.route[i]
@@ -204,6 +236,7 @@ function extractViasFromRoutes(
               vias.push({
                 type: "pcb_via",
                 pcb_via_id: `via_${vias.length}`,
+                pcb_trace_id: traceId,
                 x: currPoint.x,
                 y: currPoint.y,
                 outer_diameter: minViaDiameter,
@@ -238,7 +271,7 @@ export function convertToCircuitJson(
   const circuitJson: AnyCircuitElement[] = []
 
   // Add source traces from connection information
-  circuitJson.push(...createSourceTraces(srjWithPointPairs))
+  circuitJson.push(...createSourceTraces(srjWithPointPairs, routes))
 
   // Add PCB ports for connection points
   circuitJson.push(...createPcbPorts(srjWithPointPairs))

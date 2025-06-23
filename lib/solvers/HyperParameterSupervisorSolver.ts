@@ -28,6 +28,7 @@ export class HyperParameterSupervisorSolver<
   MIN_SUBSTEPS = 1
 
   supervisedSolvers?: Array<SupervisedSolver<T>>
+  winningSolver?: T
 
   getHyperParameterDefs(): Array<HyperParameterDef> {
     throw new Error("Not implemented")
@@ -84,12 +85,13 @@ export class HyperParameterSupervisorSolver<
 
       for (const hyperParameters of hyperParameterCombinations) {
         const solver = this.generateSolver(hyperParameters)
+        const g = this.computeG(solver)
         this.supervisedSolvers.push({
           hyperParameters,
           solver,
           h: 0,
-          g: 0,
-          f: 0,
+          g,
+          f: g,
         })
       }
     }
@@ -130,6 +132,10 @@ export class HyperParameterSupervisorSolver<
     return bestSolver
   }
 
+  getFailureMessage() {
+    return "All solvers failed in hyper solver."
+  }
+
   _step() {
     if (!this.supervisedSolvers) this.initializeSolvers()
 
@@ -137,7 +143,7 @@ export class HyperParameterSupervisorSolver<
 
     if (!supervisedSolver) {
       this.failed = true
-      this.error = "All solvers failed"
+      this.error = this.getFailureMessage()
       return
     }
 
@@ -151,6 +157,7 @@ export class HyperParameterSupervisorSolver<
 
     if (supervisedSolver.solver.solved) {
       this.solved = true
+      this.winningSolver = supervisedSolver.solver
       this.onSolve?.(supervisedSolver)
     }
   }

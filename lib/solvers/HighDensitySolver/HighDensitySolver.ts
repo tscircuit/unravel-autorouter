@@ -60,6 +60,14 @@ export class HighDensitySolver extends BaseSolver {
       return
     }
     if (this.unsolvedNodePortPoints.length === 0) {
+      if (this.failedSolvers.length > 0) {
+        this.solved = false
+        this.failed = true
+        // debugger
+        this.error = `Failed to solve ${this.failedSolvers.length} nodes, ${this.failedSolvers.slice(0, 5).map((fs) => fs.nodeWithPortPoints.capacityMeshNodeId)}. err0: ${this.failedSolvers[0].error}.`
+        return
+      }
+
       this.solved = true
       return
     }
@@ -96,6 +104,7 @@ export class HighDensitySolver extends BaseSolver {
             segment.z === 0
               ? segment.color
               : safeTransparentize(segment.color, 0.75),
+          layer: `z${segment.z}`,
           strokeWidth: route.traceThickness,
           strokeDash: segment.z !== 0 ? "10, 5" : undefined,
         })
@@ -103,6 +112,7 @@ export class HighDensitySolver extends BaseSolver {
       for (const via of route.vias) {
         graphics.circles!.push({
           center: via,
+          layer: "z0,1",
           radius: route.viaDiameter / 2,
           fill: this.colorMap[route.connectionName],
           label: `${route.connectionName} via`,
@@ -111,6 +121,22 @@ export class HighDensitySolver extends BaseSolver {
     }
     for (const solver of this.failedSolvers) {
       const node = solver.nodeWithPortPoints
+
+      // Add a small rectangle in the center for failed nodes
+      const rectWidth = node.width * 0.1
+      const rectHeight = node.height * 0.1
+      graphics.rects!.push({
+        center: {
+          x: node.center.x - rectWidth / 2,
+          y: node.center.y - rectHeight / 2,
+        },
+        layer: "did_not_connect",
+        width: rectWidth,
+        height: rectHeight,
+        fill: "red",
+        label: `Failed: ${node.capacityMeshNodeId}`,
+      })
+
       // Group port points by connectionName
       const connectionGroups: Record<
         string,
@@ -131,6 +157,7 @@ export class HighDensitySolver extends BaseSolver {
             points: [start, end],
             strokeColor: "red",
             strokeDash: "10, 5",
+            layer: "did_not_connect",
           })
         }
       }

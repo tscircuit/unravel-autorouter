@@ -4,7 +4,7 @@ import { NodeWithPortPoints } from "lib/types/high-density-types"
 export const getIntraNodeCrossings = (node: NodeWithPortPoints) => {
   // Count the number of crossings
   let numSameLayerCrossings = 0
-  const pointPairs: {
+  let pointPairs: {
     points: { x: number; y: number; z: number }[]
     z: number
     connectionName: string
@@ -43,6 +43,9 @@ export const getIntraNodeCrossings = (node: NodeWithPortPoints) => {
     }
     pointPairs.push(pointPair)
   }
+
+  // TODO maybe these should be returned as "number of non-crossing connections"
+  pointPairs = pointPairs.filter((p) => p.points.length > 1)
 
   for (let i = 0; i < pointPairs.length; i++) {
     for (let j = i + 1; j < pointPairs.length; j++) {

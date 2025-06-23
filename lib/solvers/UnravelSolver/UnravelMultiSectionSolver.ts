@@ -2,6 +2,7 @@ import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { SegmentWithAssignedPoints } from "../CapacityMeshSolver/CapacitySegmentToPointSolver"
 import { UnravelSectionSolver } from "./UnravelSectionSolver"
+import { CachedUnravelSectionSolver } from "./CachedUnravelSectionSolver"
 import { getIntraNodeCrossings } from "lib/utils/getIntraNodeCrossings"
 import { NodePortSegment } from "lib/types/capacity-edges-to-port-segments-types"
 import { getDedupedSegments } from "./getDedupedSegments"
@@ -20,6 +21,7 @@ import {
 import { createSegmentPointMap } from "./createSegmentPointMap"
 import { getIntraNodeCrossingsFromSegmentPoints } from "lib/utils/getIntraNodeCrossingsFromSegmentPoints"
 import { getNodesNearNode } from "./getNodesNearNode"
+import { CacheProvider } from "lib/cache/types"
 
 export class UnravelMultiSectionSolver extends BaseSolver {
   nodeMap: Map<CapacityMeshNodeId, CapacityMeshNode>
@@ -38,6 +40,8 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   ACCEPTABLE_PF = 0.05
 
+  MAX_ITERATIONS_WITHOUT_IMPROVEMENT = 200
+
   /**
    * Probability of failure for each node
    */
@@ -45,14 +49,17 @@ export class UnravelMultiSectionSolver extends BaseSolver {
 
   attemptsToFixNode: Map<CapacityMeshNodeId, number>
 
-  activeSolver: UnravelSectionSolver | null = null
+  activeSubSolver: UnravelSectionSolver | null = null
 
   segmentPointMap: SegmentPointMap
+
+  cacheProvider: CacheProvider | null = null
 
   constructor({
     assignedSegments,
     colorMap,
     nodes,
+    cacheProvider,
   }: {
     assignedSegments: NodePortSegment[]
     colorMap?: Record<string, string>
@@ -61,10 +68,18 @@ export class UnravelMultiSectionSolver extends BaseSolver {
      * for the result datatype (the center, width, height of the node)
      */
     nodes: CapacityMeshNode[]
+    cacheProvider?: CacheProvider | null
   }) {
     super()
 
-    this.MAX_ITERATIONS = 100_000
+    this.stats.successfulOptimizations = 0
+    this.stats.failedOptimizations = 0
+    this.stats.cacheHits = 0
+    this.stats.cacheMisses = 0
+
+    this.cacheProvider = cacheProvider ?? null
+
+    this.MAX_ITERATIONS = 1e6
 
     this.dedupedSegments = getDedupedSegments(assignedSegments)
     this.dedupedSegmentMap = new Map()
@@ -145,7 +160,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
       this.solved = true
       return
     }
-    if (!this.activeSolver) {
+    if (!this.activeSubSolver) {
       // Find the node with the highest probability of failure
       let highestPfNodeId = null
       let highestPf = 0
@@ -169,7 +184,7 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         highestPfNodeId,
         (this.attemptsToFixNode.get(highestPfNodeId) ?? 0) + 1,
       )
-      this.activeSolver = new UnravelSectionSolver({
+      this.activeSubSolver = new CachedUnravelSectionSolver({
         dedupedSegments: this.dedupedSegments,
         dedupedSegmentMap: this.dedupedSegmentMap,
         nodeMap: this.nodeMap,
@@ -181,27 +196,38 @@ export class UnravelMultiSectionSolver extends BaseSolver {
         segmentPointMap: this.segmentPointMap,
         nodeToSegmentPointMap: this.nodeToSegmentPointMap,
         segmentToSegmentPointMap: this.segmentToSegmentPointMap,
+        cacheProvider: this.cacheProvider,
       })
     }
 
-    this.activeSolver.step()
+    this.activeSubSolver.step()
 
     const { bestCandidate, originalCandidate, lastProcessedCandidate } =
-      this.activeSolver
+      this.activeSubSolver
 
-    const giveUpFactor =
-      1 + 4 * (1 - Math.min(1, this.activeSolver.iterations / 40))
-    const shouldEarlyStop =
-      lastProcessedCandidate &&
-      lastProcessedCandidate!.g > bestCandidate!.g * giveUpFactor
+    // const shouldEarlyStop =
+    //   this.activeSubSolver.iterationsSinceImprovement >
+    //   this.MAX_ITERATIONS_WITHOUT_IMPROVEMENT
 
-    if (this.activeSolver.solved || shouldEarlyStop) {
+    // cn90994
+    if (this.activeSubSolver.failed) {
+      this.stats.failedOptimizations += 1
+      this.activeSubSolver = null
+      return
+    }
+    if (this.activeSubSolver.solved) {
+      if (this.activeSubSolver.cacheHit) {
+        this.stats.cacheHits += 1
+      } else {
+        this.stats.cacheMisses += 1
+      }
+
       // Incorporate the changes from the active solver
-
       const foundBetterSolution =
         bestCandidate && bestCandidate.g < originalCandidate!.g
 
       if (foundBetterSolution) {
+        this.stats.successfulOptimizations += 1
         // Modify the points using the pointModifications of the candidate
         for (const [
           segmentPointId,
@@ -213,34 +239,25 @@ export class UnravelMultiSectionSolver extends BaseSolver {
           segmentPoint.z = pointModification.z ?? segmentPoint.z
         }
 
-        // HACK: This is time consuming but there is a bug where sometimes the
-        // UnravelSectionSolver accidentally mutates immutable nodes, so we
-        // need to go to even more neighbors to be sure we have the updated
-        // Pf values. If that bug gets fixed, you can use this.activeSolver.section.allNodeIds
-        const possiblyImpactedNodeIds = getNodesNearNode({
-          hops: this.activeSolver.MUTABLE_HOPS + 2,
-          nodeId: this.activeSolver.rootNodeId,
-          nodeIdToSegmentIds: this.nodeIdToSegmentIds,
-          segmentIdToNodeIds: this.segmentIdToNodeIds,
-        })
-
         // Update node failure probabilities
-        for (const nodeId of possiblyImpactedNodeIds) {
-          // for (const nodeId of this.nodeMap.keys()) {
+        for (const nodeId of this.activeSubSolver.unravelSection.allNodeIds) {
           this.nodePfMap.set(
             nodeId,
             this.computeNodePf(this.nodeMap.get(nodeId)!),
           )
         }
+      } else {
+        // did not find better solution
+        this.stats.failedOptimizations += 1
       }
 
-      this.activeSolver = null
+      this.activeSubSolver = null
     }
   }
 
   visualize(): GraphicsObject {
-    if (this.activeSolver) {
-      return this.activeSolver.visualize()
+    if (this.activeSubSolver) {
+      return this.activeSubSolver.visualize()
     }
 
     const graphics: Required<GraphicsObject> = {

@@ -33,7 +33,7 @@ import { mapLayerNameToZ } from "lib/utils/mapLayerNameToZ"
 import { MultipleHighDensityRouteStitchSolver } from "./RouteStitchingSolver/MultipleHighDensityRouteStitchSolver"
 import { convertSrjToGraphicsObject } from "tests/fixtures/convertSrjToGraphicsObject"
 import { UnravelMultiSectionSolver } from "./UnravelSolver/UnravelMultiSectionSolver"
-import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
+import { CapacityPathingMultiSectionSolver } from "./CapacityPathingSectionSolver/CapacityPathingMultiSectionSolver" // Added import
 import { StrawSolver } from "./StrawSolver/StrawSolver"
 import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayerNodeMergerSolver"
 import { CapacityNodeTargetMerger2 } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger2"
@@ -45,10 +45,16 @@ import {
 } from "lib/types/high-density-types"
 import { CapacityMeshEdgeSolver2_NodeTreeOptimization } from "./CapacityMeshSolver/CapacityMeshEdgeSolver2_NodeTreeOptimization"
 import { DeadEndSolver } from "./DeadEndSolver/DeadEndSolver"
+import { UselessViaRemovalSolver } from "./UselessViaRemovalSolver/UselessViaRemovalSolver"
+import { CapacityPathingSolver5 } from "./CapacityPathingSolver/CapacityPathingSolver5"
+import { CapacityPathingGreedySolver } from "./CapacityPathingSectionSolver/CapacityPathingGreedySolver"
+import { CacheProvider } from "lib/cache/types"
+import { getGlobalInMemoryCache } from "lib/cache/setupGlobalCaches"
 
 interface CapacityMeshSolverOptions {
   capacityDepth?: number
   targetMinCapacity?: number
+  cacheProvider?: CacheProvider | null
 }
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
@@ -86,7 +92,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   nodeSolver?: CapacityMeshNodeSolver
   nodeTargetMerger?: CapacityNodeTargetMerger
   edgeSolver?: CapacityMeshEdgeSolver
-  pathingSolver?: CapacityPathingSolver
+  initialPathingSolver?: CapacityPathingGreedySolver
+  pathingOptimizer?: CapacityPathingMultiSectionSolver
   edgeToPortSegmentSolver?: CapacityEdgeToPortSegmentSolver
   colorMap: Record<string, string>
   segmentToPointSolver?: CapacitySegmentToPointSolver
@@ -96,8 +103,11 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   highDensityStitchSolver?: MultipleHighDensityRouteStitchSolver
   singleLayerNodeMerger?: SingleLayerNodeMergerSolver
   strawSolver?: StrawSolver
-  multiSimplifiedPathSolver?: MultiSimplifiedPathSolver
   deadEndSolver?: DeadEndSolver
+  uselessViaRemovalSolver1?: UselessViaRemovalSolver
+  uselessViaRemovalSolver2?: UselessViaRemovalSolver
+  multiSimplifiedPathSolver1?: MultiSimplifiedPathSolver
+  multiSimplifiedPathSolver2?: MultiSimplifiedPathSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -108,6 +118,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   srjWithPointPairs?: SimpleRouteJson
   capacityNodes: CapacityMeshNode[] | null = null
   capacityEdges: CapacityMeshEdge[] | null = null
+
+  cacheProvider: CacheProvider | null = null
 
   pipelineDef = [
     definePipelineStep(
@@ -197,17 +209,40 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         },
       },
     ),
-    definePipelineStep("pathingSolver", CapacityPathingSolver5, (cms) => [
-      {
-        simpleRouteJson: cms.srjWithPointPairs!,
-        nodes: cms.capacityNodes!,
-        edges: cms.capacityEdges || [],
-        colorMap: cms.colorMap,
-        hyperParameters: {
-          MAX_CAPACITY_FACTOR: 1,
+    definePipelineStep(
+      "initialPathingSolver",
+      CapacityPathingGreedySolver,
+      (cms) => [
+        {
+          simpleRouteJson: cms.srjWithPointPairs!,
+          nodes: cms.capacityNodes!,
+          edges: cms.capacityEdges || [],
+          colorMap: cms.colorMap,
+          hyperParameters: {
+            MAX_CAPACITY_FACTOR: 1,
+          },
         },
-      },
-    ]),
+      ],
+    ),
+    definePipelineStep(
+      "pathingOptimizer",
+      // CapacityPathingSolver5,
+      CapacityPathingMultiSectionSolver,
+      (cms) => [
+        // Replaced solver class
+        {
+          initialPathingSolver: cms.initialPathingSolver,
+          simpleRouteJson: cms.srjWithPointPairs!,
+          nodes: cms.capacityNodes!,
+          edges: cms.capacityEdges || [],
+          colorMap: cms.colorMap,
+          cacheProvider: cms.cacheProvider,
+          hyperParameters: {
+            MAX_CAPACITY_FACTOR: 1,
+          },
+        },
+      ],
+    ),
     definePipelineStep(
       "edgeToPortSegmentSolver",
       CapacityEdgeToPortSegmentSolver,
@@ -215,7 +250,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         {
           nodes: cms.capacityNodes!,
           edges: cms.capacityEdges || [],
-          capacityPaths: cms.pathingSolver?.getCapacityPaths() || [],
+          capacityPaths: cms.pathingOptimizer?.getCapacityPaths() || [],
           colorMap: cms.colorMap,
         },
       ],
@@ -258,6 +293,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
           assignedSegments: cms.segmentToPointSolver?.solvedSegments || [],
           colorMap: cms.colorMap,
           nodes: cms.capacityNodes!,
+          cacheProvider: this.cacheProvider,
         },
       ],
     ),
@@ -278,16 +314,57 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         {
           connections: cms.srjWithPointPairs!.connections,
           hdRoutes: cms.highDensityRouteSolver!.routes,
+          colorMap: cms.colorMap,
           layerCount: cms.srj.layerCount,
         },
       ],
     ),
     definePipelineStep(
-      "multiSimplifiedPathSolver",
-      MultiSimplifiedPathSolver,
+      "uselessViaRemovalSolver1",
+      UselessViaRemovalSolver,
       (cms) => [
         {
           unsimplifiedHdRoutes: cms.highDensityStitchSolver!.mergedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          colorMap: cms.colorMap,
+          layerCount: cms.srj.layerCount,
+        },
+      ],
+    ),
+    definePipelineStep(
+      "multiSimplifiedPathSolver1",
+      MultiSimplifiedPathSolver,
+      (cms) => [
+        {
+          unsimplifiedHdRoutes:
+            cms.uselessViaRemovalSolver1?.getOptimizedHdRoutes() ||
+            cms.highDensityStitchSolver!.mergedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          connMap: cms.connMap,
+          colorMap: cms.colorMap,
+        },
+      ],
+    ),
+    definePipelineStep(
+      "uselessViaRemovalSolver2",
+      UselessViaRemovalSolver,
+      (cms) => [
+        {
+          unsimplifiedHdRoutes:
+            cms.multiSimplifiedPathSolver1!.simplifiedHdRoutes,
+          obstacles: cms.srj.obstacles,
+          colorMap: cms.colorMap,
+          layerCount: cms.srj.layerCount,
+        },
+      ],
+    ),
+    definePipelineStep(
+      "multiSimplifiedPathSolver2",
+      MultiSimplifiedPathSolver,
+      (cms) => [
+        {
+          unsimplifiedHdRoutes:
+            cms.uselessViaRemovalSolver2?.getOptimizedHdRoutes()!,
           obstacles: cms.srj.obstacles,
           connMap: cms.connMap,
           colorMap: cms.colorMap,
@@ -301,7 +378,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     public opts: CapacityMeshSolverOptions = {},
   ) {
     super()
-    this.MAX_ITERATIONS = 1e6
+    this.MAX_ITERATIONS = 100e6
 
     // If capacityDepth is not provided, calculate it automatically
     if (opts.capacityDepth === undefined) {
@@ -320,6 +397,12 @@ export class AutoroutingPipelineSolver extends BaseSolver {
 
     this.connMap = getConnectivityMapFromSimpleRouteJson(srj)
     this.colorMap = getColorMap(srj, this.connMap)
+    this.cacheProvider =
+      opts.cacheProvider === undefined
+        ? getGlobalInMemoryCache()
+        : opts.cacheProvider === null
+          ? null
+          : opts.cacheProvider
     this.startTimeOfPhase = {}
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}
@@ -379,7 +462,8 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     const strawSolverViz = this.strawSolver?.visualize()
     const edgeViz = this.edgeSolver?.visualize()
     const deadEndViz = this.deadEndSolver?.visualize()
-    const pathingViz = this.pathingSolver?.visualize()
+    const initialPathingViz = this.initialPathingSolver?.visualize()
+    const pathingOptimizerViz = this.pathingOptimizer?.visualize()
     const edgeToPortSegmentViz = this.edgeToPortSegmentSolver?.visualize()
     const segmentToPointViz = this.segmentToPointSolver?.visualize()
     const segmentOptimizationViz =
@@ -387,7 +471,12 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       this.segmentToPointOptimizer?.visualize()
     const highDensityViz = this.highDensityRouteSolver?.visualize()
     const highDensityStitchViz = this.highDensityStitchSolver?.visualize()
-    const simplifiedPathSolverViz = this.multiSimplifiedPathSolver?.visualize()
+    const uselessViaRemovalViz1 = this.uselessViaRemovalSolver1?.visualize()
+    const uselessViaRemovalViz2 = this.uselessViaRemovalSolver2?.visualize()
+    const simplifiedPathSolverViz1 =
+      this.multiSimplifiedPathSolver1?.visualize()
+    const simplifiedPathSolverViz2 =
+      this.multiSimplifiedPathSolver2?.visualize()
     const problemViz = {
       points: [
         ...this.srj.connections.flatMap((c) =>
@@ -437,13 +526,17 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       strawSolverViz,
       edgeViz,
       deadEndViz,
-      pathingViz,
+      initialPathingViz,
+      pathingOptimizerViz,
       edgeToPortSegmentViz,
       segmentToPointViz,
       segmentOptimizationViz,
       highDensityViz ? combineVisualizations(problemViz, highDensityViz) : null,
       highDensityStitchViz,
-      simplifiedPathSolverViz,
+      uselessViaRemovalViz1,
+      simplifiedPathSolverViz1,
+      uselessViaRemovalViz2,
+      simplifiedPathSolverViz2,
       this.solved
         ? combineVisualizations(
             problemViz,
@@ -481,9 +574,9 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       return { lines }
     }
 
-    if (this.pathingSolver) {
+    if (this.pathingOptimizer) {
       const lines: Line[] = []
-      for (const connection of this.pathingSolver.connectionsWithNodes) {
+      for (const connection of this.pathingOptimizer.connectionsWithNodes) {
         if (!connection.path) continue
         lines.push({
           points: connection.path.map((n) => ({
@@ -517,7 +610,10 @@ export class AutoroutingPipelineSolver extends BaseSolver {
 
   _getOutputHdRoutes(): HighDensityRoute[] {
     return (
-      this.multiSimplifiedPathSolver?.simplifiedHdRoutes ??
+      this.multiSimplifiedPathSolver2?.simplifiedHdRoutes ??
+      this.uselessViaRemovalSolver2?.getOptimizedHdRoutes() ??
+      this.multiSimplifiedPathSolver1?.simplifiedHdRoutes ??
+      this.uselessViaRemovalSolver1?.getOptimizedHdRoutes() ??
       this.highDensityStitchSolver!.mergedHdRoutes
     )
   }
@@ -534,9 +630,9 @@ export class AutoroutingPipelineSolver extends BaseSolver {
     const allHdRoutes = this._getOutputHdRoutes()
 
     for (const connection of this.netToPointPairsSolver?.newConnections ?? []) {
-      const netConnection = this.srj.connections.find(
-        (c) => c.name === connection.netConnectionName,
-      )
+      const netConnectionName = this.srj.connections.find(
+        (c) => c.name === connection.name,
+      )?.netConnectionName
 
       // Find all the hdRoutes that correspond to this connection
       const hdRoutes = allHdRoutes.filter(
@@ -548,7 +644,9 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         const simplifiedPcbTrace: SimplifiedPcbTrace = {
           type: "pcb_trace",
           pcb_trace_id: `${connection.name}_${i}`,
-          connection_name: this.getOriginalConnectionName(connection.name),
+          connection_name:
+            netConnectionName ??
+            this.getOriginalConnectionName(connection.name),
           route: convertHdRouteToSimplifiedRoute(hdRoute, this.srj.layerCount),
         }
 

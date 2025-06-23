@@ -2,6 +2,7 @@ import type { GraphicsObject } from "graphics-debug"
 import type {
   CapacityMeshEdge,
   CapacityMeshNode,
+  CapacityMeshNodeId,
 } from "../../types/capacity-mesh-types"
 import { BaseSolver } from "../BaseSolver"
 import { distance } from "@tscircuit/math-utils"
@@ -9,6 +10,9 @@ import { areNodesBordering } from "lib/utils/areNodesBordering"
 
 export class CapacityMeshEdgeSolver extends BaseSolver {
   public edges: Array<CapacityMeshEdge>
+
+  /** Only used for visualization, dynamically instantiated if necessary */
+  nodeMap?: Map<CapacityMeshNodeId, CapacityMeshNode>
 
   constructor(public nodes: CapacityMeshNode[]) {
     super()
@@ -19,7 +23,7 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
     return `ce${this.edges.length}`
   }
 
-  step() {
+  _step() {
     this.edges = []
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
@@ -121,13 +125,16 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
       }),
       circles: [],
     }
+    if (!this.nodeMap) {
+      this.nodeMap = new Map<CapacityMeshNodeId, CapacityMeshNode>()
+      for (const node of this.nodes) {
+        this.nodeMap.set(node.capacityMeshNodeId, node)
+      }
+    }
+
     for (const edge of this.edges) {
-      const node1 = this.nodes.find(
-        (node) => node.capacityMeshNodeId === edge.nodeIds[0],
-      )
-      const node2 = this.nodes.find(
-        (node) => node.capacityMeshNodeId === edge.nodeIds[1],
-      )
+      const node1 = this.nodeMap.get(edge.nodeIds[0])
+      const node2 = this.nodeMap.get(edge.nodeIds[1])
       if (node1?.center && node2?.center) {
         const lowestZ1 = Math.min(...node1.availableZ)
         const lowestZ2 = Math.min(...node2.availableZ)

@@ -6,19 +6,23 @@ import { useEffect, useState, useMemo } from "react"
 import type { NodeWithPortPoints } from "../types/high-density-types"
 import { combineVisualizations } from "lib/utils/combineVisualizations"
 import { GraphicsObject } from "graphics-debug"
+import { ConnectivityMap } from "circuit-json-to-connectivity-map"
 
 interface HyperHighDensityDebuggerProps {
   nodeWithPortPoints: NodeWithPortPoints
+  connMap?: ConnectivityMap
   colorMap?: Record<string, string>
 }
 
 export const HyperHighDensityDebugger = ({
   nodeWithPortPoints,
+  connMap,
   colorMap,
 }: HyperHighDensityDebuggerProps) => {
   const solver = useMemo(() => {
     return new HyperSingleIntraNodeSolver({
       nodeWithPortPoints,
+      connMap,
       colorMap:
         colorMap ?? generateColorMapFromNodeWithPortPoints(nodeWithPortPoints),
     })
@@ -101,6 +105,7 @@ export const HyperHighDensityDebugger = ({
               <th>unsolved routes</th>
               <th>solved routes</th>
               <th>hyper params</th>
+              <th>error</th>
             </tr>
           </thead>
           <tbody>
@@ -139,7 +144,7 @@ export const HyperHighDensityDebugger = ({
                   {supervisedSolver.solver?.unsolvedConnections?.length}
                 </td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {supervisedSolver.solver.solvedRoutes.length}
+                  {supervisedSolver.solver.solvedRoutes?.length}
                 </td>
                 <td>
                   <details>
@@ -151,6 +156,12 @@ export const HyperHighDensityDebugger = ({
                         2,
                       )}
                     </pre>
+                  </details>
+                </td>
+                <td>
+                  <details>
+                    <summary>error</summary>
+                    <pre>{supervisedSolver.solver.error}</pre>
                   </details>
                 </td>
               </tr>
