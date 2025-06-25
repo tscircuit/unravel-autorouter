@@ -13,7 +13,8 @@
       "dist",
       "package.json",
       "examples/assets/segmenttopoint3.json",
-      "examples/assets/contribution-board_routes.json"
+      "examples/assets/contribution-board_routes.json",
+      "examples/assets/*.json"
     ]
   },
   "javascript": {
