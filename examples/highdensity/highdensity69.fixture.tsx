@@ -1,4 +1,4 @@
-import cn2306 from "examples/assets/cn2306-nodeWithPortPoints.json"
+import cn1453 from "examples/assets/cn1453-nodeWithPortPoints.json"
 import { HyperHighDensityDebugger } from "lib/testing/HyperHighDensityDebugger"
 
 export const hyperParameters = {
@@ -7,6 +7,6 @@ export const hyperParameters = {
 
 export default () => {
   return (
-    <HyperHighDensityDebugger nodeWithPortPoints={cn2306.nodeWithPortPoints} />
+    <HyperHighDensityDebugger nodeWithPortPoints={cn1453.nodeWithPortPoints} />
   )
 }
