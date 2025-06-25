@@ -1,0 +1,165 @@
+{
+  "nodeId": "cn1879",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn1879",
+    "center": {
+      "x": -3.0079408072180005,
+      "y": 4.683465294492476
+    },
+    "width": 2.0964369302429806,
+    "height": 2.0964369302429806,
+    "layer": "top",
+    "availableZ": [
+      0,
+      1
+    ],
+    "_depth": 4,
+    "_parent": {
+      "capacityMeshNodeId": "cn1685",
+      "center": {
+        "x": -1.95972234209651,
+        "y": 3.635246829370985
+      },
+      "width": 4.192873860485961,
+      "height": 4.192873860485961,
+      "layer": "top",
+      "availableZ": [
+        0,
+        1
+      ],
+      "_depth": 3,
+      "_parent": {
+        "capacityMeshNodeId": "cn1106",
+        "center": {
+          "x": 0.13671458814647064,
+          "y": 5.731683759613966
+        },
+        "width": 8.385747720971922,
+        "height": 8.385747720971922,
+        "layer": "top",
+        "availableZ": [
+          0,
+          1
+        ],
+        "_depth": 2,
+        "_parent": {
+          "capacityMeshNodeId": "cn3",
+          "center": {
+            "x": -4.056159272339491,
+            "y": 9.924557620099927
+          },
+          "width": 16.771495441943845,
+          "height": 16.771495441943845,
+          "layer": "top",
+          "availableZ": [
+            0,
+            1
+          ],
+          "_depth": 1,
+          "_parent": {
+            "capacityMeshNodeId": "cn0",
+            "center": {
+              "x": 4.329588448632432,
+              "y": 1.5388098991280046
+            },
+            "width": 33.54299088388769,
+            "height": 33.54299088388769,
+            "layer": "top",
+            "availableZ": [
+              0,
+              1
+            ],
+            "_depth": 0,
+            "_containsTarget": true,
+            "_containsObstacle": true,
+            "_completelyInsideObstacle": false
+          },
+          "_containsObstacle": true,
+          "_targetConnectionName": "source_trace_26",
+          "_containsTarget": true,
+          "_completelyInsideObstacle": false
+        },
+        "_containsObstacle": true,
+        "_targetConnectionName": "source_net_5_mst3",
+        "_containsTarget": true,
+        "_completelyInsideObstacle": false
+      },
+      "_containsObstacle": true,
+      "_targetConnectionName": "source_net_5_mst3",
+      "_containsTarget": true,
+      "_completelyInsideObstacle": false
+    },
+    "_containsObstacle": false
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn1879",
+    "portPoints": [
+      {
+        "x": -3.5320500397787455,
+        "y": 5.731683759613967,
+        "z": 0,
+        "connectionName": "source_net_3"
+      },
+      {
+        "x": -3.5320500397787464,
+        "y": 3.635246829370985,
+        "z": 0,
+        "connectionName": "source_net_3"
+      },
+      {
+        "x": -1.95972234209651,
+        "y": 5.207574527053221,
+        "z": 1,
+        "connectionName": "source_trace_24"
+      },
+      {
+        "x": -4.0561592723394915,
+        "y": 3.897301445651358,
+        "z": 1,
+        "connectionName": "source_trace_24"
+      },
+      {
+        "x": -1.95972234209651,
+        "y": 4.159356061931731,
+        "z": 1,
+        "connectionName": "source_trace_27"
+      },
+      {
+        "x": -4.0561592723394915,
+        "y": 5.207574527053221,
+        "z": 1,
+        "connectionName": "source_trace_27"
+      },
+      {
+        "x": -4.0561592723394915,
+        "y": 4.159356061931731,
+        "z": 0,
+        "connectionName": "source_trace_34"
+      },
+      {
+        "x": -2.4838315746572555,
+        "y": 5.731683759613967,
+        "z": 0,
+        "connectionName": "source_net_5_mst3"
+      },
+      {
+        "x": -2.3091284971370074,
+        "y": 3.635246829370985,
+        "z": 0,
+        "connectionName": "source_net_5_mst3"
+      },
+      {
+        "x": -2.658534652177504,
+        "y": 3.635246829370985,
+        "z": 1,
+        "connectionName": "source_trace_34"
+      }
+    ],
+    "center": {
+      "x": -3.0079408072180005,
+      "y": 4.683465294492476
+    },
+    "width": 2.0964369302429806,
+    "height": 2.0964369302429806
+  }
+}
