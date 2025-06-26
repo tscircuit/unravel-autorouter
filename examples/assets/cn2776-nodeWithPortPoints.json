@@ -1,0 +1,24 @@
+{
+  "nodeId": "cn2776",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn2776",
+    "center": { "x": 0, "y": 0 },
+    "width": 2,
+    "height": 2,
+    "layer": "top",
+    "availableZ": [0, 1],
+    "_depth": 1
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn2776",
+    "portPoints": [
+      { "x": -1, "y": 0, "z": 0, "connectionName": "net1" },
+      { "x": 1, "y": 0, "z": 1, "connectionName": "net1" },
+      { "x": 0, "y": -1, "z": 0, "connectionName": "net2" },
+      { "x": 0, "y": 1, "z": 1, "connectionName": "net2" }
+    ],
+    "center": { "x": 0, "y": 0 },
+    "width": 2,
+    "height": 2
+  }
+}

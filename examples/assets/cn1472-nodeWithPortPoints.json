@@ -1,0 +1,24 @@
+{
+  "nodeId": "cn1472",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn1472",
+    "center": { "x": 2, "y": 0 },
+    "width": 2,
+    "height": 2,
+    "layer": "top",
+    "availableZ": [0, 1],
+    "_depth": 1
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn1472",
+    "portPoints": [
+      { "x": 1, "y": -0.5, "z": 0, "connectionName": "netA" },
+      { "x": 3, "y": -0.5, "z": 1, "connectionName": "netA" },
+      { "x": 1, "y": 0.5, "z": 0, "connectionName": "netB" },
+      { "x": 3, "y": 0.5, "z": 1, "connectionName": "netB" }
+    ],
+    "center": { "x": 2, "y": 0 },
+    "width": 2,
+    "height": 2
+  }
+}
