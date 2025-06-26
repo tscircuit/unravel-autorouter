@@ -1,0 +1,24 @@
+{
+  "nodeId": "cn1722",
+  "capacityMeshNode": {
+    "capacityMeshNodeId": "cn1722",
+    "center": { "x": 1, "y": 1 },
+    "width": 2,
+    "height": 2,
+    "layer": "top",
+    "availableZ": [0, 1],
+    "_depth": 1
+  },
+  "nodeWithPortPoints": {
+    "capacityMeshNodeId": "cn1722",
+    "portPoints": [
+      { "x": 0, "y": 1, "z": 0, "connectionName": "netX" },
+      { "x": 2, "y": 1, "z": 1, "connectionName": "netX" },
+      { "x": 1, "y": 0, "z": 0, "connectionName": "netY" },
+      { "x": 1, "y": 2, "z": 1, "connectionName": "netY" }
+    ],
+    "center": { "x": 1, "y": 1 },
+    "width": 2,
+    "height": 2
+  }
+}
