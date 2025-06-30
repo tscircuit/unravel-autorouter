@@ -37,6 +37,13 @@ const approximateCoordinate = (coord: number): string => {
   return (Math.round(coord * 20) / 20).toFixed(2)
 }
 
+// Helper function to round to nearest micron (0.001 mm) and return as string.
+const approximateDeltaCoordinate = (coord: number): string => {
+  // Multiply by 1000 (1 / 0.001), round, then divide by 1000
+  // Use toFixed(3) to ensure consistent string format like "1.200" or "0.005"
+  return (Math.round(coord * 1000) / 1000).toFixed(3)
+}
+
 interface CacheToUnravelSectionTransform {
   realToCacheTransform: Matrix
   // Mappings from original UUIDs to normalized IDs
@@ -429,7 +436,7 @@ export class CachedUnravelSectionSolver
       if (modifiedPoint.x !== undefined) {
         const dx = modifiedPoint.x - originalSegmentPoint.x
         // Only store delta if it's non-zero (within approximation tolerance)
-        const approxDx = approximateCoordinate(dx)
+        const approxDx = approximateDeltaCoordinate(dx)
         if (parseFloat(approxDx) !== 0) {
           normDelta.dx = approxDx
           hasDelta = true
@@ -437,7 +444,7 @@ export class CachedUnravelSectionSolver
       }
       if (modifiedPoint.y !== undefined) {
         const dy = modifiedPoint.y - originalSegmentPoint.y
-        const approxDy = approximateCoordinate(dy)
+        const approxDy = approximateDeltaCoordinate(dy)
         if (parseFloat(approxDy) !== 0) {
           normDelta.dy = approxDy
           hasDelta = true
