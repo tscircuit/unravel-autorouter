@@ -12,7 +12,8 @@ type ConnectionIndex = number
 
 // A normalized connection id - note that the first id is always lower than the second
 // This prevents cache key collisions when multiple routes exist between the same node pair
-type CacheSpaceConnectionId = `${CacheSpaceNodeId}->${CacheSpaceNodeId}::${ConnectionIndex}`
+type CacheSpaceConnectionId =
+  `${CacheSpaceNodeId}->${CacheSpaceNodeId}::${ConnectionIndex}`
 
 interface CacheToHyperCapacityPathingTransform {
   cacheSpaceToRealConnectionId: Map<CacheSpaceConnectionId, string>
@@ -95,7 +96,7 @@ export class CachedHyperCapacityPathingSingleSectionSolver
   }
 
   _computeBfsOrderingOfNodesInSection(): CapacityMeshNodeId[] {
-    const seenNodeIds = new Set<string>([this.constructorParams.centerNodeId])
+    const seenNodeIds = new Set<string>(this.constructorParams.centerNodeId)
     const ordering: CapacityMeshNodeId[] = []
 
     const candidates: Array<{
@@ -216,12 +217,12 @@ export class CachedHyperCapacityPathingSingleSectionSolver
         cacheStartNodeId,
         cacheEndNodeId,
       ].sort()
-      
+
       // Create a unique key for this node pair
       const pairKey = `${sortedStartId}->${sortedEndId}`
       const pairIndex = connectionPairMap.get(pairKey) ?? 0
       connectionPairMap.set(pairKey, pairIndex + 1)
-      
+
       // Create unique cache connection ID with index
       const cacheSpaceConnectionId: CacheSpaceConnectionId = `${sortedStartId}->${sortedEndId}::${pairIndex}`
 
@@ -400,8 +401,6 @@ export class CachedHyperCapacityPathingSingleSectionSolver
         realToCacheSpaceNodeId.set(realId, cacheId)
       }
 
-      // This reverse map now works correctly because cache connection IDs 
-      // are unique (include connection index)
       const realToCacheSpaceConnectionId = new Map<
         string,
         CacheSpaceConnectionId
