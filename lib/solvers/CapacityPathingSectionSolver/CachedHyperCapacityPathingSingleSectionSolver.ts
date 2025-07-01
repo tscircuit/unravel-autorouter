@@ -1,23 +1,18 @@
 import { CachableSolver, CacheProvider } from "lib/cache/types"
 import { HyperCapacityPathingSingleSectionSolver } from "./HyperCapacityPathingSingleSectionSolver"
-import { CapacityPathingSingleSectionPathingSolver } from "./CapacityPathingSingleSectionSolver"
-import { InMemoryCache } from "lib/cache/InMemoryCache"
 import { CapacityMeshNode, CapacityMeshNodeId } from "lib/types"
 import objectHash from "object-hash"
-import {
-  getGlobalInMemoryCache,
-  getGlobalLocalStorageCache,
-  setupGlobalCaches,
-} from "lib/cache/setupGlobalCaches"
-import { translate, type Matrix, applyToPoint } from "transformation-matrix"
+import { getGlobalInMemoryCache } from "lib/cache/setupGlobalCaches"
 import { getTunedTotalCapacity1 } from "lib/utils/getTunedTotalCapacity1"
 import { GraphicsObject } from "graphics-debug"
 import { visualizeSection } from "./visualizeSection"
 
 type CacheSpaceNodeId = string
+type ConnectionIndex = number
 
 // A normalized connection id - note that the first id is always lower than the second
-type CacheSpaceConnectionId = `${CacheSpaceNodeId}->${CacheSpaceNodeId}`
+// This prevents cache key collisions when multiple routes exist between the same node pair
+type CacheSpaceConnectionId = `${CacheSpaceNodeId}->${CacheSpaceNodeId}::${ConnectionIndex}`
 
 interface CacheToHyperCapacityPathingTransform {
   cacheSpaceToRealConnectionId: Map<CacheSpaceConnectionId, string>
@@ -100,7 +95,7 @@ export class CachedHyperCapacityPathingSingleSectionSolver
   }
 
   _computeBfsOrderingOfNodesInSection(): CapacityMeshNodeId[] {
-    const seenNodeIds = new Set<string>(this.constructorParams.centerNodeId)
+    const seenNodeIds = new Set<string>([this.constructorParams.centerNodeId])
     const ordering: CapacityMeshNodeId[] = []
 
     const candidates: Array<{
@@ -209,6 +204,9 @@ export class CachedHyperCapacityPathingSingleSectionSolver
       string
     >()
 
+    // Create a map to track connection indices for unique IDs
+    const connectionPairMap = new Map<string, number>()
+
     for (const conn of this.constructorParams.sectionConnectionTerminals) {
       const cacheStartNodeId = realToCacheSpaceNodeIdMap.get(conn.startNodeId)!
       const cacheEndNodeId = realToCacheSpaceNodeIdMap.get(conn.endNodeId)!
@@ -218,7 +216,14 @@ export class CachedHyperCapacityPathingSingleSectionSolver
         cacheStartNodeId,
         cacheEndNodeId,
       ].sort()
-      const cacheSpaceConnectionId: CacheSpaceConnectionId = `${sortedStartId}->${sortedEndId}`
+      
+      // Create a unique key for this node pair
+      const pairKey = `${sortedStartId}->${sortedEndId}`
+      const pairIndex = connectionPairMap.get(pairKey) ?? 0
+      connectionPairMap.set(pairKey, pairIndex + 1)
+      
+      // Create unique cache connection ID with index
+      const cacheSpaceConnectionId: CacheSpaceConnectionId = `${sortedStartId}->${sortedEndId}::${pairIndex}`
 
       // Store the terminals using the canonical sorted order for the value as well
       terminals[cacheSpaceConnectionId] = {
@@ -395,6 +400,8 @@ export class CachedHyperCapacityPathingSingleSectionSolver
         realToCacheSpaceNodeId.set(realId, cacheId)
       }
 
+      // This reverse map now works correctly because cache connection IDs 
+      // are unique (include connection index)
       const realToCacheSpaceConnectionId = new Map<
         string,
         CacheSpaceConnectionId
