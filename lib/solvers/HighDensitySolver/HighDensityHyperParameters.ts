@@ -14,4 +14,9 @@ export interface HighDensityHyperParameters {
   BOUNDARY_PADDING: number
 
   ITERATION_PENALTY: number
+
+  //  NEW  – minimum gap that still counts as success when no perfect
+  //  solution is found (checked only at the very end, never used
+  //  as a normal “solved” criterion during the search)
+  MINIMUM_FINAL_ACCEPTANCE_GAP?: number
 }

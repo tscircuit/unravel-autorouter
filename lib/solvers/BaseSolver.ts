@@ -34,6 +34,9 @@ export class BaseSolver {
       throw e
     }
     if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
+      this.tryFinalAcceptance()
+    }
+    if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
       this.error = `${this.constructor.name} ran out of iterations`
       console.error(this.error)
       this.failed = true
@@ -67,6 +70,13 @@ export class BaseSolver {
       circles: [],
     }
   }
+
+  /**
+   * Called when the solver is about to fail, but we want to see if we have an
+   * "acceptable" or "passable" solution. Mostly used for optimizers that
+   * have an aggressive early stopping criterion.
+   */
+  tryFinalAcceptance() {}
 
   /**
    * A lightweight version of the visualize method that can be used to stream

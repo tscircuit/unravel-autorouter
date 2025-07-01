@@ -1069,14 +1069,40 @@ export class MultiHeadPolyLineIntraNodeSolver extends BaseSolver {
     return minGapsToOtherConnectionsValid && allPointsWithinBounds
   }
 
+  // ------------------------------------------------------------------
+  //  Try accepting the best candidate even if normal solving failed.
+  // ------------------------------------------------------------------
+  tryFinalAcceptance() {
+    const minGapTarget =
+      this.hyperParameters?.MINIMUM_FINAL_ACCEPTANCE_GAP ?? undefined
+    if (
+      minGapTarget === undefined ||
+      this.lastCandidate === null ||
+      this.lastCandidate.minGaps.length === 0
+    )
+      return
+
+    // take the smallest layer-to-layer gap of the last explored candidate
+    const minGapAchieved = Math.min(...this.lastCandidate.minGaps)
+    if (minGapAchieved >= minGapTarget) {
+      // Accept this imperfect but good-enough solution
+      this.solved = true
+      this._setSolvedRoutes()
+      return
+    }
+    return
+  }
+
   _step() {
     if (this.phase === "setup") {
       this.setupInitialPolyLines()
       this.phase = "solving"
       return
     }
-    const currentCandidate = this.candidates.shift()!
+    const currentCandidate = this.candidates.shift()
     if (!currentCandidate) {
+      this.tryFinalAcceptance()
+      if (this.solved) return
       this.failed = true
       this.error = "No candidates left"
       return

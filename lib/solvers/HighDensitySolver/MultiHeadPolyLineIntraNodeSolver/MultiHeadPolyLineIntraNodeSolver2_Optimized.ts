@@ -35,8 +35,10 @@ export class MultiHeadPolyLineIntraNodeSolver2 extends MultiHeadPolyLineIntraNod
       return
     }
 
-    const currentCandidate = this.candidates.shift()!
+    const currentCandidate = this.candidates.shift()
     if (!currentCandidate) {
+      this.tryFinalAcceptance()
+      if (this.solved) return
       this.failed = true
       return
     }
