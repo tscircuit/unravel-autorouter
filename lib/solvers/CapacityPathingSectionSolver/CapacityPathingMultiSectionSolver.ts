@@ -78,6 +78,8 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
       endingScore: number
       endingHighestNodePf: number
     }>
+    cacheHits: number
+    cacheMisses: number
   }
 
   // Adjusting this schedule is a trade-off between optimization speed and quality.
@@ -123,9 +125,11 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
           sectionAttempts: 0,
         }),
       ),
+      cacheHits: 0,
+      cacheMisses: 0,
     }
 
-    this.MAX_ITERATIONS = 10e6
+    this.MAX_ITERATIONS = params.MAX_ITERATIONS ?? 10e6
     this.cacheProvider = params.cacheProvider
     this.simpleRouteJson = params.simpleRouteJson
     this.nodes = params.nodes
@@ -301,6 +305,14 @@ export class CapacityPathingMultiSectionSolver extends BaseSolver {
     }
 
     this.sectionSolver!.step()
+
+    if (this.sectionSolver!.failed || this.sectionSolver!.solved) {
+      if (this.sectionSolver.cacheHit) {
+        this.stats.cacheHits++
+      } else {
+        this.stats.cacheMisses++
+      }
+    }
 
     if (this.sectionSolver!.failed) {
       // If the section solver fails, mark the node as attempted but don't update paths
