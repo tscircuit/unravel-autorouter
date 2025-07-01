@@ -26,8 +26,10 @@ export interface SimpleRouteConnection {
     x: number
     y: number
     layer: string
+    pointId?: string
     pcb_port_id?: string
   }>
+  externallyConnectedPointIds?: string[][]
 }
 
 export interface SimplifiedPcbTrace {
