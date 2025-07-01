@@ -149,6 +149,7 @@ export class HyperSingleIntraNodeSolver extends HyperParameterSupervisorSolver<
             SEGMENTS_PER_POLYLINE: 6,
             BOUNDARY_PADDING: -0.05, // Allow vias/traces outside the boundary
             ITERATION_PENALTY: 10000,
+            MINIMUM_FINAL_ACCEPTANCE_GAP: 0.001,
           },
         ],
       },
