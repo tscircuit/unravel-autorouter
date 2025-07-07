@@ -171,7 +171,6 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
     const C = flatRoute.B
 
     const turnDirection = computeTurnDirection(A, B, C, this.bounds)
-    // const turnDirection = computeTurnDirection(A, B, C, this.bounds)
     const sideTraversal = calculateTraversalPercentages(
       A,
       B,
@@ -179,8 +178,6 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       this.bounds,
       turnDirection,
     )
-
-    // console.log({ sideTraversal, turnDirection })
 
     const viaBounds = {
       minX:
@@ -291,13 +288,6 @@ export class SingleTransitionCrossingRouteSolver extends BaseSolver {
       }
 
       return middle(effectiveA, effectiveB)
-    }
-
-    const traceBounds = {
-      maxX: this.bounds.maxX - this.obstacleMargin - this.traceThickness / 2,
-      maxY: this.bounds.maxY - this.obstacleMargin - this.traceThickness / 2,
-      minX: this.bounds.minX + this.obstacleMargin + this.traceThickness / 2,
-      minY: this.bounds.minY + this.obstacleMargin + this.traceThickness / 2,
     }
 
     const minDistFromViaToTrace =
