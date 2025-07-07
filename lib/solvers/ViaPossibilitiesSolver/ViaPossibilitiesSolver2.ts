@@ -66,6 +66,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
   currentHead: Point3
   currentConnectionName: ConnectionName
   currentPath: Point3[]
+  currentViaCount: number
 
   constructor({
     nodeWithPortPoints,
@@ -146,6 +147,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     const start = this.portPairMap.get(this.currentConnectionName)!.start
     this.currentHead = this._padByNewHeadWallBuffer(start)
     this.currentPath = [start, this.currentHead]
+    this.currentViaCount = 0
     this.placeholderPaths.delete(this.currentConnectionName) // Delete placeholder when we start processing
   }
 
@@ -238,6 +240,16 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
 
     const needsZChange = this.currentHead.z !== targetEnd.z
 
+    if (closestIntersection || needsZChange) {
+      this.currentViaCount++
+
+      // Check if adding this via would exceed the limit
+      if (this.currentViaCount >= this.maxViaCount) {
+        this.failed = true
+        return
+      }
+    }
+
     if (closestIntersection) {
       // --- Intersection Found ---
       let viaXY: Point
@@ -317,6 +329,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
         const { start } = this.portPairMap.get(this.currentConnectionName)!
         this.currentHead = this._padByNewHeadWallBuffer(start)
         this.currentPath = [start, this.currentHead]
+        this.currentViaCount = 0
         this.placeholderPaths.delete(this.currentConnectionName) // Remove placeholder
       }
     }
