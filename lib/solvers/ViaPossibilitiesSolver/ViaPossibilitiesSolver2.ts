@@ -99,8 +99,6 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     }
 
     // Generate placeholder paths
-    const nodeCenterX = (this.bounds.minX + this.bounds.maxX) / 2
-    const nodeCenterY = (this.bounds.minY + this.bounds.maxY) / 2
     for (const [connectionName, { start, end }] of this.portPairMap.entries()) {
       if (start.z === end.z) {
         const isVertical = Math.abs(start.x - end.x) < 1e-9 // Use tolerance for float comparison
@@ -245,7 +243,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
       let viaXY: Point
       const distToIntersection = closestIntersection.dist
 
-      if (distToIntersection < this.VIA_INTERSECTION_BUFFER_DISTANCE) {
+      if (distToIntersection <= this.VIA_INTERSECTION_BUFFER_DISTANCE + 1e-6) {
         // If intersection is too close, place via at midpoint
         viaXY = midpoint(this.currentHead, closestIntersection.point)
       } else {
