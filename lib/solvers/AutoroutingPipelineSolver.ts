@@ -39,6 +39,7 @@ import { SingleLayerNodeMergerSolver } from "./SingleLayerNodeMerger/SingleLayer
 import { CapacityNodeTargetMerger2 } from "./CapacityNodeTargetMerger/CapacityNodeTargetMerger2"
 import { SingleSimplifiedPathSolver } from "./SimplifiedPathSolver/SingleSimplifiedPathSolver"
 import { MultiSimplifiedPathSolver } from "./SimplifiedPathSolver/MultiSimplifiedPathSolver"
+import { ForceShiftViasSolver } from "./ForceShiftViasSolver/ForceShiftViasSolver"
 import {
   HighDensityIntraNodeRoute,
   HighDensityRoute,
@@ -108,6 +109,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
   uselessViaRemovalSolver2?: UselessViaRemovalSolver
   multiSimplifiedPathSolver1?: MultiSimplifiedPathSolver
   multiSimplifiedPathSolver2?: MultiSimplifiedPathSolver
+  forceShiftViasSolver?: ForceShiftViasSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -371,6 +373,14 @@ export class AutoroutingPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep("forceShiftViasSolver", ForceShiftViasSolver, (cms) => [
+      {
+        routes: cms.multiSimplifiedPathSolver2!.simplifiedHdRoutes,
+        obstacles: cms.srj.obstacles,
+        connMap: cms.connMap,
+        layerCount: cms.srj.layerCount,
+      },
+    ]),
   ]
 
   constructor(
@@ -477,6 +487,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       this.multiSimplifiedPathSolver1?.visualize()
     const simplifiedPathSolverViz2 =
       this.multiSimplifiedPathSolver2?.visualize()
+    const forceShiftViasViz = this.forceShiftViasSolver?.visualize()
     const problemViz = {
       points: [
         ...this.srj.connections.flatMap((c) =>
@@ -537,6 +548,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
       simplifiedPathSolverViz1,
       uselessViaRemovalViz2,
       simplifiedPathSolverViz2,
+      forceShiftViasViz,
       this.solved
         ? combineVisualizations(
             problemViz,
@@ -610,6 +622,7 @@ export class AutoroutingPipelineSolver extends BaseSolver {
 
   _getOutputHdRoutes(): HighDensityRoute[] {
     return (
+      this.forceShiftViasSolver?.routes ??
       this.multiSimplifiedPathSolver2?.simplifiedHdRoutes ??
       this.uselessViaRemovalSolver2?.getOptimizedHdRoutes() ??
       this.multiSimplifiedPathSolver1?.simplifiedHdRoutes ??
