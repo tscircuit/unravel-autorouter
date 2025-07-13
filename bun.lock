@@ -24,7 +24,7 @@
         "@types/react-dom": "^19.0.3",
         "@vercel/node": "^5.1.7",
         "@vitejs/plugin-react": "^4.3.4",
-        "bun-match-svg": "^0.0.9",
+        "bun-match-svg": "^0.0.12",
         "circuit-json-to-connectivity-map": "^0.0.19",
         "circuit-to-svg": "^0.0.110",
         "clsx": "^2.1.1",
@@ -487,7 +487,7 @@
 
     "buffer": ["buffer@5.7.1", "", { "dependencies": { "base64-js": "^1.3.1", "ieee754": "^1.1.13" } }, "sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ=="],
 
-    "bun-match-svg": ["bun-match-svg@0.0.9", "", { "dependencies": { "looks-same": "^9.0.1" }, "peerDependencies": { "typescript": "^5.0.0" }, "bin": { "bun-match-svg": "cli.ts" } }, "sha512-WISE8cUd3ztIEbYRymuxs+l4qwRviHIhyRQHmDz26vnhKON9g+Ur+2L3pfJrffpGiYWGF/jtWoWmYRQiaimTxg=="],
+    "bun-match-svg": ["bun-match-svg@0.0.12", "", { "dependencies": { "looks-same": "^9.0.1" }, "peerDependencies": { "typescript": "^5.0.0" }, "bin": { "bun-match-svg": "cli.ts" } }, "sha512-qjQtTwRvuqGDe8xza1OEm3OMA4bUEuFDl4i4y1vH9GwdEegqB9x1/H5+AjoRwQUcMmt5kP9bfPdplkBWxmlfWg=="],
 
     "bun-types": ["bun-types@1.2.16", "", { "dependencies": { "@types/node": "*" } }, "sha512-ciXLrHV4PXax9vHvUrkvun9VPVGOVwbbbBF/Ev1cXz12lyEZMoJpIJABOfPcN9gDJRaiKF9MVbSygLg4NXu3/A=="],
 
