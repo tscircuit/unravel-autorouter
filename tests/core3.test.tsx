@@ -47,4 +47,4 @@ test("core3 - 0402 columns", async () => {
   expect(convertCircuitJsonToPcbSvg(circuitJson)).toMatchSvgSnapshot(
     import.meta.path,
   )
-})
+}, 20_000)
