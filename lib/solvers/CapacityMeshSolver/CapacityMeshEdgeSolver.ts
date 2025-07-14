@@ -96,6 +96,14 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
+    const edgeCount = new Map<string, number>()
+
+    for (const edge of this.edges) {
+      for (const nodeId of edge.nodeIds) {
+        edgeCount.set(nodeId, 1 + (edgeCount.get(nodeId) ?? 0))
+      }
+    }
+
     const graphics: GraphicsObject = {
       lines: [],
       points: [],
@@ -120,6 +128,7 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
             `availableZ: ${node.availableZ.join(",")}`,
             `target? ${node._containsTarget ?? false}`,
             `obs? ${node._containsObstacle ?? false}`,
+            `conn: ${edgeCount.get(node.capacityMeshNodeId) ?? 0}`,
           ].join("\n"),
           layer: `z${node.availableZ.join(",")}`,
         }
