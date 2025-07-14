@@ -121,6 +121,7 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
             `target? ${node._containsTarget ?? false}`,
             `obs? ${node._containsObstacle ?? false}`,
           ].join("\n"),
+          layer: `z${node.availableZ.join(",")}`,
         }
       }),
       circles: [],
@@ -146,7 +147,13 @@ export class CapacityMeshEdgeSolver extends BaseSolver {
           x: node2.center.x + lowestZ2 * node2.width * 0.05,
           y: node2.center.y - lowestZ2 * node2.width * 0.05,
         }
+
+        const availableZ = Array.from(
+          new Set([...node1.availableZ, ...node2.availableZ]),
+        ).sort()
+
         graphics.lines!.push({
+          layer: `z${availableZ.join(",")}`,
           points: [nodeCenter1Adj, nodeCenter2Adj],
           strokeDash:
             node1.availableZ.join(",") === node2.availableZ.join(",")
