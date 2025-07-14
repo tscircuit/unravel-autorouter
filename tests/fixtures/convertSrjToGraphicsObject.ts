@@ -10,7 +10,7 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
   const points: Point[] = []
 
   const colorMap: Record<string, string> = getColorMap(srj)
-  const layerCount = 2
+  const layerCount = srj.layerCount ?? 2
 
   // Add points for each connection's pointsToConnect
   if (srj.connections) {
@@ -66,7 +66,9 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
                 bottom: "blue",
                 inner1: "green",
                 inner2: "yellow",
-              }[routePoint.layer]!,
+                inner3: "purple",
+                inner4: "orange",
+              }[routePoint.layer] ?? "black",
               0.5,
             ),
             // For some reason this is too small, likely a graphics-debug bug
