@@ -1,6 +1,11 @@
-import { CapacityMeshEdge, CapacityMeshNode } from "lib/types"
+import {
+  CapacityMeshEdge,
+  CapacityMeshNode,
+  CapacityMeshNodeId,
+} from "lib/types"
 import { BaseSolver } from "../BaseSolver"
 import { GraphicsObject } from "graphics-debug"
+import { safeTransparentize } from "../colors"
 
 export class DeadEndSolver extends BaseSolver {
   public removedNodeIds: Set<string>
@@ -9,6 +14,9 @@ export class DeadEndSolver extends BaseSolver {
   private leaves: string[]
   private leavesIndex: number
   private adjacencyList: Map<string, Set<string>>
+
+  /** Only used for visualization, dynamically instantiated if necessary */
+  nodeMap?: Map<CapacityMeshNodeId, CapacityMeshNode>
 
   // Store the nodes and edges just for visualization purposes
   private nodes: CapacityMeshNode[]
@@ -94,22 +102,46 @@ export class DeadEndSolver extends BaseSolver {
   }
 
   visualize(): GraphicsObject {
+    if (!this.nodeMap) {
+      this.nodeMap = new Map<CapacityMeshNodeId, CapacityMeshNode>()
+      for (const node of this.nodes) {
+        this.nodeMap.set(node.capacityMeshNodeId, node)
+      }
+    }
+
     const graphics: GraphicsObject = {
       lines: [],
       points: [],
-      rects: [],
+      rects: this.nodes.map((node) => {
+        const lowestZ = Math.min(...node.availableZ)
+        return {
+          width: Math.max(node.width - 2, node.width * 0.8),
+          height: Math.max(node.height - 2, node.height * 0.8),
+          center: {
+            x: node.center.x + lowestZ * node.width * 0.05,
+            y: node.center.y - lowestZ * node.width * 0.05,
+          },
+          fill: node._containsObstacle
+            ? "rgba(255,0,0,0.1)"
+            : ({
+                "0,1": "rgba(0,0,0,0.1)",
+                "0": "rgba(0,200,200, 0.1)",
+                "1": "rgba(0,0,200, 0.1)",
+              }[node.availableZ.join(",")] ?? "rgba(0,200,200,0.1)"),
+          label: [
+            node.capacityMeshNodeId,
+            `availableZ: ${node.availableZ.join(",")}`,
+            `target? ${node._containsTarget ?? false}`,
+            `obs? ${node._containsObstacle ?? false}`,
+          ].join("\n"),
+        }
+      }),
       circles: [],
     }
 
     for (const edge of this.edges) {
-      if (!edge.nodeIds.some((nodeId) => this.removedNodeIds.has(nodeId))) {
-        continue
-      }
-
-      const [node1, node2] = edge.nodeIds.map((nodeId) => {
-        return this.nodes.find((node) => node.capacityMeshNodeId === nodeId)
-      })
-
+      const node1 = this.nodeMap.get(edge.nodeIds[0])
+      const node2 = this.nodeMap.get(edge.nodeIds[1])
       if (node1?.center && node2?.center) {
         const lowestZ1 = Math.min(...node1.availableZ)
         const lowestZ2 = Math.min(...node2.availableZ)
@@ -122,8 +154,16 @@ export class DeadEndSolver extends BaseSolver {
           y: node2.center.y - lowestZ2 * node2.width * 0.05,
         }
         graphics.lines!.push({
-          strokeColor: "black",
           points: [nodeCenter1Adj, nodeCenter2Adj],
+          strokeDash:
+            node1.availableZ.join(",") === node2.availableZ.join(",")
+              ? undefined
+              : "10 5",
+          strokeColor: edge.nodeIds.some((nodeId) =>
+            this.removedNodeIds.has(nodeId),
+          )
+            ? safeTransparentize("black", 0.9)
+            : undefined,
         })
       }
     }
