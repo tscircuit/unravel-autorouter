@@ -192,7 +192,7 @@ export class IntraNodeRouteSolver extends BaseSolver {
             )
           : this.solvedRoutes,
         futureConnections: this.unsolvedConnections,
-        layerCount: 2,
+        layerCount: this.nodeWithPortPoints.availableZ?.length ?? 2,
         hyperParameters: this.hyperParameters,
         connMap: this.connMap,
       })

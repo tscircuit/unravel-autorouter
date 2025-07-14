@@ -282,7 +282,7 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
   computeG(node: Node) {
     return (
       (node.parent?.g ?? 0) +
-      (node.z === 0 ? 0 : this.viaPenaltyDistance) +
+      (node.parent && node.z !== node.parent.z ? this.viaPenaltyDistance : 0) +
       distance(node, node.parent!)
     )
   }
@@ -342,26 +342,23 @@ export class SingleHighDensityRouteSolver extends BaseSolver {
       }
     }
 
-    const viaNeighbor = {
-      ...node,
-      parent: node,
-      z: node.z === 0 ? this.layerCount - 1 : 0,
-    }
-
-    if (
-      !this.exploredNodes.has(this.getNodeKey(viaNeighbor)) &&
-      !this.isNodeTooCloseToObstacle(
-        viaNeighbor,
-        this.viaDiameter / 2 + this.obstacleMargin / 2,
-        true,
-      ) &&
-      !this.isNodeTooCloseToEdge(viaNeighbor, true)
-    ) {
-      viaNeighbor.g = this.computeG(viaNeighbor)
-      viaNeighbor.h = this.computeH(viaNeighbor)
-      viaNeighbor.f = this.computeF(viaNeighbor.g, viaNeighbor.h)
-
-      neighbors.push(viaNeighbor)
+    for (let z = 0; z < this.layerCount; z++) {
+      if (z === node.z) continue
+      const viaNeighbor = { ...node, parent: node, z }
+      if (
+        !this.exploredNodes.has(this.getNodeKey(viaNeighbor)) &&
+        !this.isNodeTooCloseToObstacle(
+          viaNeighbor,
+          this.viaDiameter / 2 + this.obstacleMargin / 2,
+          true,
+        ) &&
+        !this.isNodeTooCloseToEdge(viaNeighbor, true)
+      ) {
+        viaNeighbor.g = this.computeG(viaNeighbor)
+        viaNeighbor.h = this.computeH(viaNeighbor)
+        viaNeighbor.f = this.computeF(viaNeighbor.g, viaNeighbor.h)
+        neighbors.push(viaNeighbor)
+      }
     }
 
     return neighbors
