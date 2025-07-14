@@ -66,6 +66,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
   currentHead: Point3
   currentConnectionName: ConnectionName
   currentPath: Point3[]
+  currentViaCount: number
 
   constructor({
     nodeWithPortPoints,
@@ -99,8 +100,6 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     }
 
     // Generate placeholder paths
-    const nodeCenterX = (this.bounds.minX + this.bounds.maxX) / 2
-    const nodeCenterY = (this.bounds.minY + this.bounds.maxY) / 2
     for (const [connectionName, { start, end }] of this.portPairMap.entries()) {
       if (start.z === end.z) {
         const isVertical = Math.abs(start.x - end.x) < 1e-9 // Use tolerance for float comparison
@@ -148,6 +147,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
     const start = this.portPairMap.get(this.currentConnectionName)!.start
     this.currentHead = this._padByNewHeadWallBuffer(start)
     this.currentPath = [start, this.currentHead]
+    this.currentViaCount = 0
     this.placeholderPaths.delete(this.currentConnectionName) // Delete placeholder when we start processing
   }
 
@@ -240,12 +240,22 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
 
     const needsZChange = this.currentHead.z !== targetEnd.z
 
+    if (closestIntersection || needsZChange) {
+      this.currentViaCount++
+
+      // Check if adding this via would exceed the limit
+      if (this.currentViaCount >= this.maxViaCount) {
+        this.failed = true
+        return
+      }
+    }
+
     if (closestIntersection) {
       // --- Intersection Found ---
       let viaXY: Point
       const distToIntersection = closestIntersection.dist
 
-      if (distToIntersection < this.VIA_INTERSECTION_BUFFER_DISTANCE) {
+      if (distToIntersection <= this.VIA_INTERSECTION_BUFFER_DISTANCE + 1e-6) {
         // If intersection is too close, place via at midpoint
         viaXY = midpoint(this.currentHead, closestIntersection.point)
       } else {
@@ -319,6 +329,7 @@ export class ViaPossibilitiesSolver2 extends BaseSolver {
         const { start } = this.portPairMap.get(this.currentConnectionName)!
         this.currentHead = this._padByNewHeadWallBuffer(start)
         this.currentPath = [start, this.currentHead]
+        this.currentViaCount = 0
         this.placeholderPaths.delete(this.currentConnectionName) // Remove placeholder
       }
     }

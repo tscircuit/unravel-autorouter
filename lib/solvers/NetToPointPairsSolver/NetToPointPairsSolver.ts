@@ -36,18 +36,48 @@ export class NetToPointPairsSolver extends BaseSolver {
       return
     }
     const connection = this.unprocessedConnections.pop()!
+
+    // ----------------------------------------------
+    // 1.  Detect externally-connected point groups
+    // ----------------------------------------------
+    const externalGroups = connection.externallyConnectedPointIds ?? []
+    const pointIdToGroup = new Map<string, number>()
+    externalGroups.forEach((group, idx) =>
+      group.forEach((pid) => pointIdToGroup.set(pid, idx)),
+    )
+
+    const areExternallyConnected = (
+      a: { pointId?: string },
+      b: { pointId?: string },
+    ) => {
+      if (!a.pointId || !b.pointId) return false
+      const g1 = pointIdToGroup.get(a.pointId)
+      const g2 = pointIdToGroup.get(b.pointId)
+      return g1 !== undefined && g1 === g2
+    }
+
     if (connection.pointsToConnect.length === 2) {
+      if (
+        areExternallyConnected(
+          connection.pointsToConnect[0],
+          connection.pointsToConnect[1],
+        )
+      ) {
+        // No routing required – they are already connected off-board
+        return
+      }
       this.newConnections.push(connection)
       return
     }
 
     const edges = buildMinimumSpanningTree(connection.pointsToConnect)
 
-    for (let i = 0; i < edges.length; i++) {
-      const edge = edges[i]
+    let mstIdx = 0
+    for (const edge of edges) {
+      if (areExternallyConnected(edge.from, edge.to)) continue
       this.newConnections.push({
         pointsToConnect: [edge.from, edge.to],
-        name: `${connection.name}_mst${i}`,
+        name: `${connection.name}_mst${mstIdx++}`,
       })
     }
   }

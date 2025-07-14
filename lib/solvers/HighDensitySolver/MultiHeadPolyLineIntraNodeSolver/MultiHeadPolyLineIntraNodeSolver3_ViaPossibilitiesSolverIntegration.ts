@@ -48,10 +48,6 @@ export class MultiHeadPolyLineIntraNodeSolver3 extends MultiHeadPolyLineIntraNod
     viaSolver.solve()
 
     if (viaSolver.failed || !viaSolver.solved) {
-      this.failed = true
-      this.error =
-        viaSolver.error ?? "ViaPossibilitiesSolver2 failed to find a solution."
-      console.error(this.error)
       return null
     }
 
