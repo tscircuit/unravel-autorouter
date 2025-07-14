@@ -10,7 +10,7 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
   const points: Point[] = []
 
   const colorMap: Record<string, string> = getColorMap(srj)
-  const layerCount = 2
+  const layerCount = srj.layerCount ?? 2
 
   // Add points for each connection's pointsToConnect
   if (srj.connections) {
@@ -45,7 +45,7 @@ export const convertSrjToGraphicsObject = (srj: SimpleRouteJson) => {
             radius: 0.3, // 0.6 via diameter
             fill: "blue",
             stroke: "none",
-            layer: "z0,1",
+            layer: `z${mapLayerNameToZ(routePoint.from_layer, layerCount)},${mapLayerNameToZ(routePoint.to_layer, layerCount)}`,
           })
         } else if (
           routePoint.route_type === "wire" &&
